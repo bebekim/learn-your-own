@@ -7,8 +7,9 @@ Read:
 1. `AGENTS.md`
 2. `AGENT_LOOP.md`
 3. `docs/beads.md` if available
-4. Relevant files under `docs/`
-5. All Markdown files in `Specs/`
+4. `docs/review-lenses.md` if available
+5. Relevant files under `docs/`
+6. All Markdown files in `Specs/`
 
 ## Goal
 
@@ -20,6 +21,7 @@ code. Do not opportunistically fix unrelated issues.
 - Review both `draft-*` and non-draft specs.
 - Treat `draft-*` specs as not ready unless the content clearly says otherwise.
 - Treat non-draft specs as risky if they still need clarification.
+- Recommend at most three review lenses for each risky spec.
 - Identify dependencies between specs and mirror them as recommended Beads links.
 - Identify missing docs, fixtures, environment variables, credentials, external
   services, migrations, or test commands.
@@ -48,6 +50,7 @@ Write or update `Specs/preflight-report.md` with:
 - summary
 - specs reviewed
 - readiness table
+- recommended review lenses
 - dependency graph
 - Beads sync notes
 - clarification questions

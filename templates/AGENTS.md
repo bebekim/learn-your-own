@@ -9,6 +9,8 @@ This repository uses a learning-oriented agent workflow:
 - Repository docs, tests, templates, and guardrails are functional leverage.
 - Agent work reports to both mission fit and functional quality.
 - Repeated corrections should become docs, checks, specs, skills, or guardrails.
+- Review lenses in `docs/review-lenses.md` classify risk and feedback; use at
+  most three per task.
 
 ## Clarification Guard
 
@@ -97,3 +99,5 @@ For every completed task:
 5. Record unresolved blockers and follow-up work.
 6. Convert reusable review lessons into specs, docs, tests, guardrails, or
    workflow checks.
+7. If a review lens revealed a recurring failure mode, update the smallest
+   reusable artifact that prevents recurrence.

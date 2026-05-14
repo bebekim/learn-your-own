@@ -10,6 +10,7 @@ Recommended files:
 - `style-guide.md`
 - `common-pitfalls.md`
 - `harness-doctor.md`
+- `review-lenses.md`
 
 If a repeated review correction happens, promote it into a doc, test, check,
 spec, or guardrail.

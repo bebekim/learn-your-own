@@ -20,6 +20,12 @@ What should change, and why?
 
 - Observable outcome:
 
+## Review Lenses
+
+Pick at most three from `docs/review-lenses.md`.
+
+- Lens:
+
 ## Test Plan
 
 - Check:
