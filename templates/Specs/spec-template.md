@@ -46,6 +46,20 @@ Pick at most three from `docs/review-lenses.md`.
 
 - Check:
 
+## Guardrails
+
+Required for Databricks, Spark, SQL warehouse, production data, jobs,
+permissions, notebooks, secrets, external sends, HR workflows, or
+customer-impacting actions.
+
+- Plan required: yes | no
+- Plan path:
+- Verifier command:
+- Verifier result:
+- Approval required: yes | no
+- Approval granted: yes | no
+- Blocked findings:
+
 ## Actuals
 
 - Models used:
@@ -54,6 +68,7 @@ Pick at most three from `docs/review-lenses.md`.
 - Outcome:
 - Estimate error:
 - Model routing fit: good | overpowered | underpowered | mismatched | unknown
+- Guardrail outcome:
 - Primary error source:
 - Reusable lesson:
 

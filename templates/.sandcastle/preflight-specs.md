@@ -9,8 +9,9 @@ Read:
 3. `docs/beads.md` if available
 4. `docs/review-lenses.md` if available
 5. `docs/token-calibration.md` if available
-6. Relevant files under `docs/`
-7. All Markdown files in `Specs/`
+6. `docs/guardrails.md` if available
+7. Relevant files under `docs/`
+8. All Markdown files in `Specs/`
 
 ## Goal
 
@@ -26,6 +27,11 @@ code. Do not opportunistically fix unrelated issues.
 - Flag missing token blocks for non-trivial implementation specs.
 - Treat outside-circle-of-competence specs as risky unless they name the
   stakeholder, missing ingredients, and stop condition.
+- For Databricks, Spark, SQL warehouse, production data, job, permission,
+  notebook, secret, external-send, HR, or customer-impacting work, require a
+  `.guardrails/plans/<task-name>.json` plan path and verifier result.
+- Treat specs as `blocked` when required guardrail plans are missing, verifier
+  output failed, or approval is required but not granted.
 - Identify dependencies between specs and mirror them as recommended Beads links.
 - Identify missing docs, fixtures, environment variables, credentials, external
   services, migrations, or test commands.
@@ -56,6 +62,7 @@ Write or update `Specs/preflight-report.md` with:
 - readiness table
 - recommended review lenses
 - token block and competence notes
+- guardrail plan status
 - dependency graph
 - Beads sync notes
 - clarification questions

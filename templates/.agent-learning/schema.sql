@@ -85,6 +85,20 @@ create table if not exists run_reviews (
   created_at timestamp default current_timestamp
 );
 
+create table if not exists run_guardrails (
+  run_id varchar(240) primary key,
+  plan_path text,
+  verifier_command text,
+  verifier_ok boolean,
+  environment varchar(100),
+  risk_level varchar(100),
+  approval_required boolean,
+  approval_granted boolean,
+  blocked_findings text,
+  missing_policy_coverage text,
+  created_at timestamp default current_timestamp
+);
+
 create table if not exists run_missing_ingredients (
   run_id varchar(240) not null,
   ingredient varchar(200) not null,

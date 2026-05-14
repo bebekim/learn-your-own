@@ -7,6 +7,7 @@ Recommended files:
 - `architecture.md`
 - `testing.md`
 - `domain.md`
+- `guardrails.md`
 - `style-guide.md`
 - `common-pitfalls.md`
 - `harness-doctor.md`
