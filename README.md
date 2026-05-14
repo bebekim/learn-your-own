@@ -42,12 +42,36 @@ scripts/install-workflow.sh /path/to/target-repo
 The installer copies generic workflow files only. It does not copy any existing
 project specs or docs into this template.
 
+## Learning Ledger
+
+Initialize a Dolt-backed semantic learning ledger for a workspace:
+
+```sh
+scripts/init-learning-ledger.sh /path/to/workspace work "databricks,spark,sql,python" "databricks-production,spark-sql,secrets,business-review"
+```
+
+Generate a simple report:
+
+```sh
+scripts/agent-learning-report.sh /path/to/workspace
+```
+
+Register the immediate repositories and worktrees in a workspace:
+
+```sh
+scripts/register-repo-contexts.sh /path/to/workspace work
+```
+
+Beads remains the task queue. The ledger stores run observations for
+calibration, model routing, missing ingredients, reviews, and functional
+broadcasts.
+
 ## What To Commit Publicly
 
 Safe to commit:
 
 - `templates/`
-- `scripts/install-workflow.sh`
+- `scripts/`
 - this README
 
 Do not commit:

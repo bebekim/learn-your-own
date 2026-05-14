@@ -34,7 +34,7 @@ copy_tree_files "$template_root/templates"
 if [ -d "$target/.git" ]; then
   exclude="$target/.git/info/exclude"
   touch "$exclude"
-  for pattern in ".beads/" ".omx/" ".agent-assets/" ".beads-credential-key"; do
+  for pattern in ".beads/" ".omx/" ".agent-assets/" ".agent-learning/ledger/" ".beads-credential-key"; do
     if ! grep -qxF "$pattern" "$exclude"; then
       printf '%s\n' "$pattern" >> "$exclude"
     fi
