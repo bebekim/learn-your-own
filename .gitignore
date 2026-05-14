@@ -1,0 +1,6 @@
+.DS_Store
+.omx/
+.beads/
+.agent-assets/
+.beads-credential-key
+*.log

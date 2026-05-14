@@ -1,0 +1,7 @@
+{
+  "type": "generic",
+  "agentImage": "sandcastle:local",
+  "setupCommands": [],
+  "checkCommands": [],
+  "serviceNotes": []
+}

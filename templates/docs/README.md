@@ -1,0 +1,15 @@
+# Docs
+
+Durable repository knowledge belongs here.
+
+Recommended files:
+
+- `architecture.md`
+- `testing.md`
+- `domain.md`
+- `style-guide.md`
+- `common-pitfalls.md`
+- `harness-doctor.md`
+
+If a repeated review correction happens, promote it into a doc, test, check,
+spec, or guardrail.
