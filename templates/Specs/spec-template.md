@@ -32,6 +32,9 @@ Pick at most three from `docs/review-lenses.md`.
 - Maximum tokens:
 - Confidence: low | medium | high
 - Circle of competence: inside | edge | outside
+- Planned model:
+- Planned reasoning effort:
+- Routing reason:
 - Known ingredients:
 - Missing ingredients:
 - Stakeholders:
@@ -45,10 +48,12 @@ Pick at most three from `docs/review-lenses.md`.
 
 ## Actuals
 
+- Models used:
 - Actual tokens:
 - Accepted state transitions:
 - Outcome:
 - Estimate error:
+- Model routing fit: good | overpowered | underpowered | mismatched | unknown
 - Primary error source:
 - Reusable lesson:
 
