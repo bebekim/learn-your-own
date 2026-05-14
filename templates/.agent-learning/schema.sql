@@ -128,3 +128,23 @@ create table if not exists workflow_artifact_versions (
   notes text,
   recorded_at timestamp default current_timestamp
 );
+
+create table if not exists learning_recommendations (
+  recommendation_id varchar(240) primary key,
+  workspace_scope varchar(50) not null,
+  pattern_type varchar(120) not null,
+  pattern_key varchar(240) not null,
+  supporting_run_count int not null,
+  confidence varchar(20) not null,
+  evidence_query text,
+  recommendation text not null,
+  target_layer varchar(80) not null,
+  target_artifact text not null,
+  expected_metric_change text,
+  followup_metric text,
+  review_after_runs int,
+  status varchar(40) default 'proposed',
+  implementation_commit varchar(80),
+  created_at timestamp default current_timestamp,
+  updated_at timestamp default current_timestamp
+);

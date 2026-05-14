@@ -39,3 +39,7 @@ echo
 
 echo "## Functional Broadcasts"
 dolt sql -q "select workspace_scope, target_layer, target_artifact, count(*) as broadcasts from functional_broadcasts group by workspace_scope, target_layer, target_artifact order by broadcasts desc;"
+echo
+
+echo "## Learning Recommendations"
+dolt sql -q "select status, workspace_scope, pattern_type, target_artifact, count(*) as recommendations from learning_recommendations group by status, workspace_scope, pattern_type, target_artifact order by recommendations desc;"

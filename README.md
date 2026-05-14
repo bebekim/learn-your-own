@@ -62,6 +62,13 @@ Register the immediate repositories and worktrees in a workspace:
 scripts/register-repo-contexts.sh /path/to/workspace work
 ```
 
+Generate learning recommendations from repeated run patterns:
+
+```sh
+scripts/learning-review.sh /path/to/workspace
+scripts/learning-review.sh /path/to/workspace --record
+```
+
 Beads remains the task queue. The ledger stores run observations for
 calibration, model routing, missing ingredients, reviews, and functional
 broadcasts.
