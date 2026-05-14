@@ -41,9 +41,13 @@ When a task is large enough to need a budget, define a token block:
 
 - expected tokens
 - maximum tokens
+- confidence
+- circle of competence: inside, edge, or outside
 - expected state transition
 - evidence required to accept the block
 - stop condition if progress stalls
+
+See `docs/token-calibration.md` for the estimate and actuals ledger.
 
 Review token use by progress density, not by cheapness alone:
 
@@ -82,6 +86,7 @@ Broadcast targets include:
 - `AGENT_LOOP.md`
 - `.sandcastle/preflight-specs.md`
 - `docs/review-lenses.md`
+- `docs/token-calibration.md`
 - `Specs/spec-template.md`
 - tests, lint rules, SQL checks, data contracts, or dashboard validations
 

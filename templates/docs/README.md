@@ -11,6 +11,7 @@ Recommended files:
 - `common-pitfalls.md`
 - `harness-doctor.md`
 - `review-lenses.md`
+- `token-calibration.md`
 
 If a repeated review correction happens, promote it into a doc, test, check,
 spec, or guardrail.

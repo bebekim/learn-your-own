@@ -8,8 +8,9 @@ Read:
 2. `AGENT_LOOP.md`
 3. `docs/beads.md` if available
 4. `docs/review-lenses.md` if available
-5. Relevant files under `docs/`
-6. All Markdown files in `Specs/`
+5. `docs/token-calibration.md` if available
+6. Relevant files under `docs/`
+7. All Markdown files in `Specs/`
 
 ## Goal
 
@@ -22,6 +23,9 @@ code. Do not opportunistically fix unrelated issues.
 - Treat `draft-*` specs as not ready unless the content clearly says otherwise.
 - Treat non-draft specs as risky if they still need clarification.
 - Recommend at most three review lenses for each risky spec.
+- Flag missing token blocks for non-trivial implementation specs.
+- Treat outside-circle-of-competence specs as risky unless they name the
+  stakeholder, missing ingredients, and stop condition.
 - Identify dependencies between specs and mirror them as recommended Beads links.
 - Identify missing docs, fixtures, environment variables, credentials, external
   services, migrations, or test commands.
@@ -51,6 +55,7 @@ Write or update `Specs/preflight-report.md` with:
 - specs reviewed
 - readiness table
 - recommended review lenses
+- token block and competence notes
 - dependency graph
 - Beads sync notes
 - clarification questions
