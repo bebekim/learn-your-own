@@ -23,7 +23,13 @@ Options:
 USAGE
 }
 
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+script_path="${BASH_SOURCE[0]}"
+if command -v realpath >/dev/null 2>&1; then
+  script_path="$(realpath "$script_path")"
+elif command -v perl >/dev/null 2>&1; then
+  script_path="$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$script_path")"
+fi
+script_dir="$(cd "$(dirname "$script_path")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
 renderer="$script_dir/lib/render-jinja-template.py"
 
