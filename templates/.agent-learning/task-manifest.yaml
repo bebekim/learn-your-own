@@ -1,0 +1,73 @@
+task:
+  bead_id: ""
+  workspace_scope: "individual"
+  repo_path: ""
+  branch: ""
+  # Optional. Defaults to the workspace-level .beads if present, otherwise repo-local .beads.
+  beads_path: ""
+
+reporting:
+  business_axis: ""
+  functional_axis:
+    area: ""
+    stack:
+      - ""
+    competence_band: ""
+  architecture_context:
+    track: ""
+    business_logic_role: ""
+    functional_change_policy: ""
+
+scope:
+  include:
+    - ""
+  exclude:
+    - ""
+
+guardrails:
+  required:
+    - "local-dev"
+  plan_path: ""
+  verifier_command: ""
+  approval_required: false
+  verifier_ok: true
+  approval_granted: false
+  blocked_findings: ""
+  missing_policy_coverage: ""
+
+model_routing:
+  planned_model: "gpt-5.5"
+  role: "leader"
+  reasoning_effort: "medium"
+  expected_tokens: 0
+  maximum_tokens: 0
+  routing_fit: "fit"
+
+verification:
+  spec_path: ""
+  required_commands:
+    - ""
+
+learning:
+  record_agent_run: true
+  # task-start prints the run_id. Add it here before task-finish, or task-finish will use
+  # the latest open run for this repo context.
+  run_id: ""
+
+completion:
+  actual_tokens: 0
+  outcome: "completed"
+  completed: true
+  close_bead: true
+  primary_error_source: ""
+  reusable_lesson: ""
+  missing_ingredients:
+    - ""
+
+review:
+  review_type: "completion"
+  reviewer: "agent"
+  verdict: ""
+  defects: ""
+  business_outcome: ""
+  functional_outcome: ""

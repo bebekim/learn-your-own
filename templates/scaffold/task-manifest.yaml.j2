@@ -1,0 +1,79 @@
+task:
+  bead_id: "{{ bead_id }}"
+  workspace_scope: "{{ workspace_scope }}"
+  repo_path: "{{ repo_path }}"
+  branch: ""
+  beads_path: "{{ beads_path }}"
+
+reporting:
+  business_axis: ""
+  functional_axis:
+    area: "{{ functional_area }}"
+    stack:
+      - "unknown"
+    competence_band: "{{ competence_band }}"
+  architecture_context:
+    track: "experimental"
+    business_logic_role: "independent"
+    functional_change_policy: "experimental"
+
+scope:
+  include:
+    - "."
+  exclude:
+    - ".git"
+    - ".beads"
+    - ".agent-learning/ledger"
+    - ".omx"
+    - ".venv"
+    - ".pytest_cache"
+    - ".ruff_cache"
+    - ".uv-cache"
+
+guardrails:
+  required:
+    - "local-dev"
+    - "tests"
+    - "personal-projects"
+  plan_path: ""
+  verifier_command: ""
+  approval_required: false
+  verifier_ok: true
+  approval_granted: false
+  blocked_findings: ""
+  missing_policy_coverage: ""
+
+model_routing:
+  planned_model: "{{ planned_model }}"
+  role: "leader"
+  reasoning_effort: "{{ reasoning_effort }}"
+  expected_tokens: {{ expected_tokens }}
+  maximum_tokens: {{ maximum_tokens }}
+  routing_fit: "fit"
+
+verification:
+  spec_path: ""
+  required_commands:
+    - ""
+
+learning:
+  record_agent_run: true
+  run_id: ""
+
+completion:
+  actual_tokens: 0
+  outcome: "completed"
+  completed: true
+  close_bead: true
+  primary_error_source: ""
+  reusable_lesson: ""
+  missing_ingredients:
+    - ""
+
+review:
+  review_type: "completion"
+  reviewer: "agent"
+  verdict: ""
+  defects: ""
+  business_outcome: ""
+  functional_outcome: ""

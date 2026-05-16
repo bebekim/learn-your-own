@@ -24,6 +24,9 @@ copy_if_missing() {
 copy_tree_files() {
   local base="$1"
   find "$base" -type f | while read -r src; do
+    case "$src" in
+      "$template_root/templates/scaffold/"*) continue ;;
+    esac
     rel="${src#$template_root/templates/}"
     copy_if_missing "$src" "$target/$rel"
   done
@@ -45,4 +48,4 @@ echo
 echo "Workflow installed. Next:"
 echo "1. Review AGENTS.md and AGENT_LOOP.md."
 echo "2. Add repo-specific docs under docs/."
-echo "3. Initialize Beads if desired: bd init --stealth --non-interactive --skip-agents"
+echo "3. Initialize Beads if desired: bd init --non-interactive --skip-agents && bd setup codex"

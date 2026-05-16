@@ -27,6 +27,18 @@ repo_family_for() {
   esac
 }
 
+ignored_repo_dir() {
+  local name="$1"
+  case "$name" in
+    .git|.beads|.agent-learning|.claude|.codex|.omx|.sandcastle|.venv|.pytest_cache|.ruff_cache|.uv-cache|.night-shift|.data-guardrails)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 stack_for() {
   local repo_path="$1"
   local scope="$2"
@@ -69,14 +81,13 @@ risk_for() {
 }
 
 cd "$ledger_dir"
+dolt sql -q "delete from repo_contexts where workspace_scope = '$(sql_escape "$scope")' and repo_family in ('.git', '.beads', '.agent-learning', '.claude', '.codex', '.omx', '.sandcastle', '.venv', '.pytest_cache', '.ruff_cache', '.uv-cache');"
 
 find "$workspace" -maxdepth 1 -mindepth 1 -type d | sort | while read -r repo_path; do
   name="$(basename "$repo_path")"
-  case "$name" in
-    .agent-learning|.omx|.sandcastle|.venv|.night-shift|.data-guardrails)
-      continue
-      ;;
-  esac
+  if ignored_repo_dir "$name"; then
+    continue
+  fi
 
   if ! git -C "$repo_path" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     continue

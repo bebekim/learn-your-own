@@ -1,0 +1,35 @@
+# {{ repo_name }} Agent Instructions
+
+This repository is an agent-managed workspace created by `mkdir-agentic`.
+
+## Inheritance
+
+This file is repo-local. It inherits broader operating rules from parent
+`AGENTS.md` files in this order when those files exist:
+
+{{ inherited_agents }}
+
+Keep durable behavior and workspace policy in parent `AGENTS.md` files. Keep
+this file focused on repo-specific facts, commands, and constraints.
+
+## Repo Context
+
+- Workspace scope: `{{ workspace_scope }}`
+- Repo path: `{{ repo_path }}`
+- Beads workspace: `{{ beads_path }}`
+- Active manifest: `.agent-learning/task-manifest.yaml`
+- Initial Bead: `{{ bead_id }}`
+
+## Operating Rules
+
+- Use the task manifest as the task execution contract.
+- Use Beads for task identity, status, ownership, and dependencies.
+- Use specs for human-readable correctness criteria.
+- Use guardrails for risky-action permission boundaries.
+- Use the Dolt ledger for observed run facts and reusable learning.
+
+## Verification
+
+Record task-specific commands in `.agent-learning/task-manifest.yaml` under
+`verification.required_commands`. Do not claim completion without fresh
+evidence or an explicit validation gap.

@@ -62,6 +62,37 @@ Register the immediate repositories and worktrees in a workspace:
 scripts/register-repo-contexts.sh /path/to/workspace work
 ```
 
+Create a new agent-managed repo folder in one command:
+
+```sh
+scripts/mkdir-agentic.sh ~/repositories/individual/synthetic-persona
+```
+
+This creates the folder, initializes Git, installs workflow files, ensures the
+workspace ledger exists, initializes shared Beads with `bd init --skip-agents`,
+installs Codex Beads guidance with `bd setup codex`, creates an initial Bead,
+writes `.agent-learning/task-manifest.yaml`, registers the repo context, and
+starts the first observable run. Use `--no-start` to stop after manifest
+creation.
+
+Generated repo-local files are rendered from Jinja-style templates in
+`templates/scaffold/`. The repo `AGENTS.md` stays thin: it documents the parent
+instruction hierarchy and repo-specific context instead of duplicating global or
+workspace policy.
+
+Start and finish an observable task run from a manifest:
+
+```sh
+cp templates/.agent-learning/task-manifest.yaml /path/to/task-manifest.yaml
+$EDITOR /path/to/task-manifest.yaml
+scripts/task-start.sh /path/to/task-manifest.yaml
+scripts/task-finish.sh /path/to/task-manifest.yaml
+```
+
+The manifest is the execution contract. Beads owns task identity/status, the
+manifest owns task-instance scope and planned execution, specs own correctness,
+guardrails own permission boundaries, and Dolt owns observed run facts.
+
 Generate learning recommendations from repeated run patterns:
 
 ```sh
