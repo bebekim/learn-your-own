@@ -92,3 +92,20 @@ Broadcast targets include:
 
 Do not broadcast task-specific facts, secrets, customer data, private business
 context, or speculative conclusions.
+
+### Broadcast Learning Lifecycle
+
+Treat broadcast learning as a lifecycle, not a one-time note:
+
+1. **Encode** the accepted lesson into a concrete system artifact: prompt rule,
+   skill update, guardrail, routing hint, test, data contract, schema, or
+   checklist.
+2. **Propagate** the encoded lesson only to contexts that match its delivery
+   rule.
+3. **Record delivery** when a future run sees the broadcast.
+4. **Evaluate effect** after later runs show whether the broadcast improved
+   outcomes, created regressions, or became stale.
+
+Do not count a broadcast as learned merely because it was delivered. Delivery
+means the agent saw it. Effect evaluation means the system has evidence about
+whether it helped.

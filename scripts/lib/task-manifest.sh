@@ -73,6 +73,28 @@ require_value() {
   fi
 }
 
+sql_bool_or_null() {
+  case "${1:-}" in
+    true|TRUE|True|1|yes|YES|Yes) printf "true" ;;
+    false|FALSE|False|0|no|NO|No) printf "false" ;;
+    *) printf "null" ;;
+  esac
+}
+
+sql_int_or_null() {
+  case "${1:-}" in
+    ''|*[!0-9-]*) printf "null" ;;
+    *) printf "%s" "$1" ;;
+  esac
+}
+
+sql_float_or_null() {
+  case "${1:-}" in
+    ''|*[!0-9.-]*) printf "null" ;;
+    *) printf "%s" "$1" ;;
+  esac
+}
+
 find_workspace_for_repo() {
   local repo_path="$1"
   local current="$repo_path"

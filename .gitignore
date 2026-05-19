@@ -4,3 +4,5 @@
 .agent-assets/
 .beads-credential-key
 *.log
+__pycache__/
+*.pyc

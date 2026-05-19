@@ -38,7 +38,15 @@ dolt sql -q "select ingredient, count(*) as occurrences from run_missing_ingredi
 echo
 
 echo "## Functional Broadcasts"
-dolt sql -q "select workspace_scope, target_layer, target_artifact, count(*) as broadcasts from functional_broadcasts group by workspace_scope, target_layer, target_artifact order by broadcasts desc;"
+dolt sql -q "select workspace_scope, target_layer, target_artifact, status, count(*) as broadcasts from functional_broadcasts group by workspace_scope, target_layer, target_artifact, status order by broadcasts desc;"
+echo
+
+echo "## Broadcast Deliveries"
+dolt sql -q "select workspace_scope, delivery_surface, delivery_result, count(*) as deliveries from broadcast_deliveries group by workspace_scope, delivery_surface, delivery_result order by deliveries desc;"
+echo
+
+echo "## Broadcast Effect Evaluations"
+dolt sql -q "select workspace_scope, effect_verdict, recommended_action, count(*) as evaluations from broadcast_effect_evaluations group by workspace_scope, effect_verdict, recommended_action order by evaluations desc;"
 echo
 
 echo "## Learning Recommendations"

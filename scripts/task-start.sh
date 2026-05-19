@@ -32,6 +32,18 @@ eval "$(manifest_values "$manifest" \
   guardrails.verifier_command \
   guardrails.approval_required \
   verification.spec_path \
+  recording.goal.summary \
+  recording.goal.success_criteria \
+  recording.goal.stop_condition \
+  recording.goal.expected_process \
+  recording.goal.risk_class \
+  recording.execution.task_shape \
+  recording.execution.functional_axis \
+  recording.execution.domain_axis \
+  recording.execution.stack \
+  recording.execution.tools_used \
+  recording.execution.files_touched \
+  recording.execution.commands_run \
   learning.record_agent_run)"
 
 bead_id="$TASK_BEAD_ID"
@@ -53,6 +65,18 @@ guardrail_plan_path="$GUARDRAILS_PLAN_PATH"
 guardrail_verifier="$GUARDRAILS_VERIFIER_COMMAND"
 approval_required="${GUARDRAILS_APPROVAL_REQUIRED:-false}"
 spec_path="$VERIFICATION_SPEC_PATH"
+recorded_goal="${RECORDING_GOAL_SUMMARY:-}"
+success_criteria="$RECORDING_GOAL_SUCCESS_CRITERIA"
+stop_condition="$RECORDING_GOAL_STOP_CONDITION"
+expected_process="$RECORDING_GOAL_EXPECTED_PROCESS"
+risk_class="$RECORDING_GOAL_RISK_CLASS"
+recorded_task_shape="${RECORDING_EXECUTION_TASK_SHAPE:-$functional_axis}"
+recorded_functional_axis="${RECORDING_EXECUTION_FUNCTIONAL_AXIS:-$functional_axis}"
+domain_axis="$RECORDING_EXECUTION_DOMAIN_AXIS"
+recorded_stack="$RECORDING_EXECUTION_STACK"
+tools_used="$RECORDING_EXECUTION_TOOLS_USED"
+files_touched="$RECORDING_EXECUTION_FILES_TOUCHED"
+commands_run="$RECORDING_EXECUTION_COMMANDS_RUN"
 record_agent_run="${LEARNING_RECORD_AGENT_RUN:-true}"
 
 require_value "task.bead_id" "$bead_id"
@@ -122,10 +146,13 @@ if [ -n "$dirty" ]; then
 fi
 
 run_id="${workspace_scope}:${bead_id}:$(date -u +%Y%m%dT%H%M%SZ):$$"
+recorded_goal="${recorded_goal:-Task $bead_id}"
 
 cd "$ledger_dir"
 dolt sql -q "replace into repo_contexts (context_id, workspace_scope, repo_family, repo_path, branch, current_commit, bead_id, spec_path, updated_at) values ('$(sql_escape "$context_id")', '$(sql_escape "$workspace_scope")', '$(sql_escape "$repo_family")', '$(sql_escape "$repo_path")', '$(sql_escape "$branch")', '$(sql_escape "$current_commit")', '$(sql_escape "$bead_id")', '$(sql_escape "$spec_path")', current_timestamp);"
 dolt sql -q "insert into agent_runs (run_id, context_id, workspace_scope, repo_family, task_shape, circle_of_competence, expected_tokens, maximum_tokens, completed, trace_ref, started_at) values ('$(sql_escape "$run_id")', '$(sql_escape "$context_id")', '$(sql_escape "$workspace_scope")', '$(sql_escape "$repo_family")', '$(sql_escape "$functional_axis")', '$(sql_escape "$competence_band")', $expected_tokens, $maximum_tokens, false, '$(sql_escape "$manifest")', current_timestamp);"
+dolt sql -q "replace into run_goals (run_id, goal, success_criteria, stop_condition, expected_process, risk_class) values ('$(sql_escape "$run_id")', '$(sql_escape "$recorded_goal")', '$(sql_escape "$success_criteria")', '$(sql_escape "$stop_condition")', '$(sql_escape "$expected_process")', '$(sql_escape "$risk_class")');"
+dolt sql -q "replace into run_execution_contexts (run_id, task_shape, functional_axis, domain_axis, stack, tools_used, files_touched, commands_run, updated_at) values ('$(sql_escape "$run_id")', '$(sql_escape "$recorded_task_shape")', '$(sql_escape "$recorded_functional_axis")', '$(sql_escape "$domain_axis")', '$(sql_escape "$recorded_stack")', '$(sql_escape "$tools_used")', '$(sql_escape "$files_touched")', '$(sql_escape "$commands_run")', current_timestamp);"
 dolt sql -q "replace into run_models (run_id, model, role, reasoning_effort, routing_fit, notes) values ('$(sql_escape "$run_id")', '$(sql_escape "$planned_model")', '$(sql_escape "$model_role")', '$(sql_escape "$reasoning_effort")', 'planned', 'planned at task start');"
 dolt sql -q "replace into run_guardrails (run_id, plan_path, verifier_command, verifier_ok, risk_level, approval_required, approval_granted, missing_policy_coverage) values ('$(sql_escape "$run_id")', '$(sql_escape "$guardrail_plan_path")', '$(sql_escape "$guardrail_verifier")', null, '$(sql_escape "$guardrail_required")', $approval_required, false, null);"
 commit_ledger_if_changed "Start agent run $run_id"

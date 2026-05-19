@@ -32,6 +32,8 @@ fi
 script_dir="$(cd "$(dirname "$script_path")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
 renderer="$script_dir/lib/render-jinja-template.py"
+# shellcheck source=lib/task-manifest.sh
+source "$script_dir/lib/task-manifest.sh"
 
 workspace=""
 scope=""
@@ -135,6 +137,16 @@ had_agents="false"
 if [ -e "$repo_path/AGENTS.md" ]; then
   had_agents="true"
 fi
+manifest_dir="$repo_path/.agent-learning"
+manifest="$manifest_dir/task-manifest.yaml"
+had_manifest="false"
+if [ -e "$manifest" ]; then
+  had_manifest="true"
+  if [ -z "$bead_id" ]; then
+    eval "$(manifest_values "$manifest" task.bead_id)"
+    bead_id="$TASK_BEAD_ID"
+  fi
+fi
 
 if [ ! -d "$repo_path/.git" ]; then
   git -C "$repo_path" init
@@ -148,8 +160,10 @@ fi
 
 if [ ! -d "$workspace/.beads" ]; then
   (cd "$workspace" && bd init --non-interactive --skip-agents)
+  (cd "$workspace" && bd setup codex)
+else
+  echo "exists: ${workspace}/.beads"
 fi
-(cd "$workspace" && bd setup codex)
 
 if [ -z "$bead_id" ]; then
   bead_id="$(cd "$workspace" && bd create --silent --title "$title" --type task --description "Initial agentic setup for $repo_path")"
@@ -182,10 +196,12 @@ if [ "$had_agents" = "false" ]; then
   render_template "$repo_root/templates/scaffold/AGENTS.md.j2" "$repo_path/AGENTS.md"
 fi
 
-manifest_dir="$repo_path/.agent-learning"
-manifest="$manifest_dir/task-manifest.yaml"
 mkdir -p "$manifest_dir"
-render_template "$repo_root/templates/scaffold/task-manifest.yaml.j2" "$manifest"
+if [ "$had_manifest" = "false" ]; then
+  render_template "$repo_root/templates/scaffold/task-manifest.yaml.j2" "$manifest"
+else
+  echo "exists: ${manifest#$repo_path/}"
+fi
 
 "$script_dir/register-repo-contexts.sh" "$workspace" "$scope"
 

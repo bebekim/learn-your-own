@@ -70,6 +70,27 @@ Then record the harness update made:
 - Bead dependency
 - none, one-off
 
+## Run Recording
+
+Before trying to derive reusable lessons, preserve the evidence of the run.
+Record the declared goal, observed execution context, model usage, verification
+results, and compact trace events in the task manifest so the Dolt ledger can
+capture what happened without immediately deciding what should change.
+
+Keep this layer descriptive:
+
+- goal and stop condition
+- expected process and risk class
+- task shape, functional axis, domain axis, stack, tools, files, and commands
+- models used, roles, reasoning effort, tokens, cost, latency, routing reason,
+  and escalation path when known
+- tests, checks, verification result, defects, corrections, missing ingredients,
+  and guardrail outcome
+- important events and state transitions
+
+Reusable lessons, broadcasts, and channeled domain rules come later, after the
+recorded evidence supports a gap between practice and goal.
+
 ## Completion Report
 
 When there are no ready tasks left, report:

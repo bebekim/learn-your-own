@@ -49,6 +49,29 @@ create table if not exists agent_runs (
   created_at timestamp default current_timestamp
 );
 
+create table if not exists run_goals (
+  run_id varchar(240) primary key,
+  goal text not null,
+  success_criteria text,
+  stop_condition text,
+  expected_process text,
+  risk_class varchar(80),
+  created_at timestamp default current_timestamp
+);
+
+create table if not exists run_execution_contexts (
+  run_id varchar(240) primary key,
+  task_shape varchar(100),
+  functional_axis varchar(200),
+  domain_axis varchar(200),
+  stack text,
+  tools_used text,
+  files_touched text,
+  commands_run text,
+  created_at timestamp default current_timestamp,
+  updated_at timestamp default current_timestamp
+);
+
 create table if not exists run_models (
   run_id varchar(240) not null,
   model varchar(120) not null,
@@ -62,6 +85,26 @@ create table if not exists run_models (
   primary key (run_id, model, role)
 );
 
+create table if not exists run_model_usage (
+  usage_id varchar(300) primary key,
+  run_id varchar(240) not null,
+  model varchar(120) not null,
+  provider varchar(120),
+  role varchar(100),
+  reasoning_effort varchar(50),
+  local_or_remote varchar(50),
+  input_tokens int,
+  output_tokens int,
+  total_tokens int,
+  estimated_cost double,
+  latency_ms int,
+  escalated_from varchar(120),
+  escalated_to varchar(120),
+  routing_reason text,
+  routing_fit varchar(50),
+  created_at timestamp default current_timestamp
+);
+
 create table if not exists run_state_transitions (
   run_id varchar(240) not null,
   transition_index int not null,
@@ -71,6 +114,18 @@ create table if not exists run_state_transitions (
   accepted boolean default false,
   created_at timestamp default current_timestamp,
   primary key (run_id, transition_index)
+);
+
+create table if not exists run_trace_events (
+  event_id varchar(300) primary key,
+  run_id varchar(240) not null,
+  event_index int not null,
+  event_type varchar(80) not null,
+  summary text not null,
+  from_state varchar(100),
+  to_state varchar(100),
+  evidence text,
+  created_at timestamp default current_timestamp
 );
 
 create table if not exists run_reviews (
@@ -83,6 +138,20 @@ create table if not exists run_reviews (
   business_outcome text,
   functional_outcome text,
   created_at timestamp default current_timestamp
+);
+
+create table if not exists run_verification_results (
+  run_id varchar(240) primary key,
+  tests_run text,
+  checks_run text,
+  verification_passed boolean,
+  review_verdict varchar(100),
+  defects text,
+  human_corrections text,
+  missing_ingredients text,
+  guardrail_result text,
+  created_at timestamp default current_timestamp,
+  updated_at timestamp default current_timestamp
 );
 
 create table if not exists run_guardrails (
@@ -115,8 +184,40 @@ create table if not exists functional_broadcasts (
   target_layer varchar(80) not null,
   target_artifact text not null,
   lesson text not null,
+  encoded_artifact_type varchar(80),
+  encoded_change text,
+  propagation_rule text,
+  evaluation_metric text,
+  status varchar(40) default 'encoded',
   change_commit varchar(80),
   created_at timestamp default current_timestamp
+);
+
+create table if not exists broadcast_deliveries (
+  delivery_id varchar(300) primary key,
+  broadcast_id varchar(240) not null,
+  run_id varchar(240),
+  context_id varchar(240),
+  workspace_scope varchar(50) not null,
+  delivery_surface varchar(120) not null,
+  matched_context text,
+  agent_seen boolean,
+  delivery_result varchar(80),
+  delivered_at timestamp default current_timestamp
+);
+
+create table if not exists broadcast_effect_evaluations (
+  evaluation_id varchar(300) primary key,
+  broadcast_id varchar(240) not null,
+  evaluator_run_id varchar(240),
+  workspace_scope varchar(50) not null,
+  evaluation_window_runs int,
+  effect_verdict varchar(50) not null,
+  metric_before double,
+  metric_after double,
+  evidence text,
+  recommended_action varchar(80),
+  evaluated_at timestamp default current_timestamp
 );
 
 create table if not exists workflow_artifact_versions (
