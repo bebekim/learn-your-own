@@ -1,8 +1,16 @@
 .DS_Store
-.omx/
-.beads/
-.agent-assets/
-.beads-credential-key
 *.log
 __pycache__/
 *.pyc
+node_modules/
+
+# Local agent/runtime state
+/.agent-learning/
+/.beads/
+/.codex/
+/.omx/
+/.agent-assets/
+/.beads-credential-key
+
+# Generated package artifacts
+/dist/

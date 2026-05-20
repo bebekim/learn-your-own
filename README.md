@@ -1,188 +1,190 @@
-# Agent Learning Workflow
+# Agent Learning Reducer Kernel
 
-A sanitized template for turning agent-assisted coding into a learning system.
+Tiny local reducer kernel for evidence-backed agent learning experiments.
 
-This repository contains only reusable workflow machinery:
-
-- Beads-first task selection
-- spec preflight
-- isolated Night Shift execution prompts
-- morning-review learning loop
-- guardrail and authority-conflict rules
-- lightweight workflow checks
-
-It intentionally does not contain project specs, company docs, Jira tickets,
-customer names, production identifiers, secrets, or business-specific data.
-
-## Mental Model
-
-The workflow is a cybernetic loop:
+This package is not an agent, orchestrator, memory daemon, or workflow template.
+It is a small grammar of permitted learning-state transitions backed by
+SQLite.
 
 ```text
-environment signal
--> spec / Bead
--> preflight
--> agent implementation
--> checks
--> morning review
--> codified lesson
+hook or adapter event
+-> reducer call
+-> SQLite state
+-> future reducer/query/overlay
 ```
 
-The important move is the final one. Repeated corrections become specs, docs,
-tests, guardrails, or workflow checks so future runs behave differently.
+## Status
 
-## Install Into A Repo
+Prototype. The `0.1.x` line is intentionally unstable and local-first.
 
-From this template repo:
+Current useful pieces:
+
+- SQLite initialization through `learn init`.
+- Codex hook event capture through `learn codex-hook`.
+- Session, prompt-boundary, run-start, and run-finish recording.
+- Model/provider/token/cost call logging through `learn model-call record`.
+- Evidence-gated protocol promotion demo.
+- Protocol resolution and outcome credit scoring.
+
+Not yet mature:
+
+- schema migrations
+- Claude or Emacs adapters
+- event/fact substrate implementation
+- automatic gap interpretation
+- durable grammar-change reducers
+- stable API guarantees
+
+## Install
 
 ```sh
-scripts/install-workflow.sh /path/to/target-repo
+npm install agent-learning-reducer-kernel
 ```
 
-The installer copies generic workflow files only. It does not copy any existing
-project specs or docs into this template.
+Requires Node.js 24+ for `node:sqlite`.
 
-## Learning Ledger
-
-Initialize a Dolt-backed semantic learning ledger for a workspace:
+## CLI
 
 ```sh
-scripts/init-learning-ledger.sh /path/to/workspace work "databricks,spark,sql,python" "databricks-production,spark-sql,secrets,business-review"
+learn init --db .agent-learning/learning.sqlite
+learn codex-hook --db .agent-learning/learning.sqlite
+learn session-start --db .agent-learning/learning.sqlite --session-id "$CODEX_SESSION_ID" --platform codex
+learn run-start --db .agent-learning/learning.sqlite --run-id "run-1" --task-shape "local-dev" --channel "agent.task"
+learn record-prompt --db .agent-learning/learning.sqlite --session-id "$CODEX_SESSION_ID" --role user --kind user_prompt --summary "sanitized prompt summary"
+learn model-call record --db .agent-learning/learning.sqlite --provider openai --model gpt-5.5 --model-lane frontier --input-tokens 1200 --output-tokens 500 --estimated-cost 0.04 --latency-ms 8400 --status completed
+learn run-finish --db .agent-learning/learning.sqlite --run-id "run-1" --status completed
+learn report --db .agent-learning/learning.sqlite
+learn demo fixture-replay --db :memory:
 ```
 
-Generate a simple report:
+## API
+
+```ts
+import {
+  createKernel,
+  initLedger,
+  recordRun,
+  recordGap,
+  proposeProtocol,
+  promoteProtocol,
+  resolveProtocol,
+  recordOutcome,
+  recordModelCall,
+  getModelCallSummary,
+  getCredit,
+} from 'agent-learning-reducer-kernel';
+
+const kernel = createKernel({ dbPath: '.agent-learning/learning.sqlite' });
+initLedger(kernel);
+
+recordModelCall(kernel, {
+  provider: 'openai',
+  model: 'gpt-5.5',
+  modelLane: 'frontier',
+  promptRef: '.agent-learning/prompts/turn-1-user.txt',
+  inputTokens: 1200,
+  outputTokens: 500,
+  estimatedCost: 0.04,
+  latencyMs: 8400,
+  status: 'completed',
+});
+```
+
+## Reducer Model
+
+Reducers are the grammar used to speak with the database. They are not just
+insert helpers. They define permitted state transitions and reject unsupported
+claims.
+
+The current small grammar includes:
+
+- `recordSessionStarted`
+- `recordPromptBoundary`
+- `recordModelCall`
+- `recordRun`
+- `finishRun`
+- `recordGap`
+- `proposeProtocol`
+- `promoteProtocol`
+- `resolveProtocol`
+- `recordOutcome`
+
+The demo loop is:
+
+```text
+run fails without fixture replay
+-> gap is recorded
+-> protocol is proposed
+-> first promotion is rejected because evidence is insufficient
+-> second matching gap supplies evidence
+-> protocol becomes active
+-> future matching run resolves the protocol
+-> outcome records whether it helped
+-> adaptive credit changes
+```
+
+## Event/Fact Direction
+
+The reducer grammar should evolve. A fixed relational schema is too narrow as
+the only learning substrate, because early lessons often reveal facts the
+current grammar cannot express yet.
+
+SQLite stays as the local durable store, but the durable core should become an
+append-only event/fact store:
+
+```text
+reducer call
+-> event/fact row with reducer name, grammar version, subject, and JSON payload
+-> relational projection for stable, query-heavy concepts
+```
+
+Tables such as `agent_sessions`, `session_prompts`, `runs`, `protocols`, and
+`outcomes` should be treated as stable projections, not the only truth. New
+grammar should start as flexible recorded facts, then graduate into typed
+reducers, indexed columns, and invariants after repeated evidence proves the
+distinction matters.
+
+## Codex Hook
+
+`learn codex-hook` reads Codex hook JSON from stdin, records a redacted event,
+records session/prompt/assistant boundaries where applicable, resolves matching
+active protocols, and returns Codex-compatible JSON.
+
+Example:
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "learn codex-hook --db-from-event-cwd --prompt-dir-from-event-cwd",
+            "statusMessage": "Recording learning event"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+For a global Codex hook, prefer `--db-from-event-cwd` and
+`--prompt-dir-from-event-cwd`. That keeps one hook installed in Codex while
+writing each workspace to its own `.agent-learning/learning.sqlite`.
+
+The hook adapter does not store raw prompts or assistant messages in SQLite by
+default. It records hashes, lengths, summaries, and optional file refs. Use
+`--prompt-dir` only when local prompt blobs are explicitly allowed.
+
+## Development
 
 ```sh
-scripts/agent-learning-report.sh /path/to/workspace
+node --test
+node scripts/pack-npm.mjs
 ```
 
-Register the immediate repositories and worktrees in a workspace:
+Generated tarballs and staging files live under `dist/` and are ignored.
 
-```sh
-scripts/register-repo-contexts.sh /path/to/workspace work
-```
-
-Create a new agent-managed repo folder in one command:
-
-```sh
-scripts/mkdir-agentic.sh ~/repositories/individual/synthetic-persona
-```
-
-This creates the folder, initializes Git, installs workflow files, ensures the
-workspace ledger exists, initializes shared Beads with `bd init --skip-agents`,
-installs Codex Beads guidance with `bd setup codex`, creates an initial Bead,
-writes `.agent-learning/task-manifest.yaml`, registers the repo context, and
-starts the first observable run. Use `--no-start` to stop after manifest
-creation.
-
-Generated repo-local files are rendered from Jinja-style templates in
-`templates/scaffold/`. The repo `AGENTS.md` stays thin: it documents the parent
-instruction hierarchy and repo-specific context instead of duplicating global or
-workspace policy.
-
-Start and finish an observable task run from a manifest:
-
-```sh
-cp templates/.agent-learning/task-manifest.yaml /path/to/task-manifest.yaml
-$EDITOR /path/to/task-manifest.yaml
-scripts/task-start.sh /path/to/task-manifest.yaml
-scripts/task-finish.sh /path/to/task-manifest.yaml
-```
-
-The manifest is the execution contract. Beads owns task identity/status, the
-manifest owns task-instance scope and planned execution, specs own correctness,
-guardrails own permission boundaries, and Dolt owns observed run facts.
-
-## Recording Before Learning
-
-The first learning primitive is a run recorder, not an automatic lesson engine.
-Each observable run should capture:
-
-- run identity: workspace, repo family, branch, commit, Bead, and spec
-- goal: success criteria, expected process, stop condition, and risk class
-- execution context: task shape, functional/domain axes, stack, tools, files,
-  and commands
-- model usage: model, role, reasoning effort, token counts, cost, latency,
-  routing reason, and escalation path when known
-- outcome: tests, checks, verification result, review findings, corrections,
-  missing ingredients, and guardrail result
-- compact trace: important events and state transitions
-
-This evidence is deliberately descriptive. Gap detection, lesson promotion, and
-broadcast delivery should be built on top of these records instead of being
-mixed into the raw capture step.
-
-## OpenClaw Skills
-
-This workflow is packaged as three cybernetic skill surfaces:
-
-- `agent-observer`: records what happened.
-- `agent-gap-interpreter`: compares goal and practice to identify gaps.
-- `agent-adaptation-propagator`: encodes approved adaptations and routes them
-  to future contexts.
-
-Only `agent-observer` is operational in the current recording-first phase. The
-other two skills define the next learning boundaries without activating lesson
-promotion or broadcast delivery yet.
-
-## Platform Boundary
-
-The current executable runtime is a POSIX shell adapter intended for macOS,
-Linux, and Windows through WSL or a compatible Unix-like shell. Native Windows
-PowerShell/CMD support is not part of the current runtime contract.
-
-The stable contract is the skill boundary, task manifest shape, and Dolt ledger
-schema. Keep those platform-neutral. Future releases may replace the shell
-adapter with a portable CLI while preserving the same observer, gap interpreter,
-and adaptation propagator workflow.
-
-Generate learning recommendations from repeated run patterns:
-
-```sh
-scripts/learning-review.sh /path/to/workspace
-scripts/learning-review.sh /path/to/workspace --record
-```
-
-Beads remains the task queue. The ledger stores run observations for
-calibration, model routing, missing ingredients, reviews, and functional
-broadcasts.
-
-## Broadcast Learning
-
-Recording, reviewing, and broadcasting are separate learning phases:
-
-1. `agent-observer`: observe runs and record evidence.
-2. `agent-gap-interpreter`: compare evidence to goals and identify gaps.
-3. `agent-adaptation-propagator`: encode accepted adaptations, deliver them to
-   future matching contexts, and evaluate whether they helped.
-
-A broadcast is not just a sentence in a report. It should be recorded as:
-
-- an encoded change: prompt rule, skill update, guardrail, test, routing hint,
-  schema, or checklist item
-- a propagation rule: which workspace, repo family, task shape, domain axis, or
-  tool context should receive it
-- delivery receipts: which future runs saw the broadcast and where it was
-  surfaced
-- effect evaluation: whether later runs improved, regressed, or showed the
-  lesson was stale
-
-This keeps the system from accumulating confident but untested rules. Delivery
-answers "did the future agent see the lesson?" Evaluation answers "did seeing it
-make future work better?"
-
-## What To Commit Publicly
-
-Safe to commit:
-
-- `templates/`
-- `scripts/`
-- this README
-
-Do not commit:
-
-- generated target-repo specs
-- private Beads databases
-- company docs
-- secrets or credential-bearing files
-- customer or production identifiers
+## Future Work
