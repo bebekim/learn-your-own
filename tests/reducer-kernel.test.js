@@ -19,7 +19,7 @@ import {
 } from '../src/index.ts';
 
 function tempDb() {
-  const dir = mkdtempSync(join(tmpdir(), 'learn-kernel-'));
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-kernel-'));
   return {
     dir,
     dbPath: join(dir, 'learning.sqlite'),

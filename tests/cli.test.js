@@ -7,8 +7,8 @@ import test from 'node:test';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 
-test('learn init creates a SQLite ledger at the requested path', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'learn-cli-'));
+test('lyo init creates a SQLite ledger at the requested path', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-cli-'));
   try {
     const dbPath = join(dir, 'learning.sqlite');
     const output = execFileSync(
@@ -25,7 +25,7 @@ test('learn init creates a SQLite ledger at the requested path', () => {
   }
 });
 
-test('learn demo fixture-replay shows rejected first promotion and positive credit', () => {
+test('lyo demo fixture-replay shows rejected first promotion and positive credit', () => {
   const output = execFileSync(
     process.execPath,
     ['src/cli.ts', 'demo', 'fixture-replay', '--db', ':memory:'],
@@ -38,8 +38,8 @@ test('learn demo fixture-replay shows rejected first promotion and positive cred
   assert.equal(parsed.credit.adaptiveCredit, 20);
 });
 
-test('learn codex-hook records a hook event and emits protocol overlay context', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'learn-codex-hook-'));
+test('lyo codex-hook records a hook event and emits protocol overlay context', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-codex-hook-'));
   try {
     const dbPath = join(dir, 'learning.sqlite');
     const seed = `
@@ -117,8 +117,8 @@ test('learn codex-hook records a hook event and emits protocol overlay context',
   }
 });
 
-test('learn codex-hook records Codex session, prompt, response, and optional prompt blob', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'learn-codex-recording-'));
+test('lyo codex-hook records Codex session, prompt, response, and optional prompt blob', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-codex-recording-'));
   try {
     const dbPath = join(dir, 'learning.sqlite');
     const promptDir = join(dir, 'prompts');
@@ -192,8 +192,8 @@ test('learn codex-hook records Codex session, prompt, response, and optional pro
   }
 });
 
-test('learn codex-hook can store records under the event cwd', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'learn-event-cwd-'));
+test('lyo codex-hook can store records under the event cwd', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-event-cwd-'));
   try {
     const output = execFileSync(
       process.execPath,
@@ -240,8 +240,8 @@ test('learn codex-hook can store records under the event cwd', () => {
   }
 });
 
-test('learn session-start and record-prompt write observer rows without an external database client', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'learn-observer-cli-'));
+test('lyo session-start and record-prompt write observer rows without an external database client', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-observer-cli-'));
   try {
     const dbPath = join(dir, 'learning.sqlite');
     const promptFile = join(dir, 'prompt.txt');
@@ -303,8 +303,8 @@ test('learn session-start and record-prompt write observer rows without an exter
   }
 });
 
-test('learn run-start and run-finish update run state through reducers', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'learn-run-cli-'));
+test('lyo run-start and run-finish update run state through reducers', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-run-cli-'));
   try {
     const dbPath = join(dir, 'learning.sqlite');
     const started = JSON.parse(execFileSync(
@@ -348,8 +348,8 @@ test('learn run-start and run-finish update run state through reducers', () => {
   }
 });
 
-test('learn model-call record writes model usage into the ledger report', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'learn-model-call-cli-'));
+test('lyo model-call record writes model usage into the ledger report', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-model-call-cli-'));
   try {
     const dbPath = join(dir, 'learning.sqlite');
     const promptFile = join(dir, 'prompt.txt');
@@ -408,8 +408,8 @@ test('learn model-call record writes model usage into the ledger report', () => 
   }
 });
 
-test('learn codex-hook avoids unsupported continue field for PreToolUse output', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'learn-codex-pretool-'));
+test('lyo codex-hook avoids unsupported continue field for PreToolUse output', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-codex-pretool-'));
   try {
     const dbPath = join(dir, 'learning.sqlite');
     execFileSync(process.execPath, ['src/cli.ts', 'init', '--db', dbPath], { cwd: ROOT });

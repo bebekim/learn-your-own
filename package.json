@@ -1,5 +1,5 @@
 {
-  "name": "agent-learning-reducer-kernel",
+  "name": "lyo-kernel",
   "version": "0.1.2",
   "description": "SQLite reducer kernel for evidence-backed agent learning protocols.",
   "type": "module",
@@ -8,15 +8,15 @@
     "README.md"
   ],
   "bin": {
-    "learn": "./src/cli.ts"
+    "lyo": "./src/cli.ts"
   },
   "exports": {
     ".": "./src/index.ts"
   },
   "scripts": {
     "test": "node --test",
-    "learn:init": "node src/cli.ts init --db .agent-learning/learning.sqlite",
-    "learn:report": "node src/cli.ts report --db .agent-learning/learning.sqlite",
+    "lyo:init": "node src/cli.ts init --db .agent-learning/learning.sqlite",
+    "lyo:report": "node src/cli.ts report --db .agent-learning/learning.sqlite",
     "demo": "node src/cli.ts demo fixture-replay",
     "pack:local": "node scripts/pack-npm.mjs",
     "publish:registry": "node scripts/publish-npm.mjs"
@@ -26,7 +26,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/bebekim/agent-control-learn.git"
+    "url": "git+ssh://git@github.com/bebekim/lyo.git"
   },
   "keywords": [
     "agent-learning",

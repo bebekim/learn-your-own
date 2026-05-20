@@ -20,15 +20,15 @@ function print(value: unknown): void {
 
 function usage(exitCode = 0): never {
   console.log(`Usage:
-	  learn init [--db path]
-	  learn codex-hook [--db path] [--db-from-event-cwd] [--channel name] [--prompt-dir path] [--prompt-dir-from-event-cwd]
-	  learn session-start [--db path] --session-id id [--repo-path path] [--platform name] [--model name]
-	  learn record-prompt [--db path] --session-id id --role role [--kind kind] [--prompt-file path] [--summary text] [--response text] [--model name]
-	  learn model-call record [--db path] --provider name --model name --model-lane lane [--call-id id] [--session-id id] [--run-id id] [--prompt-file path] [--prompt-ref path] [--summary text] [--input-tokens n] [--output-tokens n] [--total-tokens n] [--estimated-cost n] [--latency-ms n] [--status started|completed|failed]
-	  learn run-start [--db path] --run-id id --task-shape shape --channel channel [--status status] [--token-cost n]
-	  learn run-finish [--db path] --run-id id [--status status] [--token-cost n]
-	  learn report [--db path]
-	  learn demo fixture-replay [--db path]
+	  lyo init [--db path]
+	  lyo codex-hook [--db path] [--db-from-event-cwd] [--channel name] [--prompt-dir path] [--prompt-dir-from-event-cwd]
+	  lyo session-start [--db path] --session-id id [--repo-path path] [--platform name] [--model name]
+	  lyo record-prompt [--db path] --session-id id --role role [--kind kind] [--prompt-file path] [--summary text] [--response text] [--model name]
+	  lyo model-call record [--db path] --provider name --model name --model-lane lane [--call-id id] [--session-id id] [--run-id id] [--prompt-file path] [--prompt-ref path] [--summary text] [--input-tokens n] [--output-tokens n] [--total-tokens n] [--estimated-cost n] [--latency-ms n] [--status started|completed|failed]
+	  lyo run-start [--db path] --run-id id --task-shape shape --channel channel [--status status] [--token-cost n]
+	  lyo run-finish [--db path] --run-id id [--status status] [--token-cost n]
+	  lyo report [--db path]
+	  lyo demo fixture-replay [--db path]
 
 	Environment:
 	  LEARNLOOP_DB       Default SQLite path. Defaults to .agent-learning/learning.sqlite

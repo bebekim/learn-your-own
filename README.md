@@ -1,4 +1,4 @@
-# Agent Learning Reducer Kernel
+# Lyo
 
 Tiny local reducer kernel for evidence-backed agent learning experiments.
 
@@ -19,10 +19,10 @@ Prototype. The `0.1.x` line is intentionally unstable and local-first.
 
 Current useful pieces:
 
-- SQLite initialization through `learn init`.
-- Codex hook event capture through `learn codex-hook`.
+- SQLite initialization through `lyo init`.
+- Codex hook event capture through `lyo codex-hook`.
 - Session, prompt-boundary, run-start, and run-finish recording.
-- Model/provider/token/cost call logging through `learn model-call record`.
+- Model/provider/token/cost call logging through `lyo model-call record`.
 - Evidence-gated protocol promotion demo.
 - Protocol resolution and outcome credit scoring.
 
@@ -38,7 +38,7 @@ Not yet mature:
 ## Install
 
 ```sh
-npm install agent-learning-reducer-kernel
+npm install lyo-kernel
 ```
 
 Requires Node.js 24+ for `node:sqlite`.
@@ -46,15 +46,15 @@ Requires Node.js 24+ for `node:sqlite`.
 ## CLI
 
 ```sh
-learn init --db .agent-learning/learning.sqlite
-learn codex-hook --db .agent-learning/learning.sqlite
-learn session-start --db .agent-learning/learning.sqlite --session-id "$CODEX_SESSION_ID" --platform codex
-learn run-start --db .agent-learning/learning.sqlite --run-id "run-1" --task-shape "local-dev" --channel "agent.task"
-learn record-prompt --db .agent-learning/learning.sqlite --session-id "$CODEX_SESSION_ID" --role user --kind user_prompt --summary "sanitized prompt summary"
-learn model-call record --db .agent-learning/learning.sqlite --provider openai --model gpt-5.5 --model-lane frontier --input-tokens 1200 --output-tokens 500 --estimated-cost 0.04 --latency-ms 8400 --status completed
-learn run-finish --db .agent-learning/learning.sqlite --run-id "run-1" --status completed
-learn report --db .agent-learning/learning.sqlite
-learn demo fixture-replay --db :memory:
+lyo init --db .agent-learning/learning.sqlite
+lyo codex-hook --db .agent-learning/learning.sqlite
+lyo session-start --db .agent-learning/learning.sqlite --session-id "$CODEX_SESSION_ID" --platform codex
+lyo run-start --db .agent-learning/learning.sqlite --run-id "run-1" --task-shape "local-dev" --channel "agent.task"
+lyo record-prompt --db .agent-learning/learning.sqlite --session-id "$CODEX_SESSION_ID" --role user --kind user_prompt --summary "sanitized prompt summary"
+lyo model-call record --db .agent-learning/learning.sqlite --provider openai --model gpt-5.5 --model-lane frontier --input-tokens 1200 --output-tokens 500 --estimated-cost 0.04 --latency-ms 8400 --status completed
+lyo run-finish --db .agent-learning/learning.sqlite --run-id "run-1" --status completed
+lyo report --db .agent-learning/learning.sqlite
+lyo demo fixture-replay --db :memory:
 ```
 
 ## API
@@ -72,7 +72,7 @@ import {
   recordModelCall,
   getModelCallSummary,
   getCredit,
-} from 'agent-learning-reducer-kernel';
+} from 'lyo-kernel';
 
 const kernel = createKernel({ dbPath: '.agent-learning/learning.sqlite' });
 initLedger(kernel);
@@ -146,7 +146,7 @@ distinction matters.
 
 ## Codex Hook
 
-`learn codex-hook` reads Codex hook JSON from stdin, records a redacted event,
+`lyo codex-hook` reads Codex hook JSON from stdin, records a redacted event,
 records session/prompt/assistant boundaries where applicable, resolves matching
 active protocols, and returns Codex-compatible JSON.
 
@@ -160,7 +160,7 @@ Example:
         "hooks": [
           {
             "type": "command",
-            "command": "learn codex-hook --db-from-event-cwd --prompt-dir-from-event-cwd",
+            "command": "lyo codex-hook --db-from-event-cwd --prompt-dir-from-event-cwd",
             "statusMessage": "Recording learning event"
           }
         ]
