@@ -26,7 +26,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/bebekim/lyo.git"
+    "url": "git+ssh://git@github.com/bebekim/learn-your-own.git"
   },
   "keywords": [
     "agent-learning",
