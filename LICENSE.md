@@ -7,8 +7,8 @@ repository.
 
 This is a source-available license. It is not an Open Source Initiative
 approved open-source license. In particular, this license does not grant
-unrestricted permission to sell, host, or operate Lyo as an enterprise learning
-control plane.
+unrestricted permission to sell, host, or operate Lyo as part of a commercial
+product or service.
 
 ## 1. Free Local Use
 
@@ -27,20 +27,20 @@ local CLI, local packets, and local circulation features for your own workflows.
 ## 2. Commercial License Required
 
 You need a separate commercial license from the copyright holder to use Lyo for
-any enterprise propagation, hosted, managed, or shared control-plane purpose.
+any use outside free local use.
 
 Examples requiring a commercial license include:
 
-- operating an enterprise hub, mempool, validator, or learning control plane;
-- providing Lyo as a hosted, managed, SaaS, or platform service;
-- offering Lyo-powered validator, packet-routing, governance, audit, compliance,
-  SSO, RBAC, DLP, or cross-team propagation services;
-- deploying Lyo as a shared multi-user or multi-team enterprise learning
-  propagation system;
-- selling, sublicensing, reselling, or commercially packaging Lyo or a
-  substantially similar derivative as an enterprise product;
-- using Lyo to provide a competing commercial learning-ledger, agent-memory,
-  agent-learning, or learning-control-plane product or service.
+- providing Lyo as a hosted, managed, networked, SaaS, or platform service;
+- using Lyo in a multi-user, multi-team, organization-wide, or enterprise
+  deployment;
+- using Lyo to provide services to customers, clients, or other third parties;
+- incorporating Lyo into a commercial product, service, platform, or internal
+  enterprise system;
+- selling, sublicensing, reselling, or commercially distributing Lyo or a
+  derivative work;
+- using Lyo to build, operate, or support a competing commercial product or
+  service.
 
 ## 3. No Trademark Grant
 
@@ -71,4 +71,3 @@ FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
 COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
