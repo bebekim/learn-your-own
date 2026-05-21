@@ -12,7 +12,7 @@ const tarball = join(root, `dist/${packageJson.name}-${packageJson.version}.tgz`
 rmSync(join(root, 'dist/npm'), { recursive: true, force: true });
 mkdirSync(join(staging, 'src'), { recursive: true });
 
-for (const file of ['package.json', 'README.md']) {
+for (const file of ['package.json', 'README.md', 'LICENSE.md']) {
   writeFileSync(join(staging, file), readFileSync(join(root, file)));
 }
 for (const file of ['cli.ts', 'index.ts']) {
@@ -26,6 +26,7 @@ execFileSync('tar', [
   join(root, 'dist/npm'),
   'package/package.json',
   'package/README.md',
+  'package/LICENSE.md',
   'package/src/index.ts',
   'package/src/cli.ts',
 ], {
