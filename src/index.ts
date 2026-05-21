@@ -14,6 +14,7 @@ export type JobStatus = 'started' | 'completed' | 'failed' | 'cancelled' | 'unkn
 export type PathActivationKind = 'file_read' | 'file_written' | 'file_created' | 'file_deleted' | 'file_diffed' | 'directory_listed' | 'unknown';
 export type CommandClassification = 'test' | 'build' | 'lint' | 'format' | 'deploy' | 'database' | 'cloud' | 'package' | 'git' | 'inspect' | 'local_dev' | 'unknown';
 export type CommandStatus = 'planned' | 'attempted' | 'succeeded' | 'failed' | 'unknown';
+export type BehaviorPhase = 'explore' | 'fix' | 'validate' | 'unknown';
 export type ActivationConfidence = 'low' | 'medium' | 'high';
 export type ZoneActivationSourceKind = 'path' | 'command' | 'deployment' | 'manual' | 'inferred';
 export type AssociationOutcome = 'positive' | 'negative' | 'unknown';
@@ -415,6 +416,7 @@ export interface RecordPathActivationInput {
   activationKind: PathActivationKind;
   evidenceRef?: string | null;
   confidence?: ActivationConfidence;
+  phase?: BehaviorPhase;
 }
 
 export interface PathActivationRecord {
@@ -425,6 +427,7 @@ export interface PathActivationRecord {
   activationKind: PathActivationKind;
   evidenceRef: string | null;
   confidence: ActivationConfidence;
+  phase: BehaviorPhase;
 }
 
 export interface RecordCommandActivationInput {
@@ -440,6 +443,8 @@ export interface RecordCommandActivationInput {
   classification?: CommandClassification;
   evidenceRef?: string | null;
   status?: CommandStatus;
+  phase?: BehaviorPhase;
+  outputSize?: number;
 }
 
 export interface CommandActivationRecord {
@@ -454,6 +459,9 @@ export interface CommandActivationRecord {
   classification: CommandClassification;
   evidenceRef: string | null;
   status: CommandStatus;
+  phase: BehaviorPhase;
+  outputSize: number;
+  occurrenceCount: number;
 }
 
 export interface RecordDeploymentActionInput {
@@ -534,14 +542,20 @@ export interface ZoneAssociationRecord {
 }
 
 export interface JobActivationSummary {
+  evidenceRefs: string[];
   paths: {
     total: number;
     byKind: Record<string, number>;
+    byPhase: Record<string, number>;
+    repeated: { path: string; activationKind: PathActivationKind; count: number }[];
   };
   commands: {
     total: number;
     byClassification: Record<string, number>;
     byStatus: Record<string, number>;
+    byPhase: Record<string, number>;
+    totalOutputSize: number;
+    repeated: { commandName: string; argvSummary: string | null; count: number }[];
   };
   deployments: {
     total: number;
@@ -556,6 +570,7 @@ export interface JobActivationSummary {
     byActivationKind: Record<string, number>;
     bySourceKind: Record<string, number>;
     byConfidence: Record<string, number>;
+    strengthByZoneId: Record<string, number>;
   };
   coactivations: {
     total: number;
@@ -570,6 +585,7 @@ export interface JobActivationReport {
   deploymentActions: DeploymentActionRecord[];
   zoneActivations: ZoneActivationRecord[];
   zoneCoactivations: ZoneCoactivationRecord[];
+  associations: ZoneAssociationRecord[];
 }
 
 export interface NormalizeHooksInput {
@@ -851,6 +867,7 @@ export function initLedger(kernel: LearningKernel): LearningKernel {
       ),
       evidence_ref text,
       confidence text not null check (confidence in ('low', 'medium', 'high')),
+      phase text not null default 'unknown',
       created_at text not null
     );
 
@@ -881,6 +898,9 @@ export function initLedger(kernel: LearningKernel): LearningKernel {
       ),
       evidence_ref text,
       status text not null check (status in ('planned', 'attempted', 'succeeded', 'failed', 'unknown')),
+      phase text not null default 'unknown',
+      output_size integer not null default 0,
+      occurrence_count integer not null default 1,
       created_at text not null,
       updated_at text not null
     );
@@ -951,6 +971,10 @@ export function initLedger(kernel: LearningKernel): LearningKernel {
       primary key (association_id, job_id)
     );
 	  `);
+  ensureColumn(kernel, 'path_activations', 'phase', "text not null default 'unknown'");
+  ensureColumn(kernel, 'command_activations', 'phase', "text not null default 'unknown'");
+  ensureColumn(kernel, 'command_activations', 'output_size', 'integer not null default 0');
+  ensureColumn(kernel, 'command_activations', 'occurrence_count', 'integer not null default 1');
   return kernel;
 }
 
@@ -1275,12 +1299,13 @@ export function recordPathActivation(kernel: LearningKernel, input: RecordPathAc
   requireFields(input, ['jobId', 'path', 'activationKind']);
   ensureJob(kernel, input.jobId);
   const activationId = input.activationId ?? `path-act-${sha256(`${input.jobId}:${input.path}:${input.activationKind}:${input.evidenceRef ?? ''}`).slice(0, 20)}`;
+  const phase = input.phase ?? phaseForPathActivation(input.activationKind);
   kernel.db.prepare(`
     insert or ignore into path_activations (
       activation_id, job_id, run_id, path, activation_kind, evidence_ref,
-      confidence, created_at
+      confidence, phase, created_at
     )
-    values (?, ?, ?, ?, ?, ?, ?, ?)
+    values (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     activationId,
     input.jobId,
@@ -1289,6 +1314,7 @@ export function recordPathActivation(kernel: LearningKernel, input: RecordPathAc
     input.activationKind,
     input.evidenceRef ?? null,
     input.confidence ?? 'medium',
+    phase,
     ISO_NOW()
   );
   return getPathActivation(kernel, activationId);
@@ -1300,16 +1326,20 @@ export function recordCommandActivation(kernel: LearningKernel, input: RecordCom
   const argvHash = input.argvHash ?? (input.argv ? sha256(input.argv) : null);
   const argvSummary = input.argvSummary ?? (input.argv ? summarizeCommand(input.argv) : null);
   const classification = input.classification ?? classifyCommand(input.commandName, argvSummary ?? input.argv ?? input.commandName);
+  const phase = input.phase ?? phaseForCommand(classification, input.commandName, argvSummary ?? input.argv ?? input.commandName);
   const commandId = input.commandId ?? `cmd-act-${sha256(`${input.jobId}:${input.commandName}:${argvHash ?? argvSummary ?? ''}`).slice(0, 20)}`;
   kernel.db.prepare(`
     insert into command_activations (
       command_id, job_id, run_id, command_name, command_family, working_directory,
-      argv_hash, argv_summary, classification, evidence_ref, status, created_at,
-      updated_at
+      argv_hash, argv_summary, classification, evidence_ref, status, phase,
+      output_size, occurrence_count, created_at, updated_at
     )
-    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
     on conflict(command_id) do update set
       status = excluded.status,
+      phase = excluded.phase,
+      output_size = max(command_activations.output_size, excluded.output_size),
+      occurrence_count = command_activations.occurrence_count + 1,
       updated_at = excluded.updated_at
   `).run(
     commandId,
@@ -1323,6 +1353,8 @@ export function recordCommandActivation(kernel: LearningKernel, input: RecordCom
     classification,
     input.evidenceRef ?? null,
     input.status ?? 'attempted',
+    phase,
+    input.outputSize ?? 0,
     ISO_NOW(),
     ISO_NOW()
   );
@@ -1560,6 +1592,7 @@ export function getJobActivationReport(kernel: LearningKernel, { jobId }: { jobI
   const deploymentActions = listDeploymentActions(kernel, jobId);
   const zoneActivations = listZoneActivations(kernel, jobId);
   const zoneCoactivations = listZoneCoactivations(kernel, jobId);
+  const associations = listJobZoneAssociations(kernel, jobId);
   return {
     job,
     summary: summarizeJobActivations({
@@ -1574,6 +1607,7 @@ export function getJobActivationReport(kernel: LearningKernel, { jobId }: { jobI
     deploymentActions,
     zoneActivations,
     zoneCoactivations,
+    associations,
   };
 }
 
@@ -1627,6 +1661,45 @@ export function getZoneAssociationReport(
   return rows.map(enrichZoneAssociation);
 }
 
+function listJobZoneAssociations(kernel: LearningKernel, jobId: string): ZoneAssociationRecord[] {
+  ensureJob(kernel, jobId);
+  const rows = kernel.db.prepare(`
+    select
+      za.association_id as associationId,
+      za.left_zone_id as leftZoneId,
+      za.right_zone_id as rightZoneId,
+      za.association_kind as associationKind,
+      za.weight,
+      za.support_count as supportCount,
+      za.positive_outcomes as positiveOutcomes,
+      za.negative_outcomes as negativeOutcomes,
+      za.support_count - za.positive_outcomes - za.negative_outcomes as unknownOutcomes,
+      (
+        select count(distinct zav.job_id)
+        from zone_activations zav
+        where zav.zone_id = za.left_zone_id
+      ) as leftActivationCount,
+      (
+        select count(distinct zav.job_id)
+        from zone_activations zav
+        where zav.zone_id = za.right_zone_id
+      ) as rightActivationCount,
+      (
+        select count(*)
+        from zone_association_observations zao
+        where zao.association_id = za.association_id
+      ) as coactivationSupport
+    from zone_coactivations zc
+    join zone_associations za
+      on za.left_zone_id = zc.left_zone_id
+      and za.right_zone_id = zc.right_zone_id
+      and za.association_kind = 'coactivation'
+    where zc.job_id = ?
+    order by za.weight desc, za.support_count desc, za.updated_at desc
+  `).all(jobId) as ZoneAssociationRecord[];
+  return rows.map(enrichZoneAssociation);
+}
+
 function summarizeJobActivations({
   pathActivations,
   commandActivations,
@@ -1641,14 +1714,31 @@ function summarizeJobActivations({
   zoneCoactivations: ZoneCoactivationRecord[];
 }): JobActivationSummary {
   return {
+    evidenceRefs: uniqueSorted([
+      ...pathActivations.map((activation) => activation.evidenceRef),
+      ...commandActivations.map((activation) => activation.evidenceRef),
+      ...deploymentActions.map((activation) => activation.evidenceRef),
+      ...zoneActivations.map((activation) => activation.evidenceRef),
+    ]),
     paths: {
       total: pathActivations.length,
       byKind: countBy(pathActivations, (activation) => activation.activationKind),
+      byPhase: countBy(pathActivations, (activation) => activation.phase),
+      repeated: repeatedPathActivations(pathActivations),
     },
     commands: {
       total: commandActivations.length,
       byClassification: countBy(commandActivations, (activation) => activation.classification),
       byStatus: countBy(commandActivations, (activation) => activation.status),
+      byPhase: countBy(commandActivations, (activation) => activation.phase),
+      totalOutputSize: commandActivations.reduce((sum, activation) => sum + activation.outputSize, 0),
+      repeated: commandActivations
+        .filter((activation) => activation.occurrenceCount > 1)
+        .map((activation) => ({
+          commandName: activation.commandName,
+          argvSummary: activation.argvSummary,
+          count: activation.occurrenceCount,
+        })),
     },
     deployments: {
       total: deploymentActions.length,
@@ -1663,6 +1753,7 @@ function summarizeJobActivations({
       byActivationKind: countBy(zoneActivations, (activation) => activation.activationKind),
       bySourceKind: countBy(zoneActivations, (activation) => activation.sourceKind),
       byConfidence: countBy(zoneActivations, (activation) => activation.confidence),
+      strengthByZoneId: sumBy(zoneActivations, (activation) => activation.zoneId, (activation) => activation.strength),
     },
     coactivations: {
       total: zoneCoactivations.length,
@@ -1677,6 +1768,39 @@ function countBy<T>(records: T[], keyFn: (record: T) => string): Record<string, 
     counts[key] = (counts[key] ?? 0) + 1;
   }
   return counts;
+}
+
+function sumBy<T>(
+  records: T[],
+  keyFn: (record: T) => string,
+  valueFn: (record: T) => number
+): Record<string, number> {
+  const sums: Record<string, number> = {};
+  for (const record of records) {
+    const key = keyFn(record);
+    sums[key] = roundMetric((sums[key] ?? 0) + valueFn(record));
+  }
+  return sums;
+}
+
+function repeatedPathActivations(records: PathActivationRecord[]): { path: string; activationKind: PathActivationKind; count: number }[] {
+  const counts = new Map<string, { path: string; activationKind: PathActivationKind; count: number }>();
+  for (const record of records) {
+    const key = `${record.path}\0${record.activationKind}`;
+    const existing = counts.get(key);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      counts.set(key, { path: record.path, activationKind: record.activationKind, count: 1 });
+    }
+  }
+  return [...counts.values()]
+    .filter((record) => record.count > 1)
+    .sort((left, right) => left.path.localeCompare(right.path) || left.activationKind.localeCompare(right.activationKind));
+}
+
+function uniqueSorted(values: (string | null | undefined)[]): string[] {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))].sort();
 }
 
 function enrichZoneAssociation(record: ZoneAssociationRecord): ZoneAssociationRecord {
@@ -1749,7 +1873,8 @@ export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInpu
     });
 
     const toolName = stringValue(payload.tool_name);
-    const toolInput = objectValue(payload.tool_input);
+    const toolInputRaw = payload.tool_input;
+    const toolInput = objectValue(toolInputRaw);
     const evidenceRef = `hook:${event.eventId}`;
 
     if (toolName && isShellTool(toolName)) {
@@ -1765,6 +1890,7 @@ export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInpu
           argv: commandText,
           evidenceRef,
           status: commandStatus,
+          outputSize: estimateToolOutputSize(payload),
         });
         commandActivations += 1;
         if (command.classification === 'deploy') {
@@ -1782,16 +1908,16 @@ export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInpu
       }
     }
 
-    if (toolName && toolInput) {
-      const activationKind = pathActivationKindForTool(toolName);
-      for (const path of extractPaths(toolInput)) {
+    if (toolName) {
+      for (const pathFact of extractPathFacts(toolName, toolInputRaw)) {
         recordPathActivation(kernel, {
           jobId,
           runId: event.turnId ?? null,
-          path,
-          activationKind,
+          path: pathFact.path,
+          activationKind: pathFact.activationKind,
           evidenceRef,
           confidence: 'medium',
+          phase: phaseForPathActivation(pathFact.activationKind),
         });
         pathActivations += 1;
       }
@@ -2446,7 +2572,8 @@ function getPathActivation(kernel: LearningKernel, activationId: string): PathAc
       path,
       activation_kind as activationKind,
       evidence_ref as evidenceRef,
-      confidence
+      confidence,
+      phase
     from path_activations
     where activation_id = ?
   `).get(activationId) as PathActivationRecord;
@@ -2461,7 +2588,8 @@ function listPathActivations(kernel: LearningKernel, jobId: string): PathActivat
       path,
       activation_kind as activationKind,
       evidence_ref as evidenceRef,
-      confidence
+      confidence,
+      phase
     from path_activations
     where job_id = ?
     order by created_at asc, activation_id asc
@@ -2481,7 +2609,10 @@ function getCommandActivation(kernel: LearningKernel, commandId: string): Comman
       argv_summary as argvSummary,
       classification,
       evidence_ref as evidenceRef,
-      status
+      status,
+      phase,
+      output_size as outputSize,
+      occurrence_count as occurrenceCount
     from command_activations
     where command_id = ?
   `).get(commandId) as CommandActivationRecord;
@@ -2506,7 +2637,10 @@ function listCommandActivations(kernel: LearningKernel, jobId: string): CommandA
       argv_summary as argvSummary,
       classification,
       evidence_ref as evidenceRef,
-      status
+      status,
+      phase,
+      output_size as outputSize,
+      occurrence_count as occurrenceCount
     from command_activations
     where job_id = ?
     order by created_at asc, command_id asc
@@ -2618,7 +2752,7 @@ function getZoneAssociation(
   rightZoneId: string,
   associationKind: string
 ): ZoneAssociationRecord {
-  return kernel.db.prepare(`
+  const row = kernel.db.prepare(`
     select
       association_id as associationId,
       left_zone_id as leftZoneId,
@@ -2627,10 +2761,27 @@ function getZoneAssociation(
       weight,
       support_count as supportCount,
       positive_outcomes as positiveOutcomes,
-      negative_outcomes as negativeOutcomes
+      negative_outcomes as negativeOutcomes,
+      support_count - positive_outcomes - negative_outcomes as unknownOutcomes,
+      (
+        select count(distinct zav.job_id)
+        from zone_activations zav
+        where zav.zone_id = zone_associations.left_zone_id
+      ) as leftActivationCount,
+      (
+        select count(distinct zav.job_id)
+        from zone_activations zav
+        where zav.zone_id = zone_associations.right_zone_id
+      ) as rightActivationCount,
+      (
+        select count(*)
+        from zone_association_observations zao
+        where zao.association_id = zone_associations.association_id
+      ) as coactivationSupport
     from zone_associations
     where left_zone_id = ? and right_zone_id = ? and association_kind = ?
   `).get(leftZoneId, rightZoneId, associationKind) as ZoneAssociationRecord;
+  return enrichZoneAssociation(row);
 }
 
 function getSession(kernel: LearningKernel, sessionId: string): SessionRecord {
@@ -2749,7 +2900,7 @@ function redactSensitive(value: string): string {
 
 function classifyCommand(commandName: string, commandText: string): CommandClassification {
   const text = `${commandName} ${commandText}`.toLowerCase();
-  if (/\b(node --test|npm test|npm run test|pnpm test|yarn test|pytest|uv run pytest|bundle exec rspec|rails test|go test|cargo test)\b/.test(text)) return 'test';
+  if (/\b(node --test|npm test|npm run test|pnpm test|pnpm exec vitest|pnpm vitest|yarn test|yarn vitest|npx jest|npx vitest|jest|vitest|pytest|uv run pytest|bundle exec rspec|rails test|go test|cargo test)\b/.test(text)) return 'test';
   if (/\b(eslint|ruff|prettier|biome|black|rubocop|go fmt|cargo fmt)\b/.test(text)) return 'lint';
   if (/\b(databricks bundle deploy|cloudformation deploy|terraform apply|railway up|kubectl apply|acli push)\b/.test(text)) return 'deploy';
   if (/\baws\b/.test(text) && /\bdeploy\b/.test(text)) return 'deploy';
@@ -2852,6 +3003,23 @@ function deploymentStatusFromCommandStatus(status: CommandStatus): DeploymentAct
   return 'unknown';
 }
 
+function estimateToolOutputSize(payload: Record<string, unknown>): number {
+  const outputRoots = [
+    payload.tool_response,
+    payload.tool_output,
+    payload.output,
+    payload.result,
+  ];
+  return outputRoots.reduce((sum, root) => sum + stringPayloadSize(root), 0);
+}
+
+function stringPayloadSize(value: unknown): number {
+  if (typeof value === 'string') return value.length;
+  if (Array.isArray(value)) return value.reduce((sum, item) => sum + stringPayloadSize(item), 0);
+  if (!value || typeof value !== 'object') return 0;
+  return Object.values(value).reduce((sum, item) => sum + stringPayloadSize(item), 0);
+}
+
 function firstCommandToken(command: string): string {
   const trimmed = command.trim();
   const first = trimmed.split(/\s+/)[0] ?? 'command';
@@ -2888,38 +3056,99 @@ function pathActivationKindForTool(toolName: string): PathActivationKind {
   return 'unknown';
 }
 
-function extractPaths(value: unknown): string[] {
-  const paths = new Set<string>();
-  collectPaths(value, paths);
-  return [...paths].filter((path) => !path.startsWith('-') && !path.includes('\n'));
+function phaseForPathActivation(kind: PathActivationKind): BehaviorPhase {
+  if (['file_read', 'file_diffed', 'directory_listed'].includes(kind)) return 'explore';
+  if (['file_written', 'file_created', 'file_deleted'].includes(kind)) return 'fix';
+  return 'unknown';
 }
 
-function collectPaths(value: unknown, paths: Set<string>, key = ''): void {
+function phaseForCommand(classification: CommandClassification, commandName: string, commandText: string): BehaviorPhase {
+  const text = `${commandName} ${commandText}`.toLowerCase();
+  if (['test', 'lint', 'build', 'package'].includes(classification)) return 'validate';
+  if (['format', 'database', 'deploy', 'cloud'].includes(classification)) return 'fix';
+  if (classification === 'inspect') return 'explore';
+  if (classification === 'git' && /\b(commit|merge|rebase|push|pull|checkout|switch|branch)\b/.test(text)) return 'fix';
+  if (classification === 'git') return 'explore';
+  if (/\b(rg|grep|find|sed|cat|ls|pwd|head|tail|wc)\b/.test(text)) return 'explore';
+  return 'unknown';
+}
+
+interface PathFact {
+  path: string;
+  activationKind: PathActivationKind;
+}
+
+function extractPathFacts(toolName: string, value: unknown): PathFact[] {
+  const defaultKind = pathActivationKindForTool(toolName);
+  const facts = new Map<string, PathFact>();
+  collectPathFacts(value, facts, defaultKind);
+  return [...facts.values()].filter((fact) => !fact.path.startsWith('-') && !fact.path.includes('\n'));
+}
+
+function addPathFact(facts: Map<string, PathFact>, path: string, activationKind: PathActivationKind): void {
+  const normalizedPath = normalizeRelativePath(path.trim());
+  const key = `${normalizedPath}\0${activationKind}`;
+  facts.set(key, { path: normalizedPath, activationKind });
+}
+
+function collectPathFacts(
+  value: unknown,
+  facts: Map<string, PathFact>,
+  defaultKind: PathActivationKind,
+  key = ''
+): void {
   if (Array.isArray(value)) {
-    for (const item of value) collectPaths(item, paths, key);
+    for (const item of value) collectPathFacts(item, facts, defaultKind, key);
     return;
   }
   if (value && typeof value === 'object') {
     for (const [childKey, childValue] of Object.entries(value)) {
-      collectPaths(childValue, paths, childKey);
+      collectPathFacts(childValue, facts, defaultKind, childKey);
     }
     return;
   }
   if (typeof value !== 'string' || !value.trim()) return;
   const normalizedKey = key.toLowerCase();
   if (['path', 'file_path', 'filepath', 'file', 'filename', 'relative_path'].includes(normalizedKey)) {
-    paths.add(normalizeRelativePath(value));
+    addPathFact(facts, value, defaultKind);
   }
-  if (normalizedKey === 'patch') {
-    for (const match of value.matchAll(/^\*\*\* (?:Update|Add|Delete) File: (.+)$/gm)) {
-      if (match[1]) paths.add(normalizeRelativePath(match[1].trim()));
+  if (normalizedKey === 'patch' || value.includes('*** Begin Patch')) {
+    for (const fact of parsePatchPathFacts(value)) {
+      addPathFact(facts, fact.path, fact.activationKind);
     }
   }
+}
+
+function parsePatchPathFacts(patch: string): PathFact[] {
+  const facts: PathFact[] = [];
+  const pattern = /^\*\*\* (Update|Add|Delete) File: (.+)$/gm;
+  for (const match of patch.matchAll(pattern)) {
+    const operation = match[1];
+    const path = match[2]?.trim();
+    if (!path) continue;
+    facts.push({
+      path,
+      activationKind: patchOperationKind(operation),
+    });
+  }
+  return facts;
+}
+
+function patchOperationKind(operation: string): PathActivationKind {
+  if (operation === 'Add') return 'file_created';
+  if (operation === 'Delete') return 'file_deleted';
+  return 'file_written';
 }
 
 function countRows(kernel: LearningKernel, tableName: string): number {
   const row = kernel.db.prepare(`select count(*) as count from ${tableName}`).get() as { count: number };
   return row.count;
+}
+
+function ensureColumn(kernel: LearningKernel, tableName: string, columnName: string, definition: string): void {
+  const columns = kernel.db.prepare(`pragma table_info(${tableName})`).all() as { name: string }[];
+  if (columns.some((column) => column.name === columnName)) return;
+  kernel.db.exec(`alter table ${tableName} add column ${columnName} ${definition}`);
 }
 
 function requireFields(input: object, fields: string[]): void {

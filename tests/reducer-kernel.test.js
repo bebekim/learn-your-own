@@ -457,6 +457,192 @@ test('hook normalizer records failed shell PostToolUse status', () => {
   }
 });
 
+test('hook normalizer extracts patch file kinds, repeated paths, and behavior phases', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    recordHookEvent(kernel, {
+      eventId: 'hook-read-1',
+      sessionId: 'session-patch',
+      turnId: 'turn-patch',
+      eventName: 'PreToolUse',
+      cwd: '/tmp/demo',
+      payload: {
+        hook_event_name: 'PreToolUse',
+        tool_name: 'Read',
+        tool_input: { file_path: 'src/index.ts' },
+      },
+    });
+    recordHookEvent(kernel, {
+      eventId: 'hook-read-2',
+      sessionId: 'session-patch',
+      turnId: 'turn-patch',
+      eventName: 'PreToolUse',
+      cwd: '/tmp/demo',
+      payload: {
+        hook_event_name: 'PreToolUse',
+        tool_name: 'Read',
+        tool_input: { file_path: 'src/index.ts' },
+      },
+    });
+    recordHookEvent(kernel, {
+      eventId: 'hook-patch',
+      sessionId: 'session-patch',
+      turnId: 'turn-patch',
+      eventName: 'PreToolUse',
+      cwd: '/tmp/demo',
+      payload: {
+        hook_event_name: 'PreToolUse',
+        tool_name: 'apply_patch',
+        tool_input: {
+          patch: [
+            '*** Begin Patch',
+            '*** Update File: src/index.ts',
+            '@@',
+            '-old',
+            '+new',
+            '*** Add File: tests/new.test.js',
+            '+test',
+            '*** Delete File: stale.txt',
+            '*** End Patch',
+          ].join('\n'),
+        },
+      },
+    });
+
+    const normalized = normalizeHooks(kernel);
+    const report = getJobActivationReport(kernel, { jobId: normalized.jobs[0] });
+    const facts = report.pathActivations.map((activation) => [
+      activation.path,
+      activation.activationKind,
+      activation.phase,
+    ]).sort();
+    assert.deepEqual(facts, [
+      ['src/index.ts', 'file_read', 'explore'],
+      ['src/index.ts', 'file_read', 'explore'],
+      ['src/index.ts', 'file_written', 'fix'],
+      ['stale.txt', 'file_deleted', 'fix'],
+      ['tests/new.test.js', 'file_created', 'fix'],
+    ]);
+    assert.deepEqual(report.summary.paths.byPhase, { explore: 2, fix: 3 });
+    assert.deepEqual(report.summary.paths.repeated, [
+      { path: 'src/index.ts', activationKind: 'file_read', count: 2 },
+    ]);
+    assert.deepEqual(report.summary.evidenceRefs, ['hook:hook-patch', 'hook:hook-read-1', 'hook:hook-read-2']);
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('hook normalizer records shell output size, repeated commands, and validate phase', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    for (const eventId of ['hook-test-1', 'hook-test-2']) {
+      recordHookEvent(kernel, {
+        eventId,
+        sessionId: 'session-test',
+        turnId: 'turn-test',
+        eventName: 'PostToolUse',
+          cwd: '/tmp/demo',
+          payload: {
+            hook_event_name: 'PostToolUse',
+            tool_name: 'Bash',
+          tool_input: { command: 'pnpm exec vitest run' },
+            tool_response: {
+              exit_code: 0,
+              stdout: 'ok\n',
+            stderr: 'warn\n',
+          },
+        },
+      });
+    }
+
+    const normalized = normalizeHooks(kernel);
+    const report = getJobActivationReport(kernel, { jobId: normalized.jobs[0] });
+    assert.equal(report.commandActivations.length, 1);
+    assert.equal(report.commandActivations[0].classification, 'test');
+    assert.equal(report.commandActivations[0].status, 'succeeded');
+    assert.equal(report.commandActivations[0].phase, 'validate');
+    assert.equal(report.commandActivations[0].outputSize, 8);
+    assert.equal(report.commandActivations[0].occurrenceCount, 2);
+    assert.deepEqual(report.summary.commands.byPhase, { validate: 1 });
+    assert.equal(report.summary.commands.totalOutputSize, 8);
+    assert.deepEqual(report.summary.commands.repeated, [
+      {
+        commandName: 'pnpm',
+        argvSummary: 'pnpm exec vitest run',
+        count: 2,
+      },
+    ]);
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('activation report includes association support and zone strength evidence', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    recordWorkspace(kernel, {
+      workspaceId: 'demo',
+      rootPath: '/tmp/demo',
+      name: 'demo',
+    });
+    recordZone(kernel, {
+      zoneId: 'core',
+      workspaceId: 'demo',
+      zoneKind: 'config',
+      pathGlob: 'core/**',
+      name: 'core',
+    });
+    recordZone(kernel, {
+      zoneId: 'domain',
+      workspaceId: 'demo',
+      zoneKind: 'domain',
+      pathGlob: 'domain/**',
+      name: 'domain',
+    });
+    recordJob(kernel, {
+      jobId: 'job-report',
+      workspaceId: 'demo',
+    });
+    recordPathActivation(kernel, {
+      jobId: 'job-report',
+      path: 'core/settings.yml',
+      activationKind: 'file_written',
+      evidenceRef: 'hook:core',
+      confidence: 'high',
+    });
+    recordPathActivation(kernel, {
+      jobId: 'job-report',
+      path: 'domain/service.rb',
+      activationKind: 'file_read',
+      evidenceRef: 'hook:domain',
+      confidence: 'medium',
+    });
+    deriveZoneActivationsForJob(kernel, { jobId: 'job-report' });
+    deriveZoneCoactivationsForJob(kernel, { jobId: 'job-report' });
+    updateZoneAssociationsFromJob(kernel, { jobId: 'job-report', outcome: 'positive' });
+
+    const report = getJobActivationReport(kernel, { jobId: 'job-report' });
+    assert.equal(report.associations.length, 1);
+    assert.equal(report.associations[0].supportCount, 1);
+    assert.equal(report.associations[0].positiveOutcomes, 1);
+    assert.deepEqual(report.summary.zones.strengthByZoneId, { core: 1.5, domain: 1 });
+    assert.deepEqual(report.summary.zones.byConfidence, { high: 1, medium: 1 });
+    assert.deepEqual(report.summary.evidenceRefs, ['hook:core', 'hook:domain']);
+  } finally {
+    t.cleanup();
+  }
+});
+
 test('Codex Stop hook normalizes pending hook events by default', () => {
   const t = tempDb();
   try {

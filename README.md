@@ -264,9 +264,17 @@ lyo activation report \
   --job-id REP-123
 ```
 
-Activation reports include raw evidence and a compact `summary` grouped by
-path kind, command classification/status, deployment status, and activated
-zones.
+Activation reports include raw evidence and a compact `summary` grouped by:
+
+```text
+path kind and phase
+repeated path events
+command classification, status, phase, output size, and repeat count
+deployment provider, environment, and status
+activated zones, confidence, strength, and evidence refs
+coactivation pairs
+job-local association support counts
+```
 
 Zone association reports include both raw support and normalized support:
 
