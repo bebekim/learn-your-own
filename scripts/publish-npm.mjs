@@ -26,23 +26,34 @@ const encodedName = encodeURIComponent(packageJson.name).replace('%40', '@');
 const url = new URL(`${registry.replace(/\/$/, '')}/${encodedName}`);
 const filename = basename(tarballPath);
 
+const existing = await fetchExistingPackage(url);
+if (existing?.versions?.[packageJson.version]) {
+  throw new Error(`${packageJson.name}@${packageJson.version} is already published`);
+}
+
+const versionManifest = {
+  ...packageJson,
+  _id: `${packageJson.name}@${packageJson.version}`,
+  dist: {
+    shasum,
+    integrity,
+    tarball: `${registry.replace(/\/$/, '')}/${packageJson.name}/-/${filename}`,
+  },
+};
+
 const manifest = {
-  _id: packageJson.name,
-  name: packageJson.name,
+  ...(existing ?? {}),
+  _id: existing?._id ?? packageJson.name,
+  ...(existing?._rev ? { _rev: existing._rev } : {}),
+  name: existing?.name ?? packageJson.name,
   description: packageJson.description,
   'dist-tags': {
+    ...(existing?.['dist-tags'] ?? {}),
     latest: packageJson.version,
   },
   versions: {
-    [packageJson.version]: {
-      ...packageJson,
-      _id: `${packageJson.name}@${packageJson.version}`,
-      dist: {
-        shasum,
-        integrity,
-        tarball: `${registry.replace(/\/$/, '')}/${packageJson.name}/-/${filename}`,
-      },
-    },
+    ...(existing?.versions ?? {}),
+    [packageJson.version]: versionManifest,
   },
   access,
   _attachments: {
@@ -56,28 +67,15 @@ const manifest = {
 
 const body = JSON.stringify(manifest);
 
-const response = await new Promise((resolve, reject) => {
-  const req = request(url, {
-    method: 'PUT',
-    headers: {
-      authorization: `Bearer ${token}`,
-      'content-type': 'application/json',
-      'content-length': Buffer.byteLength(body),
-      ...(otp ? { 'npm-otp': otp } : {}),
-    },
-  }, (res) => {
-    let data = '';
-    res.setEncoding('utf8');
-    res.on('data', (chunk) => {
-      data += chunk;
-    });
-    res.on('end', () => {
-      resolve({ statusCode: res.statusCode, data });
-    });
-  });
-  req.on('error', reject);
-  req.end(body);
-});
+const response = await requestText(url, {
+  method: 'PUT',
+  headers: {
+    authorization: `Bearer ${token}`,
+    'content-type': 'application/json',
+    'content-length': Buffer.byteLength(body),
+    ...(otp ? { 'npm-otp': otp } : {}),
+  },
+}, body);
 
 const statusCode = response.statusCode ?? 0;
 if (statusCode < 200 || statusCode >= 300) {
@@ -85,3 +83,35 @@ if (statusCode < 200 || statusCode >= 300) {
 }
 
 console.log(response.data);
+
+async function fetchExistingPackage(packageUrl) {
+  const response = await requestText(packageUrl, {
+    method: 'GET',
+    headers: {
+      accept: 'application/json',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (response.statusCode === 404) return null;
+  if ((response.statusCode ?? 0) < 200 || (response.statusCode ?? 0) >= 300) {
+    throw new Error(`npm metadata fetch failed with HTTP ${response.statusCode}: ${response.data}`);
+  }
+  return JSON.parse(response.data);
+}
+
+async function requestText(requestUrl, options, body) {
+  return await new Promise((resolve, reject) => {
+    const req = request(requestUrl, options, (res) => {
+      let data = '';
+      res.setEncoding('utf8');
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      res.on('end', () => {
+        resolve({ statusCode: res.statusCode, data });
+      });
+    });
+    req.on('error', reject);
+    req.end(body);
+  });
+}
