@@ -495,6 +495,91 @@ test('lyo CLI records workspace activation tracer bullet and reports association
   }
 });
 
+test('lyo normalize hooks turns Codex hook events into activation records', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-normalize-hooks-cli-'));
+  try {
+    const dbPath = join(dir, 'learning.sqlite');
+
+    execFileSync(process.execPath, [
+      'src/cli.ts', 'workspace', 'register',
+      '--db', dbPath,
+      '--workspace-id', 'demo',
+      '--root', dir,
+      '--name', 'demo',
+    ], { cwd: ROOT });
+    execFileSync(process.execPath, [
+      'src/cli.ts', 'zone', 'add',
+      '--db', dbPath,
+      '--workspace-id', 'demo',
+      '--zone-id', 'src',
+      '--name', 'src',
+      '--kind', 'domain',
+      '--path-glob', 'src/**',
+    ], { cwd: ROOT });
+    execFileSync(process.execPath, [
+      'src/cli.ts', 'zone', 'add',
+      '--db', dbPath,
+      '--workspace-id', 'demo',
+      '--zone-id', 'node_test',
+      '--name', 'node_test',
+      '--kind', 'external_command',
+    ], { cwd: ROOT });
+
+    execFileSync(
+      process.execPath,
+      ['src/cli.ts', 'codex-hook', '--db', dbPath],
+      {
+        cwd: ROOT,
+        input: JSON.stringify({
+          session_id: 'session-normalize',
+          turn_id: 'turn-normalize',
+          cwd: dir,
+          hook_event_name: 'PreToolUse',
+          tool_name: 'Read',
+          tool_input: { file_path: 'src/index.ts' },
+        }),
+      }
+    );
+    execFileSync(
+      process.execPath,
+      ['src/cli.ts', 'codex-hook', '--db', dbPath],
+      {
+        cwd: ROOT,
+        input: JSON.stringify({
+          session_id: 'session-normalize',
+          turn_id: 'turn-normalize',
+          cwd: dir,
+          hook_event_name: 'PreToolUse',
+          tool_name: 'Bash',
+          tool_input: { command: 'node --test' },
+        }),
+      }
+    );
+
+    const normalized = JSON.parse(execFileSync(
+      process.execPath,
+      ['src/cli.ts', 'normalize', 'hooks', '--db', dbPath, '--workspace-id', 'demo'],
+      { cwd: ROOT, encoding: 'utf8' }
+    ));
+    assert.equal(normalized.ok, true);
+    assert.equal(normalized.processedEvents, 2);
+    assert.equal(normalized.pathActivations, 1);
+    assert.equal(normalized.commandActivations, 1);
+    assert.equal(normalized.zoneCoactivations, 1);
+
+    const report = JSON.parse(execFileSync(
+      process.execPath,
+      ['src/cli.ts', 'activation', 'report', '--db', dbPath, '--job-id', normalized.jobs[0]],
+      { cwd: ROOT, encoding: 'utf8' }
+    ));
+    assert.equal(report.ok, true);
+    assert.equal(report.commandActivations[0].classification, 'test');
+    assert.equal(report.pathActivations[0].path, 'src/index.ts');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('lyo codex-hook avoids unsupported continue field for PreToolUse output', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-codex-pretool-'));
   try {

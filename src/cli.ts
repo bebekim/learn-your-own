@@ -10,6 +10,7 @@ import {
   getZoneAssociationReport,
   handleCodexHook,
   initLedger,
+  normalizeHooks,
   recordCommandActivation,
   recordDeploymentAction,
   recordJob,
@@ -33,7 +34,7 @@ function print(value: unknown): void {
 function usage(exitCode = 0): never {
   console.log(`Usage:
 	  lyo init [--db path]
-	  lyo codex-hook [--db path] [--db-from-event-cwd] [--channel name] [--prompt-dir path] [--prompt-dir-from-event-cwd]
+	  lyo codex-hook [--db path] [--db-from-event-cwd] [--channel name] [--prompt-dir path] [--prompt-dir-from-event-cwd] [--workspace-id id] [--no-normalize-on-stop]
 	  lyo session-start [--db path] --session-id id [--repo-path path] [--platform name] [--model name]
 	  lyo record-prompt [--db path] --session-id id --role role [--kind kind] [--prompt-file path] [--summary text] [--response text] [--model name]
 	  lyo model-call record [--db path] --provider name --model name --model-lane lane [--call-id id] [--session-id id] [--run-id id] [--prompt-file path] [--prompt-ref path] [--summary text] [--input-tokens n] [--output-tokens n] [--total-tokens n] [--estimated-cost n] [--latency-ms n] [--status started|completed|failed]
@@ -46,6 +47,7 @@ function usage(exitCode = 0): never {
 	  lyo activate path [--db path] --job-id id --path path --kind kind [--run-id id] [--evidence-ref ref] [--confidence low|medium|high]
 	  lyo activate command [--db path] --job-id id --command-name name [--argv text] [--argv-summary text] [--classification class] [--status status] [--run-id id] [--evidence-ref ref]
 	  lyo activate deployment [--db path] --job-id id --command-id id [--provider name] [--environment env] [--target target] [--status status] [--evidence-ref ref]
+	  lyo normalize hooks [--db path] [--workspace-id id] [--outcome positive|negative|unknown] [--limit n]
 	  lyo activation derive [--db path] --job-id id [--outcome positive|negative|unknown]
 	  lyo activation report [--db path] --job-id id
 	  lyo zone associations [--db path] --workspace-id id [--zone-id id] [--limit n]
@@ -55,7 +57,8 @@ function usage(exitCode = 0): never {
 	Environment:
 	  LEARNLOOP_DB       Default SQLite path. Defaults to .agent-learning/learning.sqlite
 	  LEARNLOOP_CHANNEL  Optional channel override for hook overlay resolution
-	  LEARNLOOP_PROMPT_DIR Optional directory for hook prompt blobs`);
+	  LEARNLOOP_PROMPT_DIR Optional directory for hook prompt blobs
+	  LEARNLOOP_NORMALIZE_ON_STOP Set to 0 to disable Stop-hook normalization`);
   process.exit(exitCode);
 }
 
@@ -103,7 +106,13 @@ try {
       : promptDir;
     const kernel = createKernel({ dbPath: effectiveDbPath });
     initLedger(kernel);
-    print(handleCodexHook(kernel, event, { channel, promptDir: effectivePromptDir }));
+    print(handleCodexHook(kernel, event, {
+      channel,
+      promptDir: effectivePromptDir,
+      normalizeOnStop: !hasFlag('--no-normalize-on-stop') && process.env.LEARNLOOP_NORMALIZE_ON_STOP !== '0',
+      normalizeWorkspaceId: flagValue('--workspace-id'),
+      normalizeOutcome: normalizeOutcome(flagValue('--outcome')),
+    }));
   } else if (command === 'session-start') {
     const kernel = createKernel({ dbPath });
     initLedger(kernel);
@@ -290,6 +299,17 @@ try {
         evidenceRef: flagValue('--evidence-ref') ?? null,
       }),
     });
+  } else if (command === 'normalize' && subcommand === 'hooks') {
+    const kernel = createKernel({ dbPath });
+    initLedger(kernel);
+    print({
+      ok: true,
+      ...normalizeHooks(kernel, {
+        workspaceId: flagValue('--workspace-id'),
+        outcome: normalizeOutcome(flagValue('--outcome')),
+        limit: optionalNumber('--limit') ?? undefined,
+      }),
+    });
   } else if (command === 'activation' && subcommand === 'derive') {
     const kernel = createKernel({ dbPath });
     initLedger(kernel);
@@ -343,6 +363,10 @@ function requiredFlag(name: string): string {
 function optionalNumber(name: string): number | null {
   const value = flagValue(name);
   return value === undefined ? null : Number(value);
+}
+
+function normalizeOutcome(value: string | undefined): 'positive' | 'negative' | 'unknown' {
+  return value === 'positive' || value === 'negative' ? value : 'unknown';
 }
 
 function deriveActivationState(kernel: ReturnType<typeof createKernel>, jobId: string, outcome: string): object {

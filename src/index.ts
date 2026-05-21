@@ -275,6 +275,9 @@ export interface CodexHookOptions {
   channel?: string;
   taskShape?: string;
   promptDir?: string;
+  normalizeOnStop?: boolean;
+  normalizeWorkspaceId?: string;
+  normalizeOutcome?: AssociationOutcome;
 }
 
 export interface CodexHookOutput {
@@ -530,6 +533,23 @@ export interface JobActivationReport {
   zoneCoactivations: ZoneCoactivationRecord[];
 }
 
+export interface NormalizeHooksInput {
+  workspaceId?: string;
+  outcome?: AssociationOutcome;
+  limit?: number;
+}
+
+export interface NormalizeHooksResult {
+  processedEvents: number;
+  jobs: string[];
+  pathActivations: number;
+  commandActivations: number;
+  deploymentActions: number;
+  zoneActivations: number;
+  zoneCoactivations: number;
+  associations: number;
+}
+
 const ISO_NOW = () => new Date().toISOString();
 
 export function createKernel({ dbPath = '.agent-learning/learning.sqlite' }: CreateKernelInput = {}): LearningKernel {
@@ -647,6 +667,12 @@ export function initLedger(kernel: LearningKernel): LearningKernel {
 	      payload_json text not null,
 	      created_at text not null
 	    );
+
+    create table if not exists hook_normalizations (
+      event_id text primary key references hook_events(event_id),
+      job_id text not null,
+      normalized_at text not null
+    );
 
 	    create table if not exists agent_sessions (
 	      session_id text primary key,
@@ -1532,6 +1558,127 @@ export function getZoneAssociationReport(
   `).all(...params) as ZoneAssociationRecord[];
 }
 
+export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInput = {}): NormalizeHooksResult {
+  const events = kernel.db.prepare(`
+    select
+      he.event_id as eventId,
+      he.session_id as sessionId,
+      he.turn_id as turnId,
+      he.event_name as eventName,
+      he.cwd,
+      he.payload_json as payloadJson
+    from hook_events he
+    left join hook_normalizations hn on hn.event_id = he.event_id
+    where hn.event_id is null
+    order by he.created_at asc, he.event_id asc
+    limit ?
+  `).all(input.limit ?? 1000) as {
+    eventId: string;
+    sessionId: string;
+    turnId: string | null;
+    eventName: string;
+    cwd: string;
+    payloadJson: string;
+  }[];
+
+  const jobIds = new Set<string>();
+  let pathActivations = 0;
+  let commandActivations = 0;
+  let deploymentActions = 0;
+
+  for (const event of events) {
+    const payload = parseJsonObject(event.payloadJson);
+    const workspace = workspaceForHookEvent(kernel, event.cwd, input.workspaceId);
+    const jobId = hookJobId(event.sessionId, event.turnId);
+    jobIds.add(jobId);
+    recordJob(kernel, {
+      jobId,
+      workspaceId: workspace.workspaceId,
+      runId: event.turnId ?? null,
+      taskShape: 'codex-hook-turn',
+      summary: `Codex ${event.eventName} in ${workspace.name}`,
+      sourceRef: `codex-hook:${event.eventId}`,
+      status: event.eventName === 'Stop' ? 'completed' : 'started',
+    });
+
+    const toolName = stringValue(payload.tool_name);
+    const toolInput = objectValue(payload.tool_input);
+    const evidenceRef = `hook:${event.eventId}`;
+
+    if (toolName && isShellTool(toolName)) {
+      const commandText = extractCommandText(toolInput);
+      if (commandText) {
+        const commandName = firstCommandToken(commandText);
+        const command = recordCommandActivation(kernel, {
+          jobId,
+          runId: event.turnId ?? null,
+          commandName,
+          workingDirectory: event.cwd,
+          argv: commandText,
+          evidenceRef,
+          status: event.eventName === 'PostToolUse' ? 'succeeded' : 'attempted',
+        });
+        commandActivations += 1;
+        if (command.classification === 'deploy') {
+          recordDeploymentAction(kernel, {
+            jobId,
+            commandId: command.commandId,
+            provider: inferDeploymentProvider(commandText),
+            environment: inferDeploymentEnvironment(commandText),
+            target: inferDeploymentTarget(commandText),
+            status: event.eventName === 'PostToolUse' ? 'succeeded' : 'attempted',
+            evidenceRef,
+          });
+          deploymentActions += 1;
+        }
+      }
+    }
+
+    if (toolName && toolInput) {
+      const activationKind = pathActivationKindForTool(toolName);
+      for (const path of extractPaths(toolInput)) {
+        recordPathActivation(kernel, {
+          jobId,
+          runId: event.turnId ?? null,
+          path,
+          activationKind,
+          evidenceRef,
+          confidence: 'medium',
+        });
+        pathActivations += 1;
+      }
+    }
+
+    kernel.db.prepare(`
+      insert or ignore into hook_normalizations (event_id, job_id, normalized_at)
+      values (?, ?, ?)
+    `).run(event.eventId, jobId, ISO_NOW());
+  }
+
+  let zoneActivations = 0;
+  let zoneCoactivations = 0;
+  let associations = 0;
+  for (const jobId of jobIds) {
+    zoneActivations += deriveZoneActivationsForJob(kernel, { jobId }).length;
+    zoneCoactivations += deriveZoneCoactivationsForJob(kernel, { jobId }).length;
+    associations += updateZoneAssociationsFromJob(kernel, {
+      jobId,
+      outcome: input.outcome ?? 'unknown',
+    }).length;
+  }
+
+  return {
+    processedEvents: events.length,
+    jobs: [...jobIds],
+    pathActivations,
+    commandActivations,
+    deploymentActions,
+    zoneActivations,
+    zoneCoactivations,
+    associations,
+  };
+}
+
 export function promoteProtocolFromPreferences(
   kernel: LearningKernel,
   input: PromoteProtocolFromPreferencesInput
@@ -1850,6 +1997,13 @@ export function handleCodexHook(
     });
   }
 
+  if (eventName === 'Stop' && options.normalizeOnStop !== false) {
+    normalizeHooks(kernel, {
+      workspaceId: options.normalizeWorkspaceId,
+      outcome: options.normalizeOutcome ?? 'unknown',
+    });
+  }
+
   if (!['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse'].includes(eventName)) {
     return emptyCodexHookOutput(eventName);
   }
@@ -2077,6 +2231,14 @@ function getWorkspace(kernel: LearningKernel, workspaceId: string): WorkspaceRec
     from workspaces
     where workspace_id = ?
   `).get(workspaceId) as WorkspaceRecord;
+}
+
+function getWorkspaceByRoot(kernel: LearningKernel, rootPath: string): WorkspaceRecord | undefined {
+  return kernel.db.prepare(`
+    select workspace_id as workspaceId, root_path as rootPath, name
+    from workspaces
+    where root_path = ?
+  `).get(resolve(rootPath)) as WorkspaceRecord | undefined;
 }
 
 function ensureWorkspace(kernel: LearningKernel, workspaceId: string): WorkspaceRecord {
@@ -2448,6 +2610,117 @@ function classifyCommand(commandName: string, commandText: string): CommandClass
   if (/\b(npm run build|pnpm build|yarn build|go build|cargo build)\b/.test(text)) return 'build';
   if (/\bgit\b/.test(text)) return 'git';
   return 'unknown';
+}
+
+function workspaceForHookEvent(kernel: LearningKernel, cwd: string, workspaceId?: string): WorkspaceRecord {
+  if (workspaceId) return ensureWorkspace(kernel, workspaceId);
+  const existing = getWorkspaceByRoot(kernel, cwd);
+  if (existing) return existing;
+  return recordWorkspace(kernel, { rootPath: cwd });
+}
+
+function hookJobId(sessionId: string, turnId: string | null): string {
+  return `codex-job-${sha256(`${sessionId}:${turnId ?? 'session'}`).slice(0, 16)}`;
+}
+
+function parseJsonObject(value: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(value);
+    return objectValue(parsed) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+function objectValue(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function stringValue(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null;
+}
+
+function isShellTool(toolName: string): boolean {
+  const normalized = toolName.toLowerCase();
+  return normalized === 'bash'
+    || normalized === 'shell'
+    || normalized === 'exec_command'
+    || normalized.endsWith('.exec_command');
+}
+
+function extractCommandText(toolInput: Record<string, unknown> | null): string | null {
+  if (!toolInput) return null;
+  return stringValue(toolInput.command)
+    ?? stringValue(toolInput.cmd)
+    ?? stringValue(toolInput.script)
+    ?? null;
+}
+
+function firstCommandToken(command: string): string {
+  const trimmed = command.trim();
+  const first = trimmed.split(/\s+/)[0] ?? 'command';
+  return first.replace(/^["']|["']$/g, '') || 'command';
+}
+
+function inferDeploymentProvider(command: string): string | null {
+  const text = command.toLowerCase();
+  if (text.includes('databricks')) return 'databricks';
+  if (text.includes('terraform')) return 'terraform';
+  if (text.includes('railway')) return 'railway';
+  if (text.includes('kubectl')) return 'kubernetes';
+  if (/\baws\b/.test(text)) return 'aws';
+  if (/\bacli\b/.test(text)) return 'acli';
+  return null;
+}
+
+function inferDeploymentEnvironment(command: string): string | null {
+  const match = command.match(/(?:^|\s)(?:-t|--target|--env|--environment)\s+([A-Za-z0-9_.:-]+)/);
+  return match?.[1] ?? null;
+}
+
+function inferDeploymentTarget(command: string): string | null {
+  const match = command.match(/(?:bundle deploy|deploy|apply|push)\s+([A-Za-z0-9_./:-]+)/i);
+  return match?.[1] ?? null;
+}
+
+function pathActivationKindForTool(toolName: string): PathActivationKind {
+  const normalized = toolName.toLowerCase();
+  if (normalized.includes('read')) return 'file_read';
+  if (normalized.includes('ls') || normalized.includes('list')) return 'directory_listed';
+  if (normalized.includes('delete')) return 'file_deleted';
+  if (normalized.includes('write') || normalized.includes('edit') || normalized.includes('patch')) return 'file_written';
+  return 'unknown';
+}
+
+function extractPaths(value: unknown): string[] {
+  const paths = new Set<string>();
+  collectPaths(value, paths);
+  return [...paths].filter((path) => !path.startsWith('-') && !path.includes('\n'));
+}
+
+function collectPaths(value: unknown, paths: Set<string>, key = ''): void {
+  if (Array.isArray(value)) {
+    for (const item of value) collectPaths(item, paths, key);
+    return;
+  }
+  if (value && typeof value === 'object') {
+    for (const [childKey, childValue] of Object.entries(value)) {
+      collectPaths(childValue, paths, childKey);
+    }
+    return;
+  }
+  if (typeof value !== 'string' || !value.trim()) return;
+  const normalizedKey = key.toLowerCase();
+  if (['path', 'file_path', 'filepath', 'file', 'filename', 'relative_path'].includes(normalizedKey)) {
+    paths.add(normalizeRelativePath(value));
+  }
+  if (normalizedKey === 'patch') {
+    for (const match of value.matchAll(/^\*\*\* (?:Update|Add|Delete) File: (.+)$/gm)) {
+      if (match[1]) paths.add(normalizeRelativePath(match[1].trim()));
+    }
+  }
 }
 
 function countRows(kernel: LearningKernel, tableName: string): number {

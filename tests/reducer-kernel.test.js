@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -27,6 +28,9 @@ import {
   updateZoneAssociationsFromJob,
   getJobActivationReport,
   getZoneAssociationReport,
+  recordHookEvent,
+  normalizeHooks,
+  handleCodexHook,
 } from '../src/index.ts';
 
 function tempDb() {
@@ -36,6 +40,10 @@ function tempDb() {
     dbPath: join(dir, 'learning.sqlite'),
     cleanup: () => rmSync(dir, { recursive: true, force: true }),
   };
+}
+
+function hookJobId(sessionId, turnId) {
+  return `codex-job-${createHash('sha256').update(`${sessionId}:${turnId ?? 'session'}`).digest('hex').slice(0, 16)}`;
 }
 
 test('fixture replay protocol is promoted only after evidence and improves credit when followed', () => {
@@ -264,6 +272,140 @@ test('workspace activation records zones, commands, deployments, coactivations, 
     });
     assert.equal(idempotentAssociations[0].supportCount, 1);
     assert.equal(idempotentAssociations[0].positiveOutcomes, 1);
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('hook normalizer passively records command, deployment, path, and zone activations', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    const workspace = recordWorkspace(kernel, {
+      workspaceId: 'nectr',
+      rootPath: '/tmp/nectr_data_eng',
+      name: 'nectr_data_eng',
+    });
+    recordZone(kernel, {
+      zoneId: 'core',
+      workspaceId: workspace.workspaceId,
+      zoneKind: 'config',
+      pathGlob: 'nectr_data_eng_core/**',
+      name: 'core',
+    });
+    recordZone(kernel, {
+      zoneId: 'databricks_deploy',
+      workspaceId: workspace.workspaceId,
+      zoneKind: 'deployment',
+      name: 'databricks_deploy',
+    });
+
+    recordHookEvent(kernel, {
+      eventId: 'hook-read',
+      sessionId: 'session-1',
+      turnId: 'turn-1',
+      eventName: 'PreToolUse',
+      cwd: '/tmp/nectr_data_eng',
+      payload: {
+        hook_event_name: 'PreToolUse',
+        tool_name: 'Read',
+        tool_input: { file_path: 'nectr_data_eng_core/config.yml' },
+      },
+    });
+    recordHookEvent(kernel, {
+      eventId: 'hook-bash',
+      sessionId: 'session-1',
+      turnId: 'turn-1',
+      eventName: 'PreToolUse',
+      cwd: '/tmp/nectr_data_eng',
+      payload: {
+        hook_event_name: 'PreToolUse',
+        tool_name: 'Bash',
+        tool_input: { command: 'databricks bundle deploy -t dev token=secret-value' },
+      },
+    });
+
+    const normalized = normalizeHooks(kernel, { outcome: 'positive' });
+    assert.equal(normalized.processedEvents, 2);
+    assert.equal(normalized.pathActivations, 1);
+    assert.equal(normalized.commandActivations, 1);
+    assert.equal(normalized.deploymentActions, 1);
+    assert.equal(normalized.zoneCoactivations, 1);
+
+    const report = getJobActivationReport(kernel, { jobId: normalized.jobs[0] });
+    assert.equal(report.commandActivations[0].classification, 'deploy');
+    assert.equal(report.commandActivations[0].argvSummary.includes('secret-value'), false);
+    assert.deepEqual(
+      [...new Set(report.zoneActivations.map((activation) => activation.zoneId))].sort(),
+      ['core', 'databricks_deploy']
+    );
+
+    const secondPass = normalizeHooks(kernel);
+    assert.equal(secondPass.processedEvents, 0);
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('Codex Stop hook normalizes pending hook events by default', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    recordWorkspace(kernel, {
+      workspaceId: 'demo',
+      rootPath: '/tmp/demo',
+      name: 'demo',
+    });
+    recordZone(kernel, {
+      zoneId: 'src',
+      workspaceId: 'demo',
+      zoneKind: 'domain',
+      pathGlob: 'src/**',
+      name: 'src',
+    });
+    recordZone(kernel, {
+      zoneId: 'node_test',
+      workspaceId: 'demo',
+      zoneKind: 'external_command',
+      name: 'node_test',
+    });
+
+    handleCodexHook(kernel, {
+      session_id: 'session-stop',
+      turn_id: 'turn-stop',
+      cwd: '/tmp/demo',
+      hook_event_name: 'PreToolUse',
+      tool_name: 'Read',
+      tool_input: { file_path: 'src/index.ts' },
+    }, { normalizeWorkspaceId: 'demo' });
+    handleCodexHook(kernel, {
+      session_id: 'session-stop',
+      turn_id: 'turn-stop',
+      cwd: '/tmp/demo',
+      hook_event_name: 'PreToolUse',
+      tool_name: 'Bash',
+      tool_input: { command: 'node --test' },
+    }, { normalizeWorkspaceId: 'demo' });
+    handleCodexHook(kernel, {
+      session_id: 'session-stop',
+      turn_id: 'turn-stop',
+      cwd: '/tmp/demo',
+      hook_event_name: 'Stop',
+      last_assistant_message: 'Finished running tests.',
+    }, { normalizeWorkspaceId: 'demo' });
+
+    const normalizedAgain = normalizeHooks(kernel, { workspaceId: 'demo' });
+    assert.equal(normalizedAgain.processedEvents, 0);
+
+    const jobId = hookJobId('session-stop', 'turn-stop');
+    const report = getJobActivationReport(kernel, { jobId });
+    assert.equal(report.pathActivations.length, 1);
+    assert.equal(report.commandActivations.length, 1);
+    assert.equal(report.zoneCoactivations.length, 1);
   } finally {
     t.cleanup();
   }
