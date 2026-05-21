@@ -408,6 +408,93 @@ test('lyo model-call record writes model usage into the ledger report', () => {
   }
 });
 
+test('lyo CLI records workspace activation tracer bullet and reports associations', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-workspace-activation-cli-'));
+  try {
+    const dbPath = join(dir, 'learning.sqlite');
+
+    execFileSync(process.execPath, [
+      'src/cli.ts', 'workspace', 'register',
+      '--db', dbPath,
+      '--workspace-id', 'nectr',
+      '--root', dir,
+      '--name', 'nectr_data_eng',
+    ], { cwd: ROOT });
+    execFileSync(process.execPath, [
+      'src/cli.ts', 'zone', 'add',
+      '--db', dbPath,
+      '--workspace-id', 'nectr',
+      '--zone-id', 'core',
+      '--name', 'core',
+      '--kind', 'config',
+      '--path-glob', 'nectr_data_eng_core/**',
+    ], { cwd: ROOT });
+    execFileSync(process.execPath, [
+      'src/cli.ts', 'zone', 'add',
+      '--db', dbPath,
+      '--workspace-id', 'nectr',
+      '--zone-id', 'engineering',
+      '--name', 'engineering',
+      '--kind', 'domain',
+      '--path-glob', 'nectr_data_engineering/**',
+    ], { cwd: ROOT });
+    execFileSync(process.execPath, [
+      'src/cli.ts', 'job', 'start',
+      '--db', dbPath,
+      '--job-id', 'REP-456',
+      '--workspace-id', 'nectr',
+      '--task-shape', 'data-platform-change',
+    ], { cwd: ROOT });
+    execFileSync(process.execPath, [
+      'src/cli.ts', 'activate', 'path',
+      '--db', dbPath,
+      '--job-id', 'REP-456',
+      '--path', 'nectr_data_eng_core/config.yml',
+      '--kind', 'file_written',
+    ], { cwd: ROOT });
+    execFileSync(process.execPath, [
+      'src/cli.ts', 'activate', 'path',
+      '--db', dbPath,
+      '--job-id', 'REP-456',
+      '--path', 'nectr_data_engineering/pipelines/foo.py',
+      '--kind', 'file_written',
+    ], { cwd: ROOT });
+
+    const derived = JSON.parse(execFileSync(
+      process.execPath,
+      [
+        'src/cli.ts', 'activation', 'derive',
+        '--db', dbPath,
+        '--job-id', 'REP-456',
+        '--outcome', 'positive',
+      ],
+      { cwd: ROOT, encoding: 'utf8' }
+    ));
+    assert.equal(derived.ok, true);
+    assert.equal(derived.zoneCoactivations.length, 1);
+
+    const report = JSON.parse(execFileSync(
+      process.execPath,
+      ['src/cli.ts', 'activation', 'report', '--db', dbPath, '--job-id', 'REP-456'],
+      { cwd: ROOT, encoding: 'utf8' }
+    ));
+    assert.equal(report.ok, true);
+    assert.equal(report.pathActivations.length, 2);
+    assert.equal(report.zoneCoactivations.length, 1);
+
+    const associations = JSON.parse(execFileSync(
+      process.execPath,
+      ['src/cli.ts', 'zone', 'associations', '--db', dbPath, '--workspace-id', 'nectr'],
+      { cwd: ROOT, encoding: 'utf8' }
+    ));
+    assert.equal(associations.ok, true);
+    assert.equal(associations.associations.length, 1);
+    assert.equal(associations.associations[0].positiveOutcomes, 1);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('lyo codex-hook avoids unsupported continue field for PreToolUse output', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-codex-pretool-'));
   try {

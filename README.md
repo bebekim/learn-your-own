@@ -112,6 +112,9 @@ Requires Node.js 24+ for `node:sqlite`.
 - Record Codex hook events.
 - Record sessions, prompt boundaries, run starts, and run finishes.
 - Record model/provider/token/cost usage.
+- Record workspaces, zones, jobs, path activations, command activations, and
+  deployment actions.
+- Derive zone co-activations and association weights from a job.
 - Record traces and preference pairs.
 - Promote protocols only after evidence.
 - Resolve scoped protocol overlays for future matching work.
@@ -141,6 +144,12 @@ gaps                 explicit defects or missing behavior
 protocols            scoped lessons that can be delivered later
 deliveries           proof that a future run saw a protocol
 outcomes             whether following the protocol helped
+workspaces           repo/project roots being observed
+zones                folders, modules, command surfaces, or deployment surfaces
+jobs                 work-shaped units that may span one or more agent runs
+activations          paths, commands, deployments, and zones that fired in a job
+co-activations       zone pairs that fired together during a job
+associations         accumulated co-activation evidence across jobs
 ```
 
 Raw prompts are not stored in SQLite by default. Lyo records prompt hashes,
@@ -197,6 +206,59 @@ Inspect the ledger summary:
 
 ```sh
 lyo report --db .agent-learning/learning.sqlite
+```
+
+Record a workspace activation tracer:
+
+```sh
+lyo workspace register \
+  --db .agent-learning/learning.sqlite \
+  --workspace-id nectr \
+  --root . \
+  --name nectr_data_eng
+
+lyo zone add \
+  --db .agent-learning/learning.sqlite \
+  --workspace-id nectr \
+  --zone-id core \
+  --name core \
+  --kind config \
+  --path-glob 'nectr_data_eng_core/**'
+
+lyo zone add \
+  --db .agent-learning/learning.sqlite \
+  --workspace-id nectr \
+  --zone-id engineering \
+  --name engineering \
+  --kind domain \
+  --path-glob 'nectr_data_engineering/**'
+
+lyo job start \
+  --db .agent-learning/learning.sqlite \
+  --job-id REP-123 \
+  --workspace-id nectr \
+  --task-shape data-platform-change
+
+lyo activate path \
+  --db .agent-learning/learning.sqlite \
+  --job-id REP-123 \
+  --path nectr_data_eng_core/config.yml \
+  --kind file_written
+
+lyo activate path \
+  --db .agent-learning/learning.sqlite \
+  --job-id REP-123 \
+  --path nectr_data_engineering/pipelines/foo.py \
+  --kind file_written
+
+lyo activation derive \
+  --db .agent-learning/learning.sqlite \
+  --job-id REP-123 \
+  --outcome positive
+
+lyo activation report \
+  --db .agent-learning/learning.sqlite \
+  --job-id REP-123
 ```
 
 Run the built-in reducer demo:

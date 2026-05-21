@@ -1,15 +1,27 @@
 #!/usr/bin/env node
 import {
   createKernel,
+  deriveZoneActivationsForJob,
+  deriveZoneCoactivationsForJob,
+  finishJob,
   finishRun,
+  getJobActivationReport,
   getObserverSummary,
+  getZoneAssociationReport,
   handleCodexHook,
   initLedger,
+  recordCommandActivation,
+  recordDeploymentAction,
+  recordJob,
   recordModelCall,
+  recordPathActivation,
   recordPromptBoundary,
   recordRun,
   recordSessionStarted,
+  recordWorkspace,
+  recordZone,
   runFixtureReplayDemo,
+  updateZoneAssociationsFromJob,
 } from './index.ts';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -27,6 +39,16 @@ function usage(exitCode = 0): never {
 	  lyo model-call record [--db path] --provider name --model name --model-lane lane [--call-id id] [--session-id id] [--run-id id] [--prompt-file path] [--prompt-ref path] [--summary text] [--input-tokens n] [--output-tokens n] [--total-tokens n] [--estimated-cost n] [--latency-ms n] [--status started|completed|failed]
 	  lyo run-start [--db path] --run-id id --task-shape shape --channel channel [--status status] [--token-cost n]
 	  lyo run-finish [--db path] --run-id id [--status status] [--token-cost n]
+	  lyo workspace register [--db path] --root path [--workspace-id id] [--name name]
+	  lyo zone add [--db path] --workspace-id id --name name --kind kind [--zone-id id] [--parent-zone-id id] [--path-glob glob] [--description text]
+	  lyo job start [--db path] --job-id id --workspace-id id [--run-id id] [--task-shape shape] [--summary text] [--source-ref ref]
+	  lyo job finish [--db path] --job-id id [--status completed|failed|cancelled|unknown] [--derive] [--outcome positive|negative|unknown]
+	  lyo activate path [--db path] --job-id id --path path --kind kind [--run-id id] [--evidence-ref ref] [--confidence low|medium|high]
+	  lyo activate command [--db path] --job-id id --command-name name [--argv text] [--argv-summary text] [--classification class] [--status status] [--run-id id] [--evidence-ref ref]
+	  lyo activate deployment [--db path] --job-id id --command-id id [--provider name] [--environment env] [--target target] [--status status] [--evidence-ref ref]
+	  lyo activation derive [--db path] --job-id id [--outcome positive|negative|unknown]
+	  lyo activation report [--db path] --job-id id
+	  lyo zone associations [--db path] --workspace-id id [--zone-id id] [--limit n]
 	  lyo report [--db path]
 	  lyo demo fixture-replay [--db path]
 
@@ -167,6 +189,132 @@ try {
         tokenCost: flagValue('--token-cost') === undefined ? undefined : Number(flagValue('--token-cost')),
       }),
     });
+  } else if (command === 'workspace' && subcommand === 'register') {
+    const kernel = createKernel({ dbPath });
+    initLedger(kernel);
+    print({
+      ok: true,
+      workspace: recordWorkspace(kernel, {
+        workspaceId: flagValue('--workspace-id'),
+        rootPath: requiredFlag('--root'),
+        name: flagValue('--name'),
+      }),
+    });
+  } else if (command === 'zone' && subcommand === 'add') {
+    const kernel = createKernel({ dbPath });
+    initLedger(kernel);
+    print({
+      ok: true,
+      zone: recordZone(kernel, {
+        zoneId: flagValue('--zone-id'),
+        workspaceId: requiredFlag('--workspace-id'),
+        parentZoneId: flagValue('--parent-zone-id') ?? null,
+        zoneKind: requiredFlag('--kind'),
+        pathGlob: flagValue('--path-glob') ?? null,
+        name: requiredFlag('--name'),
+        description: flagValue('--description') ?? null,
+      }),
+    });
+  } else if (command === 'job' && subcommand === 'start') {
+    const kernel = createKernel({ dbPath });
+    initLedger(kernel);
+    print({
+      ok: true,
+      job: recordJob(kernel, {
+        jobId: requiredFlag('--job-id'),
+        workspaceId: requiredFlag('--workspace-id'),
+        runId: flagValue('--run-id') ?? null,
+        taskShape: flagValue('--task-shape') ?? null,
+        summary: flagValue('--summary') ?? null,
+        sourceRef: flagValue('--source-ref') ?? null,
+        status: 'started',
+      }),
+    });
+  } else if (command === 'job' && subcommand === 'finish') {
+    const kernel = createKernel({ dbPath });
+    initLedger(kernel);
+    const job = finishJob(kernel, {
+      jobId: requiredFlag('--job-id'),
+      status: flagValue('--status') ?? 'completed',
+    });
+    let derived = null;
+    if (hasFlag('--derive')) {
+      derived = deriveActivationState(kernel, job.jobId, flagValue('--outcome') ?? 'unknown');
+    }
+    print({ ok: true, job, derived });
+  } else if (command === 'activate' && subcommand === 'path') {
+    const kernel = createKernel({ dbPath });
+    initLedger(kernel);
+    print({
+      ok: true,
+      pathActivation: recordPathActivation(kernel, {
+        jobId: requiredFlag('--job-id'),
+        runId: flagValue('--run-id') ?? null,
+        path: requiredFlag('--path'),
+        activationKind: flagValue('--kind') ?? 'unknown',
+        evidenceRef: flagValue('--evidence-ref') ?? null,
+        confidence: flagValue('--confidence') ?? 'medium',
+      }),
+    });
+  } else if (command === 'activate' && subcommand === 'command') {
+    const kernel = createKernel({ dbPath });
+    initLedger(kernel);
+    print({
+      ok: true,
+      commandActivation: recordCommandActivation(kernel, {
+        jobId: requiredFlag('--job-id'),
+        runId: flagValue('--run-id') ?? null,
+        commandName: requiredFlag('--command-name'),
+        commandFamily: flagValue('--command-family') ?? null,
+        workingDirectory: flagValue('--working-directory') ?? null,
+        argv: flagValue('--argv') ?? null,
+        argvHash: flagValue('--argv-hash') ?? null,
+        argvSummary: flagValue('--argv-summary') ?? null,
+        classification: flagValue('--classification') ?? undefined,
+        evidenceRef: flagValue('--evidence-ref') ?? null,
+        status: flagValue('--status') ?? 'attempted',
+      }),
+    });
+  } else if (command === 'activate' && subcommand === 'deployment') {
+    const kernel = createKernel({ dbPath });
+    initLedger(kernel);
+    print({
+      ok: true,
+      deploymentAction: recordDeploymentAction(kernel, {
+        jobId: requiredFlag('--job-id'),
+        commandId: requiredFlag('--command-id'),
+        provider: flagValue('--provider') ?? null,
+        environment: flagValue('--environment') ?? null,
+        target: flagValue('--target') ?? null,
+        status: flagValue('--status') ?? 'attempted',
+        evidenceRef: flagValue('--evidence-ref') ?? null,
+      }),
+    });
+  } else if (command === 'activation' && subcommand === 'derive') {
+    const kernel = createKernel({ dbPath });
+    initLedger(kernel);
+    print({
+      ok: true,
+      ...deriveActivationState(kernel, requiredFlag('--job-id'), flagValue('--outcome') ?? 'unknown'),
+    });
+  } else if (command === 'activation' && subcommand === 'report') {
+    const kernel = createKernel({ dbPath });
+    initLedger(kernel);
+    print({
+      ok: true,
+      ...getJobActivationReport(kernel, { jobId: requiredFlag('--job-id') }),
+    });
+  } else if (command === 'zone' && subcommand === 'associations') {
+    const kernel = createKernel({ dbPath });
+    initLedger(kernel);
+    print({
+      ok: true,
+      associations: getZoneAssociationReport(kernel, {
+        workspaceId: requiredFlag('--workspace-id'),
+        zoneId: flagValue('--zone-id'),
+        limit: optionalNumber('--limit') ?? 20,
+      }),
+    });
   } else if (command === 'report') {
     const kernel = createKernel({ dbPath });
     initLedger(kernel);
@@ -195,4 +343,14 @@ function requiredFlag(name: string): string {
 function optionalNumber(name: string): number | null {
   const value = flagValue(name);
   return value === undefined ? null : Number(value);
+}
+
+function deriveActivationState(kernel: ReturnType<typeof createKernel>, jobId: string, outcome: string): object {
+  const zoneActivations = deriveZoneActivationsForJob(kernel, { jobId });
+  const zoneCoactivations = deriveZoneCoactivationsForJob(kernel, { jobId });
+  const associations = updateZoneAssociationsFromJob(kernel, {
+    jobId,
+    outcome: outcome === 'positive' || outcome === 'negative' ? outcome : 'unknown',
+  });
+  return { zoneActivations, zoneCoactivations, associations };
 }

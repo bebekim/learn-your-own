@@ -16,6 +16,17 @@ import {
   getCredit,
   recordModelCall,
   getModelCallSummary,
+  recordWorkspace,
+  recordZone,
+  recordJob,
+  recordPathActivation,
+  recordCommandActivation,
+  recordDeploymentAction,
+  deriveZoneActivationsForJob,
+  deriveZoneCoactivationsForJob,
+  updateZoneAssociationsFromJob,
+  getJobActivationReport,
+  getZoneAssociationReport,
 } from '../src/index.ts';
 
 function tempDb() {
@@ -144,6 +155,115 @@ test('model calls record provider, lane, prompt metadata, tokens, cost, and late
     assert.equal(summary.modelCalls, 1);
     assert.equal(summary.totalModelTokens, 200);
     assert.equal(summary.estimatedModelCost, 0.0125);
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('workspace activation records zones, commands, deployments, coactivations, and associations', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    const workspace = recordWorkspace(kernel, {
+      workspaceId: 'nectr',
+      rootPath: '/tmp/nectr_data_eng',
+      name: 'nectr_data_eng',
+    });
+    assert.equal(workspace.workspaceId, 'nectr');
+
+    recordZone(kernel, {
+      zoneId: 'core',
+      workspaceId: 'nectr',
+      zoneKind: 'config',
+      pathGlob: 'nectr_data_eng_core/**',
+      name: 'core',
+    });
+    recordZone(kernel, {
+      zoneId: 'engineering',
+      workspaceId: 'nectr',
+      zoneKind: 'domain',
+      pathGlob: 'nectr_data_engineering/**',
+      name: 'engineering',
+    });
+    recordZone(kernel, {
+      zoneId: 'databricks_deploy',
+      workspaceId: 'nectr',
+      zoneKind: 'deployment',
+      name: 'databricks_deploy',
+    });
+
+    recordJob(kernel, {
+      jobId: 'REP-123',
+      workspaceId: 'nectr',
+      taskShape: 'data-platform-change',
+      summary: 'Change pipeline config and deploy.',
+      sourceRef: 'ticket:REP-123',
+    });
+
+    recordPathActivation(kernel, {
+      jobId: 'REP-123',
+      path: 'nectr_data_eng_core/config.yml',
+      activationKind: 'file_written',
+    });
+    recordPathActivation(kernel, {
+      jobId: 'REP-123',
+      path: 'nectr_data_engineering/pipelines/foo.py',
+      activationKind: 'file_written',
+    });
+    const command = recordCommandActivation(kernel, {
+      jobId: 'REP-123',
+      commandName: 'databricks',
+      argv: 'databricks bundle deploy -t dev token=secret-value',
+    });
+    assert.equal(command.classification, 'deploy');
+    assert.equal(command.argvSummary.includes('secret-value'), false);
+
+    recordDeploymentAction(kernel, {
+      jobId: 'REP-123',
+      commandId: command.commandId,
+      provider: 'databricks',
+      environment: 'dev',
+      status: 'succeeded',
+    });
+
+    deriveZoneActivationsForJob(kernel, { jobId: 'REP-123' });
+    deriveZoneCoactivationsForJob(kernel, { jobId: 'REP-123' });
+    const associations = updateZoneAssociationsFromJob(kernel, {
+      jobId: 'REP-123',
+      outcome: 'positive',
+    });
+
+    const report = getJobActivationReport(kernel, { jobId: 'REP-123' });
+    assert.equal(report.pathActivations.length, 2);
+    assert.equal(report.commandActivations.length, 1);
+    assert.equal(report.deploymentActions.length, 1);
+    assert.deepEqual(
+      [...new Set(report.zoneActivations.map((activation) => activation.zoneId))].sort(),
+      ['core', 'databricks_deploy', 'engineering']
+    );
+    assert.equal(report.zoneCoactivations.length, 3);
+    assert.equal(associations.length, 3);
+
+    const zoneAssociations = getZoneAssociationReport(kernel, {
+      workspaceId: 'nectr',
+      zoneId: 'core',
+    });
+    assert.equal(zoneAssociations.length, 2);
+    assert.equal(zoneAssociations[0].supportCount, 1);
+    assert.equal(zoneAssociations[0].positiveOutcomes, 1);
+
+    updateZoneAssociationsFromJob(kernel, {
+      jobId: 'REP-123',
+      outcome: 'positive',
+    });
+    const idempotentAssociations = getZoneAssociationReport(kernel, {
+      workspaceId: 'nectr',
+      zoneId: 'core',
+    });
+    assert.equal(idempotentAssociations[0].supportCount, 1);
+    assert.equal(idempotentAssociations[0].positiveOutcomes, 1);
   } finally {
     t.cleanup();
   }
