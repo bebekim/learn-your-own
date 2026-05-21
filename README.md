@@ -1,5 +1,8 @@
 # Lyo
 
+Lyo means **Learn Your Own**, in the spirit of "bring your own" systems: your
+agents learn from your own prompts, runs, repos, commands, and outcomes.
+
 Not memory. Not a workflow framework. Not a runtime guard.
 
 Lyo is a learning ledger for agent attempts.
