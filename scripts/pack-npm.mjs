@@ -31,7 +31,11 @@ execFileSync('tar', [
   'package/src/cli.ts',
 ], {
   stdio: 'inherit',
-  env: { ...process.env, LC_ALL: 'C' },
+  env: {
+    ...process.env,
+    COPYFILE_DISABLE: '1',
+    LC_ALL: 'C',
+  },
 });
 
 const bytes = readFileSync(tarball);
