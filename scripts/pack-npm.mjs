@@ -12,12 +12,27 @@ const tarball = join(root, `dist/${packageJson.name}-${packageJson.version}.tgz`
 rmSync(join(root, 'dist/npm'), { recursive: true, force: true });
 mkdirSync(join(staging, 'src'), { recursive: true });
 
-for (const file of ['package.json', 'README.md', 'LICENSE.md']) {
+const publishedPackageJson = {
+  ...packageJson,
+  bin: {
+    lyo: './src/cli.js',
+  },
+  exports: {
+    '.': './src/index.js',
+  },
+  scripts: undefined,
+  devDependencies: undefined,
+};
+
+writeFileSync(
+  join(staging, 'package.json'),
+  `${JSON.stringify(publishedPackageJson, null, 2)}\n`
+);
+for (const file of ['README.md', 'LICENSE.md']) {
   writeFileSync(join(staging, file), readFileSync(join(root, file)));
 }
-for (const file of ['cli.ts', 'index.ts']) {
-  writeFileSync(join(staging, 'src', file), readFileSync(join(root, 'src', file)));
-}
+
+execFileSync('npm', ['run', 'build:npm'], { cwd: root, stdio: 'inherit' });
 
 execFileSync('tar', [
   '-czf',
@@ -27,8 +42,8 @@ execFileSync('tar', [
   'package/package.json',
   'package/README.md',
   'package/LICENSE.md',
-  'package/src/index.ts',
-  'package/src/cli.ts',
+  'package/src/index.js',
+  'package/src/cli.js',
 ], {
   stdio: 'inherit',
   env: {

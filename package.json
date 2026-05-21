@@ -1,6 +1,6 @@
 {
   "name": "lyo-kernel",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "SQLite reducer kernel for evidence-backed agent learning protocols.",
   "type": "module",
   "files": [
@@ -15,6 +15,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "build:npm": "node scripts/build-npm.mjs",
     "test": "node --test",
     "lyo:init": "node src/cli.ts init --db .agent-learning/learning.sqlite",
     "lyo:report": "node src/cli.ts report --db .agent-learning/learning.sqlite",
@@ -36,5 +37,8 @@
     "codex",
     "workflow"
   ],
-  "license": "SEE LICENSE IN LICENSE.md"
+  "license": "SEE LICENSE IN LICENSE.md",
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
 }

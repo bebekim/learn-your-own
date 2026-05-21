@@ -18,6 +18,7 @@ if (!token) {
 }
 
 execFileSync(process.execPath, [join(root, 'scripts/pack-npm.mjs')], { stdio: 'inherit' });
+const publishedPackageJson = JSON.parse(readFileSync(join(root, 'dist/npm/package/package.json'), 'utf8'));
 
 const tarball = readFileSync(tarballPath);
 const shasum = createHash('sha1').update(tarball).digest('hex');
@@ -32,7 +33,7 @@ if (existing?.versions?.[packageJson.version]) {
 }
 
 const versionManifest = {
-  ...packageJson,
+  ...publishedPackageJson,
   _id: `${packageJson.name}@${packageJson.version}`,
   dist: {
     shasum,
@@ -46,7 +47,7 @@ const manifest = {
   _id: existing?._id ?? packageJson.name,
   ...(existing?._rev ? { _rev: existing._rev } : {}),
   name: existing?.name ?? packageJson.name,
-  description: packageJson.description,
+  description: publishedPackageJson.description,
   'dist-tags': {
     ...(existing?.['dist-tags'] ?? {}),
     latest: packageJson.version,
