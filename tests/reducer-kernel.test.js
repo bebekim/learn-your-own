@@ -277,6 +277,84 @@ test('workspace activation records zones, commands, deployments, coactivations, 
   }
 });
 
+test('zone association report normalizes high-traffic zones', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    recordWorkspace(kernel, {
+      workspaceId: 'demo',
+      rootPath: '/tmp/demo',
+      name: 'demo',
+    });
+    recordZone(kernel, {
+      zoneId: 'core',
+      workspaceId: 'demo',
+      zoneKind: 'config',
+      pathGlob: 'core/**',
+      name: 'core',
+    });
+    recordZone(kernel, {
+      zoneId: 'domain',
+      workspaceId: 'demo',
+      zoneKind: 'domain',
+      pathGlob: 'domain/**',
+      name: 'domain',
+    });
+
+    recordJob(kernel, {
+      jobId: 'job-coupled',
+      workspaceId: 'demo',
+    });
+    recordPathActivation(kernel, {
+      jobId: 'job-coupled',
+      path: 'core/settings.yml',
+      activationKind: 'file_written',
+    });
+    recordPathActivation(kernel, {
+      jobId: 'job-coupled',
+      path: 'domain/service.rb',
+      activationKind: 'file_written',
+    });
+    deriveZoneActivationsForJob(kernel, { jobId: 'job-coupled' });
+    deriveZoneCoactivationsForJob(kernel, { jobId: 'job-coupled' });
+    updateZoneAssociationsFromJob(kernel, { jobId: 'job-coupled', outcome: 'positive' });
+
+    recordJob(kernel, {
+      jobId: 'job-core-only',
+      workspaceId: 'demo',
+    });
+    recordPathActivation(kernel, {
+      jobId: 'job-core-only',
+      path: 'core/other.yml',
+      activationKind: 'file_written',
+    });
+    deriveZoneActivationsForJob(kernel, { jobId: 'job-core-only' });
+    deriveZoneCoactivationsForJob(kernel, { jobId: 'job-core-only' });
+
+    const report = getJobActivationReport(kernel, { jobId: 'job-coupled' });
+    assert.deepEqual(report.summary.paths.byKind, { file_written: 2 });
+    assert.deepEqual(report.summary.zones.byZoneId, { core: 1, domain: 1 });
+    assert.equal(report.summary.zones.uniqueZones, 2);
+
+    const [association] = getZoneAssociationReport(kernel, {
+      workspaceId: 'demo',
+      zoneId: 'core',
+    });
+    assert.equal(association.supportCount, 1);
+    assert.equal(association.leftActivationCount + association.rightActivationCount, 3);
+    assert.equal(association.coactivationSupport, 1);
+    assert.equal(association.successRate, 1);
+    assert.equal(association.riskRate, 0);
+    assert.equal(association.unknownOutcomes, 0);
+    assert.equal(association.jaccardWeight, 0.5);
+    assert.equal(Math.round(association.normalizedWeight * 1000) / 1000, 0.707);
+  } finally {
+    t.cleanup();
+  }
+});
+
 test('hook normalizer passively records command, deployment, path, and zone activations', () => {
   const t = tempDb();
   try {
@@ -344,6 +422,36 @@ test('hook normalizer passively records command, deployment, path, and zone acti
 
     const secondPass = normalizeHooks(kernel);
     assert.equal(secondPass.processedEvents, 0);
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('hook normalizer records failed shell PostToolUse status', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    recordHookEvent(kernel, {
+      sessionId: 'session-failure',
+      turnId: 'turn-failure',
+      eventName: 'PostToolUse',
+      cwd: '/tmp/demo',
+      payload: {
+        hook_event_name: 'PostToolUse',
+        tool_name: 'Bash',
+        tool_input: { command: 'node --test' },
+        tool_response: {
+          exit_code: 1,
+          stderr: 'not ok',
+        },
+      },
+    });
+
+    const normalized = normalizeHooks(kernel);
+    const report = getJobActivationReport(kernel, { jobId: normalized.jobs[0] });
+    assert.equal(report.commandActivations[0].status, 'failed');
   } finally {
     t.cleanup();
   }

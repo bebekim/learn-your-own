@@ -264,6 +264,28 @@ lyo activation report \
   --job-id REP-123
 ```
 
+Activation reports include raw evidence and a compact `summary` grouped by
+path kind, command classification/status, deployment status, and activated
+zones.
+
+Zone association reports include both raw support and normalized support:
+
+```sh
+lyo zone associations \
+  --db .agent-learning/learning.sqlite \
+  --workspace-id nectr
+```
+
+The normalized fields are descriptive, not automatic policy:
+
+```text
+supportCount        raw co-activation count
+successRate         positive / known outcomes
+riskRate            negative / known outcomes
+normalizedWeight    support / sqrt(left activations * right activations)
+jaccardWeight       support / jobs that activated either zone
+```
+
 Run the built-in reducer demo:
 
 ```sh

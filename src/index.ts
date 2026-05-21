@@ -522,10 +522,49 @@ export interface ZoneAssociationRecord {
   supportCount: number;
   positiveOutcomes: number;
   negativeOutcomes: number;
+  unknownOutcomes: number;
+  knownOutcomes: number;
+  successRate: number | null;
+  riskRate: number | null;
+  leftActivationCount: number;
+  rightActivationCount: number;
+  coactivationSupport: number;
+  normalizedWeight: number;
+  jaccardWeight: number;
+}
+
+export interface JobActivationSummary {
+  paths: {
+    total: number;
+    byKind: Record<string, number>;
+  };
+  commands: {
+    total: number;
+    byClassification: Record<string, number>;
+    byStatus: Record<string, number>;
+  };
+  deployments: {
+    total: number;
+    byProvider: Record<string, number>;
+    byEnvironment: Record<string, number>;
+    byStatus: Record<string, number>;
+  };
+  zones: {
+    total: number;
+    uniqueZones: number;
+    byZoneId: Record<string, number>;
+    byActivationKind: Record<string, number>;
+    bySourceKind: Record<string, number>;
+    byConfidence: Record<string, number>;
+  };
+  coactivations: {
+    total: number;
+  };
 }
 
 export interface JobActivationReport {
   job: JobRecord;
+  summary: JobActivationSummary;
   pathActivations: PathActivationRecord[];
   commandActivations: CommandActivationRecord[];
   deploymentActions: DeploymentActionRecord[];
@@ -1515,13 +1554,26 @@ export function updateZoneAssociationsFromJob(
 }
 
 export function getJobActivationReport(kernel: LearningKernel, { jobId }: { jobId: string }): JobActivationReport {
+  const job = ensureJob(kernel, jobId);
+  const pathActivations = listPathActivations(kernel, jobId);
+  const commandActivations = listCommandActivations(kernel, jobId);
+  const deploymentActions = listDeploymentActions(kernel, jobId);
+  const zoneActivations = listZoneActivations(kernel, jobId);
+  const zoneCoactivations = listZoneCoactivations(kernel, jobId);
   return {
-    job: ensureJob(kernel, jobId),
-    pathActivations: listPathActivations(kernel, jobId),
-    commandActivations: listCommandActivations(kernel, jobId),
-    deploymentActions: listDeploymentActions(kernel, jobId),
-    zoneActivations: listZoneActivations(kernel, jobId),
-    zoneCoactivations: listZoneCoactivations(kernel, jobId),
+    job,
+    summary: summarizeJobActivations({
+      pathActivations,
+      commandActivations,
+      deploymentActions,
+      zoneActivations,
+      zoneCoactivations,
+    }),
+    pathActivations,
+    commandActivations,
+    deploymentActions,
+    zoneActivations,
+    zoneCoactivations,
   };
 }
 
@@ -1538,7 +1590,7 @@ export function getZoneAssociationReport(
     params.push(zoneId, zoneId);
   }
   params.push(limit);
-  return kernel.db.prepare(`
+  const rows = kernel.db.prepare(`
     select
       za.association_id as associationId,
       za.left_zone_id as leftZoneId,
@@ -1547,7 +1599,23 @@ export function getZoneAssociationReport(
       za.weight,
       za.support_count as supportCount,
       za.positive_outcomes as positiveOutcomes,
-      za.negative_outcomes as negativeOutcomes
+      za.negative_outcomes as negativeOutcomes,
+      za.support_count - za.positive_outcomes - za.negative_outcomes as unknownOutcomes,
+      (
+        select count(distinct zav.job_id)
+        from zone_activations zav
+        where zav.zone_id = za.left_zone_id
+      ) as leftActivationCount,
+      (
+        select count(distinct zav.job_id)
+        from zone_activations zav
+        where zav.zone_id = za.right_zone_id
+      ) as rightActivationCount,
+      (
+        select count(*)
+        from zone_association_observations zao
+        where zao.association_id = za.association_id
+      ) as coactivationSupport
     from zone_associations za
     join zones zl on zl.zone_id = za.left_zone_id
     join zones zr on zr.zone_id = za.right_zone_id
@@ -1556,6 +1624,85 @@ export function getZoneAssociationReport(
     order by za.weight desc, za.support_count desc, za.updated_at desc
     limit ?
   `).all(...params) as ZoneAssociationRecord[];
+  return rows.map(enrichZoneAssociation);
+}
+
+function summarizeJobActivations({
+  pathActivations,
+  commandActivations,
+  deploymentActions,
+  zoneActivations,
+  zoneCoactivations,
+}: {
+  pathActivations: PathActivationRecord[];
+  commandActivations: CommandActivationRecord[];
+  deploymentActions: DeploymentActionRecord[];
+  zoneActivations: ZoneActivationRecord[];
+  zoneCoactivations: ZoneCoactivationRecord[];
+}): JobActivationSummary {
+  return {
+    paths: {
+      total: pathActivations.length,
+      byKind: countBy(pathActivations, (activation) => activation.activationKind),
+    },
+    commands: {
+      total: commandActivations.length,
+      byClassification: countBy(commandActivations, (activation) => activation.classification),
+      byStatus: countBy(commandActivations, (activation) => activation.status),
+    },
+    deployments: {
+      total: deploymentActions.length,
+      byProvider: countBy(deploymentActions, (activation) => activation.provider ?? 'unknown'),
+      byEnvironment: countBy(deploymentActions, (activation) => activation.environment ?? 'unknown'),
+      byStatus: countBy(deploymentActions, (activation) => activation.status),
+    },
+    zones: {
+      total: zoneActivations.length,
+      uniqueZones: new Set(zoneActivations.map((activation) => activation.zoneId)).size,
+      byZoneId: countBy(zoneActivations, (activation) => activation.zoneId),
+      byActivationKind: countBy(zoneActivations, (activation) => activation.activationKind),
+      bySourceKind: countBy(zoneActivations, (activation) => activation.sourceKind),
+      byConfidence: countBy(zoneActivations, (activation) => activation.confidence),
+    },
+    coactivations: {
+      total: zoneCoactivations.length,
+    },
+  };
+}
+
+function countBy<T>(records: T[], keyFn: (record: T) => string): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const record of records) {
+    const key = keyFn(record);
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+  return counts;
+}
+
+function enrichZoneAssociation(record: ZoneAssociationRecord): ZoneAssociationRecord {
+  const unknownOutcomes = Math.max(0, record.unknownOutcomes ?? record.supportCount - record.positiveOutcomes - record.negativeOutcomes);
+  const knownOutcomes = record.positiveOutcomes + record.negativeOutcomes;
+  const leftActivationCount = record.leftActivationCount ?? 0;
+  const rightActivationCount = record.rightActivationCount ?? 0;
+  const coactivationSupport = record.coactivationSupport ?? record.supportCount;
+  const normalizedDenominator = Math.sqrt(leftActivationCount * rightActivationCount);
+  const unionActivationCount = leftActivationCount + rightActivationCount - coactivationSupport;
+  return {
+    ...record,
+    unknownOutcomes,
+    knownOutcomes,
+    successRate: knownOutcomes > 0 ? roundMetric(record.positiveOutcomes / knownOutcomes) : null,
+    riskRate: knownOutcomes > 0 ? roundMetric(record.negativeOutcomes / knownOutcomes) : null,
+    leftActivationCount,
+    rightActivationCount,
+    coactivationSupport,
+    normalizedWeight: normalizedDenominator > 0 ? roundMetric(coactivationSupport / normalizedDenominator) : 0,
+    jaccardWeight: unionActivationCount > 0 ? roundMetric(coactivationSupport / unionActivationCount) : 0,
+  };
+}
+
+function roundMetric(value: number): number {
+  return Math.round(value * 1_000_000) / 1_000_000;
 }
 
 export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInput = {}): NormalizeHooksResult {
@@ -1609,6 +1756,7 @@ export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInpu
       const commandText = extractCommandText(toolInput);
       if (commandText) {
         const commandName = firstCommandToken(commandText);
+        const commandStatus = inferHookCommandStatus(event.eventName, payload);
         const command = recordCommandActivation(kernel, {
           jobId,
           runId: event.turnId ?? null,
@@ -1616,7 +1764,7 @@ export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInpu
           workingDirectory: event.cwd,
           argv: commandText,
           evidenceRef,
-          status: event.eventName === 'PostToolUse' ? 'succeeded' : 'attempted',
+          status: commandStatus,
         });
         commandActivations += 1;
         if (command.classification === 'deploy') {
@@ -1626,7 +1774,7 @@ export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInpu
             provider: inferDeploymentProvider(commandText),
             environment: inferDeploymentEnvironment(commandText),
             target: inferDeploymentTarget(commandText),
-            status: event.eventName === 'PostToolUse' ? 'succeeded' : 'attempted',
+            status: deploymentStatusFromCommandStatus(commandStatus),
             evidenceRef,
           });
           deploymentActions += 1;
@@ -2656,6 +2804,52 @@ function extractCommandText(toolInput: Record<string, unknown> | null): string |
     ?? stringValue(toolInput.cmd)
     ?? stringValue(toolInput.script)
     ?? null;
+}
+
+function inferHookCommandStatus(eventName: string, payload: Record<string, unknown>): CommandStatus {
+  if (eventName === 'PreToolUse') return 'attempted';
+  if (eventName !== 'PostToolUse') return 'unknown';
+  return hookStatusSignal(payload) ?? 'succeeded';
+}
+
+function hookStatusSignal(value: unknown): CommandStatus | null {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const signal = hookStatusSignal(item);
+      if (signal) return signal;
+    }
+    return null;
+  }
+  if (!value || typeof value !== 'object') return null;
+
+  for (const [key, child] of Object.entries(value)) {
+    const normalizedKey = key.toLowerCase().replace(/[_-]/g, '');
+    if (['exitcode', 'returncode'].includes(normalizedKey) && typeof child === 'number') {
+      return child === 0 ? 'succeeded' : 'failed';
+    }
+    if (['success', 'ok'].includes(normalizedKey) && typeof child === 'boolean') {
+      return child ? 'succeeded' : 'failed';
+    }
+    if (['status', 'state', 'outcome'].includes(normalizedKey) && typeof child === 'string') {
+      const normalizedValue = child.toLowerCase();
+      if (['failed', 'failure', 'error', 'errored', 'cancelled'].includes(normalizedValue)) return 'failed';
+      if (['succeeded', 'success', 'completed', 'passed', 'ok'].includes(normalizedValue)) return 'succeeded';
+    }
+    if (['error', 'exception'].includes(normalizedKey) && child) return 'failed';
+  }
+
+  for (const child of Object.values(value)) {
+    const signal = hookStatusSignal(child);
+    if (signal) return signal;
+  }
+  return null;
+}
+
+function deploymentStatusFromCommandStatus(status: CommandStatus): DeploymentActionRecord['status'] {
+  if (status === 'succeeded') return 'succeeded';
+  if (status === 'failed') return 'failed';
+  if (status === 'attempted' || status === 'planned') return 'attempted';
+  return 'unknown';
 }
 
 function firstCommandToken(command: string): string {
