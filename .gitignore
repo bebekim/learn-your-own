@@ -4,6 +4,9 @@ __pycache__/
 *.pyc
 node_modules/
 
+# Private design notes
+/docs/
+
 # Local agent/runtime state
 /.agent-learning/
 /.beads/
