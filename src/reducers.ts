@@ -317,7 +317,7 @@ export function resolveProtocol(kernel: LearningKernel, input: ResolveProtocolIn
       and scope_value = ?
     order by promoted_at asc, protocol_id asc
     limit 1
-  `).all(input.channel) as ProtocolDelivery[];
+  `).all(input.channel) as unknown as ProtocolDelivery[];
 
   let deliveryId: string | null = null;
   for (const protocol of protocols) {
@@ -369,7 +369,7 @@ export function getCredit(kernel: LearningKernel): AdaptiveCredit {
   const row = kernel.db.prepare(`
     select coalesce(sum(credit_delta), 0) as adaptiveCredit
     from outcomes
-  `).get() as AdaptiveCredit;
+  `).get() as unknown as AdaptiveCredit;
   return { adaptiveCredit: row.adaptiveCredit };
 }
 
@@ -387,7 +387,7 @@ export function getModelCallSummary(kernel: LearningKernel): ModelCallSummary {
       coalesce(sum(total_tokens), 0) as totalModelTokens,
       coalesce(sum(estimated_cost), 0) as estimatedModelCost
     from model_calls
-  `).get() as ModelCallSummary;
+  `).get() as unknown as ModelCallSummary;
   return {
     modelCalls: row.modelCalls,
     totalModelTokens: row.totalModelTokens,
@@ -586,7 +586,7 @@ function getRun(kernel: LearningKernel, runId: string): RunRecord {
     select run_id as runId, task_shape as taskShape, channel, status, token_cost as tokenCost
     from runs
     where run_id = ?
-  `).get(runId) as RunRecord;
+  `).get(runId) as unknown as RunRecord;
 }
 
 function ensureRun(kernel: LearningKernel, runId: string): RunRecord {
@@ -600,7 +600,7 @@ function getGap(kernel: LearningKernel, gapId: string): GapRecord {
     select gap_id as gapId, run_id as runId, kind, summary, evidence_ref as evidenceRef, status
     from gaps
     where gap_id = ?
-  `).get(gapId) as GapRecord;
+  `).get(gapId) as unknown as GapRecord;
 }
 
 function getProtocol(kernel: LearningKernel, protocolId: string): ProtocolRecord {
@@ -616,7 +616,7 @@ function getProtocol(kernel: LearningKernel, protocolId: string): ProtocolRecord
       status
     from protocols
     where protocol_id = ?
-  `).get(protocolId) as ProtocolRecord;
+  `).get(protocolId) as unknown as ProtocolRecord;
 }
 
 function getTrace(kernel: LearningKernel, traceId: string): TraceRecord {
@@ -629,7 +629,7 @@ function getTrace(kernel: LearningKernel, traceId: string): TraceRecord {
       ref
     from learning_traces
     where trace_id = ?
-  `).get(traceId) as TraceRecord;
+  `).get(traceId) as unknown as TraceRecord;
 }
 
 function ensureTrace(kernel: LearningKernel, traceId: string): TraceRecord {
@@ -651,7 +651,7 @@ function getPreferencePair(kernel: LearningKernel, preferenceId: string): Prefer
       confidence
     from preference_pairs
     where preference_id = ?
-  `).get(preferenceId) as PreferencePairRecord;
+  `).get(preferenceId) as unknown as PreferencePairRecord;
 }
 
 function ensurePreferencePair(kernel: LearningKernel, preferenceId: string): PreferencePairRecord {
@@ -681,7 +681,7 @@ function getModelCall(kernel: LearningKernel, callId: string): ModelCallRecord {
       error_summary as errorSummary
     from model_calls
     where call_id = ?
-  `).get(callId) as ModelCallRecord;
+  `).get(callId) as unknown as ModelCallRecord;
 }
 
 function getSession(kernel: LearningKernel, sessionId: string): SessionRecord {
@@ -695,7 +695,7 @@ function getSession(kernel: LearningKernel, sessionId: string): SessionRecord {
       model
     from agent_sessions
     where session_id = ?
-  `).get(sessionId) as SessionRecord;
+  `).get(sessionId) as unknown as SessionRecord;
 }
 
 function ensureSession(kernel: LearningKernel, sessionId: string): SessionRecord {

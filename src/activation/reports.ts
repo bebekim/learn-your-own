@@ -93,7 +93,7 @@ export function getZoneAssociationReport(
       ${zoneFilter}
     order by za.weight desc, za.support_count desc, za.updated_at desc
     limit ?
-  `).all(...params) as ZoneAssociationRecord[];
+  `).all(...params) as unknown as ZoneAssociationRecord[];
   return rows.map(enrichZoneAssociation);
 }
 
@@ -131,7 +131,7 @@ export function getZoneAssociation(
       ) as coactivationSupport
     from zone_associations
     where left_zone_id = ? and right_zone_id = ? and association_kind = ?
-  `).get(leftZoneId, rightZoneId, associationKind) as ZoneAssociationRecord;
+  `).get(leftZoneId, rightZoneId, associationKind) as unknown as ZoneAssociationRecord;
   return enrichZoneAssociation(row);
 }
 
@@ -170,7 +170,7 @@ function listJobZoneAssociations(kernel: LearningKernel, jobId: string): ZoneAss
       and za.association_kind = 'coactivation'
     where zc.job_id = ?
     order by za.weight desc, za.support_count desc, za.updated_at desc
-  `).all(jobId) as ZoneAssociationRecord[];
+  `).all(jobId) as unknown as ZoneAssociationRecord[];
   return rows.map(enrichZoneAssociation);
 }
 
