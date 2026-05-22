@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -31,7 +31,10 @@ import {
   recordHookEvent,
   normalizeHooks,
   handleCodexHook,
+  spoolCodexHookEvent,
+  drainHookSpool,
 } from '../src/index.ts';
+import { classifyHookEvent } from '../src/hooks/normalizer.ts';
 
 function tempDb() {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-kernel-'));
@@ -45,6 +48,23 @@ function tempDb() {
 function hookJobId(sessionId, turnId) {
   return `codex-job-${createHash('sha256').update(`${sessionId}:${turnId ?? 'session'}`).digest('hex').slice(0, 16)}`;
 }
+
+test('createKernel configures file-backed SQLite for concurrent hook writers', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    const timeout = kernel.db.prepare('pragma busy_timeout').get();
+    const journal = kernel.db.prepare('pragma journal_mode').get();
+
+    assert.equal(timeout.timeout, 10000);
+    assert.equal(journal.journal_mode, 'wal');
+    kernel.db.close();
+  } finally {
+    t.cleanup();
+  }
+});
 
 test('fixture replay protocol is promoted only after evidence and improves credit when followed', () => {
   const t = tempDb();
@@ -277,6 +297,48 @@ test('workspace activation records zones, commands, deployments, coactivations, 
   }
 });
 
+test('command activation status keeps terminal evidence over attempted observations', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+    recordWorkspace(kernel, {
+      workspaceId: 'demo',
+      rootPath: '/tmp/demo',
+      name: 'demo',
+    });
+    recordJob(kernel, {
+      jobId: 'job-status-order',
+      workspaceId: 'demo',
+      taskShape: 'codex-hook-turn',
+      summary: 'Status ordering',
+      sourceRef: 'test',
+      status: 'started',
+    });
+
+    recordCommandActivation(kernel, {
+      jobId: 'job-status-order',
+      commandName: 'node',
+      argv: 'node --test',
+      status: 'succeeded',
+      outputSize: 2,
+    });
+    const command = recordCommandActivation(kernel, {
+      jobId: 'job-status-order',
+      commandName: 'node',
+      argv: 'node --test',
+      status: 'attempted',
+      outputSize: 0,
+    });
+
+    assert.equal(command.status, 'succeeded');
+    assert.equal(command.outputSize, 2);
+    assert.equal(command.occurrenceCount, 2);
+  } finally {
+    t.cleanup();
+  }
+});
+
 test('zone association report normalizes high-traffic zones', () => {
   const t = tempDb();
   try {
@@ -425,6 +487,44 @@ test('hook normalizer passively records command, deployment, path, and zone acti
   } finally {
     t.cleanup();
   }
+});
+
+test('hook classifier turns a stored hook row into behavioral facts without SQLite writes', () => {
+  const classified = classifyHookEvent({
+    eventId: 'hook-classifier',
+    sessionId: 'session-classifier',
+    turnId: 'turn-classifier',
+    eventName: 'PostToolUse',
+    cwd: '/tmp/demo',
+    payloadJson: JSON.stringify({
+      hook_event_name: 'PostToolUse',
+      tool_name: 'Bash',
+      tool_input: {
+        command: 'databricks bundle deploy -t dev token=secret-value',
+      },
+      tool_response: {
+        exit_code: 0,
+        stdout: 'deployed\n',
+      },
+    }),
+  });
+
+  assert.equal(classified.jobId, hookJobId('session-classifier', 'turn-classifier'));
+  assert.equal(classified.evidenceRef, 'hook:hook-classifier');
+  assert.equal(classified.commands.length, 1);
+  assert.equal(classified.commands[0].commandName, 'databricks');
+  assert.equal(classified.commands[0].classification, 'deploy');
+  assert.equal(classified.commands[0].status, 'succeeded');
+  assert.equal(classified.commands[0].phase, 'fix');
+  assert.equal(classified.commands[0].argvSummary.includes('secret-value'), false);
+  assert.equal(classified.commands[0].outputSize, 9);
+  assert.deepEqual(classified.commands[0].deployment, {
+    provider: 'databricks',
+    environment: 'dev',
+    target: null,
+    status: 'succeeded',
+  });
+  assert.deepEqual(classified.paths, []);
 });
 
 test('hook normalizer records failed shell PostToolUse status', () => {
@@ -700,6 +800,186 @@ test('Codex Stop hook normalizes pending hook events by default', () => {
     assert.equal(report.pathActivations.length, 1);
     assert.equal(report.commandActivations.length, 1);
     assert.equal(report.zoneCoactivations.length, 1);
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('Codex PostToolUse hook normalizes pending tool events by default', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    handleCodexHook(kernel, {
+      session_id: 'session-post-tool',
+      turn_id: 'turn-post-tool',
+      cwd: '/tmp/demo',
+      hook_event_name: 'PreToolUse',
+      tool_name: 'Bash',
+      tool_input: { command: 'node --test' },
+    });
+    handleCodexHook(kernel, {
+      session_id: 'session-post-tool',
+      turn_id: 'turn-post-tool',
+      cwd: '/tmp/demo',
+      hook_event_name: 'PostToolUse',
+      tool_name: 'Bash',
+      tool_input: { command: 'node --test' },
+      tool_response: {
+        exit_code: 0,
+        stdout: 'ok',
+      },
+    });
+
+    const normalizedAgain = normalizeHooks(kernel);
+    assert.equal(normalizedAgain.processedEvents, 0);
+
+    const report = getJobActivationReport(kernel, { jobId: hookJobId('session-post-tool', 'turn-post-tool') });
+    assert.equal(report.commandActivations.length, 1);
+    assert.equal(report.commandActivations[0].status, 'succeeded');
+    assert.equal(report.commandActivations[0].outputSize, 2);
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('Codex hook spool captures events without opening SQLite', () => {
+  const t = tempDb();
+  try {
+    const spoolDir = join(t.dir, 'hook-spool');
+    const packet = spoolCodexHookEvent({
+      session_id: 'session-spool',
+      turn_id: 'turn-spool',
+      cwd: '/tmp/demo',
+      hook_event_name: 'PostToolUse',
+      tool_name: 'Bash',
+      tool_input: { command: 'node --test' },
+      tool_response: {
+        exit_code: 0,
+        stdout: 'ok',
+      },
+    }, { spoolDir });
+
+    assert.equal(packet.eventName, 'PostToolUse');
+    assert.equal(readdirSync(join(spoolDir, 'incoming')).length, 1);
+    assert.equal(existsSync(t.dbPath), false);
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('hook spool drain records events and runs reducer normalization', () => {
+  const t = tempDb();
+  try {
+    const spoolDir = join(t.dir, 'hook-spool');
+    spoolCodexHookEvent({
+      session_id: 'session-spool-drain',
+      turn_id: 'turn-spool-drain',
+      cwd: '/tmp/demo',
+      hook_event_name: 'PreToolUse',
+      tool_name: 'Bash',
+      tool_input: { command: 'node --test' },
+    }, { spoolDir });
+    spoolCodexHookEvent({
+      session_id: 'session-spool-drain',
+      turn_id: 'turn-spool-drain',
+      cwd: '/tmp/demo',
+      hook_event_name: 'PostToolUse',
+      tool_name: 'Bash',
+      tool_input: { command: 'node --test' },
+      tool_response: {
+        exit_code: 0,
+        stdout: 'ok',
+      },
+    }, { spoolDir });
+
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    const drained = drainHookSpool(kernel, {
+      spoolDir,
+      normalize: true,
+    });
+
+    assert.equal(drained.processedPackets, 2);
+    assert.equal(drained.failedPackets, 0);
+    assert.equal(drained.hookEvents, 2);
+    assert.equal(drained.normalized.processedEvents, 2);
+    assert.equal(readdirSync(join(spoolDir, 'incoming')).length, 0);
+
+    const report = getJobActivationReport(kernel, {
+      jobId: hookJobId('session-spool-drain', 'turn-spool-drain'),
+    });
+    assert.equal(report.commandActivations.length, 1);
+    assert.equal(report.commandActivations[0].status, 'succeeded');
+    assert.equal(report.commandActivations[0].outputSize, 2);
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('hook spool drain isolates malformed packets without blocking valid packets', () => {
+  const t = tempDb();
+  try {
+    const spoolDir = join(t.dir, 'hook-spool');
+    const incomingDir = join(spoolDir, 'incoming');
+    mkdirSync(incomingDir, { recursive: true });
+    writeFileSync(join(incomingDir, '000-malformed.json'), '{not json', 'utf8');
+    spoolCodexHookEvent({
+      session_id: 'session-spool-malformed',
+      turn_id: 'turn-spool-malformed',
+      cwd: '/tmp/demo',
+      hook_event_name: 'PreToolUse',
+      tool_name: 'Bash',
+      tool_input: { command: 'node --test' },
+    }, { spoolDir });
+
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+    const drained = drainHookSpool(kernel, { spoolDir });
+
+    assert.equal(drained.processedPackets, 1);
+    assert.equal(drained.failedPackets, 1);
+    assert.equal(drained.requeuedPackets, 0);
+    assert.equal(readdirSync(join(spoolDir, 'incoming')).length, 0);
+    assert.equal(readdirSync(join(spoolDir, 'failed')).length, 1);
+    assert.equal(readdirSync(join(spoolDir, 'processed')).length, 1);
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('Codex hook redacts large tool responses while preserving output size', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    handleCodexHook(kernel, {
+      session_id: 'session-large-response',
+      turn_id: 'turn-large-response',
+      cwd: '/tmp/demo',
+      hook_event_name: 'PostToolUse',
+      tool_name: 'Bash',
+      tool_input: { command: 'rg example' },
+      tool_response: {
+        exit_code: 0,
+        stdout: 'x'.repeat(250_000),
+      },
+    });
+
+    const row = kernel.db.prepare(`
+      select payload_json as payloadJson
+      from hook_events
+      where session_id = 'session-large-response'
+    `).get();
+    const payload = JSON.parse(row.payloadJson);
+    assert.equal(payload.tool_response.recorded, false);
+    assert.equal(payload.tool_response.truncated, true);
+    assert.equal(payload.tool_response.output_size, 250000);
+    assert.equal(typeof payload.tool_response.sha256, 'string');
+    assert.ok(row.payloadJson.length < 1000);
   } finally {
     t.cleanup();
   }

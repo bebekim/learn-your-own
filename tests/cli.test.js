@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -575,6 +575,55 @@ test('lyo normalize hooks turns Codex hook events into activation records', () =
     assert.equal(report.ok, true);
     assert.equal(report.commandActivations[0].classification, 'test');
     assert.equal(report.pathActivations[0].path, 'src/index.ts');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('lyo codex-hook can spool events before normalize hooks drains them', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-hook-spool-cli-'));
+  try {
+    const dbPath = join(dir, 'learning.sqlite');
+    const spoolDir = join(dir, 'hook-spool');
+
+    const output = execFileSync(
+      process.execPath,
+      ['src/cli.ts', 'codex-hook', '--db', dbPath, '--spool-dir', spoolDir],
+      {
+        cwd: ROOT,
+        input: JSON.stringify({
+          session_id: 'session-spool-cli',
+          turn_id: 'turn-spool-cli',
+          cwd: dir,
+          hook_event_name: 'PreToolUse',
+          tool_name: 'Bash',
+          tool_input: { command: 'node --test' },
+        }),
+        encoding: 'utf8',
+      }
+    );
+    const parsed = JSON.parse(output);
+    assert.equal(Object.hasOwn(parsed, 'continue'), false);
+    assert.equal(existsSync(dbPath), false);
+    assert.equal(readdirSync(join(spoolDir, 'incoming')).length, 1);
+
+    const normalized = JSON.parse(execFileSync(
+      process.execPath,
+      ['src/cli.ts', 'normalize', 'hooks', '--db', dbPath, '--spool-dir', spoolDir],
+      { cwd: ROOT, encoding: 'utf8' }
+    ));
+    assert.equal(normalized.ok, true);
+    assert.equal(normalized.spool.processedPackets, 1);
+    assert.equal(normalized.processedEvents, 1);
+    assert.equal(readdirSync(join(spoolDir, 'incoming')).length, 0);
+
+    const report = JSON.parse(execFileSync(
+      process.execPath,
+      ['src/cli.ts', 'activation', 'report', '--db', dbPath, '--job-id', normalized.jobs[0]],
+      { cwd: ROOT, encoding: 'utf8' }
+    ));
+    assert.equal(report.ok, true);
+    assert.equal(report.commandActivations[0].classification, 'test');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

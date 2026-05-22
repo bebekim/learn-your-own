@@ -1,7 +1,20 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import { basename, join, resolve } from 'node:path';
+import {
+  classifyCommand,
+  classifyHookEvent,
+  phaseForCommand,
+  phaseForPathActivation,
+  stringPayloadSize,
+  summarizeCommand,
+} from './hooks/normalizer.ts';
+import { drainJsonSpoolPackets, writeJsonSpoolPacket } from './hooks/spool.ts';
+import { createKernel } from './ledger.ts';
+import type { CreateKernelInput, LearningKernel } from './ledger.ts';
+
+export { closeKernel, createKernel } from './ledger.ts';
+export type { CreateKernelInput, LearningKernel } from './ledger.ts';
 
 export type GapStatus = 'observed' | 'inferred' | 'unknown' | 'contradicted';
 export type ScopeKind = 'worktree' | 'repository' | 'channel';
@@ -18,11 +31,6 @@ export type BehaviorPhase = 'explore' | 'fix' | 'validate' | 'unknown';
 export type ActivationConfidence = 'low' | 'medium' | 'high';
 export type ZoneActivationSourceKind = 'path' | 'command' | 'deployment' | 'manual' | 'inferred';
 export type AssociationOutcome = 'positive' | 'negative' | 'unknown';
-
-export interface LearningKernel {
-  db: DatabaseSync;
-  dbPath: string;
-}
 
 export interface RunRecord {
   runId: string;
@@ -59,10 +67,6 @@ export interface ProtocolDelivery {
   scopeValue: string;
   action: string;
   status: 'active';
-}
-
-export interface CreateKernelInput {
-  dbPath?: string;
 }
 
 export interface RecordRunInput {
@@ -277,8 +281,20 @@ export interface CodexHookOptions {
   taskShape?: string;
   promptDir?: string;
   normalizeOnStop?: boolean;
+  normalizeOnToolUse?: boolean;
   normalizeWorkspaceId?: string;
   normalizeOutcome?: AssociationOutcome;
+}
+
+export interface HookSpoolOptions {
+  spoolDir: string;
+  promptDir?: string;
+}
+
+export interface HookSpoolRecord {
+  eventId: string;
+  eventName: string;
+  packetPath: string;
 }
 
 export interface CodexHookOutput {
@@ -323,6 +339,8 @@ export interface RecordPromptBoundaryInput {
   role: string;
   kind: string;
   promptText?: string;
+  promptHash?: string | null;
+  promptLength?: number | null;
   promptRef?: string;
   summary?: string;
   responseSummary?: string;
@@ -605,20 +623,45 @@ export interface NormalizeHooksResult {
   associations: number;
 }
 
+export interface DrainHookSpoolInput {
+  spoolDir: string;
+  limit?: number;
+  normalize?: boolean;
+  normalizeWorkspaceId?: string;
+  normalizeOutcome?: AssociationOutcome;
+}
+
+export interface DrainHookSpoolResult {
+  processedPackets: number;
+  failedPackets: number;
+  requeuedPackets: number;
+  hookEvents: number;
+  sessions: number;
+  promptBoundaries: number;
+  normalized: NormalizeHooksResult | null;
+}
+
+interface CodexHookObservation {
+  eventName: string;
+  sessionId: string;
+  turnId: string | null;
+  cwd: string;
+  hookEvent: HookEventInput;
+  session: RecordSessionStartedInput | null;
+  promptBoundary: RecordPromptBoundaryInput | null;
+}
+
+interface HookSpoolPacket {
+  version: 1;
+  kind: 'codex-hook-event';
+  recordedAt: string;
+  hookEvent: HookEventInput;
+  session: RecordSessionStartedInput | null;
+  promptBoundary: RecordPromptBoundaryInput | null;
+}
+
 const ISO_NOW = () => new Date().toISOString();
-
-export function createKernel({ dbPath = '.agent-learning/learning.sqlite' }: CreateKernelInput = {}): LearningKernel {
-  if (dbPath !== ':memory:') {
-    mkdirSync(dirname(dbPath), { recursive: true });
-  }
-  const db = new DatabaseSync(dbPath);
-  db.exec('PRAGMA foreign_keys = ON');
-  return { db, dbPath };
-}
-
-export function closeKernel(kernel: LearningKernel): void {
-  kernel.db.close();
-}
+const DEFAULT_HOOK_RESPONSE_HASH_LIMIT = 200_000;
 
 export function initLedger(kernel: LearningKernel): LearningKernel {
   kernel.db.exec(`
@@ -1336,7 +1379,14 @@ export function recordCommandActivation(kernel: LearningKernel, input: RecordCom
     )
     values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
     on conflict(command_id) do update set
-      status = excluded.status,
+      status = case
+        when excluded.status = 'failed' then 'failed'
+        when command_activations.status = 'failed' then command_activations.status
+        when excluded.status = 'succeeded' then 'succeeded'
+        when command_activations.status = 'succeeded' then command_activations.status
+        when excluded.status = 'attempted' then 'attempted'
+        else excluded.status
+      end,
       phase = excluded.phase,
       output_size = max(command_activations.output_size, excluded.output_size),
       occurrence_count = command_activations.occurrence_count + 1,
@@ -1858,9 +1908,9 @@ export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInpu
   let deploymentActions = 0;
 
   for (const event of events) {
-    const payload = parseJsonObject(event.payloadJson);
+    const classified = classifyHookEvent(event);
     const workspace = workspaceForHookEvent(kernel, event.cwd, input.workspaceId);
-    const jobId = hookJobId(event.sessionId, event.turnId);
+    const jobId = classified.jobId;
     jobIds.add(jobId);
     recordJob(kernel, {
       jobId,
@@ -1872,55 +1922,47 @@ export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInpu
       status: event.eventName === 'Stop' ? 'completed' : 'started',
     });
 
-    const toolName = stringValue(payload.tool_name);
-    const toolInputRaw = payload.tool_input;
-    const toolInput = objectValue(toolInputRaw);
-    const evidenceRef = `hook:${event.eventId}`;
-
-    if (toolName && isShellTool(toolName)) {
-      const commandText = extractCommandText(toolInput);
-      if (commandText) {
-        const commandName = firstCommandToken(commandText);
-        const commandStatus = inferHookCommandStatus(event.eventName, payload);
-        const command = recordCommandActivation(kernel, {
+    for (const commandFact of classified.commands) {
+      const command = recordCommandActivation(kernel, {
+        jobId,
+        runId: event.turnId ?? null,
+        commandName: commandFact.commandName,
+        commandFamily: commandFact.commandFamily,
+        workingDirectory: commandFact.workingDirectory,
+        argv: commandFact.argv,
+        argvSummary: commandFact.argvSummary,
+        classification: commandFact.classification,
+        evidenceRef: classified.evidenceRef,
+        status: commandFact.status,
+        phase: commandFact.phase,
+        outputSize: commandFact.outputSize,
+      });
+      commandActivations += 1;
+      if (commandFact.deployment) {
+        recordDeploymentAction(kernel, {
           jobId,
-          runId: event.turnId ?? null,
-          commandName,
-          workingDirectory: event.cwd,
-          argv: commandText,
-          evidenceRef,
-          status: commandStatus,
-          outputSize: estimateToolOutputSize(payload),
+          commandId: command.commandId,
+          provider: commandFact.deployment.provider,
+          environment: commandFact.deployment.environment,
+          target: commandFact.deployment.target,
+          status: commandFact.deployment.status,
+          evidenceRef: classified.evidenceRef,
         });
-        commandActivations += 1;
-        if (command.classification === 'deploy') {
-          recordDeploymentAction(kernel, {
-            jobId,
-            commandId: command.commandId,
-            provider: inferDeploymentProvider(commandText),
-            environment: inferDeploymentEnvironment(commandText),
-            target: inferDeploymentTarget(commandText),
-            status: deploymentStatusFromCommandStatus(commandStatus),
-            evidenceRef,
-          });
-          deploymentActions += 1;
-        }
+        deploymentActions += 1;
       }
     }
 
-    if (toolName) {
-      for (const pathFact of extractPathFacts(toolName, toolInputRaw)) {
-        recordPathActivation(kernel, {
-          jobId,
-          runId: event.turnId ?? null,
-          path: pathFact.path,
-          activationKind: pathFact.activationKind,
-          evidenceRef,
-          confidence: 'medium',
-          phase: phaseForPathActivation(pathFact.activationKind),
-        });
-        pathActivations += 1;
-      }
+    for (const pathFact of classified.paths) {
+      recordPathActivation(kernel, {
+        jobId,
+        runId: event.turnId ?? null,
+        path: pathFact.path,
+        activationKind: pathFact.activationKind,
+        evidenceRef: classified.evidenceRef,
+        confidence: pathFact.confidence,
+        phase: pathFact.phase,
+      });
+      pathActivations += 1;
     }
 
     kernel.db.prepare(`
@@ -2121,8 +2163,9 @@ export function recordPromptBoundary(kernel: LearningKernel, input: RecordPrompt
   ensureSession(kernel, input.sessionId);
   const promptIndex = nextPromptIndex(kernel, input.sessionId);
   const promptId = `${input.sessionId}:prompt:${promptIndex}`;
-  const promptSha = input.promptText === undefined ? null : sha256(input.promptText);
-  const promptLength = input.promptText === undefined ? '' : ` length=${input.promptText.length}`;
+  const promptSha = input.promptText === undefined ? input.promptHash ?? null : sha256(input.promptText);
+  const promptLengthValue = input.promptText === undefined ? input.promptLength : input.promptText.length;
+  const promptLength = typeof promptLengthValue === 'number' ? ` length=${promptLengthValue}` : '';
   const promptSummary = input.summary ?? (input.promptText ? summarize(input.promptText) : '');
   kernel.db.prepare(`
     insert into session_prompts (
@@ -2180,6 +2223,68 @@ export function getObserverSummary(kernel: LearningKernel): ObserverSummary {
   };
 }
 
+export function spoolCodexHookEvent(event: CodexHookInput, options: HookSpoolOptions): HookSpoolRecord {
+  requireFields(options, ['spoolDir']);
+  const observation = codexHookObservation(event, {
+    promptDir: options.promptDir,
+    includeRawPrompt: false,
+  });
+  const packet: HookSpoolPacket = {
+    version: 1,
+    kind: 'codex-hook-event',
+    recordedAt: ISO_NOW(),
+    hookEvent: observation.hookEvent,
+    session: observation.session,
+    promptBoundary: observation.promptBoundary,
+  };
+  const written = writeJsonSpoolPacket({
+    spoolDir: options.spoolDir,
+    packet,
+    packetId: observation.hookEvent.eventId,
+  });
+  return {
+    eventId: observation.hookEvent.eventId ?? hookEventId(observation.hookEvent),
+    eventName: observation.eventName,
+    packetPath: written.packetPath,
+  };
+}
+
+export function drainHookSpool(kernel: LearningKernel, input: DrainHookSpoolInput): DrainHookSpoolResult {
+  requireFields(input, ['spoolDir']);
+  let hookEvents = 0;
+  let sessions = 0;
+  let promptBoundaries = 0;
+
+  const spool = drainJsonSpoolPackets<HookSpoolPacket>({
+    spoolDir: input.spoolDir,
+    limit: input.limit,
+    parsePacket: parseHookSpoolPacket,
+    processPacket: (packet) => {
+      ingestHookSpoolPacket(kernel, packet);
+      hookEvents += 1;
+      if (packet.session) sessions += 1;
+      if (packet.promptBoundary) promptBoundaries += 1;
+    },
+  });
+
+  const normalized = input.normalize
+    ? normalizeHooks(kernel, {
+        workspaceId: input.normalizeWorkspaceId,
+        outcome: input.normalizeOutcome ?? 'unknown',
+      })
+    : null;
+
+  return {
+    processedPackets: spool.processedPackets,
+    failedPackets: spool.failedPackets,
+    requeuedPackets: spool.requeuedPackets,
+    hookEvents,
+    sessions,
+    promptBoundaries,
+    normalized,
+  };
+}
+
 export function recordHookEvent(kernel: LearningKernel, input: HookEventInput): HookEventRecord {
   requireFields(input, ['sessionId', 'eventName', 'cwd', 'payload']);
   const eventId = input.eventId ?? hookEventId(input);
@@ -2213,61 +2318,25 @@ export function handleCodexHook(
   event: CodexHookInput,
   options: CodexHookOptions = {}
 ): CodexHookOutput {
-  const eventName = event.hook_event_name ?? 'Unknown';
-  const sessionId = event.session_id ?? 'unknown-session';
-  const cwd = event.cwd ?? process.cwd();
-  const turnId = event.turn_id ?? null;
-
-  recordHookEvent(kernel, {
-    sessionId,
-    turnId,
-    eventName,
-    cwd,
-    model: event.model ?? null,
-    payload: redactCodexHookEvent(event),
+  const observation = codexHookObservation(event, {
+    promptDir: options.promptDir,
+    includeRawPrompt: true,
   });
+  const { eventName, sessionId, turnId } = observation;
 
-  if (eventName === 'SessionStart') {
-    recordSessionStarted(kernel, {
-      sessionId,
-      workspaceScope: 'local',
-      repoPath: cwd,
-      platform: 'codex',
-      model: event.model ?? null,
-    });
-  } else if (eventName === 'UserPromptSubmit' && typeof event.prompt === 'string' && event.prompt) {
-    const promptRef = options.promptDir ? writePromptBlob(options.promptDir, turnId ?? sessionId, 'user', event.prompt) : undefined;
-    recordSessionStarted(kernel, {
-      sessionId,
-      workspaceScope: 'local',
-      repoPath: cwd,
-      platform: 'codex',
-      model: event.model ?? null,
-    });
-    recordPromptBoundary(kernel, {
-      sessionId,
-      turnId,
-      role: 'user',
-      kind: 'user_prompt',
-      promptText: event.prompt,
-      promptRef,
-      model: event.model ?? null,
-    });
-  } else if (eventName === 'Stop' && typeof event.last_assistant_message === 'string' && event.last_assistant_message) {
-    recordSessionStarted(kernel, {
-      sessionId,
-      workspaceScope: 'local',
-      repoPath: cwd,
-      platform: 'codex',
-      model: event.model ?? null,
-    });
-    recordPromptBoundary(kernel, {
-      sessionId,
-      turnId,
-      role: 'assistant',
-      kind: 'assistant_response',
-      responseSummary: summarize(event.last_assistant_message),
-      model: event.model ?? null,
+  recordHookEvent(kernel, observation.hookEvent);
+
+  if (observation.session) {
+    recordSessionStarted(kernel, observation.session);
+  }
+  if (observation.promptBoundary) {
+    recordPromptBoundary(kernel, observation.promptBoundary);
+  }
+
+  if (eventName === 'PostToolUse' && options.normalizeOnToolUse !== false) {
+    normalizeHooks(kernel, {
+      workspaceId: options.normalizeWorkspaceId,
+      outcome: options.normalizeOutcome ?? 'unknown',
     });
   }
 
@@ -2887,257 +2956,11 @@ function sortedPair(left: string, right: string): [string, string] {
   return left <= right ? [left, right] : [right, left];
 }
 
-function summarizeCommand(command: string): string {
-  return redactSensitive(command).replace(/\s+/g, ' ').trim().slice(0, 240);
-}
-
-function redactSensitive(value: string): string {
-  return value
-    .replace(/(token|password|passwd|secret|api[_-]?key)=\S+/gi, '$1=[redacted]')
-    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [redacted]')
-    .replace(/AKIA[0-9A-Z]{16}/g, '[redacted-aws-key]');
-}
-
-function classifyCommand(commandName: string, commandText: string): CommandClassification {
-  const text = `${commandName} ${commandText}`.toLowerCase();
-  if (/\b(node --test|npm test|npm run test|pnpm test|pnpm exec vitest|pnpm vitest|yarn test|yarn vitest|npx jest|npx vitest|jest|vitest|pytest|uv run pytest|bundle exec rspec|rails test|go test|cargo test)\b/.test(text)) return 'test';
-  if (/\b(eslint|ruff|prettier|biome|black|rubocop|go fmt|cargo fmt)\b/.test(text)) return 'lint';
-  if (/\b(databricks bundle deploy|cloudformation deploy|terraform apply|railway up|kubectl apply|acli push)\b/.test(text)) return 'deploy';
-  if (/\baws\b/.test(text) && /\bdeploy\b/.test(text)) return 'deploy';
-  if (/\b(rails db:migrate|prisma migrate|alembic upgrade|psql|sqlite3)\b/.test(text)) return 'database';
-  if (/\b(npm publish|npm pack|publish-npm|twine upload|cargo publish|gem push)\b/.test(text)) return 'package';
-  if (/\b(npm run build|pnpm build|yarn build|go build|cargo build)\b/.test(text)) return 'build';
-  if (/\bgit\b/.test(text)) return 'git';
-  return 'unknown';
-}
-
 function workspaceForHookEvent(kernel: LearningKernel, cwd: string, workspaceId?: string): WorkspaceRecord {
   if (workspaceId) return ensureWorkspace(kernel, workspaceId);
   const existing = getWorkspaceByRoot(kernel, cwd);
   if (existing) return existing;
   return recordWorkspace(kernel, { rootPath: cwd });
-}
-
-function hookJobId(sessionId: string, turnId: string | null): string {
-  return `codex-job-${sha256(`${sessionId}:${turnId ?? 'session'}`).slice(0, 16)}`;
-}
-
-function parseJsonObject(value: string): Record<string, unknown> {
-  try {
-    const parsed = JSON.parse(value);
-    return objectValue(parsed) ?? {};
-  } catch {
-    return {};
-  }
-}
-
-function objectValue(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null;
-}
-
-function stringValue(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value : null;
-}
-
-function isShellTool(toolName: string): boolean {
-  const normalized = toolName.toLowerCase();
-  return normalized === 'bash'
-    || normalized === 'shell'
-    || normalized === 'exec_command'
-    || normalized.endsWith('.exec_command');
-}
-
-function extractCommandText(toolInput: Record<string, unknown> | null): string | null {
-  if (!toolInput) return null;
-  return stringValue(toolInput.command)
-    ?? stringValue(toolInput.cmd)
-    ?? stringValue(toolInput.script)
-    ?? null;
-}
-
-function inferHookCommandStatus(eventName: string, payload: Record<string, unknown>): CommandStatus {
-  if (eventName === 'PreToolUse') return 'attempted';
-  if (eventName !== 'PostToolUse') return 'unknown';
-  return hookStatusSignal(payload) ?? 'succeeded';
-}
-
-function hookStatusSignal(value: unknown): CommandStatus | null {
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const signal = hookStatusSignal(item);
-      if (signal) return signal;
-    }
-    return null;
-  }
-  if (!value || typeof value !== 'object') return null;
-
-  for (const [key, child] of Object.entries(value)) {
-    const normalizedKey = key.toLowerCase().replace(/[_-]/g, '');
-    if (['exitcode', 'returncode'].includes(normalizedKey) && typeof child === 'number') {
-      return child === 0 ? 'succeeded' : 'failed';
-    }
-    if (['success', 'ok'].includes(normalizedKey) && typeof child === 'boolean') {
-      return child ? 'succeeded' : 'failed';
-    }
-    if (['status', 'state', 'outcome'].includes(normalizedKey) && typeof child === 'string') {
-      const normalizedValue = child.toLowerCase();
-      if (['failed', 'failure', 'error', 'errored', 'cancelled'].includes(normalizedValue)) return 'failed';
-      if (['succeeded', 'success', 'completed', 'passed', 'ok'].includes(normalizedValue)) return 'succeeded';
-    }
-    if (['error', 'exception'].includes(normalizedKey) && child) return 'failed';
-  }
-
-  for (const child of Object.values(value)) {
-    const signal = hookStatusSignal(child);
-    if (signal) return signal;
-  }
-  return null;
-}
-
-function deploymentStatusFromCommandStatus(status: CommandStatus): DeploymentActionRecord['status'] {
-  if (status === 'succeeded') return 'succeeded';
-  if (status === 'failed') return 'failed';
-  if (status === 'attempted' || status === 'planned') return 'attempted';
-  return 'unknown';
-}
-
-function estimateToolOutputSize(payload: Record<string, unknown>): number {
-  const outputRoots = [
-    payload.tool_response,
-    payload.tool_output,
-    payload.output,
-    payload.result,
-  ];
-  return outputRoots.reduce((sum, root) => sum + stringPayloadSize(root), 0);
-}
-
-function stringPayloadSize(value: unknown): number {
-  if (typeof value === 'string') return value.length;
-  if (Array.isArray(value)) return value.reduce((sum, item) => sum + stringPayloadSize(item), 0);
-  if (!value || typeof value !== 'object') return 0;
-  return Object.values(value).reduce((sum, item) => sum + stringPayloadSize(item), 0);
-}
-
-function firstCommandToken(command: string): string {
-  const trimmed = command.trim();
-  const first = trimmed.split(/\s+/)[0] ?? 'command';
-  return first.replace(/^["']|["']$/g, '') || 'command';
-}
-
-function inferDeploymentProvider(command: string): string | null {
-  const text = command.toLowerCase();
-  if (text.includes('databricks')) return 'databricks';
-  if (text.includes('terraform')) return 'terraform';
-  if (text.includes('railway')) return 'railway';
-  if (text.includes('kubectl')) return 'kubernetes';
-  if (/\baws\b/.test(text)) return 'aws';
-  if (/\bacli\b/.test(text)) return 'acli';
-  return null;
-}
-
-function inferDeploymentEnvironment(command: string): string | null {
-  const match = command.match(/(?:^|\s)(?:-t|--target|--env|--environment)\s+([A-Za-z0-9_.:-]+)/);
-  return match?.[1] ?? null;
-}
-
-function inferDeploymentTarget(command: string): string | null {
-  const match = command.match(/(?:bundle deploy|deploy|apply|push)\s+([A-Za-z0-9_./:-]+)/i);
-  return match?.[1] ?? null;
-}
-
-function pathActivationKindForTool(toolName: string): PathActivationKind {
-  const normalized = toolName.toLowerCase();
-  if (normalized.includes('read')) return 'file_read';
-  if (normalized.includes('ls') || normalized.includes('list')) return 'directory_listed';
-  if (normalized.includes('delete')) return 'file_deleted';
-  if (normalized.includes('write') || normalized.includes('edit') || normalized.includes('patch')) return 'file_written';
-  return 'unknown';
-}
-
-function phaseForPathActivation(kind: PathActivationKind): BehaviorPhase {
-  if (['file_read', 'file_diffed', 'directory_listed'].includes(kind)) return 'explore';
-  if (['file_written', 'file_created', 'file_deleted'].includes(kind)) return 'fix';
-  return 'unknown';
-}
-
-function phaseForCommand(classification: CommandClassification, commandName: string, commandText: string): BehaviorPhase {
-  const text = `${commandName} ${commandText}`.toLowerCase();
-  if (['test', 'lint', 'build', 'package'].includes(classification)) return 'validate';
-  if (['format', 'database', 'deploy', 'cloud'].includes(classification)) return 'fix';
-  if (classification === 'inspect') return 'explore';
-  if (classification === 'git' && /\b(commit|merge|rebase|push|pull|checkout|switch|branch)\b/.test(text)) return 'fix';
-  if (classification === 'git') return 'explore';
-  if (/\b(rg|grep|find|sed|cat|ls|pwd|head|tail|wc)\b/.test(text)) return 'explore';
-  return 'unknown';
-}
-
-interface PathFact {
-  path: string;
-  activationKind: PathActivationKind;
-}
-
-function extractPathFacts(toolName: string, value: unknown): PathFact[] {
-  const defaultKind = pathActivationKindForTool(toolName);
-  const facts = new Map<string, PathFact>();
-  collectPathFacts(value, facts, defaultKind);
-  return [...facts.values()].filter((fact) => !fact.path.startsWith('-') && !fact.path.includes('\n'));
-}
-
-function addPathFact(facts: Map<string, PathFact>, path: string, activationKind: PathActivationKind): void {
-  const normalizedPath = normalizeRelativePath(path.trim());
-  const key = `${normalizedPath}\0${activationKind}`;
-  facts.set(key, { path: normalizedPath, activationKind });
-}
-
-function collectPathFacts(
-  value: unknown,
-  facts: Map<string, PathFact>,
-  defaultKind: PathActivationKind,
-  key = ''
-): void {
-  if (Array.isArray(value)) {
-    for (const item of value) collectPathFacts(item, facts, defaultKind, key);
-    return;
-  }
-  if (value && typeof value === 'object') {
-    for (const [childKey, childValue] of Object.entries(value)) {
-      collectPathFacts(childValue, facts, defaultKind, childKey);
-    }
-    return;
-  }
-  if (typeof value !== 'string' || !value.trim()) return;
-  const normalizedKey = key.toLowerCase();
-  if (['path', 'file_path', 'filepath', 'file', 'filename', 'relative_path'].includes(normalizedKey)) {
-    addPathFact(facts, value, defaultKind);
-  }
-  if (normalizedKey === 'patch' || value.includes('*** Begin Patch')) {
-    for (const fact of parsePatchPathFacts(value)) {
-      addPathFact(facts, fact.path, fact.activationKind);
-    }
-  }
-}
-
-function parsePatchPathFacts(patch: string): PathFact[] {
-  const facts: PathFact[] = [];
-  const pattern = /^\*\*\* (Update|Add|Delete) File: (.+)$/gm;
-  for (const match of patch.matchAll(pattern)) {
-    const operation = match[1];
-    const path = match[2]?.trim();
-    if (!path) continue;
-    facts.push({
-      path,
-      activationKind: patchOperationKind(operation),
-    });
-  }
-  return facts;
-}
-
-function patchOperationKind(operation: string): PathActivationKind {
-  if (operation === 'Add') return 'file_created';
-  if (operation === 'Delete') return 'file_deleted';
-  return 'file_written';
 }
 
 function countRows(kernel: LearningKernel, tableName: string): number {
@@ -3162,6 +2985,106 @@ function requireFields(input: object, fields: string[]): void {
 
 function boolInt(value: boolean): 0 | 1 {
   return value ? 1 : 0;
+}
+
+function codexHookObservation(
+  event: CodexHookInput,
+  options: { promptDir?: string; includeRawPrompt: boolean }
+): CodexHookObservation {
+  const eventName = event.hook_event_name ?? 'Unknown';
+  const sessionId = event.session_id ?? 'unknown-session';
+  const cwd = event.cwd ?? process.cwd();
+  const turnId = event.turn_id ?? null;
+  const hookEvent: HookEventInput = {
+    sessionId,
+    turnId,
+    eventName,
+    cwd,
+    model: event.model ?? null,
+    payload: redactCodexHookEvent(event),
+  };
+  hookEvent.eventId = hookEventId(hookEvent);
+
+  let session: RecordSessionStartedInput | null = null;
+  let promptBoundary: RecordPromptBoundaryInput | null = null;
+
+  if (eventName === 'SessionStart') {
+    session = {
+      sessionId,
+      workspaceScope: 'local',
+      repoPath: cwd,
+      platform: 'codex',
+      model: event.model ?? null,
+    };
+  } else if (eventName === 'UserPromptSubmit' && typeof event.prompt === 'string' && event.prompt) {
+    const promptRef = options.promptDir ? writePromptBlob(options.promptDir, turnId ?? sessionId, 'user', event.prompt) : undefined;
+    session = {
+      sessionId,
+      workspaceScope: 'local',
+      repoPath: cwd,
+      platform: 'codex',
+      model: event.model ?? null,
+    };
+    promptBoundary = {
+      sessionId,
+      turnId,
+      role: 'user',
+      kind: 'user_prompt',
+      promptText: options.includeRawPrompt ? event.prompt : undefined,
+      promptHash: options.includeRawPrompt ? undefined : sha256(event.prompt),
+      promptLength: options.includeRawPrompt ? undefined : event.prompt.length,
+      promptRef,
+      summary: options.includeRawPrompt ? undefined : summarize(event.prompt),
+      model: event.model ?? null,
+    };
+  } else if (eventName === 'Stop' && typeof event.last_assistant_message === 'string' && event.last_assistant_message) {
+    session = {
+      sessionId,
+      workspaceScope: 'local',
+      repoPath: cwd,
+      platform: 'codex',
+      model: event.model ?? null,
+    };
+    promptBoundary = {
+      sessionId,
+      turnId,
+      role: 'assistant',
+      kind: 'assistant_response',
+      responseSummary: summarize(event.last_assistant_message),
+      model: event.model ?? null,
+    };
+  }
+
+  return {
+    eventName,
+    sessionId,
+    turnId,
+    cwd,
+    hookEvent,
+    session,
+    promptBoundary,
+  };
+}
+
+function ingestHookSpoolPacket(kernel: LearningKernel, packet: HookSpoolPacket): void {
+  recordHookEvent(kernel, packet.hookEvent);
+  if (packet.session) {
+    recordSessionStarted(kernel, packet.session);
+  }
+  if (packet.promptBoundary) {
+    recordPromptBoundary(kernel, packet.promptBoundary);
+  }
+}
+
+function parseHookSpoolPacket(value: unknown): HookSpoolPacket {
+  if (!value || typeof value !== 'object') {
+    throw new Error('invalid hook spool packet');
+  }
+  const packet = value as HookSpoolPacket;
+  if (packet.version !== 1 || packet.kind !== 'codex-hook-event') {
+    throw new Error('unsupported hook spool packet');
+  }
+  return packet;
 }
 
 function hookEventId(input: HookEventInput): string {
@@ -3193,8 +3116,11 @@ function redactCodexHookEvent(event: CodexHookInput): Record<string, unknown> {
     };
   }
   if (event.tool_response !== undefined) {
+    const fingerprint = fingerprintHookValue(event.tool_response);
     redacted.tool_response = {
-      sha256: sha256(JSON.stringify(event.tool_response)),
+      sha256: fingerprint.sha256,
+      output_size: fingerprint.outputSize,
+      truncated: fingerprint.truncated,
       recorded: false,
     };
   }
@@ -3239,6 +3165,26 @@ function writePromptBlob(promptDir: string, id: string, role: string, text: stri
 
 function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+function hookResponseHashLimit(): number {
+  const raw = process.env.LEARNLOOP_HOOK_RESPONSE_HASH_LIMIT;
+  if (!raw) return DEFAULT_HOOK_RESPONSE_HASH_LIMIT;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : DEFAULT_HOOK_RESPONSE_HASH_LIMIT;
+}
+
+function fingerprintHookValue(value: unknown): { sha256: string; outputSize: number; truncated: boolean } {
+  const outputSize = stringPayloadSize(value);
+  const serialized = JSON.stringify(value);
+  const limit = hookResponseHashLimit();
+  const truncated = serialized.length > limit;
+  const hashInput = truncated ? serialized.slice(0, limit) : serialized;
+  return {
+    sha256: sha256(hashInput),
+    outputSize,
+    truncated,
+  };
 }
 
 function emptyCodexHookOutput(eventName: string): CodexHookOutput {

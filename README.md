@@ -315,9 +315,19 @@ Adaptive credit: 20
 
 ## Codex Hook
 
-`lyo codex-hook` reads Codex hook JSON from stdin, records a redacted event,
-records session/prompt/assistant boundaries where applicable, resolves matching
-active protocols, and returns Codex-compatible JSON.
+`lyo codex-hook` reads Codex hook JSON from stdin and records a redacted event.
+For active Codex use, prefer spool-first capture so tool hooks do not write
+directly to SQLite while a turn is running.
+
+Spool-first flow:
+
+```text
+Codex hook event
+-> .agent-learning/hook-spool/incoming/*.json
+-> Stop hook or lyo normalize hooks drains the spool
+-> hook_events
+-> normalized command/path/zone/deployment facts
+```
 
 For a global Codex hook, prefer event-cwd storage:
 
@@ -329,7 +339,7 @@ For a global Codex hook, prefer event-cwd storage:
         "hooks": [
           {
             "type": "command",
-            "command": "lyo codex-hook --db-from-event-cwd --prompt-dir-from-event-cwd",
+            "command": "lyo codex-hook --db-from-event-cwd --prompt-dir-from-event-cwd --spool-dir-from-event-cwd",
             "statusMessage": "Recording learning event"
           }
         ]
@@ -340,7 +350,7 @@ For a global Codex hook, prefer event-cwd storage:
         "hooks": [
           {
             "type": "command",
-            "command": "lyo codex-hook --db-from-event-cwd --prompt-dir-from-event-cwd",
+            "command": "lyo codex-hook --db-from-event-cwd --prompt-dir-from-event-cwd --spool-dir-from-event-cwd",
             "statusMessage": "Recording learning event"
           }
         ]
@@ -351,7 +361,7 @@ For a global Codex hook, prefer event-cwd storage:
         "hooks": [
           {
             "type": "command",
-            "command": "lyo codex-hook --db-from-event-cwd --prompt-dir-from-event-cwd",
+            "command": "lyo codex-hook --db-from-event-cwd --prompt-dir-from-event-cwd --spool-dir-from-event-cwd",
             "statusMessage": "Recording learning event"
           }
         ]
@@ -361,10 +371,28 @@ For a global Codex hook, prefer event-cwd storage:
 }
 ```
 
+Use the same command for `PreToolUse` and `PostToolUse` hooks when you want
+files touched, commands run, tests, and deploy actions to be normalized later.
+
 With `--db-from-event-cwd`, one global hook writes each workspace to its own:
 
 ```text
 <event.cwd>/.agent-learning/learning.sqlite
+```
+
+With `--spool-dir-from-event-cwd`, hot hook capture writes first to:
+
+```text
+<event.cwd>/.agent-learning/hook-spool/incoming
+```
+
+The `Stop` hook best-effort drains the spool. You can also repair or catch up
+manually:
+
+```bash
+lyo normalize hooks \
+  --db .agent-learning/learning.sqlite \
+  --spool-dir .agent-learning/hook-spool
 ```
 
 The hook does not store raw prompts or assistant messages in SQLite by default.
