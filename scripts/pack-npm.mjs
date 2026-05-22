@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { basename, join, relative } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 const root = new URL('..', import.meta.url).pathname;
@@ -39,11 +39,7 @@ execFileSync('tar', [
   tarball,
   '-C',
   join(root, 'dist/npm'),
-  'package/package.json',
-  'package/README.md',
-  'package/LICENSE.md',
-  'package/src/index.js',
-  'package/src/cli.js',
+  ...packageFiles(staging).map((filePath) => `package/${relative(staging, filePath)}`),
 ], {
   stdio: 'inherit',
   env: {
@@ -66,3 +62,16 @@ console.log(JSON.stringify({
   shasum,
   integrity,
 }, null, 2));
+
+function packageFiles(dir) {
+  const files = [];
+  for (const entry of readdirSync(dir)) {
+    const path = join(dir, entry);
+    if (statSync(path).isDirectory()) {
+      files.push(...packageFiles(path));
+    } else {
+      files.push(path);
+    }
+  }
+  return files.sort();
+}

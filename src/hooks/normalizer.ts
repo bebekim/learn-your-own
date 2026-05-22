@@ -6,7 +6,7 @@ import type {
   CommandStatus,
   PathActivationKind,
   RecordDeploymentActionInput,
-} from '../index.ts';
+} from '../types.ts';
 import type { HookRuntime } from './events.ts';
 
 export interface HookEventForNormalization {

@@ -9,7 +9,7 @@ import type {
   HookSpoolOptions,
   HookSpoolRecord,
   NormalizeHooksResult,
-} from '../index.ts';
+} from '../types.ts';
 import type { HookObservation, HookSpoolPacket } from './events.ts';
 
 const ISO_NOW = () => new Date().toISOString();

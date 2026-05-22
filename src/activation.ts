@@ -29,7 +29,7 @@ import type {
   ZoneAssociationRecord,
   ZoneCoactivationRecord,
   ZoneRecord,
-} from './index.ts';
+} from './types.ts';
 
 const ISO_NOW = () => new Date().toISOString();
 

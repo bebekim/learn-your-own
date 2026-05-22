@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { chmodSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
 import ts from 'typescript';
 
 const root = new URL('..', import.meta.url).pathname;
@@ -8,10 +8,11 @@ const outputDir = join(root, 'dist/npm/package/src');
 
 mkdirSync(outputDir, { recursive: true });
 
-for (const file of ['index.ts', 'cli.ts']) {
-  const source = readFileSync(join(root, 'src', file), 'utf8');
+for (const sourcePath of sourceFiles(join(root, 'src'))) {
+  const relativePath = relative(join(root, 'src'), sourcePath);
+  const source = readFileSync(sourcePath, 'utf8');
   const result = ts.transpileModule(source, {
-    fileName: file,
+    fileName: relativePath,
     compilerOptions: {
       target: ts.ScriptTarget.ES2024,
       module: ts.ModuleKind.ES2022,
@@ -20,10 +21,24 @@ for (const file of ['index.ts', 'cli.ts']) {
     },
   });
   const output = result.outputText.replace(
-    /from\s+(['"])(\.\/[^'"]+)\.ts\1/g,
+    /from\s+(['"])(\.\.?\/[^'"]+)\.ts\1/g,
     'from $1$2.js$1'
   );
-  const outputPath = join(outputDir, file.replace(/\.ts$/, '.js'));
+  const outputPath = join(outputDir, relativePath.replace(/\.ts$/, '.js'));
+  mkdirSync(dirname(outputPath), { recursive: true });
   writeFileSync(outputPath, output);
-  if (file === 'cli.ts') chmodSync(outputPath, 0o755);
+  if (relativePath === 'cli.ts') chmodSync(outputPath, 0o755);
+}
+
+function sourceFiles(dir) {
+  const files = [];
+  for (const entry of readdirSync(dir)) {
+    const path = join(dir, entry);
+    if (statSync(path).isDirectory()) {
+      files.push(...sourceFiles(path));
+    } else if (entry.endsWith('.ts')) {
+      files.push(path);
+    }
+  }
+  return files.sort();
 }

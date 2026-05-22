@@ -2,7 +2,7 @@ import type {
   HookEventInput,
   RecordPromptBoundaryInput,
   RecordSessionStartedInput,
-} from '../index.ts';
+} from '../types.ts';
 
 export type HookRuntime = 'codex' | 'gemini' | 'claude' | 'unknown';
 

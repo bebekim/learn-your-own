@@ -1,17 +1,18 @@
-import { createHash } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { stringPayloadSize } from '../hooks/normalizer.ts';
 import type { CanonicalHookEventName, HookObservation } from '../hooks/events.ts';
+import {
+  createHookEventId,
+  fingerprintHookValue,
+  sha256,
+  summarizeText,
+  writePromptBlob,
+} from './runtime.ts';
 import type {
   AssociationOutcome,
   HookEventInput,
   RecordPromptBoundaryInput,
   RecordSessionStartedInput,
   ResolveProtocolResult,
-} from '../index.ts';
-
-const DEFAULT_HOOK_RESPONSE_HASH_LIMIT = 200_000;
+} from '../types.ts';
 
 export interface CodexHookInput {
   session_id?: string;
@@ -99,7 +100,7 @@ export function codexHookObservation(
       promptHash: options.includeRawPrompt ? undefined : sha256(event.prompt),
       promptLength: options.includeRawPrompt ? undefined : event.prompt.length,
       promptRef,
-      summary: options.includeRawPrompt ? undefined : summarize(event.prompt),
+      summary: options.includeRawPrompt ? undefined : summarizeText(event.prompt),
       model: event.model ?? null,
     };
   } else if (runtimeEventName === 'Stop' && typeof event.last_assistant_message === 'string' && event.last_assistant_message) {
@@ -115,7 +116,7 @@ export function codexHookObservation(
       turnId,
       role: 'assistant',
       kind: 'assistant_response',
-      responseSummary: summarize(event.last_assistant_message),
+      responseSummary: summarizeText(event.last_assistant_message),
       model: event.model ?? null,
     };
   }
@@ -212,60 +213,4 @@ function redactCodexHookEvent(
     };
   }
   return redacted;
-}
-
-function summarize(text: string): string {
-  return text.replace(/\s+/g, ' ').trim().slice(0, 240);
-}
-
-function writePromptBlob(promptDir: string, id: string, role: string, text: string): string {
-  mkdirSync(promptDir, { recursive: true });
-  const safeId = String(id || sha256(text).slice(0, 16)).replace(/[^A-Za-z0-9_.:-]/g, '_');
-  const path = join(promptDir, `${safeId}-${role}.txt`);
-  writeFileSync(path, text, 'utf8');
-  return path;
-}
-
-function sha256(value: string): string {
-  return createHash('sha256').update(value).digest('hex');
-}
-
-function createHookEventId(input: {
-  sessionId: string;
-  turnId?: string | null;
-  eventName: string;
-  cwd: string;
-  payload: unknown;
-}): string {
-  const digest = createHash('sha256')
-    .update(JSON.stringify({
-      sessionId: input.sessionId,
-      turnId: input.turnId ?? null,
-      eventName: input.eventName,
-      cwd: input.cwd,
-      payload: input.payload,
-    }))
-    .digest('hex')
-    .slice(0, 24);
-  return `hook-${digest}`;
-}
-
-function hookResponseHashLimit(): number {
-  const raw = process.env.LEARNLOOP_HOOK_RESPONSE_HASH_LIMIT;
-  if (!raw) return DEFAULT_HOOK_RESPONSE_HASH_LIMIT;
-  const parsed = Number(raw);
-  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : DEFAULT_HOOK_RESPONSE_HASH_LIMIT;
-}
-
-function fingerprintHookValue(value: unknown): { sha256: string; outputSize: number; truncated: boolean } {
-  const outputSize = stringPayloadSize(value);
-  const serialized = JSON.stringify(value);
-  const limit = hookResponseHashLimit();
-  const truncated = serialized.length > limit;
-  const hashInput = truncated ? serialized.slice(0, limit) : serialized;
-  return {
-    sha256: sha256(hashInput),
-    outputSize,
-    truncated,
-  };
 }
