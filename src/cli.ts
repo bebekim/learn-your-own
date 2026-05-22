@@ -28,6 +28,14 @@ import {
   spoolCodexHookEvent,
   updateZoneAssociationsFromJob,
 } from './index.ts';
+import type {
+  ActivationConfidence,
+  CommandClassification,
+  CommandStatus,
+  JobStatus,
+  ModelCallStatus,
+  PathActivationKind,
+} from './types.ts';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -254,7 +262,7 @@ try {
         totalTokens: optionalNumber('--total-tokens'),
         estimatedCost: optionalNumber('--estimated-cost'),
         latencyMs: optionalNumber('--latency-ms'),
-        status: flagValue('--status') ?? 'completed',
+        status: modelCallStatus(flagValue('--status')),
         errorSummary: flagValue('--error') ?? null,
       }),
     });
@@ -328,7 +336,7 @@ try {
     initLedger(kernel);
     const job = finishJob(kernel, {
       jobId: requiredFlag('--job-id'),
-      status: flagValue('--status') ?? 'completed',
+      status: jobStatus(flagValue('--status'), 'completed'),
     });
     let derived = null;
     if (hasFlag('--derive')) {
@@ -344,9 +352,9 @@ try {
         jobId: requiredFlag('--job-id'),
         runId: flagValue('--run-id') ?? null,
         path: requiredFlag('--path'),
-        activationKind: flagValue('--kind') ?? 'unknown',
+        activationKind: pathActivationKind(flagValue('--kind')),
         evidenceRef: flagValue('--evidence-ref') ?? null,
-        confidence: flagValue('--confidence') ?? 'medium',
+        confidence: activationConfidence(flagValue('--confidence')),
       }),
     });
   } else if (command === 'activate' && subcommand === 'command') {
@@ -363,9 +371,9 @@ try {
         argv: flagValue('--argv') ?? null,
         argvHash: flagValue('--argv-hash') ?? null,
         argvSummary: flagValue('--argv-summary') ?? null,
-        classification: flagValue('--classification') ?? undefined,
+        classification: commandClassification(flagValue('--classification')),
         evidenceRef: flagValue('--evidence-ref') ?? null,
-        status: flagValue('--status') ?? 'attempted',
+        status: commandStatus(flagValue('--status')),
       }),
     });
   } else if (command === 'activate' && subcommand === 'deployment') {
@@ -379,7 +387,7 @@ try {
         provider: flagValue('--provider') ?? null,
         environment: flagValue('--environment') ?? null,
         target: flagValue('--target') ?? null,
-        status: flagValue('--status') ?? 'attempted',
+        status: deploymentStatus(flagValue('--status')),
         evidenceRef: flagValue('--evidence-ref') ?? null,
       }),
     });
@@ -460,6 +468,65 @@ function optionalNumber(name: string): number | null {
 
 function normalizeOutcome(value: string | undefined): 'positive' | 'negative' | 'unknown' {
   return value === 'positive' || value === 'negative' ? value : 'unknown';
+}
+
+function modelCallStatus(value: string | undefined): ModelCallStatus {
+  return value === 'started' || value === 'failed' ? value : 'completed';
+}
+
+function jobStatus(value: string | undefined, fallback: JobStatus): JobStatus {
+  if (value === 'started' || value === 'completed' || value === 'failed' || value === 'cancelled' || value === 'unknown') {
+    return value;
+  }
+  return fallback;
+}
+
+function pathActivationKind(value: string | undefined): PathActivationKind {
+  if (
+    value === 'file_read'
+    || value === 'file_written'
+    || value === 'file_created'
+    || value === 'file_deleted'
+    || value === 'file_diffed'
+    || value === 'directory_listed'
+  ) {
+    return value;
+  }
+  return 'unknown';
+}
+
+function activationConfidence(value: string | undefined): ActivationConfidence {
+  return value === 'low' || value === 'high' ? value : 'medium';
+}
+
+function commandClassification(value: string | undefined): CommandClassification | undefined {
+  if (
+    value === 'test'
+    || value === 'build'
+    || value === 'lint'
+    || value === 'format'
+    || value === 'deploy'
+    || value === 'database'
+    || value === 'cloud'
+    || value === 'package'
+    || value === 'git'
+    || value === 'inspect'
+    || value === 'local_dev'
+    || value === 'unknown'
+  ) {
+    return value;
+  }
+  return undefined;
+}
+
+function commandStatus(value: string | undefined): CommandStatus {
+  if (value === 'planned' || value === 'succeeded' || value === 'failed' || value === 'unknown') return value;
+  return 'attempted';
+}
+
+function deploymentStatus(value: string | undefined): 'attempted' | 'succeeded' | 'failed' | 'unknown' {
+  if (value === 'succeeded' || value === 'failed' || value === 'unknown') return value;
+  return 'attempted';
 }
 
 function deriveActivationState(kernel: ReturnType<typeof createKernel>, jobId: string, outcome: string): object {

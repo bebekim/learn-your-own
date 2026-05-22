@@ -685,6 +685,39 @@ test('lyo codex-hook can spool events before normalize hooks drains them', () =>
   }
 });
 
+test('lyo codex-hook preserves spooled capture when stop-time drain cannot open the database', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-hook-spool-capture-first-'));
+  try {
+    const spoolDir = join(dir, 'hook-spool');
+    const output = execFileSync(
+      process.execPath,
+      ['src/cli.ts', 'codex-hook', '--db', dir, '--spool-dir', spoolDir],
+      {
+        cwd: ROOT,
+        input: JSON.stringify({
+          session_id: 'session-capture-first',
+          turn_id: 'turn-capture-first',
+          cwd: dir,
+          hook_event_name: 'Stop',
+          model: 'gpt-test',
+          last_assistant_message: 'Stop hook should not lose the raw event when DB drain fails.',
+        }),
+        encoding: 'utf8',
+      }
+    );
+
+    assert.deepEqual(JSON.parse(output), { continue: true });
+    const packets = readdirSync(join(spoolDir, 'incoming'));
+    assert.equal(packets.length, 1);
+    const packet = JSON.parse(readFileSync(join(spoolDir, 'incoming', packets[0]), 'utf8'));
+    assert.equal(packet.hookEvent.eventName, 'turn.stop');
+    assert.equal(packet.hookEvent.sessionId, 'session-capture-first');
+    assert.equal(packet.hookEvent.payload.hook_event_name, 'Stop');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('lyo codex-hook avoids unsupported continue field for PreToolUse output', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-codex-pretool-'));
   try {

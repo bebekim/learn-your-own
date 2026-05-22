@@ -233,14 +233,14 @@ function estimateToolOutputSize(payload: Record<string, unknown>): number {
     payload.output,
     payload.result,
   ];
-  return outputRoots.reduce((sum, root) => sum + stringPayloadSize(root), 0);
+  return outputRoots.reduce<number>((sum, root) => sum + stringPayloadSize(root), 0);
 }
 
 export function stringPayloadSize(value: unknown): number {
   if (typeof value === 'string') return value.length;
-  if (Array.isArray(value)) return value.reduce((sum, item) => sum + stringPayloadSize(item), 0);
+  if (Array.isArray(value)) return value.reduce<number>((sum, item) => sum + stringPayloadSize(item), 0);
   if (!value || typeof value !== 'object') return 0;
-  return Object.values(value).reduce((sum, item) => sum + stringPayloadSize(item), 0);
+  return Object.values(value).reduce<number>((sum, item) => sum + stringPayloadSize(item), 0);
 }
 
 function firstCommandToken(command: string): string {

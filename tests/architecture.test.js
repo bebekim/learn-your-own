@@ -46,6 +46,38 @@ test('hook adapters share runtime utilities instead of duplicating hashing and p
   assert.deepEqual(offenders, []);
 });
 
+test('hook runtime capture is owned outside the public barrel', () => {
+  assert.equal(existsSync(join(SRC, 'hooks', 'runtime.ts')), true);
+
+  const publicBarrel = readFileSync(join(SRC, 'index.ts'), 'utf8');
+  for (const implementationDetail of [
+    'export function handleCodexHook',
+    'export function handleClaudeHook',
+    'function ingestHookSpoolPacket',
+  ]) {
+    assert.equal(publicBarrel.includes(implementationDetail), false, implementationDetail);
+  }
+});
+
+test('activation module is a barrel over capture, derivation, and reporting modules', () => {
+  for (const fileName of ['records.ts', 'derivation.ts', 'reports.ts', 'matching.ts']) {
+    assert.equal(existsSync(join(SRC, 'activation', fileName)), true, fileName);
+  }
+
+  const activationBarrel = readFileSync(join(SRC, 'activation.ts'), 'utf8');
+  assert.equal(activationBarrel.includes('kernel.db.prepare'), false);
+  assert.equal(activationBarrel.includes('function summarizeJobActivations'), false);
+});
+
+test('typecheck is part of the local and CI verification surface', () => {
+  const packageJson = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+  assert.equal(typeof packageJson.scripts.typecheck, 'string');
+  assert.match(packageJson.scripts.typecheck, /tsc --noEmit/);
+
+  const workflow = readFileSync(join(ROOT, '.github', 'workflows', 'node.js.yml'), 'utf8');
+  assert.match(workflow, /npm run typecheck/);
+});
+
 function sourceFiles(root) {
   const files = [];
   for (const entry of readdirSync(root)) {

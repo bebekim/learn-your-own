@@ -36,7 +36,7 @@ function sourceFiles(dir) {
     const path = join(dir, entry);
     if (statSync(path).isDirectory()) {
       files.push(...sourceFiles(path));
-    } else if (entry.endsWith('.ts')) {
+    } else if (entry.endsWith('.ts') && !entry.endsWith('.d.ts')) {
       files.push(path);
     }
   }

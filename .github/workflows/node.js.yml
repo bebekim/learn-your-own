@@ -24,5 +24,6 @@ jobs:
           cache: npm
 
       - run: npm ci
+      - run: npm run typecheck
       - run: npm test
       - run: node scripts/pack-npm.mjs

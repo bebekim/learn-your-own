@@ -17,6 +17,7 @@
   "scripts": {
     "build:npm": "node scripts/build-npm.mjs",
     "test": "node --test",
+    "typecheck": "tsc --noEmit",
     "lyo:init": "node src/cli.ts init --db .agent-learning/learning.sqlite",
     "lyo:report": "node src/cli.ts report --db .agent-learning/learning.sqlite",
     "demo": "node src/cli.ts demo fixture-replay",
