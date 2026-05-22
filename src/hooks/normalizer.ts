@@ -7,6 +7,7 @@ import type {
   PathActivationKind,
   RecordDeploymentActionInput,
 } from '../index.ts';
+import type { HookRuntime } from './events.ts';
 
 export interface HookEventForNormalization {
   eventId: string;
@@ -47,6 +48,7 @@ export interface ClassifiedHookPath {
 export interface ClassifiedHookEvent {
   jobId: string;
   evidenceRef: string;
+  runtime: HookRuntime;
   payload: Record<string, unknown>;
   toolName: string | null;
   commands: ClassifiedHookCommand[];
@@ -60,6 +62,7 @@ interface PathFact {
 
 export function classifyHookEvent(event: HookEventForNormalization): ClassifiedHookEvent {
   const payload = parseJsonObject(event.payloadJson);
+  const runtime = runtimeFromPayload(payload);
   const toolName = stringValue(payload.tool_name);
   const toolInputRaw = payload.tool_input;
   const toolInput = objectValue(toolInputRaw);
@@ -103,8 +106,9 @@ export function classifyHookEvent(event: HookEventForNormalization): ClassifiedH
     : [];
 
   return {
-    jobId: hookJobId(event.sessionId, event.turnId),
+    jobId: hookJobId(runtime, event.sessionId, event.turnId),
     evidenceRef: `hook:${event.eventId}`,
+    runtime,
     payload,
     toolName,
     commands,
@@ -172,8 +176,8 @@ function extractCommandText(toolInput: Record<string, unknown> | null): string |
 }
 
 function inferHookCommandStatus(eventName: string, payload: Record<string, unknown>): CommandStatus {
-  if (eventName === 'PreToolUse') return 'attempted';
-  if (eventName !== 'PostToolUse') return 'unknown';
+  if (eventName === 'PreToolUse' || eventName === 'tool.before') return 'attempted';
+  if (eventName !== 'PostToolUse' && eventName !== 'tool.after') return 'unknown';
   return hookStatusSignal(payload) ?? 'succeeded';
 }
 
@@ -354,8 +358,15 @@ function patchOperationKind(operation: string): PathActivationKind {
   return 'file_written';
 }
 
-function hookJobId(sessionId: string, turnId: string | null): string {
-  return `codex-job-${sha256(`${sessionId}:${turnId ?? 'session'}`).slice(0, 16)}`;
+function runtimeFromPayload(payload: Record<string, unknown>): HookRuntime {
+  const metadata = objectValue(payload._lyo);
+  const runtime = stringValue(metadata?.runtime);
+  if (runtime === 'codex' || runtime === 'gemini' || runtime === 'claude') return runtime;
+  return 'codex';
+}
+
+function hookJobId(runtime: HookRuntime, sessionId: string, turnId: string | null): string {
+  return `${runtime}-job-${sha256(`${sessionId}:${turnId ?? 'session'}`).slice(0, 16)}`;
 }
 
 function normalizeRelativePath(path: string): string {

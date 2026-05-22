@@ -1,6 +1,4 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
 import {
   deriveZoneActivationsForJob,
   deriveZoneCoactivationsForJob,
@@ -24,10 +22,28 @@ import {
   updateZoneAssociationsFromJob,
 } from './activation.ts';
 import {
+  codexChannel,
+  codexHookObservation,
+  codexHookOutput,
+  codexTaskShape,
+  emptyCodexHookOutput,
+  renderProtocolOverlay,
+} from './adapters/codex.ts';
+import type {
+  CodexHookInput,
+  CodexHookOptions,
+  CodexHookOutput,
+} from './adapters/codex.ts';
+import {
+  drainHookSpoolPackets,
+  normalizedHookSpoolResult,
+  recordHookEvent,
+  spoolHookObservation,
+} from './hooks/ingestion.ts';
+import type { HookSpoolPacket } from './hooks/events.ts';
+import {
   classifyHookEvent,
-  stringPayloadSize,
 } from './hooks/normalizer.ts';
-import { drainJsonSpoolPackets, writeJsonSpoolPacket } from './hooks/spool.ts';
 import { createKernel } from './ledger.ts';
 import type { CreateKernelInput, LearningKernel } from './ledger.ts';
 import { initLedger } from './schema.ts';
@@ -50,6 +66,18 @@ export {
   recordZoneActivation,
   updateZoneAssociationsFromJob,
 } from './activation.ts';
+export type {
+  CodexHookInput,
+  CodexHookOptions,
+  CodexHookOutput,
+} from './adapters/codex.ts';
+export type {
+  CanonicalHookEventName,
+  HookObservation,
+  HookRuntime,
+  HookSpoolPacket,
+} from './hooks/events.ts';
+export { recordHookEvent } from './hooks/ingestion.ts';
 
 export type GapStatus = 'observed' | 'inferred' | 'unknown' | 'contradicted';
 export type ScopeKind = 'worktree' | 'repository' | 'channel';
@@ -294,33 +322,6 @@ export interface HookEventRecord {
   model: string | null;
 }
 
-export interface CodexHookInput {
-  session_id?: string;
-  transcript_path?: string | null;
-  cwd?: string;
-  hook_event_name?: string;
-  model?: string | null;
-  turn_id?: string;
-  prompt?: string;
-  source?: string;
-  tool_name?: string;
-  tool_use_id?: string;
-  tool_input?: unknown;
-  tool_response?: unknown;
-  stop_hook_active?: boolean;
-  last_assistant_message?: string | null;
-}
-
-export interface CodexHookOptions {
-  channel?: string;
-  taskShape?: string;
-  promptDir?: string;
-  normalizeOnStop?: boolean;
-  normalizeOnToolUse?: boolean;
-  normalizeWorkspaceId?: string;
-  normalizeOutcome?: AssociationOutcome;
-}
-
 export interface HookSpoolOptions {
   spoolDir: string;
   promptDir?: string;
@@ -330,14 +331,6 @@ export interface HookSpoolRecord {
   eventId: string;
   eventName: string;
   packetPath: string;
-}
-
-export interface CodexHookOutput {
-  continue?: true;
-  hookSpecificOutput?: {
-    hookEventName: string;
-    additionalContext: string;
-  };
 }
 
 export interface FixtureReplayDemoResult {
@@ -676,27 +669,7 @@ export interface DrainHookSpoolResult {
   normalized: NormalizeHooksResult | null;
 }
 
-interface CodexHookObservation {
-  eventName: string;
-  sessionId: string;
-  turnId: string | null;
-  cwd: string;
-  hookEvent: HookEventInput;
-  session: RecordSessionStartedInput | null;
-  promptBoundary: RecordPromptBoundaryInput | null;
-}
-
-interface HookSpoolPacket {
-  version: 1;
-  kind: 'codex-hook-event';
-  recordedAt: string;
-  hookEvent: HookEventInput;
-  session: RecordSessionStartedInput | null;
-  promptBoundary: RecordPromptBoundaryInput | null;
-}
-
 const ISO_NOW = () => new Date().toISOString();
-const DEFAULT_HOOK_RESPONSE_HASH_LIMIT = 200_000;
 
 export function recordRun(kernel: LearningKernel, input: RecordRunInput): RunRecord {
   requireFields(input, ['runId', 'taskShape', 'channel', 'status']);
@@ -957,10 +930,10 @@ export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInpu
       jobId,
       workspaceId: workspace.workspaceId,
       runId: event.turnId ?? null,
-      taskShape: 'codex-hook-turn',
-      summary: `Codex ${event.eventName} in ${workspace.name}`,
-      sourceRef: `codex-hook:${event.eventId}`,
-      status: event.eventName === 'Stop' ? 'completed' : 'started',
+      taskShape: `${classified.runtime}-hook-turn`,
+      summary: `${classified.runtime} ${event.eventName} in ${workspace.name}`,
+      sourceRef: `${classified.runtime}-hook:${event.eventId}`,
+      status: ['Stop', 'turn.stop'].includes(event.eventName) ? 'completed' : 'started',
     });
 
     for (const commandFact of classified.commands) {
@@ -1265,47 +1238,16 @@ export function getObserverSummary(kernel: LearningKernel): ObserverSummary {
 }
 
 export function spoolCodexHookEvent(event: CodexHookInput, options: HookSpoolOptions): HookSpoolRecord {
-  requireFields(options, ['spoolDir']);
   const observation = codexHookObservation(event, {
     promptDir: options.promptDir,
     includeRawPrompt: false,
   });
-  const packet: HookSpoolPacket = {
-    version: 1,
-    kind: 'codex-hook-event',
-    recordedAt: ISO_NOW(),
-    hookEvent: observation.hookEvent,
-    session: observation.session,
-    promptBoundary: observation.promptBoundary,
-  };
-  const written = writeJsonSpoolPacket({
-    spoolDir: options.spoolDir,
-    packet,
-    packetId: observation.hookEvent.eventId,
-  });
-  return {
-    eventId: observation.hookEvent.eventId ?? hookEventId(observation.hookEvent),
-    eventName: observation.eventName,
-    packetPath: written.packetPath,
-  };
+  return spoolHookObservation(observation, options);
 }
 
 export function drainHookSpool(kernel: LearningKernel, input: DrainHookSpoolInput): DrainHookSpoolResult {
-  requireFields(input, ['spoolDir']);
-  let hookEvents = 0;
-  let sessions = 0;
-  let promptBoundaries = 0;
-
-  const spool = drainJsonSpoolPackets<HookSpoolPacket>({
-    spoolDir: input.spoolDir,
-    limit: input.limit,
-    parsePacket: parseHookSpoolPacket,
-    processPacket: (packet) => {
-      ingestHookSpoolPacket(kernel, packet);
-      hookEvents += 1;
-      if (packet.session) sessions += 1;
-      if (packet.promptBoundary) promptBoundaries += 1;
-    },
+  const drained = drainHookSpoolPackets(input, (packet) => {
+    ingestHookSpoolPacket(kernel, packet);
   });
 
   const normalized = input.normalize
@@ -1315,43 +1257,7 @@ export function drainHookSpool(kernel: LearningKernel, input: DrainHookSpoolInpu
       })
     : null;
 
-  return {
-    processedPackets: spool.processedPackets,
-    failedPackets: spool.failedPackets,
-    requeuedPackets: spool.requeuedPackets,
-    hookEvents,
-    sessions,
-    promptBoundaries,
-    normalized,
-  };
-}
-
-export function recordHookEvent(kernel: LearningKernel, input: HookEventInput): HookEventRecord {
-  requireFields(input, ['sessionId', 'eventName', 'cwd', 'payload']);
-  const eventId = input.eventId ?? hookEventId(input);
-  kernel.db.prepare(`
-    insert or replace into hook_events (
-      event_id, session_id, turn_id, event_name, cwd, model, payload_json, created_at
-    )
-    values (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    eventId,
-    input.sessionId,
-    input.turnId ?? null,
-    input.eventName,
-    input.cwd,
-    input.model ?? null,
-    JSON.stringify(input.payload),
-    ISO_NOW()
-  );
-  return {
-    eventId,
-    sessionId: input.sessionId,
-    turnId: input.turnId ?? null,
-    eventName: input.eventName,
-    cwd: input.cwd,
-    model: input.model ?? null,
-  };
+  return normalizedHookSpoolResult(drained, normalized);
 }
 
 export function handleCodexHook(
@@ -1363,7 +1269,8 @@ export function handleCodexHook(
     promptDir: options.promptDir,
     includeRawPrompt: true,
   });
-  const { eventName, sessionId, turnId } = observation;
+  const eventName = observation.runtimeEventName;
+  const { sessionId, turnId } = observation;
 
   recordHookEvent(kernel, observation.hookEvent);
 
@@ -1685,85 +1592,6 @@ function boolInt(value: boolean): 0 | 1 {
   return value ? 1 : 0;
 }
 
-function codexHookObservation(
-  event: CodexHookInput,
-  options: { promptDir?: string; includeRawPrompt: boolean }
-): CodexHookObservation {
-  const eventName = event.hook_event_name ?? 'Unknown';
-  const sessionId = event.session_id ?? 'unknown-session';
-  const cwd = event.cwd ?? process.cwd();
-  const turnId = event.turn_id ?? null;
-  const hookEvent: HookEventInput = {
-    sessionId,
-    turnId,
-    eventName,
-    cwd,
-    model: event.model ?? null,
-    payload: redactCodexHookEvent(event),
-  };
-  hookEvent.eventId = hookEventId(hookEvent);
-
-  let session: RecordSessionStartedInput | null = null;
-  let promptBoundary: RecordPromptBoundaryInput | null = null;
-
-  if (eventName === 'SessionStart') {
-    session = {
-      sessionId,
-      workspaceScope: 'local',
-      repoPath: cwd,
-      platform: 'codex',
-      model: event.model ?? null,
-    };
-  } else if (eventName === 'UserPromptSubmit' && typeof event.prompt === 'string' && event.prompt) {
-    const promptRef = options.promptDir ? writePromptBlob(options.promptDir, turnId ?? sessionId, 'user', event.prompt) : undefined;
-    session = {
-      sessionId,
-      workspaceScope: 'local',
-      repoPath: cwd,
-      platform: 'codex',
-      model: event.model ?? null,
-    };
-    promptBoundary = {
-      sessionId,
-      turnId,
-      role: 'user',
-      kind: 'user_prompt',
-      promptText: options.includeRawPrompt ? event.prompt : undefined,
-      promptHash: options.includeRawPrompt ? undefined : sha256(event.prompt),
-      promptLength: options.includeRawPrompt ? undefined : event.prompt.length,
-      promptRef,
-      summary: options.includeRawPrompt ? undefined : summarize(event.prompt),
-      model: event.model ?? null,
-    };
-  } else if (eventName === 'Stop' && typeof event.last_assistant_message === 'string' && event.last_assistant_message) {
-    session = {
-      sessionId,
-      workspaceScope: 'local',
-      repoPath: cwd,
-      platform: 'codex',
-      model: event.model ?? null,
-    };
-    promptBoundary = {
-      sessionId,
-      turnId,
-      role: 'assistant',
-      kind: 'assistant_response',
-      responseSummary: summarize(event.last_assistant_message),
-      model: event.model ?? null,
-    };
-  }
-
-  return {
-    eventName,
-    sessionId,
-    turnId,
-    cwd,
-    hookEvent,
-    session,
-    promptBoundary,
-  };
-}
-
 function ingestHookSpoolPacket(kernel: LearningKernel, packet: HookSpoolPacket): void {
   recordHookEvent(kernel, packet.hookEvent);
   if (packet.session) {
@@ -1774,123 +1602,10 @@ function ingestHookSpoolPacket(kernel: LearningKernel, packet: HookSpoolPacket):
   }
 }
 
-function parseHookSpoolPacket(value: unknown): HookSpoolPacket {
-  if (!value || typeof value !== 'object') {
-    throw new Error('invalid hook spool packet');
-  }
-  const packet = value as HookSpoolPacket;
-  if (packet.version !== 1 || packet.kind !== 'codex-hook-event') {
-    throw new Error('unsupported hook spool packet');
-  }
-  return packet;
-}
-
-function hookEventId(input: HookEventInput): string {
-  const digest = createHash('sha256')
-    .update(JSON.stringify({
-      sessionId: input.sessionId,
-      turnId: input.turnId ?? null,
-      eventName: input.eventName,
-      cwd: input.cwd,
-      payload: input.payload,
-    }))
-    .digest('hex')
-    .slice(0, 24);
-  return `hook-${digest}`;
-}
-
-function redactCodexHookEvent(event: CodexHookInput): Record<string, unknown> {
-  const redacted: Record<string, unknown> = { ...event };
-  if (typeof event.prompt === 'string') {
-    redacted.prompt = {
-      sha256: sha256(event.prompt),
-      length: event.prompt.length,
-    };
-  }
-  if (typeof event.last_assistant_message === 'string') {
-    redacted.last_assistant_message = {
-      sha256: sha256(event.last_assistant_message),
-      length: event.last_assistant_message.length,
-    };
-  }
-  if (event.tool_response !== undefined) {
-    const fingerprint = fingerprintHookValue(event.tool_response);
-    redacted.tool_response = {
-      sha256: fingerprint.sha256,
-      output_size: fingerprint.outputSize,
-      truncated: fingerprint.truncated,
-      recorded: false,
-    };
-  }
-  return redacted;
-}
-
-function codexChannel(event: CodexHookInput): string {
-  if (event.hook_event_name === 'UserPromptSubmit') return 'codex.user_prompt';
-  if (event.hook_event_name === 'SessionStart') return 'codex.session';
-  if (event.tool_name) return `codex.tool.${event.tool_name}`;
-  return `codex.${event.hook_event_name ?? 'unknown'}`;
-}
-
-function codexTaskShape(event: CodexHookInput): string {
-  if (event.hook_event_name === 'SessionStart') return `session-${event.source ?? 'startup'}`;
-  if (event.hook_event_name === 'UserPromptSubmit') return 'user-prompt';
-  if (event.tool_name) return `tool-${event.tool_name}`;
-  return event.hook_event_name ?? 'unknown';
-}
-
-function renderProtocolOverlay(overlay: ResolveProtocolResult): string {
-  const lines = [
-    'Agent learning overlay:',
-    ...overlay.protocols.map((protocol) => (
-      `- ${protocol.title}: ${protocol.action} [${protocol.protocolId}]`
-    )),
-  ];
-  return lines.join('\n');
-}
-
 function summarize(text: string): string {
   return text.replace(/\s+/g, ' ').trim().slice(0, 240);
 }
 
-function writePromptBlob(promptDir: string, id: string, role: string, text: string): string {
-  mkdirSync(promptDir, { recursive: true });
-  const safeId = String(id || sha256(text).slice(0, 16)).replace(/[^A-Za-z0-9_.:-]/g, '_');
-  const path = join(promptDir, `${safeId}-${role}.txt`);
-  writeFileSync(path, text, 'utf8');
-  return path;
-}
-
 function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex');
-}
-
-function hookResponseHashLimit(): number {
-  const raw = process.env.LEARNLOOP_HOOK_RESPONSE_HASH_LIMIT;
-  if (!raw) return DEFAULT_HOOK_RESPONSE_HASH_LIMIT;
-  const parsed = Number(raw);
-  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : DEFAULT_HOOK_RESPONSE_HASH_LIMIT;
-}
-
-function fingerprintHookValue(value: unknown): { sha256: string; outputSize: number; truncated: boolean } {
-  const outputSize = stringPayloadSize(value);
-  const serialized = JSON.stringify(value);
-  const limit = hookResponseHashLimit();
-  const truncated = serialized.length > limit;
-  const hashInput = truncated ? serialized.slice(0, limit) : serialized;
-  return {
-    sha256: sha256(hashInput),
-    outputSize,
-    truncated,
-  };
-}
-
-function emptyCodexHookOutput(eventName: string): CodexHookOutput {
-  if (eventName === 'PreToolUse') return {};
-  return { continue: true };
-}
-
-function codexHookOutput(eventName: string, output: CodexHookOutput): CodexHookOutput {
-  if (eventName === 'PreToolUse') return output;
-  return { continue: true, ...output };
 }

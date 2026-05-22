@@ -984,3 +984,37 @@ test('Codex hook redacts large tool responses while preserving output size', () 
     t.cleanup();
   }
 });
+
+test('Codex adapter records canonical hook event names with runtime metadata', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    handleCodexHook(kernel, {
+      session_id: 'session-canonical',
+      turn_id: 'turn-canonical',
+      cwd: '/tmp/demo',
+      hook_event_name: 'PostToolUse',
+      tool_name: 'Bash',
+      tool_input: { command: 'node --test' },
+      tool_response: {
+        exit_code: 0,
+        stdout: 'ok',
+      },
+    });
+
+    const row = kernel.db.prepare(`
+      select event_name as eventName, payload_json as payloadJson
+      from hook_events
+      where session_id = 'session-canonical'
+    `).get();
+    const payload = JSON.parse(row.payloadJson);
+    assert.equal(row.eventName, 'tool.after');
+    assert.equal(payload._lyo.runtime, 'codex');
+    assert.equal(payload._lyo.runtime_event_name, 'PostToolUse');
+    assert.equal(payload._lyo.canonical_event_name, 'tool.after');
+  } finally {
+    t.cleanup();
+  }
+});
