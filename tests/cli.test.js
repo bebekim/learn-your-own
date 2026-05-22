@@ -192,6 +192,62 @@ test('lyo codex-hook records Codex session, prompt, response, and optional promp
   }
 });
 
+test('lyo claude-hook records Claude session and prompt events', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-claude-recording-'));
+  try {
+    const dbPath = join(dir, 'learning.sqlite');
+    const promptDir = join(dir, 'prompts');
+
+    const sessionOutput = execFileSync(
+      process.execPath,
+      ['src/cli.ts', 'claude-hook', '--db', dbPath, '--prompt-dir', promptDir],
+      {
+        cwd: ROOT,
+        input: JSON.stringify({
+          session_id: 'claude-session-1',
+          cwd: ROOT,
+          hook_event_name: 'SessionStart',
+          model: 'claude-test',
+          source: 'startup',
+        }),
+        encoding: 'utf8',
+      }
+    );
+    assert.deepEqual(JSON.parse(sessionOutput), {});
+
+    const promptOutput = execFileSync(
+      process.execPath,
+      ['src/cli.ts', 'claude-hook', '--db', dbPath, '--prompt-dir', promptDir],
+      {
+        cwd: ROOT,
+        input: JSON.stringify({
+          session_id: 'claude-session-1',
+          turn_id: 'turn-1',
+          cwd: ROOT,
+          hook_event_name: 'UserPromptSubmit',
+          model: 'claude-test',
+          prompt: 'Record this Claude prompt.',
+        }),
+        encoding: 'utf8',
+      }
+    );
+    assert.deepEqual(JSON.parse(promptOutput), {});
+    assert.equal(readFileSync(join(promptDir, 'turn-1-user.txt'), 'utf8'), 'Record this Claude prompt.');
+
+    const summary = JSON.parse(execFileSync(
+      process.execPath,
+      ['src/cli.ts', 'report', '--db', dbPath],
+      { cwd: ROOT, encoding: 'utf8' }
+    ));
+    assert.equal(summary.ok, true);
+    assert.equal(summary.sessions, 1);
+    assert.equal(summary.promptBoundaries, 1);
+    assert.equal(summary.hookEvents, 2);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('lyo codex-hook can store records under the event cwd', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-event-cwd-'));
   try {

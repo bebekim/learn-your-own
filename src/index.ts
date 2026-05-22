@@ -22,6 +22,15 @@ import {
   updateZoneAssociationsFromJob,
 } from './activation.ts';
 import {
+  claudeHookObservation,
+  emptyClaudeHookOutput,
+} from './adapters/claude.ts';
+import type {
+  ClaudeHookInput,
+  ClaudeHookOptions,
+  ClaudeHookOutput,
+} from './adapters/claude.ts';
+import {
   codexChannel,
   codexHookObservation,
   codexHookOutput,
@@ -66,6 +75,11 @@ export {
   recordZoneActivation,
   updateZoneAssociationsFromJob,
 } from './activation.ts';
+export type {
+  ClaudeHookInput,
+  ClaudeHookOptions,
+  ClaudeHookOutput,
+} from './adapters/claude.ts';
 export type {
   CodexHookInput,
   CodexHookOptions,
@@ -1245,6 +1259,14 @@ export function spoolCodexHookEvent(event: CodexHookInput, options: HookSpoolOpt
   return spoolHookObservation(observation, options);
 }
 
+export function spoolClaudeHookEvent(event: ClaudeHookInput, options: HookSpoolOptions): HookSpoolRecord {
+  const observation = claudeHookObservation(event, {
+    promptDir: options.promptDir,
+    includeRawPrompt: false,
+  });
+  return spoolHookObservation(observation, options);
+}
+
 export function drainHookSpool(kernel: LearningKernel, input: DrainHookSpoolInput): DrainHookSpoolResult {
   const drained = drainHookSpoolPackets(input, (packet) => {
     ingestHookSpoolPacket(kernel, packet);
@@ -1317,6 +1339,43 @@ export function handleCodexHook(
       additionalContext: renderProtocolOverlay(overlay),
     },
   });
+}
+
+export function handleClaudeHook(
+  kernel: LearningKernel,
+  event: ClaudeHookInput,
+  options: ClaudeHookOptions = {}
+): ClaudeHookOutput {
+  const observation = claudeHookObservation(event, {
+    promptDir: options.promptDir,
+    includeRawPrompt: true,
+  });
+  const eventName = observation.runtimeEventName;
+
+  recordHookEvent(kernel, observation.hookEvent);
+
+  if (observation.session) {
+    recordSessionStarted(kernel, observation.session);
+  }
+  if (observation.promptBoundary) {
+    recordPromptBoundary(kernel, observation.promptBoundary);
+  }
+
+  if ((eventName === 'PostToolUse' || eventName === 'PostToolUseFailure') && options.normalizeOnToolUse !== false) {
+    normalizeHooks(kernel, {
+      workspaceId: options.normalizeWorkspaceId,
+      outcome: options.normalizeOutcome ?? 'unknown',
+    });
+  }
+
+  if ((eventName === 'Stop' || eventName === 'SessionEnd') && options.normalizeOnStop !== false) {
+    normalizeHooks(kernel, {
+      workspaceId: options.normalizeWorkspaceId,
+      outcome: options.normalizeOutcome ?? 'unknown',
+    });
+  }
+
+  return emptyClaudeHookOutput();
 }
 
 export function runFixtureReplayDemo({ dbPath = ':memory:' }: CreateKernelInput = {}): FixtureReplayDemoResult {

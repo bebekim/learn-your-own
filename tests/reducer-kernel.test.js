@@ -31,6 +31,7 @@ import {
   recordHookEvent,
   normalizeHooks,
   handleCodexHook,
+  handleClaudeHook,
   spoolCodexHookEvent,
   drainHookSpool,
 } from '../src/index.ts';
@@ -1014,6 +1015,48 @@ test('Codex adapter records canonical hook event names with runtime metadata', (
     assert.equal(payload._lyo.runtime, 'codex');
     assert.equal(payload._lyo.runtime_event_name, 'PostToolUse');
     assert.equal(payload._lyo.canonical_event_name, 'tool.after');
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('Claude adapter records tool failures and normalizes failed commands', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    handleClaudeHook(kernel, {
+      session_id: 'claude-session-failure',
+      turn_id: 'claude-turn-failure',
+      cwd: '/tmp/demo',
+      hook_event_name: 'PostToolUseFailure',
+      model: 'claude-test',
+      tool_name: 'Bash',
+      tool_input: { command: 'npm test' },
+      tool_response: {
+        exit_code: 1,
+        stderr: 'test failed',
+      },
+    });
+
+    const row = kernel.db.prepare(`
+      select event_name as eventName, payload_json as payloadJson
+      from hook_events
+      where session_id = 'claude-session-failure'
+    `).get();
+    const payload = JSON.parse(row.payloadJson);
+    assert.equal(row.eventName, 'tool.failure');
+    assert.equal(payload._lyo.runtime, 'claude');
+    assert.equal(payload._lyo.runtime_event_name, 'PostToolUseFailure');
+    assert.equal(payload._lyo.canonical_event_name, 'tool.failure');
+
+    const report = getJobActivationReport(kernel, {
+      jobId: `claude-job-${createHash('sha256').update('claude-session-failure:claude-turn-failure').digest('hex').slice(0, 16)}`,
+    });
+    assert.equal(report.commandActivations.length, 1);
+    assert.equal(report.commandActivations[0].classification, 'test');
+    assert.equal(report.commandActivations[0].status, 'failed');
   } finally {
     t.cleanup();
   }

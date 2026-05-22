@@ -177,6 +177,7 @@ function extractCommandText(toolInput: Record<string, unknown> | null): string |
 
 function inferHookCommandStatus(eventName: string, payload: Record<string, unknown>): CommandStatus {
   if (eventName === 'PreToolUse' || eventName === 'tool.before') return 'attempted';
+  if (eventName === 'PostToolUseFailure' || eventName === 'tool.failure') return 'failed';
   if (eventName !== 'PostToolUse' && eventName !== 'tool.after') return 'unknown';
   return hookStatusSignal(payload) ?? 'succeeded';
 }

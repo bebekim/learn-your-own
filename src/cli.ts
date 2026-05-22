@@ -8,6 +8,7 @@ import {
   getJobActivationReport,
   getObserverSummary,
   getZoneAssociationReport,
+  handleClaudeHook,
   handleCodexHook,
   initLedger,
   drainHookSpool,
@@ -23,6 +24,7 @@ import {
   recordWorkspace,
   recordZone,
   runFixtureReplayDemo,
+  spoolClaudeHookEvent,
   spoolCodexHookEvent,
   updateZoneAssociationsFromJob,
 } from './index.ts';
@@ -37,6 +39,7 @@ function usage(exitCode = 0): never {
   console.log(`Usage:
 	  lyo init [--db path]
 	  lyo codex-hook [--db path] [--db-from-event-cwd] [--channel name] [--prompt-dir path] [--prompt-dir-from-event-cwd] [--spool-dir path] [--spool-dir-from-event-cwd] [--workspace-id id] [--no-normalize-on-stop] [--no-normalize-on-tool-use]
+	  lyo claude-hook [--db path] [--db-from-event-cwd] [--prompt-dir path] [--prompt-dir-from-event-cwd] [--spool-dir path] [--spool-dir-from-event-cwd] [--workspace-id id] [--no-normalize-on-stop] [--no-normalize-on-tool-use]
 	  lyo session-start [--db path] --session-id id [--repo-path path] [--platform name] [--model name]
 	  lyo record-prompt [--db path] --session-id id --role role [--kind kind] [--prompt-file path] [--summary text] [--response text] [--model name]
 	  lyo model-call record [--db path] --provider name --model name --model-lane lane [--call-id id] [--session-id id] [--run-id id] [--prompt-file path] [--prompt-ref path] [--summary text] [--input-tokens n] [--output-tokens n] [--total-tokens n] [--estimated-cost n] [--latency-ms n] [--status started|completed|failed]
@@ -143,6 +146,50 @@ try {
       initLedger(kernel);
       print(handleCodexHook(kernel, event, {
         channel,
+        promptDir: effectivePromptDir,
+        normalizeOnStop: !hasFlag('--no-normalize-on-stop') && process.env.LEARNLOOP_NORMALIZE_ON_STOP !== '0',
+        normalizeOnToolUse: !hasFlag('--no-normalize-on-tool-use') && process.env.LEARNLOOP_NORMALIZE_ON_TOOL_USE !== '0',
+        normalizeWorkspaceId: flagValue('--workspace-id'),
+        normalizeOutcome: normalizeOutcome(flagValue('--outcome')),
+      }));
+    }
+  } else if (command === 'claude-hook') {
+    const input = await readStdin();
+    const event = input.trim() ? JSON.parse(input) : {};
+    const eventCwd = typeof event.cwd === 'string' && event.cwd ? event.cwd : process.cwd();
+    const effectiveDbPath = hasFlag('--db-from-event-cwd')
+      ? join(eventCwd, '.agent-learning', 'learning.sqlite')
+      : dbPath;
+    const effectivePromptDir = hasFlag('--prompt-dir-from-event-cwd')
+      ? join(eventCwd, '.agent-learning', 'prompts')
+      : promptDir;
+    const effectiveSpoolDir = hasFlag('--spool-dir-from-event-cwd')
+      ? join(eventCwd, '.agent-learning', 'hook-spool')
+      : flagValue('--spool-dir') ?? process.env.LEARNLOOP_HOOK_SPOOL_DIR;
+    if (effectiveSpoolDir) {
+      spoolClaudeHookEvent(event, {
+        spoolDir: effectiveSpoolDir,
+        promptDir: effectivePromptDir,
+      });
+      if ((event.hook_event_name === 'Stop' || event.hook_event_name === 'SessionEnd') && process.env.LEARNLOOP_DRAIN_SPOOL_ON_STOP !== '0') {
+        try {
+          const kernel = createKernel({ dbPath: effectiveDbPath });
+          initLedger(kernel);
+          drainHookSpool(kernel, {
+            spoolDir: effectiveSpoolDir,
+            normalize: true,
+            normalizeWorkspaceId: flagValue('--workspace-id'),
+            normalizeOutcome: normalizeOutcome(flagValue('--outcome')),
+          });
+        } catch {
+          // Hook capture has already succeeded; ingestion can be retried later.
+        }
+      }
+      print({});
+    } else {
+      const kernel = createKernel({ dbPath: effectiveDbPath });
+      initLedger(kernel);
+      print(handleClaudeHook(kernel, event, {
         promptDir: effectivePromptDir,
         normalizeOnStop: !hasFlag('--no-normalize-on-stop') && process.env.LEARNLOOP_NORMALIZE_ON_STOP !== '0',
         normalizeOnToolUse: !hasFlag('--no-normalize-on-tool-use') && process.env.LEARNLOOP_NORMALIZE_ON_TOOL_USE !== '0',

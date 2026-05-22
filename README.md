@@ -112,7 +112,7 @@ Requires Node.js 24+ for `node:sqlite`.
 ## What Works Now
 
 - Initialize a local SQLite ledger.
-- Record Codex hook events.
+- Record Codex and Claude hook events.
 - Record sessions, prompt boundaries, run starts, and run finishes.
 - Record model/provider/token/cost usage.
 - Record workspaces, zones, jobs, path activations, command activations, and
@@ -128,7 +128,7 @@ Not mature yet:
 - schema migrations
 - automatic experiment branching
 - automatic 2x1 / 3x1 / 2x2 model execution
-- Claude or Emacs adapters
+- Emacs adapters
 - stable API guarantees
 - full event/fact substrate
 
@@ -399,6 +399,27 @@ The hook does not store raw prompts or assistant messages in SQLite by default.
 It records hashes, lengths, summaries, and optional file refs. Use
 `--prompt-dir` or `--prompt-dir-from-event-cwd` only when local prompt blobs are
 explicitly allowed.
+
+## Claude Hook
+
+`lyo claude-hook` reads Claude Code hook JSON from stdin and records the same
+reducer-backed facts as Codex where event shapes overlap. It is passive: it does
+not block tools, approve permissions, or inject protocol overlay text yet.
+
+For active Claude use, prefer the same spool-first pattern:
+
+```sh
+lyo claude-hook \
+  --db-from-event-cwd \
+  --prompt-dir-from-event-cwd \
+  --spool-dir-from-event-cwd
+```
+
+Supported canonical mappings include session start/end, prompt submit,
+pre/post tool use, tool failure, tool batches, compaction, subagent/task events,
+cwd/file/worktree changes, notifications, and elicitation events. `PostToolUse`
+and `PostToolUseFailure` can be normalized into command, deployment, path, and
+zone activation facts.
 
 ## API
 
