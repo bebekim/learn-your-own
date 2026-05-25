@@ -2,7 +2,7 @@ import type {
   CommandActivationRecord,
   DeploymentActionRecord,
   ZoneRecord,
-} from '../types.ts';
+} from '../types/activation.ts';
 
 export function normalizeRelativePath(path: string): string {
   return path.replace(/^\.\//, '').replace(/\\/g, '/');
@@ -27,7 +27,6 @@ export function commandMatchesZone(command: CommandActivationRecord, zone: ZoneR
   const haystack = [
     command.commandName,
     command.commandFamily,
-    command.classification,
     command.argvSummary,
     zone.zoneKind,
     zone.name,

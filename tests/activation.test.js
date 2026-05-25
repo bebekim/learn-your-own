@@ -35,7 +35,6 @@ import {
   spoolCodexHookEvent,
   drainHookSpool,
 } from '../src/index.ts';
-import { classifyHookEvent } from '../src/hooks/normalizer.ts';
 
 function tempDb() {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-kernel-'));
@@ -78,10 +77,10 @@ test('workspace activation records zones, commands, deployments, coactivations, 
       name: 'engineering',
     });
     recordZone(kernel, {
-      zoneId: 'databricks_deploy',
+      zoneId: 'deploy_command',
       workspaceId: 'nectr',
       zoneKind: 'deployment',
-      name: 'databricks_deploy',
+      name: 'deploy',
     });
 
     recordJob(kernel, {
@@ -104,16 +103,16 @@ test('workspace activation records zones, commands, deployments, coactivations, 
     });
     const command = recordCommandActivation(kernel, {
       jobId: 'REP-123',
-      commandName: 'databricks',
-      argv: 'databricks bundle deploy -t dev token=secret-value',
+      commandName: 'releasectl',
+      argv: 'releasectl deploy --target dev token=secret-value',
     });
-    assert.equal(command.classification, 'deploy');
+    assert.equal(command.classification, 'unknown');
     assert.equal(command.argvSummary.includes('secret-value'), false);
 
     recordDeploymentAction(kernel, {
       jobId: 'REP-123',
       commandId: command.commandId,
-      provider: 'databricks',
+      provider: 'release-system',
       environment: 'dev',
       status: 'succeeded',
     });
@@ -131,7 +130,7 @@ test('workspace activation records zones, commands, deployments, coactivations, 
     assert.equal(report.deploymentActions.length, 1);
     assert.deepEqual(
       [...new Set(report.zoneActivations.map((activation) => activation.zoneId))].sort(),
-      ['core', 'databricks_deploy', 'engineering']
+      ['core', 'deploy_command', 'engineering']
     );
     assert.equal(report.zoneCoactivations.length, 3);
     assert.equal(associations.length, 3);
@@ -337,4 +336,3 @@ test('activation report includes association support and zone strength evidence'
     t.cleanup();
   }
 });
-

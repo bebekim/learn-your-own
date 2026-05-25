@@ -9,19 +9,29 @@ import type {
   HookSpoolOptions,
   HookSpoolRecord,
   NormalizeHooksResult,
-} from '../types.ts';
+} from '../types/observation.ts';
 import type { HookObservation, HookSpoolPacket } from './events.ts';
+import { getLyoVersion } from '../version.ts';
 
 const ISO_NOW = () => new Date().toISOString();
 
 export function recordHookEvent(kernel: LearningKernel, input: HookEventInput): HookEventRecord {
   requireFields(input, ['sessionId', 'eventName', 'cwd', 'payload']);
   const eventId = input.eventId ?? hookEventId(input);
+  const lyoVersion = input.lyoVersion ?? getLyoVersion();
   kernel.db.prepare(`
-    insert or replace into hook_events (
-      event_id, session_id, turn_id, event_name, cwd, model, payload_json, created_at
+    insert into hook_events (
+      event_id, session_id, turn_id, event_name, cwd, model, lyo_version, payload_json, created_at
     )
-    values (?, ?, ?, ?, ?, ?, ?, ?)
+    values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    on conflict(event_id) do update set
+      session_id = excluded.session_id,
+      turn_id = excluded.turn_id,
+      event_name = excluded.event_name,
+      cwd = excluded.cwd,
+      model = excluded.model,
+      lyo_version = excluded.lyo_version,
+      payload_json = excluded.payload_json
   `).run(
     eventId,
     input.sessionId,
@@ -29,6 +39,7 @@ export function recordHookEvent(kernel: LearningKernel, input: HookEventInput): 
     input.eventName,
     input.cwd,
     input.model ?? null,
+    lyoVersion,
     JSON.stringify(input.payload),
     ISO_NOW()
   );
@@ -39,6 +50,7 @@ export function recordHookEvent(kernel: LearningKernel, input: HookEventInput): 
     eventName: input.eventName,
     cwd: input.cwd,
     model: input.model ?? null,
+    lyoVersion,
   };
 }
 

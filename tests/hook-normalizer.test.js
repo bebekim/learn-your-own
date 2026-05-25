@@ -35,7 +35,7 @@ import {
   spoolCodexHookEvent,
   drainHookSpool,
 } from '../src/index.ts';
-import { classifyHookEvent } from '../src/hooks/normalizer.ts';
+import { extractHookFacts } from '../src/hooks/normalizer.ts';
 
 function tempDb() {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-kernel-'));
@@ -50,7 +50,7 @@ function hookJobId(sessionId, turnId) {
   return `codex-job-${createHash('sha256').update(`${sessionId}:${turnId ?? 'session'}`).digest('hex').slice(0, 16)}`;
 }
 
-test('hook normalizer passively records command, deployment, path, and zone activations', () => {
+test('hook normalizer passively records raw command, path, and zone activations', () => {
   const t = tempDb();
   try {
     const kernel = createKernel({ dbPath: t.dbPath });
@@ -69,10 +69,10 @@ test('hook normalizer passively records command, deployment, path, and zone acti
       name: 'core',
     });
     recordZone(kernel, {
-      zoneId: 'databricks_deploy',
+      zoneId: 'deploy_command',
       workspaceId: workspace.workspaceId,
       zoneKind: 'deployment',
-      name: 'databricks_deploy',
+      name: 'deploy',
     });
 
     recordHookEvent(kernel, {
@@ -96,7 +96,7 @@ test('hook normalizer passively records command, deployment, path, and zone acti
       payload: {
         hook_event_name: 'PreToolUse',
         tool_name: 'Bash',
-        tool_input: { command: 'databricks bundle deploy -t dev token=secret-value' },
+        tool_input: { command: 'releasectl deploy --target dev token=secret-value' },
       },
     });
 
@@ -104,15 +104,15 @@ test('hook normalizer passively records command, deployment, path, and zone acti
     assert.equal(normalized.processedEvents, 2);
     assert.equal(normalized.pathActivations, 1);
     assert.equal(normalized.commandActivations, 1);
-    assert.equal(normalized.deploymentActions, 1);
+    assert.equal(normalized.deploymentActions, 0);
     assert.equal(normalized.zoneCoactivations, 1);
 
     const report = getJobActivationReport(kernel, { jobId: normalized.jobs[0] });
-    assert.equal(report.commandActivations[0].classification, 'deploy');
+    assert.equal(report.commandActivations[0].classification, 'unknown');
     assert.equal(report.commandActivations[0].argvSummary.includes('secret-value'), false);
     assert.deepEqual(
       [...new Set(report.zoneActivations.map((activation) => activation.zoneId))].sort(),
-      ['core', 'databricks_deploy']
+      ['core', 'deploy_command']
     );
 
     const secondPass = normalizeHooks(kernel);
@@ -122,8 +122,8 @@ test('hook normalizer passively records command, deployment, path, and zone acti
   }
 });
 
-test('hook classifier turns a stored hook row into behavioral facts without SQLite writes', () => {
-  const classified = classifyHookEvent({
+test('hook fact extractor turns a stored hook row into raw behavioral facts without SQLite writes', () => {
+  const facts = extractHookFacts({
     eventId: 'hook-classifier',
     sessionId: 'session-classifier',
     turnId: 'turn-classifier',
@@ -133,7 +133,7 @@ test('hook classifier turns a stored hook row into behavioral facts without SQLi
       hook_event_name: 'PostToolUse',
       tool_name: 'Bash',
       tool_input: {
-        command: 'databricks bundle deploy -t dev token=secret-value',
+        command: 'releasectl deploy --target dev token=secret-value',
       },
       tool_response: {
         exit_code: 0,
@@ -142,22 +142,17 @@ test('hook classifier turns a stored hook row into behavioral facts without SQLi
     }),
   });
 
-  assert.equal(classified.jobId, hookJobId('session-classifier', 'turn-classifier'));
-  assert.equal(classified.evidenceRef, 'hook:hook-classifier');
-  assert.equal(classified.commands.length, 1);
-  assert.equal(classified.commands[0].commandName, 'databricks');
-  assert.equal(classified.commands[0].classification, 'deploy');
-  assert.equal(classified.commands[0].status, 'succeeded');
-  assert.equal(classified.commands[0].phase, 'fix');
-  assert.equal(classified.commands[0].argvSummary.includes('secret-value'), false);
-  assert.equal(classified.commands[0].outputSize, 9);
-  assert.deepEqual(classified.commands[0].deployment, {
-    provider: 'databricks',
-    environment: 'dev',
-    target: null,
-    status: 'succeeded',
-  });
-  assert.deepEqual(classified.paths, []);
+  assert.equal(facts.jobId, hookJobId('session-classifier', 'turn-classifier'));
+  assert.equal(facts.evidenceRef, 'hook:hook-classifier');
+  assert.equal(facts.commands.length, 1);
+  assert.equal(facts.commands[0].commandName, 'releasectl');
+  assert.equal(facts.commands[0].classification, 'unknown');
+  assert.equal(facts.commands[0].status, 'succeeded');
+  assert.equal(facts.commands[0].phase, 'unknown');
+  assert.equal(facts.commands[0].argvSummary.includes('secret-value'), false);
+  assert.equal(facts.commands[0].outputSize, 9);
+  assert.equal(facts.commands[0].deployment, null);
+  assert.deepEqual(facts.paths, []);
 });
 
 test('hook normalizer records failed shell PostToolUse status', () => {
@@ -190,7 +185,7 @@ test('hook normalizer records failed shell PostToolUse status', () => {
   }
 });
 
-test('hook normalizer extracts patch file kinds, repeated paths, and behavior phases', () => {
+test('hook normalizer extracts patch file kinds and repeated paths without phase guessing', () => {
   const t = tempDb();
   try {
     const kernel = createKernel({ dbPath: t.dbPath });
@@ -253,13 +248,13 @@ test('hook normalizer extracts patch file kinds, repeated paths, and behavior ph
       activation.phase,
     ]).sort();
     assert.deepEqual(facts, [
-      ['src/index.ts', 'file_read', 'explore'],
-      ['src/index.ts', 'file_read', 'explore'],
-      ['src/index.ts', 'file_written', 'fix'],
-      ['stale.txt', 'file_deleted', 'fix'],
-      ['tests/new.test.js', 'file_created', 'fix'],
+      ['src/index.ts', 'file_read', 'unknown'],
+      ['src/index.ts', 'file_read', 'unknown'],
+      ['src/index.ts', 'file_written', 'unknown'],
+      ['stale.txt', 'file_deleted', 'unknown'],
+      ['tests/new.test.js', 'file_created', 'unknown'],
     ]);
-    assert.deepEqual(report.summary.paths.byPhase, { explore: 2, fix: 3 });
+    assert.deepEqual(report.summary.paths.byPhase, { unknown: 5 });
     assert.deepEqual(report.summary.paths.repeated, [
       { path: 'src/index.ts', activationKind: 'file_read', count: 2 },
     ]);
@@ -269,7 +264,7 @@ test('hook normalizer extracts patch file kinds, repeated paths, and behavior ph
   }
 });
 
-test('hook normalizer records shell output size, repeated commands, and validate phase', () => {
+test('hook normalizer records shell output size and repeated commands without command taxonomy guessing', () => {
   const t = tempDb();
   try {
     const kernel = createKernel({ dbPath: t.dbPath });
@@ -298,12 +293,12 @@ test('hook normalizer records shell output size, repeated commands, and validate
     const normalized = normalizeHooks(kernel);
     const report = getJobActivationReport(kernel, { jobId: normalized.jobs[0] });
     assert.equal(report.commandActivations.length, 1);
-    assert.equal(report.commandActivations[0].classification, 'test');
+    assert.equal(report.commandActivations[0].classification, 'unknown');
     assert.equal(report.commandActivations[0].status, 'succeeded');
-    assert.equal(report.commandActivations[0].phase, 'validate');
+    assert.equal(report.commandActivations[0].phase, 'unknown');
     assert.equal(report.commandActivations[0].outputSize, 8);
     assert.equal(report.commandActivations[0].occurrenceCount, 2);
-    assert.deepEqual(report.summary.commands.byPhase, { validate: 1 });
+    assert.deepEqual(report.summary.commands.byPhase, { unknown: 1 });
     assert.equal(report.summary.commands.totalOutputSize, 8);
     assert.deepEqual(report.summary.commands.repeated, [
       {
@@ -316,4 +311,3 @@ test('hook normalizer records shell output size, repeated commands, and validate
     t.cleanup();
   }
 });
-

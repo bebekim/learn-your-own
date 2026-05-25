@@ -35,7 +35,6 @@ import {
   spoolCodexHookEvent,
   drainHookSpool,
 } from '../src/index.ts';
-import { classifyHookEvent } from '../src/hooks/normalizer.ts';
 
 function tempDb() {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-kernel-'));
@@ -188,4 +187,3 @@ test('model calls record provider, lane, prompt metadata, tokens, cost, and late
     t.cleanup();
   }
 });
-

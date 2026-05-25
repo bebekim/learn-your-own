@@ -99,6 +99,7 @@ export function initLedger(kernel: LearningKernel): LearningKernel {
       event_name text not null,
       cwd text not null,
       model text,
+      lyo_version text,
       payload_json text not null,
       created_at text not null
     );
@@ -352,6 +353,7 @@ export function initLedger(kernel: LearningKernel): LearningKernel {
     );
   `);
   ensureColumn(kernel, 'path_activations', 'phase', "text not null default 'unknown'");
+  ensureColumn(kernel, 'hook_events', 'lyo_version', 'text');
   ensureColumn(kernel, 'command_activations', 'phase', "text not null default 'unknown'");
   ensureColumn(kernel, 'command_activations', 'output_size', 'integer not null default 0');
   ensureColumn(kernel, 'command_activations', 'occurrence_count', 'integer not null default 1');

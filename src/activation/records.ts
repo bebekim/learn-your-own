@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
 import { basename, resolve } from 'node:path';
+import { summarizeCommand } from '../behavior/commands.ts';
 import {
-  classifyCommand,
-  phaseForCommand,
-  phaseForPathActivation,
-  summarizeCommand,
-} from '../hooks/normalizer.ts';
+  optionalRow,
+  requiredRow,
+  rows,
+} from '../db/rows.ts';
 import type { LearningKernel } from '../ledger.ts';
 import type {
   CommandActivationRecord,
@@ -24,7 +24,7 @@ import type {
   ZoneActivationRecord,
   ZoneCoactivationRecord,
   ZoneRecord,
-} from '../types.ts';
+} from '../types/activation.ts';
 import { normalizeRelativePath } from './matching.ts';
 
 const ISO_NOW = () => new Date().toISOString();
@@ -128,7 +128,7 @@ export function recordPathActivation(kernel: LearningKernel, input: RecordPathAc
   requireFields(input, ['jobId', 'path', 'activationKind']);
   ensureJob(kernel, input.jobId);
   const activationId = input.activationId ?? `path-act-${sha256(`${input.jobId}:${input.path}:${input.activationKind}:${input.evidenceRef ?? ''}`).slice(0, 20)}`;
-  const phase = input.phase ?? phaseForPathActivation(input.activationKind);
+  const phase = input.phase ?? 'unknown';
   kernel.db.prepare(`
     insert or ignore into path_activations (
       activation_id, job_id, run_id, path, activation_kind, evidence_ref,
@@ -154,8 +154,8 @@ export function recordCommandActivation(kernel: LearningKernel, input: RecordCom
   ensureJob(kernel, input.jobId);
   const argvHash = input.argvHash ?? (input.argv ? sha256(input.argv) : null);
   const argvSummary = input.argvSummary ?? (input.argv ? summarizeCommand(input.argv) : null);
-  const classification = input.classification ?? classifyCommand(input.commandName, argvSummary ?? input.argv ?? input.commandName);
-  const phase = input.phase ?? phaseForCommand(classification, input.commandName, argvSummary ?? input.argv ?? input.commandName);
+  const classification = input.classification ?? 'unknown';
+  const phase = input.phase ?? 'unknown';
   const commandId = input.commandId ?? `cmd-act-${sha256(`${input.jobId}:${input.commandName}:${argvHash ?? argvSummary ?? ''}`).slice(0, 20)}`;
   kernel.db.prepare(`
     insert into command_activations (
@@ -254,19 +254,19 @@ export function recordZoneActivation(kernel: LearningKernel, input: RecordZoneAc
 }
 
 export function getWorkspace(kernel: LearningKernel, workspaceId: string): WorkspaceRecord {
-  return kernel.db.prepare(`
+  return requiredRow<WorkspaceRecord>(kernel.db.prepare(`
     select workspace_id as workspaceId, root_path as rootPath, name
     from workspaces
     where workspace_id = ?
-  `).get(workspaceId) as unknown as WorkspaceRecord;
+  `).get(workspaceId), `unknown workspace: ${workspaceId}`);
 }
 
 export function getWorkspaceByRoot(kernel: LearningKernel, rootPath: string): WorkspaceRecord | undefined {
-  return kernel.db.prepare(`
+  return optionalRow<WorkspaceRecord>(kernel.db.prepare(`
     select workspace_id as workspaceId, root_path as rootPath, name
     from workspaces
     where root_path = ?
-  `).get(resolve(rootPath)) as unknown as WorkspaceRecord | undefined;
+  `).get(resolve(rootPath)));
 }
 
 export function ensureWorkspace(kernel: LearningKernel, workspaceId: string): WorkspaceRecord {
@@ -276,7 +276,7 @@ export function ensureWorkspace(kernel: LearningKernel, workspaceId: string): Wo
 }
 
 export function getZone(kernel: LearningKernel, zoneId: string): ZoneRecord {
-  return kernel.db.prepare(`
+  return requiredRow<ZoneRecord>(kernel.db.prepare(`
     select
       zone_id as zoneId,
       workspace_id as workspaceId,
@@ -287,7 +287,7 @@ export function getZone(kernel: LearningKernel, zoneId: string): ZoneRecord {
       description
     from zones
     where zone_id = ?
-  `).get(zoneId) as unknown as ZoneRecord;
+  `).get(zoneId), `unknown zone: ${zoneId}`);
 }
 
 export function ensureZone(kernel: LearningKernel, zoneId: string): ZoneRecord {
@@ -297,7 +297,7 @@ export function ensureZone(kernel: LearningKernel, zoneId: string): ZoneRecord {
 }
 
 export function listZonesForWorkspace(kernel: LearningKernel, workspaceId: string): ZoneRecord[] {
-  return kernel.db.prepare(`
+  return rows<ZoneRecord>(kernel.db.prepare(`
     select
       zone_id as zoneId,
       workspace_id as workspaceId,
@@ -308,11 +308,11 @@ export function listZonesForWorkspace(kernel: LearningKernel, workspaceId: strin
       description
     from zones
     where workspace_id = ?
-  `).all(workspaceId) as unknown as ZoneRecord[];
+  `).all(workspaceId));
 }
 
 export function getJob(kernel: LearningKernel, jobId: string): JobRecord {
-  return kernel.db.prepare(`
+  return requiredRow<JobRecord>(kernel.db.prepare(`
     select
       job_id as jobId,
       workspace_id as workspaceId,
@@ -323,7 +323,7 @@ export function getJob(kernel: LearningKernel, jobId: string): JobRecord {
       status
     from jobs
     where job_id = ?
-  `).get(jobId) as unknown as JobRecord;
+  `).get(jobId), `unknown job: ${jobId}`);
 }
 
 export function ensureJob(kernel: LearningKernel, jobId: string): JobRecord {
@@ -333,7 +333,7 @@ export function ensureJob(kernel: LearningKernel, jobId: string): JobRecord {
 }
 
 export function getPathActivation(kernel: LearningKernel, activationId: string): PathActivationRecord {
-  return kernel.db.prepare(`
+  return requiredRow<PathActivationRecord>(kernel.db.prepare(`
     select
       activation_id as activationId,
       job_id as jobId,
@@ -345,11 +345,11 @@ export function getPathActivation(kernel: LearningKernel, activationId: string):
       phase
     from path_activations
     where activation_id = ?
-  `).get(activationId) as unknown as PathActivationRecord;
+  `).get(activationId), `unknown path activation: ${activationId}`);
 }
 
 export function listPathActivations(kernel: LearningKernel, jobId: string): PathActivationRecord[] {
-  return kernel.db.prepare(`
+  return rows<PathActivationRecord>(kernel.db.prepare(`
     select
       activation_id as activationId,
       job_id as jobId,
@@ -362,11 +362,11 @@ export function listPathActivations(kernel: LearningKernel, jobId: string): Path
     from path_activations
     where job_id = ?
     order by created_at asc, activation_id asc
-  `).all(jobId) as unknown as PathActivationRecord[];
+  `).all(jobId));
 }
 
 export function getCommandActivation(kernel: LearningKernel, commandId: string): CommandActivationRecord {
-  return kernel.db.prepare(`
+  return requiredRow<CommandActivationRecord>(kernel.db.prepare(`
     select
       command_id as commandId,
       job_id as jobId,
@@ -384,7 +384,7 @@ export function getCommandActivation(kernel: LearningKernel, commandId: string):
       occurrence_count as occurrenceCount
     from command_activations
     where command_id = ?
-  `).get(commandId) as unknown as CommandActivationRecord;
+  `).get(commandId), `unknown command activation: ${commandId}`);
 }
 
 export function ensureCommandActivation(kernel: LearningKernel, commandId: string): CommandActivationRecord {
@@ -394,7 +394,7 @@ export function ensureCommandActivation(kernel: LearningKernel, commandId: strin
 }
 
 export function listCommandActivations(kernel: LearningKernel, jobId: string): CommandActivationRecord[] {
-  return kernel.db.prepare(`
+  return rows<CommandActivationRecord>(kernel.db.prepare(`
     select
       command_id as commandId,
       job_id as jobId,
@@ -413,11 +413,11 @@ export function listCommandActivations(kernel: LearningKernel, jobId: string): C
     from command_activations
     where job_id = ?
     order by created_at asc, command_id asc
-  `).all(jobId) as unknown as CommandActivationRecord[];
+  `).all(jobId));
 }
 
 export function getDeploymentAction(kernel: LearningKernel, deploymentId: string): DeploymentActionRecord {
-  return kernel.db.prepare(`
+  return requiredRow<DeploymentActionRecord>(kernel.db.prepare(`
     select
       deployment_id as deploymentId,
       job_id as jobId,
@@ -429,11 +429,11 @@ export function getDeploymentAction(kernel: LearningKernel, deploymentId: string
       evidence_ref as evidenceRef
     from deployment_actions
     where deployment_id = ?
-  `).get(deploymentId) as unknown as DeploymentActionRecord;
+  `).get(deploymentId), `unknown deployment action: ${deploymentId}`);
 }
 
 export function listDeploymentActions(kernel: LearningKernel, jobId: string): DeploymentActionRecord[] {
-  return kernel.db.prepare(`
+  return rows<DeploymentActionRecord>(kernel.db.prepare(`
     select
       deployment_id as deploymentId,
       job_id as jobId,
@@ -446,11 +446,11 @@ export function listDeploymentActions(kernel: LearningKernel, jobId: string): De
     from deployment_actions
     where job_id = ?
     order by created_at asc, deployment_id asc
-  `).all(jobId) as unknown as DeploymentActionRecord[];
+  `).all(jobId));
 }
 
 export function getZoneActivation(kernel: LearningKernel, activationId: string): ZoneActivationRecord {
-  return kernel.db.prepare(`
+  return requiredRow<ZoneActivationRecord>(kernel.db.prepare(`
     select
       activation_id as activationId,
       job_id as jobId,
@@ -464,11 +464,11 @@ export function getZoneActivation(kernel: LearningKernel, activationId: string):
       confidence
     from zone_activations
     where activation_id = ?
-  `).get(activationId) as unknown as ZoneActivationRecord;
+  `).get(activationId), `unknown zone activation: ${activationId}`);
 }
 
 export function listZoneActivations(kernel: LearningKernel, jobId: string): ZoneActivationRecord[] {
-  return kernel.db.prepare(`
+  return rows<ZoneActivationRecord>(kernel.db.prepare(`
     select
       activation_id as activationId,
       job_id as jobId,
@@ -483,11 +483,11 @@ export function listZoneActivations(kernel: LearningKernel, jobId: string): Zone
     from zone_activations
     where job_id = ?
     order by created_at asc, activation_id asc
-  `).all(jobId) as unknown as ZoneActivationRecord[];
+  `).all(jobId));
 }
 
 export function getZoneCoactivation(kernel: LearningKernel, coactivationId: string): ZoneCoactivationRecord {
-  return kernel.db.prepare(`
+  return requiredRow<ZoneCoactivationRecord>(kernel.db.prepare(`
     select
       coactivation_id as coactivationId,
       job_id as jobId,
@@ -497,11 +497,11 @@ export function getZoneCoactivation(kernel: LearningKernel, coactivationId: stri
       strength
     from zone_coactivations
     where coactivation_id = ?
-  `).get(coactivationId) as unknown as ZoneCoactivationRecord;
+  `).get(coactivationId), `unknown zone coactivation: ${coactivationId}`);
 }
 
 export function listZoneCoactivations(kernel: LearningKernel, jobId: string): ZoneCoactivationRecord[] {
-  return kernel.db.prepare(`
+  return rows<ZoneCoactivationRecord>(kernel.db.prepare(`
     select
       coactivation_id as coactivationId,
       job_id as jobId,
@@ -512,7 +512,7 @@ export function listZoneCoactivations(kernel: LearningKernel, jobId: string): Zo
     from zone_coactivations
     where job_id = ?
     order by left_zone_id asc, right_zone_id asc
-  `).all(jobId) as unknown as ZoneCoactivationRecord[];
+  `).all(jobId));
 }
 
 function requireFields(input: object, fields: string[]): void {

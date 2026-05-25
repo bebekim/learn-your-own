@@ -8,10 +8,12 @@ import {
 } from './runtime.ts';
 import type {
   AssociationOutcome,
+} from '../types/activation.ts';
+import type {
   HookEventInput,
   RecordPromptBoundaryInput,
   RecordSessionStartedInput,
-} from '../types.ts';
+} from '../types/observation.ts';
 
 export interface ClaudeHookInput {
   session_id?: string;

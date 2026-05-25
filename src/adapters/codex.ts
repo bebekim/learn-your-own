@@ -8,11 +8,14 @@ import {
 } from './runtime.ts';
 import type {
   AssociationOutcome,
+} from '../types/activation.ts';
+import type {
   HookEventInput,
   RecordPromptBoundaryInput,
   RecordSessionStartedInput,
-  ResolveProtocolResult,
-} from '../types.ts';
+} from '../types/observation.ts';
+import type { ResolveProtocolResult } from '../types/core.ts';
+import { getLyoVersion } from '../version.ts';
 
 export interface CodexHookInput {
   session_id?: string;
@@ -58,15 +61,18 @@ export function codexHookObservation(
   const sessionId = event.session_id ?? 'unknown-session';
   const cwd = event.cwd ?? process.cwd();
   const turnId = event.turn_id ?? null;
+  const lyoVersion = getLyoVersion();
   const hookEvent: HookEventInput = {
     sessionId,
     turnId,
     eventName: canonicalEventName,
     cwd,
     model: event.model ?? null,
+    lyoVersion,
     payload: redactCodexHookEvent(event, {
       runtimeEventName,
       canonicalEventName,
+      lyoVersion,
     }),
   };
   hookEvent.eventId = createHookEventId(hookEvent);
@@ -181,7 +187,7 @@ function canonicalCodexEventName(eventName: string): CanonicalHookEventName {
 
 function redactCodexHookEvent(
   event: CodexHookInput,
-  names: { runtimeEventName: string; canonicalEventName: CanonicalHookEventName }
+  names: { runtimeEventName: string; canonicalEventName: CanonicalHookEventName; lyoVersion: string }
 ): Record<string, unknown> {
   const redacted: Record<string, unknown> = {
     ...event,
@@ -189,6 +195,7 @@ function redactCodexHookEvent(
       runtime: 'codex',
       runtime_event_name: names.runtimeEventName,
       canonical_event_name: names.canonicalEventName,
+      lyo_version: names.lyoVersion,
     },
   };
   if (typeof event.prompt === 'string') {

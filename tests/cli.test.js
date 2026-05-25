@@ -629,7 +629,7 @@ test('lyo normalize hooks turns Codex hook events into activation records', () =
       { cwd: ROOT, encoding: 'utf8' }
     ));
     assert.equal(report.ok, true);
-    assert.equal(report.commandActivations[0].classification, 'test');
+    assert.equal(report.commandActivations[0].classification, 'unknown');
     assert.equal(report.pathActivations[0].path, 'src/index.ts');
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -679,7 +679,7 @@ test('lyo codex-hook can spool events before normalize hooks drains them', () =>
       { cwd: ROOT, encoding: 'utf8' }
     ));
     assert.equal(report.ok, true);
-    assert.equal(report.commandActivations[0].classification, 'test');
+    assert.equal(report.commandActivations[0].classification, 'unknown');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

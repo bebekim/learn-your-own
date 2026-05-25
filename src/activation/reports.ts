@@ -1,3 +1,7 @@
+import {
+  requiredRow,
+  rows,
+} from '../db/rows.ts';
 import type { LearningKernel } from '../ledger.ts';
 import type {
   CommandActivationRecord,
@@ -9,7 +13,7 @@ import type {
   ZoneActivationRecord,
   ZoneAssociationRecord,
   ZoneCoactivationRecord,
-} from '../types.ts';
+} from '../types/activation.ts';
 import {
   ensureJob,
   ensureWorkspace,
@@ -60,7 +64,7 @@ export function getZoneAssociationReport(
     params.push(zoneId, zoneId);
   }
   params.push(limit);
-  const rows = kernel.db.prepare(`
+  const associationRows = rows<ZoneAssociationRecord>(kernel.db.prepare(`
     select
       za.association_id as associationId,
       za.left_zone_id as leftZoneId,
@@ -93,8 +97,8 @@ export function getZoneAssociationReport(
       ${zoneFilter}
     order by za.weight desc, za.support_count desc, za.updated_at desc
     limit ?
-  `).all(...params) as unknown as ZoneAssociationRecord[];
-  return rows.map(enrichZoneAssociation);
+  `).all(...params));
+  return associationRows.map(enrichZoneAssociation);
 }
 
 export function getZoneAssociation(
@@ -103,7 +107,7 @@ export function getZoneAssociation(
   rightZoneId: string,
   associationKind: string
 ): ZoneAssociationRecord {
-  const row = kernel.db.prepare(`
+  const row = requiredRow<ZoneAssociationRecord>(kernel.db.prepare(`
     select
       association_id as associationId,
       left_zone_id as leftZoneId,
@@ -131,13 +135,13 @@ export function getZoneAssociation(
       ) as coactivationSupport
     from zone_associations
     where left_zone_id = ? and right_zone_id = ? and association_kind = ?
-  `).get(leftZoneId, rightZoneId, associationKind) as unknown as ZoneAssociationRecord;
+  `).get(leftZoneId, rightZoneId, associationKind), `unknown zone association: ${leftZoneId}:${rightZoneId}:${associationKind}`);
   return enrichZoneAssociation(row);
 }
 
 function listJobZoneAssociations(kernel: LearningKernel, jobId: string): ZoneAssociationRecord[] {
   ensureJob(kernel, jobId);
-  const rows = kernel.db.prepare(`
+  const associationRows = rows<ZoneAssociationRecord>(kernel.db.prepare(`
     select
       za.association_id as associationId,
       za.left_zone_id as leftZoneId,
@@ -170,8 +174,8 @@ function listJobZoneAssociations(kernel: LearningKernel, jobId: string): ZoneAss
       and za.association_kind = 'coactivation'
     where zc.job_id = ?
     order by za.weight desc, za.support_count desc, za.updated_at desc
-  `).all(jobId) as unknown as ZoneAssociationRecord[];
-  return rows.map(enrichZoneAssociation);
+  `).all(jobId));
+  return associationRows.map(enrichZoneAssociation);
 }
 
 function summarizeJobActivations({

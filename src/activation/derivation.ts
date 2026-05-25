@@ -5,7 +5,7 @@ import type {
   ZoneActivationRecord,
   ZoneAssociationRecord,
   ZoneCoactivationRecord,
-} from '../types.ts';
+} from '../types/activation.ts';
 import {
   commandMatchesZone,
   deploymentMatchesZone,
@@ -56,11 +56,11 @@ export function deriveZoneActivationsForJob(kernel: LearningKernel, { jobId }: {
           jobId,
           runId: activation.runId,
           zoneId: zone.zoneId,
-          activationKind: `command_${activation.classification}`,
+          activationKind: 'command_observed',
           sourceKind: 'command',
           sourceId: activation.commandId,
           evidenceRef: activation.evidenceRef,
-          strength: activation.classification === 'deploy' ? 2 : 1,
+          strength: 1,
           confidence: 'medium',
         }));
       }

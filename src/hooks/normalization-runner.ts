@@ -12,11 +12,13 @@ import {
 } from '../activation.ts';
 import type { LearningKernel } from '../ledger.ts';
 import type {
+  WorkspaceRecord,
+} from '../types/activation.ts';
+import type {
   NormalizeHooksInput,
   NormalizeHooksResult,
-  WorkspaceRecord,
-} from '../types.ts';
-import { classifyHookEvent } from './normalizer.ts';
+} from '../types/observation.ts';
+import { extractHookFacts } from './normalizer.ts';
 
 const ISO_NOW = () => new Date().toISOString();
 
@@ -49,21 +51,21 @@ export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInpu
   let deploymentActions = 0;
 
   for (const event of events) {
-    const classified = classifyHookEvent(event);
+    const extracted = extractHookFacts(event);
     const workspace = workspaceForHookEvent(kernel, event.cwd, input.workspaceId);
-    const jobId = classified.jobId;
+    const jobId = extracted.jobId;
     jobIds.add(jobId);
     recordJob(kernel, {
       jobId,
       workspaceId: workspace.workspaceId,
       runId: event.turnId ?? null,
-      taskShape: `${classified.runtime}-hook-turn`,
-      summary: `${classified.runtime} ${event.eventName} in ${workspace.name}`,
-      sourceRef: `${classified.runtime}-hook:${event.eventId}`,
+      taskShape: `${extracted.runtime}-hook-turn`,
+      summary: `${extracted.runtime} ${event.eventName} in ${workspace.name}`,
+      sourceRef: `${extracted.runtime}-hook:${event.eventId}`,
       status: ['Stop', 'turn.stop'].includes(event.eventName) ? 'completed' : 'started',
     });
 
-    for (const commandFact of classified.commands) {
+    for (const commandFact of extracted.commands) {
       const command = recordCommandActivation(kernel, {
         jobId,
         runId: event.turnId ?? null,
@@ -73,7 +75,7 @@ export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInpu
         argv: commandFact.argv,
         argvSummary: commandFact.argvSummary,
         classification: commandFact.classification,
-        evidenceRef: classified.evidenceRef,
+        evidenceRef: extracted.evidenceRef,
         status: commandFact.status,
         phase: commandFact.phase,
         outputSize: commandFact.outputSize,
@@ -87,19 +89,19 @@ export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInpu
           environment: commandFact.deployment.environment,
           target: commandFact.deployment.target,
           status: commandFact.deployment.status,
-          evidenceRef: classified.evidenceRef,
+          evidenceRef: extracted.evidenceRef,
         });
         deploymentActions += 1;
       }
     }
 
-    for (const pathFact of classified.paths) {
+    for (const pathFact of extracted.paths) {
       recordPathActivation(kernel, {
         jobId,
         runId: event.turnId ?? null,
         path: pathFact.path,
         activationKind: pathFact.activationKind,
-        evidenceRef: classified.evidenceRef,
+        evidenceRef: extracted.evidenceRef,
         confidence: pathFact.confidence,
         phase: pathFact.phase,
       });

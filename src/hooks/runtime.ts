@@ -26,13 +26,17 @@ import {
   recordSessionStarted,
   resolveProtocol,
 } from '../reducers.ts';
+import type { AssociationOutcome } from '../types/activation.ts';
 import type {
   DrainHookSpoolInput,
   DrainHookSpoolResult,
+  HookEventInput,
   HookSpoolOptions,
   HookSpoolRecord,
-} from '../types.ts';
-import type { HookSpoolPacket } from './events.ts';
+  RecordPromptBoundaryInput,
+  RecordSessionStartedInput,
+} from '../types/observation.ts';
+import type { HookObservation, HookSpoolPacket } from './events.ts';
 import {
   drainHookSpoolPackets,
   normalizedHookSpoolResult,
@@ -40,6 +44,34 @@ import {
   spoolHookObservation,
 } from './ingestion.ts';
 import { normalizeHooks } from './normalization-runner.ts';
+
+interface PersistableHookObservation {
+  hookEvent: HookEventInput;
+  session: RecordSessionStartedInput | null;
+  promptBoundary: RecordPromptBoundaryInput | null;
+}
+
+interface HookNormalizationOptions {
+  normalizeOnStop?: boolean;
+  normalizeOnToolUse?: boolean;
+  normalizeWorkspaceId?: string;
+  normalizeOutcome?: AssociationOutcome;
+}
+
+interface HookNormalizationPolicy {
+  toolUseEvents: readonly string[];
+  stopEvents: readonly string[];
+}
+
+const CODEX_NORMALIZATION_POLICY: HookNormalizationPolicy = {
+  toolUseEvents: ['PostToolUse'],
+  stopEvents: ['Stop'],
+};
+
+const CLAUDE_NORMALIZATION_POLICY: HookNormalizationPolicy = {
+  toolUseEvents: ['PostToolUse', 'PostToolUseFailure'],
+  stopEvents: ['Stop', 'SessionEnd'],
+};
 
 export function spoolCodexHookEvent(event: CodexHookInput, options: HookSpoolOptions): HookSpoolRecord {
   const observation = codexHookObservation(event, {
@@ -84,28 +116,8 @@ export function handleCodexHook(
   const eventName = observation.runtimeEventName;
   const { sessionId, turnId } = observation;
 
-  recordHookEvent(kernel, observation.hookEvent);
-
-  if (observation.session) {
-    recordSessionStarted(kernel, observation.session);
-  }
-  if (observation.promptBoundary) {
-    recordPromptBoundary(kernel, observation.promptBoundary);
-  }
-
-  if (eventName === 'PostToolUse' && options.normalizeOnToolUse !== false) {
-    normalizeHooks(kernel, {
-      workspaceId: options.normalizeWorkspaceId,
-      outcome: options.normalizeOutcome ?? 'unknown',
-    });
-  }
-
-  if (eventName === 'Stop' && options.normalizeOnStop !== false) {
-    normalizeHooks(kernel, {
-      workspaceId: options.normalizeWorkspaceId,
-      outcome: options.normalizeOutcome ?? 'unknown',
-    });
-  }
+  persistHookObservation(kernel, observation);
+  maybeNormalizeHookEvent(kernel, eventName, options, CODEX_NORMALIZATION_POLICY);
 
   if (!['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse'].includes(eventName)) {
     return emptyCodexHookOutput(eventName);
@@ -142,38 +154,47 @@ export function handleClaudeHook(
   });
   const eventName = observation.runtimeEventName;
 
-  recordHookEvent(kernel, observation.hookEvent);
+  persistHookObservation(kernel, observation);
+  maybeNormalizeHookEvent(kernel, eventName, options, CLAUDE_NORMALIZATION_POLICY);
 
+  return emptyClaudeHookOutput();
+}
+
+function ingestHookSpoolPacket(kernel: LearningKernel, packet: HookSpoolPacket): void {
+  persistHookObservation(kernel, packet);
+}
+
+function persistHookObservation(
+  kernel: LearningKernel,
+  observation: HookObservation | PersistableHookObservation
+): void {
+  recordHookEvent(kernel, observation.hookEvent);
   if (observation.session) {
     recordSessionStarted(kernel, observation.session);
   }
   if (observation.promptBoundary) {
     recordPromptBoundary(kernel, observation.promptBoundary);
   }
-
-  if ((eventName === 'PostToolUse' || eventName === 'PostToolUseFailure') && options.normalizeOnToolUse !== false) {
-    normalizeHooks(kernel, {
-      workspaceId: options.normalizeWorkspaceId,
-      outcome: options.normalizeOutcome ?? 'unknown',
-    });
-  }
-
-  if ((eventName === 'Stop' || eventName === 'SessionEnd') && options.normalizeOnStop !== false) {
-    normalizeHooks(kernel, {
-      workspaceId: options.normalizeWorkspaceId,
-      outcome: options.normalizeOutcome ?? 'unknown',
-    });
-  }
-
-  return emptyClaudeHookOutput();
 }
 
-function ingestHookSpoolPacket(kernel: LearningKernel, packet: HookSpoolPacket): void {
-  recordHookEvent(kernel, packet.hookEvent);
-  if (packet.session) {
-    recordSessionStarted(kernel, packet.session);
+function maybeNormalizeHookEvent(
+  kernel: LearningKernel,
+  eventName: string,
+  options: HookNormalizationOptions,
+  policy: HookNormalizationPolicy
+): void {
+  if (policy.toolUseEvents.includes(eventName) && options.normalizeOnToolUse !== false) {
+    normalizeHookEvent(kernel, options);
   }
-  if (packet.promptBoundary) {
-    recordPromptBoundary(kernel, packet.promptBoundary);
+
+  if (policy.stopEvents.includes(eventName) && options.normalizeOnStop !== false) {
+    normalizeHookEvent(kernel, options);
   }
+}
+
+function normalizeHookEvent(kernel: LearningKernel, options: HookNormalizationOptions): void {
+  normalizeHooks(kernel, {
+    workspaceId: options.normalizeWorkspaceId,
+    outcome: options.normalizeOutcome ?? 'unknown',
+  });
 }

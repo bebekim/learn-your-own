@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { summarizeCommand } from '../behavior/commands.ts';
 import type {
   ActivationConfidence,
   BehaviorPhase,
@@ -6,7 +7,7 @@ import type {
   CommandStatus,
   PathActivationKind,
   RecordDeploymentActionInput,
-} from '../types.ts';
+} from '../types/activation.ts';
 import type { HookRuntime } from './events.ts';
 
 export interface HookEventForNormalization {
@@ -18,14 +19,14 @@ export interface HookEventForNormalization {
   payloadJson: string;
 }
 
-export interface ClassifiedHookDeployment {
+export interface ExtractedHookDeployment {
   provider: string | null;
   environment: string | null;
   target: string | null;
   status: NonNullable<RecordDeploymentActionInput['status']>;
 }
 
-export interface ClassifiedHookCommand {
+export interface ExtractedHookCommand {
   commandName: string;
   commandFamily: string;
   workingDirectory: string;
@@ -35,24 +36,24 @@ export interface ClassifiedHookCommand {
   status: CommandStatus;
   phase: BehaviorPhase;
   outputSize: number;
-  deployment: ClassifiedHookDeployment | null;
+  deployment: ExtractedHookDeployment | null;
 }
 
-export interface ClassifiedHookPath {
+export interface ExtractedHookPath {
   path: string;
   activationKind: PathActivationKind;
   confidence: ActivationConfidence;
   phase: BehaviorPhase;
 }
 
-export interface ClassifiedHookEvent {
+export interface ExtractedHookFacts {
   jobId: string;
   evidenceRef: string;
   runtime: HookRuntime;
   payload: Record<string, unknown>;
   toolName: string | null;
-  commands: ClassifiedHookCommand[];
-  paths: ClassifiedHookPath[];
+  commands: ExtractedHookCommand[];
+  paths: ExtractedHookPath[];
 }
 
 interface PathFact {
@@ -60,38 +61,30 @@ interface PathFact {
   activationKind: PathActivationKind;
 }
 
-export function classifyHookEvent(event: HookEventForNormalization): ClassifiedHookEvent {
+export function extractHookFacts(event: HookEventForNormalization): ExtractedHookFacts {
   const payload = parseJsonObject(event.payloadJson);
   const runtime = runtimeFromPayload(payload);
   const toolName = stringValue(payload.tool_name);
   const toolInputRaw = payload.tool_input;
   const toolInput = objectValue(toolInputRaw);
-  const commands: ClassifiedHookCommand[] = [];
+  const commands: ExtractedHookCommand[] = [];
 
   if (toolName && isShellTool(toolName)) {
     const commandText = extractCommandText(toolInput);
     if (commandText) {
       const commandName = firstCommandToken(commandText);
       const status = inferHookCommandStatus(event.eventName, payload);
-      const classification = classifyCommand(commandName, commandText);
       commands.push({
         commandName,
         commandFamily: commandName,
         workingDirectory: event.cwd,
         argv: commandText,
         argvSummary: summarizeCommand(commandText),
-        classification,
+        classification: 'unknown',
         status,
-        phase: phaseForCommand(classification, commandName, commandText),
+        phase: 'unknown',
         outputSize: estimateToolOutputSize(payload),
-        deployment: classification === 'deploy'
-          ? {
-              provider: inferDeploymentProvider(commandText),
-              environment: inferDeploymentEnvironment(commandText),
-              target: inferDeploymentTarget(commandText),
-              status: deploymentStatusFromCommandStatus(status),
-            }
-          : null,
+        deployment: null,
       });
     }
   }
@@ -101,7 +94,7 @@ export function classifyHookEvent(event: HookEventForNormalization): ClassifiedH
         path: fact.path,
         activationKind: fact.activationKind,
         confidence: 'medium' as const,
-        phase: phaseForPathActivation(fact.activationKind),
+        phase: 'unknown' as const,
       }))
     : [];
 
@@ -114,30 +107,6 @@ export function classifyHookEvent(event: HookEventForNormalization): ClassifiedH
     commands,
     paths,
   };
-}
-
-export function summarizeCommand(command: string): string {
-  return redactSensitive(command).replace(/\s+/g, ' ').trim().slice(0, 240);
-}
-
-function redactSensitive(value: string): string {
-  return value
-    .replace(/(token|password|passwd|secret|api[_-]?key)=\S+/gi, '$1=[redacted]')
-    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [redacted]')
-    .replace(/AKIA[0-9A-Z]{16}/g, '[redacted-aws-key]');
-}
-
-export function classifyCommand(commandName: string, commandText: string): CommandClassification {
-  const text = `${commandName} ${commandText}`.toLowerCase();
-  if (/\b(node --test|npm test|npm run test|pnpm test|pnpm exec vitest|pnpm vitest|yarn test|yarn vitest|npx jest|npx vitest|jest|vitest|pytest|uv run pytest|bundle exec rspec|rails test|go test|cargo test)\b/.test(text)) return 'test';
-  if (/\b(eslint|ruff|prettier|biome|black|rubocop|go fmt|cargo fmt)\b/.test(text)) return 'lint';
-  if (/\b(databricks bundle deploy|cloudformation deploy|terraform apply|railway up|kubectl apply|acli push)\b/.test(text)) return 'deploy';
-  if (/\baws\b/.test(text) && /\bdeploy\b/.test(text)) return 'deploy';
-  if (/\b(rails db:migrate|prisma migrate|alembic upgrade|psql|sqlite3)\b/.test(text)) return 'database';
-  if (/\b(npm publish|npm pack|publish-npm|twine upload|cargo publish|gem push)\b/.test(text)) return 'package';
-  if (/\b(npm run build|pnpm build|yarn build|go build|cargo build)\b/.test(text)) return 'build';
-  if (/\bgit\b/.test(text)) return 'git';
-  return 'unknown';
 }
 
 function parseJsonObject(value: string): Record<string, unknown> {
@@ -215,13 +184,6 @@ function hookStatusSignal(value: unknown): CommandStatus | null {
   return null;
 }
 
-function deploymentStatusFromCommandStatus(status: CommandStatus): ClassifiedHookDeployment['status'] {
-  if (status === 'succeeded') return 'succeeded';
-  if (status === 'failed') return 'failed';
-  if (status === 'attempted' || status === 'planned') return 'attempted';
-  return 'unknown';
-}
-
 function estimateToolOutputSize(payload: Record<string, unknown>): number {
   const redactedToolResponse = objectValue(payload.tool_response);
   if (typeof redactedToolResponse?.output_size === 'number') {
@@ -249,51 +211,12 @@ function firstCommandToken(command: string): string {
   return first.replace(/^["']|["']$/g, '') || 'command';
 }
 
-function inferDeploymentProvider(command: string): string | null {
-  const text = command.toLowerCase();
-  if (text.includes('databricks')) return 'databricks';
-  if (text.includes('terraform')) return 'terraform';
-  if (text.includes('railway')) return 'railway';
-  if (text.includes('kubectl')) return 'kubernetes';
-  if (/\baws\b/.test(text)) return 'aws';
-  if (/\bacli\b/.test(text)) return 'acli';
-  return null;
-}
-
-function inferDeploymentEnvironment(command: string): string | null {
-  const match = command.match(/(?:^|\s)(?:-t|--target|--env|--environment)\s+([A-Za-z0-9_.:-]+)/);
-  return match?.[1] ?? null;
-}
-
-function inferDeploymentTarget(command: string): string | null {
-  const match = command.match(/(?:bundle deploy|deploy|apply|push)\s+([A-Za-z0-9_./:-]+)/i);
-  const target = match?.[1] ?? null;
-  return target && !target.startsWith('-') ? target : null;
-}
-
 function pathActivationKindForTool(toolName: string): PathActivationKind {
   const normalized = toolName.toLowerCase();
   if (normalized.includes('read')) return 'file_read';
   if (normalized.includes('ls') || normalized.includes('list')) return 'directory_listed';
   if (normalized.includes('delete')) return 'file_deleted';
   if (normalized.includes('write') || normalized.includes('edit') || normalized.includes('patch')) return 'file_written';
-  return 'unknown';
-}
-
-export function phaseForPathActivation(kind: PathActivationKind): BehaviorPhase {
-  if (['file_read', 'file_diffed', 'directory_listed'].includes(kind)) return 'explore';
-  if (['file_written', 'file_created', 'file_deleted'].includes(kind)) return 'fix';
-  return 'unknown';
-}
-
-export function phaseForCommand(classification: CommandClassification, commandName: string, commandText: string): BehaviorPhase {
-  const text = `${commandName} ${commandText}`.toLowerCase();
-  if (['test', 'lint', 'build', 'package'].includes(classification)) return 'validate';
-  if (['format', 'database', 'deploy', 'cloud'].includes(classification)) return 'fix';
-  if (classification === 'inspect') return 'explore';
-  if (classification === 'git' && /\b(commit|merge|rebase|push|pull|checkout|switch|branch)\b/.test(text)) return 'fix';
-  if (classification === 'git') return 'explore';
-  if (/\b(rg|grep|find|sed|cat|ls|pwd|head|tail|wc)\b/.test(text)) return 'explore';
   return 'unknown';
 }
 

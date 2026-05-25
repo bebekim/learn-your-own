@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -35,7 +35,6 @@ import {
   spoolCodexHookEvent,
   drainHookSpool,
 } from '../src/index.ts';
-import { classifyHookEvent } from '../src/hooks/normalizer.ts';
 
 function tempDb() {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-kernel-'));
@@ -48,6 +47,10 @@ function tempDb() {
 
 function hookJobId(sessionId, turnId) {
   return `codex-job-${createHash('sha256').update(`${sessionId}:${turnId ?? 'session'}`).digest('hex').slice(0, 16)}`;
+}
+
+function packageVersion() {
+  return JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 }
 
 test('Codex Stop hook normalizes pending hook events by default', () => {
@@ -107,6 +110,10 @@ test('Codex Stop hook normalizes pending hook events by default', () => {
     assert.equal(report.pathActivations.length, 1);
     assert.equal(report.commandActivations.length, 1);
     assert.equal(report.zoneCoactivations.length, 1);
+
+    const versions = kernel.db.prepare('select distinct lyo_version as version from hook_events order by version').all()
+      .map((row) => row.version);
+    assert.deepEqual(versions, [packageVersion()]);
   } finally {
     t.cleanup();
   }
@@ -169,7 +176,11 @@ test('Codex hook spool captures events without opening SQLite', () => {
     }, { spoolDir });
 
     assert.equal(packet.eventName, 'PostToolUse');
-    assert.equal(readdirSync(join(spoolDir, 'incoming')).length, 1);
+    const packetFiles = readdirSync(join(spoolDir, 'incoming'));
+    assert.equal(packetFiles.length, 1);
+    const spooled = JSON.parse(readFileSync(join(spoolDir, 'incoming', packetFiles[0]), 'utf8'));
+    assert.equal(spooled.hookEvent.lyoVersion, packageVersion());
+    assert.equal(spooled.hookEvent.payload._lyo.lyo_version, packageVersion());
     assert.equal(existsSync(t.dbPath), false);
   } finally {
     t.cleanup();
@@ -221,6 +232,10 @@ test('hook spool drain records events and runs reducer normalization', () => {
     assert.equal(report.commandActivations.length, 1);
     assert.equal(report.commandActivations[0].status, 'succeeded');
     assert.equal(report.commandActivations[0].outputSize, 2);
+
+    const versions = kernel.db.prepare('select distinct lyo_version as version from hook_events order by version').all()
+      .map((row) => row.version);
+    assert.deepEqual(versions, [packageVersion()]);
   } finally {
     t.cleanup();
   }
@@ -361,10 +376,9 @@ test('Claude adapter records tool failures and normalizes failed commands', () =
       jobId: `claude-job-${createHash('sha256').update('claude-session-failure:claude-turn-failure').digest('hex').slice(0, 16)}`,
     });
     assert.equal(report.commandActivations.length, 1);
-    assert.equal(report.commandActivations[0].classification, 'test');
+    assert.equal(report.commandActivations[0].classification, 'unknown');
     assert.equal(report.commandActivations[0].status, 'failed');
   } finally {
     t.cleanup();
   }
 });
-

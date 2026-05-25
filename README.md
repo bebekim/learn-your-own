@@ -267,9 +267,9 @@ lyo activation report \
 Activation reports include raw evidence and a compact `summary` grouped by:
 
 ```text
-path kind and phase
+path kind and explicit phase when supplied
 repeated path events
-command classification, status, phase, output size, and repeat count
+command name/family, status, output size, repeat count, and explicit semantic labels when supplied
 deployment provider, environment, and status
 activated zones, confidence, strength, and evidence refs
 coactivation pairs
