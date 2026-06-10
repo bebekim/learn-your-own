@@ -1,3 +1,4 @@
+import { buildAssociationLearningReport } from '../../compiler/association-learning.ts';
 import { buildStyleLearningReport } from '../../compiler/style-learning.ts';
 import type {
   StyleLearningCandidate,
@@ -7,8 +8,22 @@ import type { CommandArgs, CommandHandler } from './context.ts';
 import { withKernel } from './context.ts';
 
 export const LEARNING_COMMANDS: Record<string, CommandHandler> = {
+  'learn associations': learnAssociationsCommand,
   'learn style': learnStyleCommand,
 };
+
+function learnAssociationsCommand(args: CommandArgs): unknown {
+  if (!args.hasFlag('--dry-run')) {
+    throw new Error('learn associations is currently dry-run only; pass --dry-run');
+  }
+
+  return {
+    ok: true,
+    learning: buildAssociationLearningReport({
+      root: args.flagValue('--dir') ?? args.cwd,
+    }),
+  };
+}
 
 function learnStyleCommand(args: CommandArgs): unknown {
   return withKernel(args, (kernel) => {

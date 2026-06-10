@@ -102,6 +102,7 @@ export { buildEffectReport } from './compiler/effect-report.ts';
 export { planSemanticLowering } from './compiler/lowering.ts';
 export { buildWorkflowStyleReport } from './compiler/workflow-style.ts';
 export { buildStyleLearningReport } from './compiler/style-learning.ts';
+export { buildAssociationLearningReport } from './compiler/association-learning.ts';
 export {
   buildCandidateAtBatReport,
   parseCandidateAtBatTaskContext,
@@ -111,6 +112,7 @@ export type * from './compiler/syntax.ts';
 export type * from './compiler/semantics.ts';
 export type * from './compiler/workflow-style.ts';
 export type * from './compiler/style-learning.ts';
+export type * from './compiler/association-learning.ts';
 export type * from './compiler/candidate-at-bat.ts';
 export type * from './compiler/cybernetic-experiment.ts';
 export type * from './types.ts';

@@ -52,6 +52,7 @@ test('lyo help lists effect reports and audits', () => {
   assert.match(output, /lyo experiment \[--db path\] --family-id id --baseline-run-id id --treatment-run-id id/);
   assert.match(output, /lyo audit \[--dir path\]/);
   assert.match(output, /lyo learn style \[--db path\]/);
+  assert.match(output, /lyo learn associations \[--dir path\] --dry-run/);
 });
 
 test('lyo codex-hook records a hook event and emits protocol overlay context', () => {
@@ -675,6 +676,126 @@ test('lyo learn style emits aggregate LLM usage and style learning candidates', 
     assert.deepEqual(
       verbose.learning.learningCandidates.find((candidate) => candidate.id === 'preserve-verifier-debug-loop').evidenceRunIds,
       ['learn-style-turn']
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('lyo learn associations discovers verifier hypotheses across ledger corpus', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-learn-associations-'));
+  try {
+    const seedLedger = (repoName, runId, sourcePath) => {
+      const dbDir = join(dir, repoName, '.agent-learning');
+      mkdirSync(dbDir, { recursive: true });
+      const dbPath = join(dbDir, 'learning.sqlite');
+      const seed = `
+        import {
+          createKernel,
+          initLedger,
+          recordHookEvent
+        } from './src/index.ts';
+
+        const kernel = createKernel({ dbPath: process.argv[1] });
+        initLedger(kernel);
+        const common = {
+          sessionId: process.argv[2],
+          turnId: process.argv[2],
+          cwd: process.cwd()
+        };
+        recordHookEvent(kernel, {
+          ...common,
+          eventId: process.argv[2] + '-01-edit',
+          eventName: 'PostToolUse',
+          payload: {
+            hook_event_name: 'PostToolUse',
+            tool_name: 'apply_patch',
+            tool_input: {
+              patch: '*** Begin Patch\\n*** Update File: ' + process.argv[3] + '\\n@@\\n-old\\n+new\\n*** End Patch'
+            },
+            tool_response: { exit_code: 0 }
+          }
+        });
+        recordHookEvent(kernel, {
+          ...common,
+          eventId: process.argv[2] + '-02-test',
+          eventName: 'PostToolUse',
+          payload: {
+            hook_event_name: 'PostToolUse',
+            tool_name: 'Bash',
+            tool_input: {
+              command: 'npm test -- tests/compiler-frontend.test.js'
+            },
+            tool_response: { exit_code: 0, stdout: 'ok' }
+          }
+        });
+      `;
+      execFileSync(process.execPath, ['--eval', seed, dbPath, runId, sourcePath], { cwd: ROOT });
+    };
+
+    seedLedger('repo-a', 'assoc-run-a', 'src/compiler/parser.ts');
+    seedLedger('repo-b', 'assoc-run-b', 'src/compiler/tokenizer.ts');
+    seedLedger('repo-c', 'assoc-run-noisy-test-source', 'tests/compiler-frontend.test.js');
+    seedLedger(
+      'repo-d',
+      'assoc-run-absolute-work-path',
+      '/Users/marcus.kim/repositories/work/nao/jobs/utilibill/main.py'
+    );
+
+    const output = execFileSync(
+      process.execPath,
+      ['src/cli.ts', 'learn', 'associations', '--dir', dir, '--dry-run'],
+      { cwd: ROOT, encoding: 'utf8' }
+    );
+    const parsed = JSON.parse(output);
+
+    assert.equal(parsed.ok, true);
+    assert.equal(parsed.learning.learningVersion, 'lyo/association-learning/v1');
+    assert.equal(parsed.learning.mode, 'learn');
+    assert.equal(parsed.learning.dryRun, true);
+    assert.equal(parsed.learning.ledgers, 4);
+    assert.equal(parsed.learning.persisted, false);
+    assert.match(parsed.learning.summaryText, /Discovered/);
+
+    const primary = parsed.learning.associationHypotheses.find((hypothesis) => {
+      return hypothesis.source === 'src/compiler/**'
+        && hypothesis.relation === 'verified_by'
+        && hypothesis.target === 'npm test -- tests/compiler-frontend.test.js';
+    });
+    assert.ok(primary);
+    assert.equal(primary.credibility, 'credible');
+    assert.equal(primary.supportCount, 2);
+    assert.equal(primary.distinctRunCount, 2);
+    assert.equal(primary.distinctLedgerCount, 2);
+    assert.deepEqual(primary.scopeWarnings, []);
+    assert.equal(primary.predictedConsequences.includes('fresh passing verifier after source mutation'), true);
+    assert.equal(primary.knownDefeaters.includes('target verifier fails after source mutation'), true);
+
+    const primaryEvidence = parsed.learning.evidenceEvents.filter((event) => {
+      return event.hypothesisId === primary.id;
+    });
+    assert.equal(primaryEvidence.length, 2);
+    assert.equal(primaryEvidence.every((event) => event.credibilityEffect === 'supports'), true);
+    assert.equal(primaryEvidence.every((event) => event.sourceWasActivated), true);
+    assert.equal(primaryEvidence.every((event) => event.consequenceFreshness === 'fresh_after_source'), true);
+    assert.equal(primaryEvidence.some((event) => event.polyaPattern === 'successive_varied_consequence'), true);
+    assert.equal(primaryEvidence.every((event) => event.provenanceRefs.length > 0), true);
+
+    const noisy = parsed.learning.associationHypotheses.find((hypothesis) => {
+      return hypothesis.source === 'tests/**'
+        && hypothesis.target === 'npm test -- tests/compiler-frontend.test.js';
+    });
+    assert.ok(noisy);
+    assert.equal(noisy.scopeWarnings.includes('source_scope_is_test_tree'), true);
+
+    const absolutePathHypothesis = parsed.learning.associationHypotheses.find((hypothesis) => {
+      return hypothesis.source === 'jobs/utilibill/**'
+        && hypothesis.target === 'npm test -- tests/compiler-frontend.test.js';
+    });
+    assert.ok(absolutePathHypothesis);
+    assert.equal(
+      parsed.learning.associationHypotheses.some((hypothesis) => hypothesis.source === 'Users/marcus.kim/**'),
+      false
     );
   } finally {
     rmSync(dir, { recursive: true, force: true });

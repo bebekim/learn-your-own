@@ -126,6 +126,13 @@ default output is compact; add `--verbose` if you need every evidence run ID:
 lyo learn style --db .agent-learning/learning.sqlite
 ```
 
+Learn provisional source-to-verifier association hypotheses across local
+ledgers without persisting them:
+
+```sh
+lyo learn associations --dir ~/repositories --dry-run
+```
+
 Compare baseline, treatment, and variant runs in a controlled learning
 experiment:
 

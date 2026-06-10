@@ -1,7 +1,12 @@
-import { existsSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
 import { compileTelemetryRunAst } from './parser.ts';
+import {
+  countHookEvents,
+  findAgentLearningDatabases,
+  hasTable,
+  listTelemetryRunIds,
+  openReadOnlyLedger,
+  type SkippedDatabase,
+} from './ledger-scan.ts';
 import {
   hasDebugging,
   hasStoppedAfterEditWithoutVerification,
@@ -49,11 +54,6 @@ export interface EffectAuditReport {
   misclassificationCandidates: AuditSample[];
 }
 
-export interface SkippedDatabase {
-  dbPath: string;
-  reason: string;
-}
-
 export interface AuditSample {
   dbPath: string;
   runId: string;
@@ -93,10 +93,11 @@ export function auditEffectLedgers(input: { root: string }): EffectAuditReport {
   let unsafeWriteRuns = 0;
 
   for (const dbPath of dbPaths) {
-    const db = openReadOnlyDatabase(dbPath);
-    const kernel: LearningKernel = { db, dbPath };
+    let db: ReturnType<typeof openReadOnlyLedger> | null = null;
     try {
-      if (!hasHookEventsTable(kernel)) {
+      db = openReadOnlyLedger(dbPath);
+      const kernel: LearningKernel = { db, dbPath };
+      if (!hasTable(kernel, 'hook_events')) {
         skippedDatabases.push({ dbPath, reason: 'missing_hook_events_table' });
         continue;
       }
@@ -151,7 +152,7 @@ export function auditEffectLedgers(input: { root: string }): EffectAuditReport {
         reason: error instanceof Error ? error.message : String(error),
       });
     } finally {
-      db.close();
+      db?.close();
     }
   }
 
@@ -213,70 +214,6 @@ export function auditEffectLedgers(input: { root: string }): EffectAuditReport {
     parkedUnknownSamples,
     misclassificationCandidates,
   };
-}
-
-function findAgentLearningDatabases(root: string): string[] {
-  if (!existsSync(root)) return [];
-
-  const found: string[] = [];
-  const visit = (dir: string) => {
-    for (const entry of readdirSync(dir)) {
-      if (entry === 'node_modules' || entry === '.git') continue;
-      const fullPath = join(dir, entry);
-      let stats;
-      try {
-        stats = statSync(fullPath);
-      } catch {
-        continue;
-      }
-
-      if (stats.isDirectory()) {
-        visit(fullPath);
-        continue;
-      }
-
-      if (
-        stats.isFile()
-        && fullPath.includes(`${join('.agent-learning')}`)
-        && (entry === 'learning.sqlite' || entry.endsWith('.sqlite'))
-      ) {
-        found.push(fullPath);
-      }
-    }
-  };
-
-  visit(root);
-  return found.sort();
-}
-
-function openReadOnlyDatabase(dbPath: string): DatabaseSync {
-  const db = new DatabaseSync(dbPath, { readOnly: true });
-  db.exec('PRAGMA query_only = ON');
-  return db;
-}
-
-function hasHookEventsTable(kernel: LearningKernel): boolean {
-  const row = kernel.db.prepare(`
-    select name
-    from sqlite_master
-    where type = 'table' and name = 'hook_events'
-  `).get() as { name?: string } | undefined;
-  return row?.name === 'hook_events';
-}
-
-function countHookEvents(kernel: LearningKernel): number {
-  const row = kernel.db.prepare('select count(*) as count from hook_events').get() as { count: number };
-  return row.count;
-}
-
-function listTelemetryRunIds(kernel: LearningKernel): string[] {
-  const rows = kernel.db.prepare(`
-    select distinct coalesce(turn_id, session_id) as runId
-    from hook_events
-    where coalesce(turn_id, session_id) is not null
-    order by runId asc
-  `).all() as { runId: string }[];
-  return rows.map((row) => row.runId);
 }
 
 function isUnknownAction(action: NormalizedAction): boolean {
