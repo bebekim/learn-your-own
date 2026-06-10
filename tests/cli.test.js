@@ -974,7 +974,15 @@ test('lyo experiment compares baseline, treatment, and variant attempts from a l
     assert.equal(parsed.experiment.attempts[0].stoppedAfterEditWithoutVerification, true);
     assert.equal(parsed.experiment.attempts[1].verifiedCompletion, true);
     assert.equal(parsed.experiment.attempts[2].verifiedCompletion, true);
-    assert.equal(parsed.experiment.associationCredits[0].credit, 1);
+    assert.equal(parsed.experiment.associationHypotheses[0].credibility, 'credible');
+    assert.deepEqual(
+      parsed.experiment.evidenceEvents.map((event) => event.credibilityEffect),
+      ['supports', 'supports']
+    );
+    assert.deepEqual(
+      parsed.experiment.evidenceEvents.map((event) => event.polyaPattern),
+      ['verifying_consequence', 'successive_varied_consequence']
+    );
     assert.equal(parsed.experiment.decision, 'generalize_candidate');
   } finally {
     rmSync(dir, { recursive: true, force: true });

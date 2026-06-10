@@ -8,8 +8,9 @@ learning loop itself as the experiment.
 The experiment asks:
 
 ```text
-Can local association credit, repeated over attempts, produce useful global
-behavior: better process chains and better reusable modules?
+Can local association hypotheses, updated by observed consequences and defeater
+checks over repeated attempts, produce useful global behavior: better process
+chains and better reusable modules?
 ```
 
 The goal is not to prove the final learner. The goal is to create a controlled
@@ -31,9 +32,10 @@ generalization:
 Initial hypothesis:
 
 ```text
-If an association repeatedly receives positive outcome credit in a scoped task
-family, then delivering an artifact based on that association in a future run
-should improve verified progress or reduce friction.
+If an association hypothesis repeatedly receives supporting evidence in a
+scoped task family without stronger defeaters, then delivering an artifact based
+on that hypothesis in a future run should improve verified progress or reduce
+friction.
 ```
 
 This is a Polya-style conjecture, not a theorem. It must be tested by future
@@ -80,7 +82,7 @@ A0 baseline attempt
   no learned artifact delivered
 
 learn
-  extract associations, assign credit, create candidate artifacts
+  extract association hypotheses, observe evidence events, create candidate artifacts
 
 A1 treatment attempt
   deliver one artifact based on A0
@@ -142,48 +144,56 @@ manual orchestration -> candidate loop artifact
 action class -> policy boundary
 ```
 
-## Credit Rules
+## Credibility Rules
 
-Each association receives local credit after outcome evidence is available:
+Each association hypothesis receives local evidence after outcome evidence is
+available:
 
 ```text
-+1 = helped
-  The association was relevant and its predicted consequence occurred.
+supports
+  The association was relevant and its predicted consequence occurred after the
+  source activation.
 
-0 = unclear
+neutral
   The association appeared, but the trace cannot show whether it helped.
 
--1 = harmful or suboptimal
-  The association was relevant and led to failure, wasted work, friction, or a
-  better later alternative.
+incomparable
+  The observation does not bear on the hypothesis.
+
+weakens
+  A relevant expected consequence failed or a defeater appeared.
+
+defeats
+  A conflicting observation undercuts the conjecture in scope.
 ```
 
 Examples:
 
 ```text
 resource -> verifier
-  +1 if the verifier passed after the related final edit
-  -1 if delivered verifier failed after edit and no recovery followed
-   0 if the verifier relation was too distant or unused
+  supports if the verifier passed after the related final edit
+  weakens if delivered verifier failed after edit and no recovery followed
+  neutral/incomparable if the verifier relation was too distant or unused
 
 procedure chain
-  +1 if the delivered chain ends in verified completion
-  -1 if the chain ends in unverified claim, regression, or avoidable churn
-   0 if no outcome evidence is available
+  supports if the delivered chain ends in verified completion
+  weakens/defeats if the chain ends in unverified claim, regression, or avoidable churn
+  neutral if no outcome evidence is available
 
 context pack
-  +1 if delivered context is used and the run reaches verified completion with
+  supports if delivered context is used and the run reaches verified completion with
      less wandering
-  -1 if delivered context causes broad irrelevant reading and no progress
-   0 if delivered but unused
+  weakens if delivered context causes broad irrelevant reading and no progress
+  neutral if delivered but unused
 
 critic
-  +1 if it catches a missing verifier/safety issue and the run recovers
-  -1 if it repeatedly blocks safe useful work
-   0 if it fires but no consequence is visible
+  supports if it catches a missing verifier/safety issue and the run recovers
+  weakens if it repeatedly blocks safe useful work
+  neutral if it fires but no consequence is visible
 ```
 
-Negative credit must have evidence. Ambiguity is neutral, not negative.
+Weakening and defeat must have evidence. Ambiguity is neutral or incomparable,
+not negative.
 
 ## Run-Level Evaluation
 
@@ -233,7 +243,7 @@ attempt_id
 delivery_mode
 predicted_benefit
 observed_outcome
-credit
+credibility_effect
 evidence_refs
 ```
 
@@ -261,12 +271,13 @@ policy:
 The experiment should explicitly test the local-to-global claim:
 
 ```text
-local association credit
--> stronger edge
+local association hypothesis
+-> supporting/weakening/defeating evidence
+-> stronger or weaker conjecture
 -> candidate artifact
 -> artifact delivery
 -> changed future trace
--> outcome credit
+-> observed consequence
 -> retained, specialized, generalized, or demoted artifact
 ```
 
@@ -291,12 +302,12 @@ Run the experiment in explicit cycles:
 2. Run baseline attempt without delivered learning artifacts.
 3. Compile the trace.
 4. Extract association conjectures.
-5. Assign association credit from outcome evidence.
+5. Assign credibility effects from outcome evidence and defeater checks.
 6. Create one or two candidate artifacts.
 7. Select one artifact to deliver in the next attempt.
 8. Run treatment attempt.
 9. Compare attempt delta.
-10. Credit the delivered artifact.
+10. Append evidence for or against the delivered artifact's hypothesis.
 11. Decide: retain, specialize, generalize, demote, or redesign the local rule.
 ```
 
@@ -359,9 +370,10 @@ lyo experiment \
 ```
 
 This command is read-only. It compiles each run through the existing
-trace/effect pipeline, emits attempt deltas, assigns local association credit,
-and returns a retain/specialize/generalize/demote decision. It does not persist
-association edges or artifact state.
+trace/effect pipeline, emits attempt deltas, assigns credibility effects from
+observed consequences and defeater checks, and returns hypotheses, evidence
+events, and a retain/specialize/generalize/demote decision. It does not persist
+association hypotheses or artifact state.
 
 ## Experiment Report Shape
 
@@ -390,11 +402,26 @@ The report should be readable as JSON and prose.
       "meanEditToVerifierDelayMs": 60000
     }
   ],
-  "associationCredits": [
+  "associationHypotheses": [
     {
-      "edge": "src/compiler/** -> tests/compiler-frontend.test.js",
-      "credit": 1,
-      "reason": "delivered verifier passed after final edit"
+      "id": "hyp-verifier-compiler-frontend-src-compiler-tests-compiler-frontend-test-js",
+      "source": "src/compiler/**",
+      "relation": "verified_by",
+      "target": "tests/compiler-frontend.test.js",
+      "credibility": "plausible",
+      "predictedConsequences": [
+        "fresh passing verifier evidence after a related source activation"
+      ]
+    }
+  ],
+  "evidenceEvents": [
+    {
+      "hypothesisId": "hyp-verifier-compiler-frontend-src-compiler-tests-compiler-frontend-test-js",
+      "runId": "A1-run",
+      "credibilityEffect": "supports",
+      "polyaPattern": "verifying_consequence",
+      "defeatersPresent": [],
+      "provenanceRefs": ["hook:verifier"]
     }
   ],
   "decision": "retain_candidate",
@@ -425,7 +452,7 @@ manual override masking:
   user fixes the run manually, making the artifact look better than it was
 
 selection bias:
-  only easy successful attempts are used for credit
+  only easy successful attempts are used as supporting evidence
 ```
 
 Each failure should create a counterexample, not embarrassment. Counterexamples

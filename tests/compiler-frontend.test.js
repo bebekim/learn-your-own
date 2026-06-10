@@ -2380,7 +2380,7 @@ test('Lyo candidate at-bat report upgrades verifier quality when targeted and br
   }
 });
 
-test('Lyo cybernetic experiment report credits a delivered verifier artifact across treatment and variant attempts', () => {
+test('Lyo cybernetic experiment report updates association hypotheses from evidence events', () => {
   const t = tempDb();
   try {
     const kernel = createKernel({ dbPath: t.dbPath });
@@ -2451,16 +2451,63 @@ test('Lyo cybernetic experiment report credits a delivered verifier artifact acr
     assert.equal(report.attempts[2].verifiedCompletion, true);
     assert.equal(report.deltas.treatmentVsBaseline.runScoreDelta > 0, true);
     assert.equal(report.deltas.variantVsTreatment.runScoreDelta, 0);
-    assert.deepEqual(report.associationCredits, [{
-      edge: 'src/compiler/** -> tests/compiler-frontend.test.js',
+    assert.deepEqual(report.associationHypotheses, [{
+      id: 'hyp-verifier-compiler-frontend-src-compiler-tests-compiler-frontend-test-js',
+      source: 'src/compiler/**',
+      relation: 'verified_by',
+      target: 'tests/compiler-frontend.test.js',
+      scope: 'lyo-compiler-classifier-v1',
       artifactId: 'verifier:compiler-frontend',
-      credit: 1,
-      reason: 'delivered artifact was followed by verified completion in treatment and variant attempts',
-      evidenceRefs: [
-        'hook:experiment-a1-03-verifier',
-        'hook:experiment-a2-03-verifier',
+      predictedConsequences: [
+        'fresh passing verifier evidence after a related source activation',
+      ],
+      prerequisites: [
+        'artifact is delivered into the attempt',
+        'source scope is activated before the predicted consequence',
+      ],
+      knownDefeaters: [
+        'artifact was delivered but source scope was not activated',
+        'verifier failed after source activation without recovery',
+        'run stopped after local mutation without a later verifier',
+        'unsafe write occurred in the attempt',
+      ],
+      credibility: 'credible',
+      evidenceEventIds: [
+        'ev-A1-hyp-verifier-compiler-frontend-src-compiler-tests-compiler-frontend-test-js',
+        'ev-A2-hyp-verifier-compiler-frontend-src-compiler-tests-compiler-frontend-test-js',
       ],
     }]);
+    assert.deepEqual(report.evidenceEvents.map((event) => ({
+      evidenceEventId: event.evidenceEventId,
+      runId: event.runId,
+      credibilityEffect: event.credibilityEffect,
+      polyaPattern: event.polyaPattern,
+      consequenceFreshness: event.consequenceFreshness,
+      sourceWasActivated: event.sourceWasActivated,
+      defeatersPresent: event.defeatersPresent,
+      provenanceRefs: event.provenanceRefs,
+    })), [
+      {
+        evidenceEventId: 'ev-A1-hyp-verifier-compiler-frontend-src-compiler-tests-compiler-frontend-test-js',
+        runId: 'experiment-a1',
+        credibilityEffect: 'supports',
+        polyaPattern: 'verifying_consequence',
+        consequenceFreshness: 'fresh_after_source',
+        sourceWasActivated: true,
+        defeatersPresent: [],
+        provenanceRefs: ['hook:experiment-a1-03-verifier'],
+      },
+      {
+        evidenceEventId: 'ev-A2-hyp-verifier-compiler-frontend-src-compiler-tests-compiler-frontend-test-js',
+        runId: 'experiment-a2',
+        credibilityEffect: 'supports',
+        polyaPattern: 'successive_varied_consequence',
+        consequenceFreshness: 'fresh_after_source',
+        sourceWasActivated: true,
+        defeatersPresent: [],
+        provenanceRefs: ['hook:experiment-a2-03-verifier'],
+      },
+    ]);
     assert.equal(report.decision, 'generalize_candidate');
     assert.equal(report.nextExperiment, 'try another compiler module variant');
   } finally {

@@ -9,7 +9,8 @@ artifacts.
 The core learning rule is:
 
 ```text
-local co-firing + outcome credit + repeated evidence = global learned behavior
+association conjecture + observed consequence + defeater check
+  = provisional credibility change
 ```
 
 This document defines the first implementation target for that learning loop.
@@ -39,8 +40,8 @@ y_t = observed telemetry/outcome
 x_{t+1} = update(x_t, u_t, y_t)
 ```
 
-The first update mechanism should be append-only association credit, not mutable
-model weights.
+The first update mechanism should be append-only hypothesis/evidence records,
+not mutable model weights and not hard-coded production rules.
 
 ## Mathematical Core
 
@@ -49,11 +50,13 @@ The useful cybernetic structures for Lyo are:
 1. **State-space framing**
    Memory state plus delivered artifacts produces an observed trace.
 
-2. **Association credit**
-   Local co-firing plus outcome produces `+1`, `0`, or `-1` evidence.
+2. **Hypothesis credibility**
+   Local co-firing creates a conjecture. Later observations support, weaken,
+   defeat, or fail to bear on that conjecture.
 
 3. **Bayesian weight of evidence**
-   Later versions can replace raw credit totals with likelihood-style scoring.
+   Later versions can replace raw credibility-effect counts with
+   likelihood-style scoring.
 
 4. **Replicator dynamics**
    Artifacts that improve outcomes are delivered more often; artifacts that
@@ -89,7 +92,8 @@ co-fired trace items
 -> expected future benefit
 -> artifact delivery into a later run
 -> verifier/outcome evidence
--> +1 / 0 / -1 credit
+-> defeater and rival-explanation check
+-> credibility update
 -> promote, retain, specialize, generalize, or demote
 ```
 
@@ -148,9 +152,10 @@ For each completed run:
 2. Fold the trace into an effect summary.
 3. Extract association candidates from co-fired resources, commands,
    predicates, and delivered artifacts.
-4. Determine outcome credit from verifier evidence and temporal predicates.
-5. Append association_credit_events.
-6. Recompute derived edge strength from append-only evidence.
+4. Determine whether the observation bears on the conjecture:
+   supports, weakens, defeats, neutral, or incomparable.
+5. Append evidence_events.
+6. Recompute provisional credibility from append-only evidence.
 ```
 
 The local rule is deliberately small. Its repeated application should produce a
@@ -171,10 +176,11 @@ For Lyo:
 
 ```text
 local update:
-  append credit for an association observed in one run
+  append evidence bearing on one association hypothesis
 
 invariant:
-  no artifact is promoted without positive append-only outcome evidence
+  no artifact is promoted without append-only supporting evidence and no
+  stronger defeater in scope
 
 repeated application:
   every completed run updates association evidence
@@ -184,10 +190,14 @@ global structure:
   that improves future runs
 ```
 
-The core local unit is an association edge:
+The core local unit is an association hypothesis:
 
 ```text
 source --relation--> target within scope
+predicted consequence
+prerequisites
+known defeaters
+credibility
 ```
 
 Examples:
@@ -199,18 +209,21 @@ databricks workspace import --risk_class--> external_write
 manual_orchestrated run --candidate_process--> explicit loop prompt
 ```
 
-Each completed run emits credit events for edges it touched. The edge score is
-not manually assigned once; it is the accumulated result of repeated local
-updates.
+Each completed run emits evidence events for hypotheses it touched. Credibility
+is not manually assigned once; it is the provisional result of repeated local
+updates under explicit scope and defeater checks.
 
-## Credit Semantics
+## Credibility Semantics
 
-Credit is ternary:
+The primitive is not `+1 / 0 / -1`. The primitive is a provisional credibility
+effect:
 
 ```text
-+1 = association helped
-0  = association appeared but there is no clear outcome evidence
--1 = association was relevant but harmful, wasteful, or superseded
+supports      the predicted consequence occurred under the hypothesis scope
+weakens       a relevant expected consequence failed or a defeater appeared
+defeats       a conflicting observation undercuts the conjecture in scope
+neutral       the hypothesis appeared but no outcome-bearing evidence appeared
+incomparable  the observation does not bear on the conjecture
 ```
 
 Examples:
@@ -219,60 +232,63 @@ Examples:
 edit src/compiler/tokenizer.ts
 run tests/compiler-frontend.test.js
 test passes
-=> +1 edge: src/compiler/tokenizer.ts -> tests/compiler-frontend.test.js
+=> supports hypothesis:
+   src/compiler/tokenizer.ts -> tests/compiler-frontend.test.js
 ```
 
 ```text
 local edit
 stop without a later verifier
-=> -1 edge: local_edit -> stop_without_verifier
+=> weakens or defeats hypothesis:
+   local_edit -> shippable_progress
 ```
 
 ```text
 read README.md during unrelated compiler work
 no later use or outcome signal
-=> 0 edge: README.md -> compiler_task
+=> neutral or incomparable evidence event
 ```
 
-Negative credit should require evidence. Ambiguous absence of evidence should
-stay `0`, not `-1`.
+Weakening and defeat require evidence. Ambiguous absence of evidence should stay
+neutral or incomparable, not become a negative update.
 
-## Credit Assignment Rules
+## Credibility Update Rules
 
-Credit assignment starts with deterministic trace predicates. The first version
-should avoid subjective LLM judgment.
+Credibility assignment starts with deterministic trace predicates. The first
+version should avoid subjective LLM judgment.
 
-### Positive Credit
+### Supporting Evidence
 
-Emit `+1` when an association was relevant and the expected consequence was
-observed.
+Emit `supports` when an association was relevant and the expected consequence
+was observed after the source activation.
 
 Initial positive rules:
 
 ```text
 resource -> verifier command
-  +1 when the resource was edited and the verifier passed after the final edit
+  supports when the resource was edited and the verifier passed after the final edit
 
 procedure chain
-  +1 when the chain includes edit -> verifier and ends in verified completion
+  supports when the chain includes edit -> verifier and ends in verified completion
 
 critic -> corrective action
-  +1 when the critic fires, a missing verifier or safety issue is corrected,
+  supports when the critic fires, a missing verifier or safety issue is corrected,
      and the later verifier or policy outcome is good
 
 context pack -> run
-  +1 when delivered context is read or touched and the run reaches verified
+  supports when delivered context is read or touched and the run reaches verified
      completion with less wandering than the prior baseline
 
 policy -> action class
-  +1 when the policy reduces approval friction for local safe actions without
+  supports when the policy reduces approval friction for local safe actions without
      increasing unsafe writes
 ```
 
-### Neutral Credit
+### Neutral Or Incomparable Evidence
 
-Emit `0` when the association appeared but the trace cannot show whether it
-helped.
+Emit `neutral` when the association appeared but the trace cannot show whether
+it helped. Emit `incomparable` when the observed facts do not bear on the
+hypothesis.
 
 Initial neutral rules:
 
@@ -283,51 +299,51 @@ successful run where the edge was too distant from the verifier evidence
 no outcome evidence available
 ```
 
-Neutral credit preserves support without pretending the evidence helped.
+Neutral evidence preserves support without pretending the observation helped.
 
-### Negative Credit
+### Weakening Or Defeating Evidence
 
-Emit `-1` only when there is evidence that the association was relevant and
-harmful, wasteful, or superseded.
+Emit `weakens` or `defeats` only when there is evidence that the association was
+relevant and harmful, wasteful, or superseded.
 
 Initial negative rules:
 
 ```text
-local_edit -> stop_without_verifier
-  -1 when a run edits local files and stops without a later verifier
+local_edit -> shippable_progress
+  weakens when a run edits local files and stops without a later verifier
 
 resource -> verifier command
-  -1 when the verifier is delivered or selected for that resource, runs after
+  weakens when the verifier is delivered or selected for that resource, runs after
      the edit, and fails without later recovery
 
 context pack -> run
-  -1 when delivered context causes broad irrelevant reading and no verifier
+  weakens when delivered context causes broad irrelevant reading and no verifier
      progress, compared to a prior or later tighter context
 
 policy -> action class
-  -1 when the policy allows a destructive/external action without required
+  defeats when the policy allows a destructive/external action without required
      approval or blocks safe local verification repeatedly
 
 procedure chain
-  -1 when the chain repeats but ends in unverified claim, regression, or
+  weakens or defeats when the chain repeats but ends in unverified claim, regression, or
      avoidable churn
 ```
 
-Negative credit is a counterexample signal. It should trigger specialization or
-demotion before deletion.
+Defeating evidence is a counterexample signal. It should trigger specialization
+or demotion before deletion.
 
-## Edge Strength
+## Derived Edge Strength
 
-Derived edge strength should be computed from append-only credit events.
+Derived edge strength can be computed from append-only evidence events, but it
+is a projection, not the learning primitive.
 
 Minimum v1 statistics:
 
 ```text
-support = positive + neutral + negative
-score = positive - negative
-netRate = score / support
-positiveRate = positive / support
-negativeRate = negative / support
+support = supports + weakens + defeats + neutral + incomparable
+score = supports - weakens - defeats
+supportRate = supports / support
+defeatRate = defeats / support
 confidence = abs(score) / support
 ```
 
@@ -357,13 +373,14 @@ demotable:
 These thresholds are bootstrap defaults, not universal truths. They should be
 stored with the learner version and made visible in reports.
 
-Later versions can replace raw credit totals with Bayesian weight of evidence:
+Later versions can replace raw credibility-effect counts with Bayesian weight
+of evidence:
 
 ```text
 posterior odds = prior odds * likelihood ratio
 ```
 
-The append-only credit events remain valid evidence even if the scoring
+The append-only evidence events remain valid evidence even if the scoring
 projection changes.
 
 ## From Association To Process
@@ -377,8 +394,8 @@ A chain candidate is an ordered pattern over action/effect predicates:
 inspect -> edit -> verifier_fail -> inspect -> edit -> verifier_pass
 ```
 
-Chain scoring should aggregate the credits of its constituent edges plus its
-own outcome evidence:
+Chain scoring should aggregate the credibility effects of its constituent edges
+plus its own outcome evidence:
 
 ```text
 chainScore =
@@ -392,9 +409,9 @@ chainScore =
 The first implementation can keep this simple:
 
 ```text
-+1 chain credit when the chain ends in verified completion
- 0 when the chain appears but no outcome evidence is available
--1 when the chain ends in regression, unverified claim, or avoidable churn
+supports when the chain ends in verified completion
+neutral/incomparable when the chain appears but no outcome evidence is available
+weakens/defeats when the chain ends in regression, unverified claim, or avoidable churn
 ```
 
 The process artifact should be scoped:
@@ -435,7 +452,7 @@ policy module:
 Generalization should follow a Polya-style rule:
 
 ```text
-generalize when related specific edges have repeated positive credit
+generalize when related specific edges have repeated supporting evidence
 specialize when a broad edge gets counterexamples in a sub-scope
 demote when repeated counterexamples dominate
 ```
@@ -485,8 +502,8 @@ deliver:
 evaluate:
   compare observed outcome to predicted benefit
 
-credit:
-  append +1 / 0 / -1 events
+update:
+  append supports / weakens / defeats / neutral / incomparable evidence events
 
 adapt:
   promote, retain, specialize, generalize, or demote artifacts
@@ -533,7 +550,7 @@ tool/action count per verified outcome
 unsafe write rate
 approval friction rate
 artifact reuse rate
-artifact positive/negative credit ratio
+artifact support/defeat evidence ratio
 ```
 
 The learner should report deltas, not just raw scores:
@@ -553,20 +570,33 @@ The canonical record is append-only:
 
 ```text
 association_edges
-  association_id
+  hypothesis_id
   source_kind
   source_ref
+  relation
   target_kind
   target_ref
   scope
+  predicted_consequences_json
+  prerequisites_json
+  known_defeaters_json
+  credibility
   created_at
 
-association_credit_events
-  credit_event_id
-  association_id
+association_evidence_events
+  evidence_event_id
+  hypothesis_id
   run_id
-  credit             -- -1, 0, or 1
-  reason
+  observed_consequence
+  consequence_freshness
+  source_was_activated
+  rival_explanations_json
+  defeaters_present_json
+  evidence_independence
+  evidence_novelty
+  credibility_effect
+  polya_pattern
+  rationale
   evidence_refs_json
   observed_at
 ```
@@ -601,9 +631,10 @@ artifact_delivery_events
 artifact_outcome_events
   outcome_event_id
   delivery_event_id
-  credit             -- -1, 0, or 1
+  credibility_effect
   observed_outcome
-  reason
+  defeaters_present_json
+  rationale
   evidence_refs_json
   observed_at
 ```
@@ -611,10 +642,10 @@ artifact_outcome_events
 Derived edge statistics can be materialized for speed:
 
 ```text
-support = count(events)
-score = sum(credit)
-positiveRate = positive / support
-negativeRate = negative / support
+support = count(evidence_events)
+score = supports - weakens - defeats
+supportRate = supports / support
+defeatRate = defeats / support
 confidence = abs(score) / support
 ```
 
@@ -623,7 +654,8 @@ the source of truth.
 
 ## Artifact Promotion
 
-Association credit should support concrete learning artifacts.
+Association hypotheses and evidence events should support concrete learning
+artifacts.
 
 ```text
 procedure candidate:
@@ -648,8 +680,9 @@ Artifacts move through explicit states:
 candidate -> promoted -> delivered -> evaluated -> retained | demoted
 ```
 
-Promotion must require positive append-only evidence. Delivery and outcome must
-also be recorded so the artifact can be evaluated later.
+Promotion must require supporting append-only evidence and no stronger defeater
+in scope. Delivery and outcome must also be recorded so the artifact can be
+evaluated later.
 
 Promotion is not the end of learning. Promoted artifacts continue to receive
 delivery outcome events. A promoted artifact that accumulates counterexamples
@@ -691,15 +724,16 @@ trust, or interview fairness.
 The first build should be read-oriented and append-only:
 
 ```text
-1. Add schema for association_edges and association_credit_events.
+1. Add schema for association_hypotheses and association_evidence_events.
 2. Generate association candidates from one compiled run.
-3. Label credit using existing temporal predicates:
+3. Label credibility effects using existing temporal predicates:
    - verified completion
    - stopped after edit without verification
    - unsafe write
    - required verifier pass/fail when task context is available
-4. Append credit events.
-5. Report strongest positive and negative associations.
+4. Append evidence events.
+5. Report strongest supported, weakened, defeated, neutral, and incomparable
+   hypotheses.
 6. Do not yet auto-promote artifacts.
 ```
 
@@ -721,7 +755,7 @@ The third build should add controlled delivery and evaluation:
    runs.
 2. Record delivery events.
 3. Compare predicted benefit to observed outcome.
-4. Append artifact outcome credit.
+4. Append artifact outcome evidence.
 5. Retain, specialize, generalize, or demote based on accumulated evidence.
 ```
 
@@ -737,9 +771,9 @@ lyo learn artifacts --db .agent-learning/learning.sqlite --deliver --run-id <id>
 Initial output should include:
 
 ```text
-positive associations
-negative associations
-neutral associations
+supported hypotheses
+weakened or defeated hypotheses
+neutral or incomparable hypotheses
 artifact candidates
 missing signals
 ```
