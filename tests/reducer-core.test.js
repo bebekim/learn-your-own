@@ -9,6 +9,10 @@ import {
   createKernel,
   initLedger,
   recordRun,
+  recordRunGoal,
+  recordRunTapeCell,
+  getRunTapeView,
+  deriveVerifierGatePolicyFromTapes,
   recordGap,
   proposeProtocol,
   promoteProtocol,
@@ -148,6 +152,32 @@ test('fixture replay protocol is promoted only after evidence and improves credi
   }
 });
 
+test('run goals are first-class reducer records independent of an external tracker', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    const goal = recordRunGoal(kernel, {
+      runId: 'run-goal-1',
+      goal: 'Close the feedback loop from local evidence.',
+      successCriteria: 'A later outcome can be compared against this declared goal.',
+      stopCondition: 'Stop after reducer and CLI coverage pass.',
+      expectedProcess: 'Record goal, trace behavior, compare evidence, then evaluate outcome.',
+      riskClass: 'local-ledger',
+    });
+
+    assert.equal(goal.runId, 'run-goal-1');
+    assert.equal(goal.goal, 'Close the feedback loop from local evidence.');
+    assert.equal(goal.successCriteria, 'A later outcome can be compared against this declared goal.');
+    assert.equal(goal.stopCondition, 'Stop after reducer and CLI coverage pass.');
+    assert.equal(goal.expectedProcess, 'Record goal, trace behavior, compare evidence, then evaluate outcome.');
+    assert.equal(goal.riskClass, 'local-ledger');
+  } finally {
+    t.cleanup();
+  }
+});
+
 test('model calls record provider, lane, prompt metadata, tokens, cost, and latency', () => {
   const t = tempDb();
   try {
@@ -183,6 +213,222 @@ test('model calls record provider, lane, prompt metadata, tokens, cost, and late
     assert.equal(summary.modelCalls, 1);
     assert.equal(summary.totalModelTokens, 200);
     assert.equal(summary.estimatedModelCost, 0.0125);
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('run tape blocks completion after failed verification and completes after passed verification', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    recordRun(kernel, {
+      runId: 'run-tape-1',
+      taskShape: 'local-dev',
+      channel: 'agent.task',
+      status: 'started',
+    });
+
+    const goal = recordRunTapeCell(kernel, {
+      runId: 'run-tape-1',
+      kind: 'run_goal',
+      summary: 'Install acli.',
+      evidenceRef: 'goal:run-tape-1',
+    });
+    assert.equal(goal.cellIndex, 1);
+    assert.equal(goal.stateBefore, 'empty');
+    assert.equal(goal.stateAfter, 'goal_declared');
+
+    recordRunTapeCell(kernel, {
+      runId: 'run-tape-1',
+      kind: 'verifier_spec',
+      summary: 'acli -v must exit 0 and print a version.',
+      evidenceRef: 'verifier:acli-version',
+      payload: {
+        verifierKind: 'command',
+        command: 'acli -v',
+      },
+    });
+    recordRunTapeCell(kernel, {
+      runId: 'run-tape-1',
+      kind: 'worker_action',
+      summary: 'Attempted installation.',
+      evidenceRef: 'action:install-attempt-1',
+    });
+
+    const failedVerifier = recordRunTapeCell(kernel, {
+      runId: 'run-tape-1',
+      kind: 'verifier_result',
+      summary: 'acli -v exited 127; command not found.',
+      evidenceRef: 'cmd:acli-version-1',
+      passed: false,
+      payload: {
+        verifierKind: 'command',
+        exitCode: 127,
+      },
+    });
+    assert.equal(failedVerifier.stateAfter, 'verifying');
+
+    const failedView = getRunTapeView(kernel, { runId: 'run-tape-1' });
+    assert.equal(failedView.state, 'verifying');
+    assert.equal(failedView.scan?.kind, 'verifier_result');
+    assert.equal(failedView.scan?.passed, false);
+    assert.deepEqual(failedView.legalNextKinds, ['gap', 'worker_action', 'blocked']);
+
+    assert.throws(
+      () => recordRunTapeCell(kernel, {
+        runId: 'run-tape-1',
+        kind: 'outcome_completed',
+        summary: 'Install completed.',
+        evidenceRef: 'outcome:premature',
+      }),
+      /illegal tape transition/
+    );
+
+    recordRunTapeCell(kernel, {
+      runId: 'run-tape-1',
+      kind: 'gap',
+      summary: 'Installed binary is not on PATH or installation failed.',
+      evidenceRef: 'gap:missing-acli',
+    });
+    recordRunTapeCell(kernel, {
+      runId: 'run-tape-1',
+      kind: 'worker_action',
+      summary: 'Reinstalled and fixed PATH.',
+      evidenceRef: 'action:install-attempt-2',
+    });
+    recordRunTapeCell(kernel, {
+      runId: 'run-tape-1',
+      kind: 'verifier_result',
+      summary: 'acli -v exited 0 and printed a version.',
+      evidenceRef: 'cmd:acli-version-2',
+      passed: true,
+      payload: {
+        verifierKind: 'command',
+        exitCode: 0,
+        stdoutSummary: 'acli 1.2.3',
+      },
+    });
+
+    const passedView = getRunTapeView(kernel, { runId: 'run-tape-1' });
+    assert.equal(passedView.state, 'verifying');
+    assert.equal(passedView.scan?.passed, true);
+    assert.deepEqual(passedView.legalNextKinds, ['outcome_completed', 'verifier_spec']);
+
+    const outcome = recordRunTapeCell(kernel, {
+      runId: 'run-tape-1',
+      kind: 'outcome_completed',
+      summary: 'Install completed after verifier passed.',
+      evidenceRef: 'outcome:run-tape-1',
+    });
+    assert.equal(outcome.stateAfter, 'completed');
+
+    const completedView = getRunTapeView(kernel, { runId: 'run-tape-1' });
+    assert.equal(completedView.state, 'completed');
+    assert.equal(completedView.scan?.kind, 'outcome_completed');
+    assert.deepEqual(completedView.legalNextKinds, []);
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('harness learning derives a verifier gate from observed verified and unverified tapes', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    recordRun(kernel, {
+      runId: 'run-unverified',
+      taskShape: 'local-dev',
+      channel: 'agent.task',
+      status: 'completed',
+    });
+    recordRunTapeCell(kernel, {
+      runId: 'run-unverified',
+      kind: 'run_goal',
+      summary: 'Fix parser behavior.',
+      evidenceRef: 'goal:run-unverified',
+    });
+    recordRunTapeCell(kernel, {
+      runId: 'run-unverified',
+      kind: 'verifier_spec',
+      summary: 'The targeted parser test should pass.',
+      evidenceRef: 'verifier:parser-test',
+    });
+    recordRunTapeCell(kernel, {
+      runId: 'run-unverified',
+      kind: 'worker_action',
+      summary: 'Edited parser code.',
+      evidenceRef: 'diff:parser-edit',
+    });
+    recordRunTapeCell(kernel, {
+      runId: 'run-unverified',
+      kind: 'assistant_claim',
+      summary: 'Assistant claimed the parser fix was complete without verifier evidence.',
+      evidenceRef: 'assistant:claim-unverified',
+    });
+
+    const unverifiedView = getRunTapeView(kernel, { runId: 'run-unverified' });
+    assert.equal(unverifiedView.state, 'claimed_completion');
+    assert.deepEqual(unverifiedView.legalNextKinds, ['gap', 'verifier_result', 'blocked']);
+
+    recordRun(kernel, {
+      runId: 'run-verified',
+      taskShape: 'local-dev',
+      channel: 'agent.task',
+      status: 'completed',
+    });
+    recordRunTapeCell(kernel, {
+      runId: 'run-verified',
+      kind: 'run_goal',
+      summary: 'Fix parser behavior.',
+      evidenceRef: 'goal:run-verified',
+    });
+    recordRunTapeCell(kernel, {
+      runId: 'run-verified',
+      kind: 'verifier_spec',
+      summary: 'The targeted parser test should pass.',
+      evidenceRef: 'verifier:parser-test',
+    });
+    recordRunTapeCell(kernel, {
+      runId: 'run-verified',
+      kind: 'worker_action',
+      summary: 'Edited parser code.',
+      evidenceRef: 'diff:parser-edit-2',
+    });
+    recordRunTapeCell(kernel, {
+      runId: 'run-verified',
+      kind: 'verifier_result',
+      summary: 'Targeted parser test passed.',
+      evidenceRef: 'test:parser-pass',
+      passed: true,
+    });
+    recordRunTapeCell(kernel, {
+      runId: 'run-verified',
+      kind: 'outcome_completed',
+      summary: 'Parser fix completed after verifier passed.',
+      evidenceRef: 'outcome:run-verified',
+    });
+
+    const learned = deriveVerifierGatePolicyFromTapes(kernel, {
+      chosenRunId: 'run-verified',
+      rejectedRunId: 'run-unverified',
+      protocolId: 'harness_verifier_gate_local_dev',
+      recordedBy: 'harness-learning',
+    });
+
+    assert.equal(learned.chosenTrace.runId, 'run-verified');
+    assert.equal(learned.rejectedTrace.runId, 'run-unverified');
+    assert.equal(learned.preference.chosenTraceId, learned.chosenTrace.traceId);
+    assert.equal(learned.preference.rejectedTraceId, learned.rejectedTrace.traceId);
+    assert.match(learned.preference.reason, /passed verifier/);
+    assert.equal(learned.protocol.status, 'candidate');
+    assert.equal(learned.protocol.scopeKind, 'channel');
+    assert.equal(learned.protocol.scopeValue, 'agent.task');
+    assert.match(learned.protocol.action, /Require a passed verifier_result/);
   } finally {
     t.cleanup();
   }

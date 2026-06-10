@@ -6,6 +6,7 @@ import type {
   PathActivationKind,
 } from '../types/activation.ts';
 import type { ModelCallStatus } from '../types/core.ts';
+import type { RunTapeCellKind } from '../types/tape.ts';
 
 const ASSOCIATION_OUTCOMES = ['positive', 'negative'] as const;
 const MODEL_CALL_STATUSES = ['started', 'failed'] as const;
@@ -35,6 +36,16 @@ const COMMAND_CLASSIFICATIONS = [
 ] as const;
 const COMMAND_STATUSES = ['planned', 'succeeded', 'failed', 'unknown'] as const;
 const DEPLOYMENT_STATUSES = ['succeeded', 'failed', 'unknown'] as const;
+const RUN_TAPE_CELL_KINDS = [
+  'run_goal',
+  'verifier_spec',
+  'worker_action',
+  'assistant_claim',
+  'verifier_result',
+  'gap',
+  'outcome_completed',
+  'blocked',
+] as const;
 
 export function normalizeOutcome(value: string | undefined): 'positive' | 'negative' | 'unknown' {
   return oneOf(value, ASSOCIATION_OUTCOMES) ?? 'unknown';
@@ -66,6 +77,12 @@ export function commandStatus(value: string | undefined): CommandStatus {
 
 export function deploymentStatus(value: string | undefined): 'attempted' | 'succeeded' | 'failed' | 'unknown' {
   return oneOf(value, DEPLOYMENT_STATUSES) ?? 'attempted';
+}
+
+export function runTapeCellKind(value: string | undefined): RunTapeCellKind {
+  const kind = oneOf(value, RUN_TAPE_CELL_KINDS);
+  if (!kind) throw new Error(`unsupported tape cell kind: ${value ?? ''}`);
+  return kind;
 }
 
 function oneOf<const T extends readonly string[]>(

@@ -9,6 +9,9 @@ export function normalizeRelativePath(path: string): string {
 }
 
 export function pathMatchesGlob(path: string, glob: string): boolean {
+  if (glob.includes(',')) {
+    return glob.split(',').some((part) => pathMatchesGlob(path, part.trim()));
+  }
   const normalizedPath = normalizeRelativePath(path);
   const normalizedGlob = normalizeRelativePath(glob);
   if (normalizedGlob === normalizedPath) return true;

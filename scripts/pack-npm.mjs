@@ -11,6 +11,7 @@ const tarball = join(root, `dist/${packageJson.name}-${packageJson.version}.tgz`
 
 rmSync(join(root, 'dist/npm'), { recursive: true, force: true });
 mkdirSync(join(staging, 'src'), { recursive: true });
+mkdirSync(join(staging, 'docs'), { recursive: true });
 
 const publishedPackageJson = {
   ...packageJson,
@@ -28,9 +29,13 @@ writeFileSync(
   join(staging, 'package.json'),
   `${JSON.stringify(publishedPackageJson, null, 2)}\n`
 );
-for (const file of ['README.md', 'LICENSE.md']) {
+for (const file of ['README.md', 'CHANGELOG.md', 'LICENSE.md']) {
   writeFileSync(join(staging, file), readFileSync(join(root, file)));
 }
+writeFileSync(
+  join(staging, 'docs/deterministic-classification.md'),
+  readFileSync(join(root, 'docs/deterministic-classification.md'))
+);
 
 execFileSync('npm', ['run', 'build:npm'], { cwd: root, stdio: 'inherit' });
 

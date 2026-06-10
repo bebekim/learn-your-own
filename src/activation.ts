@@ -28,3 +28,9 @@ export {
   getJobActivationReport,
   getZoneAssociationReport,
 } from './activation/reports.ts';
+export {
+  ensureNectrWorkspaceDefaults,
+} from './activation/presets.ts';
+export {
+  recommendZoneAssociations,
+} from './activation/recommendations.ts';

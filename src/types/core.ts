@@ -14,6 +14,15 @@ export interface RunRecord {
   tokenCost: number;
 }
 
+export interface RunGoalRecord {
+  runId: string;
+  goal: string;
+  successCriteria: string | null;
+  stopCondition: string | null;
+  expectedProcess: string | null;
+  riskClass: string | null;
+}
+
 export interface GapRecord {
   gapId: string;
   runId: string;
@@ -49,6 +58,15 @@ export interface RecordRunInput {
   channel: string;
   status: string;
   tokenCost?: number;
+}
+
+export interface RecordRunGoalInput {
+  runId: string;
+  goal: string;
+  successCriteria?: string | null;
+  stopCondition?: string | null;
+  expectedProcess?: string | null;
+  riskClass?: string | null;
 }
 
 export interface FinishRunInput {

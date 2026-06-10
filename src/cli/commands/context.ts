@@ -1,3 +1,4 @@
+import { recordRunGoal } from '../../reducers.ts';
 import {
   closeKernel,
   createKernel,
@@ -26,4 +27,22 @@ export function withKernel<T>(args: CliArgs, work: (kernel: LearningKernel) => T
   } finally {
     closeKernel(kernel);
   }
+}
+
+export const CONTEXT_COMMANDS: Record<string, CommandHandler> = {
+  'context goal': contextGoalCommand,
+};
+
+function contextGoalCommand(args: CommandArgs): unknown {
+  return withKernel(args, (kernel) => ({
+    ok: true,
+    goal: recordRunGoal(kernel, {
+      runId: args.requiredFlag('--run-id'),
+      goal: args.requiredFlag('--goal'),
+      successCriteria: args.flagValue('--success-criteria') ?? null,
+      stopCondition: args.flagValue('--stop-condition') ?? null,
+      expectedProcess: args.flagValue('--expected-process') ?? null,
+      riskClass: args.flagValue('--risk-class') ?? null,
+    }),
+  }));
 }

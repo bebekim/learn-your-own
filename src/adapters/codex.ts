@@ -217,7 +217,34 @@ function redactCodexHookEvent(
       output_size: fingerprint.outputSize,
       truncated: fingerprint.truncated,
       recorded: false,
+      ...safeToolStatusSignals(event.tool_response),
     };
   }
   return redacted;
+}
+
+function safeToolStatusSignals(value: unknown): Record<string, unknown> {
+  const signals: Record<string, unknown> = {};
+  collectToolStatusSignals(value, signals);
+  return signals;
+}
+
+function collectToolStatusSignals(value: unknown, signals: Record<string, unknown>): void {
+  if (Array.isArray(value)) {
+    for (const item of value) collectToolStatusSignals(item, signals);
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+  for (const [key, child] of Object.entries(value)) {
+    const normalizedKey = key.toLowerCase().replace(/[_-]/g, '');
+    if (['exitcode', 'returncode'].includes(normalizedKey) && typeof child === 'number') {
+      signals.exit_code = child;
+    } else if (['success', 'ok'].includes(normalizedKey) && typeof child === 'boolean') {
+      signals.success = child;
+    } else if (['status', 'state', 'outcome'].includes(normalizedKey) && typeof child === 'string') {
+      signals.status = child;
+    } else {
+      collectToolStatusSignals(child, signals);
+    }
+  }
 }

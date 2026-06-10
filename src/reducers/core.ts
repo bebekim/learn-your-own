@@ -13,8 +13,10 @@ import type {
   RecordGapInput,
   RecordModelCallInput,
   RecordPreferencePairInput,
+  RecordRunGoalInput,
   RecordRunInput,
   RecordTraceInput,
+  RunGoalRecord,
   RunRecord,
   TraceRecord,
 } from '../types/core.ts';
@@ -50,6 +52,31 @@ export function finishRun(kernel: LearningKernel, input: FinishRunInput): RunRec
     where run_id = ?
   `).run(input.status, input.tokenCost ?? null, input.runId);
   return ensureRun(kernel, input.runId);
+}
+
+export function recordRunGoal(kernel: LearningKernel, input: RecordRunGoalInput): RunGoalRecord {
+  requireFields(input, ['runId', 'goal']);
+  kernel.db.prepare(`
+    insert into run_goals (
+      run_id, goal, success_criteria, stop_condition, expected_process, risk_class, created_at
+    )
+    values (?, ?, ?, ?, ?, ?, ?)
+    on conflict(run_id) do update set
+      goal = excluded.goal,
+      success_criteria = excluded.success_criteria,
+      stop_condition = excluded.stop_condition,
+      expected_process = excluded.expected_process,
+      risk_class = excluded.risk_class
+  `).run(
+    input.runId,
+    input.goal,
+    input.successCriteria ?? null,
+    input.stopCondition ?? null,
+    input.expectedProcess ?? null,
+    input.riskClass ?? null,
+    ISO_NOW()
+  );
+  return ensureRunGoal(kernel, input.runId);
 }
 
 export function recordGap(kernel: LearningKernel, input: RecordGapInput): GapRecord {
@@ -210,6 +237,26 @@ export function ensureRun(kernel: LearningKernel, runId: string): RunRecord {
   const run = getRun(kernel, runId);
   if (!run) throw new Error(`unknown run: ${runId}`);
   return run;
+}
+
+export function getRunGoal(kernel: LearningKernel, runId: string): RunGoalRecord | undefined {
+  return optionalRow<RunGoalRecord>(kernel.db.prepare(`
+    select
+      run_id as runId,
+      goal,
+      success_criteria as successCriteria,
+      stop_condition as stopCondition,
+      expected_process as expectedProcess,
+      risk_class as riskClass
+    from run_goals
+    where run_id = ?
+  `).get(runId));
+}
+
+export function ensureRunGoal(kernel: LearningKernel, runId: string): RunGoalRecord {
+  const goal = getRunGoal(kernel, runId);
+  if (!goal) throw new Error('unknown run goal: ' + runId);
+  return goal;
 }
 
 export function getGap(kernel: LearningKernel, gapId: string): GapRecord | undefined {

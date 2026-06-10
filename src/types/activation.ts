@@ -197,6 +197,39 @@ export interface ZoneAssociationRecord {
   jaccardWeight: number;
 }
 
+export interface EnsureNectrWorkspaceDefaultsInput {
+  rootPath: string;
+  workspaceId?: string;
+  name?: string;
+}
+
+export interface EnsureNectrWorkspaceDefaultsResult {
+  workspace: WorkspaceRecord;
+  zones: ZoneRecord[];
+}
+
+export interface RecommendZoneAssociationsInput {
+  workspaceId: string;
+  seedZoneIds?: string[];
+  limit?: number;
+  includeNonPositive?: boolean;
+}
+
+export interface ZoneAssociationRecommendation {
+  targetZoneId: string;
+  targetZoneName: string;
+  sourceZoneIds: string[];
+  score: number;
+  supportCount: number;
+  positiveOutcomes: number;
+  negativeOutcomes: number;
+  unknownOutcomes: number;
+  successRate: number | null;
+  riskRate: number | null;
+  localEvidence: boolean;
+  evidenceJobIds: string[];
+}
+
 export interface JobActivationSummary {
   evidenceRefs: string[];
   paths: {

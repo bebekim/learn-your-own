@@ -28,6 +28,78 @@ It does not call your LLM. It does not execute tools. It does not block tool
 calls at runtime. Your agent loop, hooks, or adapters call Lyo to record
 evidence and resolve scoped learning overlays.
 
+## Native Work Unit
+
+Lyo is task-source agnostic. Its native units are runs, jobs, and turns, not an
+external issue tracker item. A run captures the declared goal and outcome; a job
+captures work-shaped activity that may span one or more turns; a turn captures
+the conversational or hook-level boundary where the agent acted.
+
+Systems such as GitHub Issues, Linear, local TODO files, or other task queues
+can provide metadata, but they are optional inputs. The canonical v0.1 path is
+native to Lyo:
+
+```text
+run goal
+-> Codex turn or job
+-> trace
+-> preference pair or gap
+-> scoped protocol or budget pressure
+-> future delivery
+-> outcome evidence
+```
+
+## Goal Evaluation
+
+Lyo should treat a goal as accomplished only when later evidence satisfies the
+recorded success criteria. The preferred evidence is an executable verifier, not
+an assistant claim.
+
+Examples:
+
+| Goal type | Completion evidence |
+| --- | --- |
+| CLI installed | command exits 0 and prints the expected version, for example `acli -v` |
+| Code fix | targeted tests, typecheck, lint, or replay checks pass |
+| API behavior | request returns expected status, schema, and body invariant |
+| Data change | SQL assertion, row count, checksum, or migration invariant passes |
+| UI behavior | browser/screenshot assertion or interaction probe passes |
+| Documentation | expected file section exists and reviewer accepts it |
+| Process learning | later run receives the protocol and outcome shows the defect did not repeat |
+
+When no machine verifier exists, Lyo can record a human or reviewer judgment as
+outcome evidence, but that should be explicit and scoped. The control loop is:
+
+```text
+declared goal
+-> success criteria
+-> verifier evidence
+-> outcome record
+-> later preference, promotion, demotion, or budget pressure
+```
+
+## Verifier Role Pattern
+
+A verifier can be a command, test runner, browser probe, database assertion, or
+agent role. The important part is the contract: verifier output becomes
+completion evidence only when it is explicitly tied to the run goal and parsed
+by reducer rules.
+
+For an agent verifier, Lyo should follow the same conservative shape used by
+TRINITY-style loops:
+
+- worker output produces the candidate state;
+- verifier cannot accept before there is candidate work to inspect;
+- verifier responses use a small status vocabulary such as `ACCEPT` or `REVISE`;
+- unknown verifier text is non-accepting;
+- revisions carry a diagnosis and can be budgeted;
+- final completion requires verifier acceptance or an explicit fallback policy.
+
+That means `acli -v` and `Verifier: ACCEPT` are both verifier evidence, but
+they are different verifier modes. The former is a command probe; the latter is
+a judgment probe and should be stored with role, status, diagnosis, trace, and
+scope.
+
 ## Why
 
 An agent has not learned just because a note was saved.
@@ -84,6 +156,10 @@ The package does not yet execute model comparisons itself. It can record the
 pieces needed for that next layer: model calls, traces, preference pairs,
 protocols, and outcomes.
 
+The loop does not require a separate task database. A human prompt, Codex hook
+event, CLI command, or external issue reference can all start a run as long as
+Lyo records the goal, traces, preferences or gaps, delivery, and later outcome.
+
 ## How It Differs
 
 | Tool type | Primary job | Lyo's difference |
@@ -109,6 +185,35 @@ lyo --help
 
 Requires Node.js 24+ for `node:sqlite`.
 
+Current package version: `0.2.1`.
+
+## 0.2.x Status
+
+Version `0.2.0` added the first trace/effect compiler layer on top of the
+ledger. Version `0.2.1` expands the adoption path with stronger deterministic
+classification, parked unknown reporting, and clearer documentation. Raw hook
+events can now be normalized into ordered actions, folded into effect
+summaries, checked with temporal predicates, and audited across existing SQLite
+ledgers.
+
+The practical new question Lyo can answer is:
+
+```text
+Did this agent edit, verify, debug, touch risky resources, or stop without a
+later verifier?
+```
+
+The newest read-only learning report also asks:
+
+```text
+What does this user's vibecoding style look like across runs, and which
+procedures, critics, or context packs are worth reviewing next?
+```
+
+The compiler layer is still read-only for learning artifacts. It reports and
+plans; it does not yet persist learned procedures, critics, context packs, or
+policies.
+
 ## What Works Now
 
 - Initialize a local SQLite ledger.
@@ -122,15 +227,37 @@ Requires Node.js 24+ for `node:sqlite`.
 - Promote protocols only after evidence.
 - Resolve scoped protocol overlays for future matching work.
 - Record outcomes and simple adaptive credit.
+- Compile hook telemetry into `NormalizedAction` traces.
+- Derive compatibility tokens such as inspect, edit, test, git, external, and
+  stop from richer action/effect records.
+- Parse action/token streams into work episodes.
+- Fold ordered traces into effect summaries with reads, writes, executed
+  commands, and ordered evidence refs.
+- Evaluate temporal predicates such as verified completion, debugging after a
+  failed verifier, approval friction, unsafe writes, and stopping after an edit
+  without later verification.
+- Report a single run's effect summary with `lyo report --effects --run-id`.
+- Report prompt-driven, manually orchestrated, loop-assisted, and loop-driven
+  workflow style with
+  `lyo report --style --run-id`.
+- Aggregate LLM usage and vibecoding style learning candidates with
+  `lyo learn style`.
+- Audit existing `.agent-learning/*.sqlite` ledgers with `lyo audit --dir`.
+- Produce dry-run learning plans for verifier, milestone, procedure, critic,
+  policy, and context-pack candidates without writing them back to SQLite.
 
 Not mature yet:
 
 - schema migrations
 - automatic experiment branching
 - automatic 2x1 / 3x1 / 2x2 model execution
-- Emacs adapters
 - stable API guarantees
 - full event/fact substrate
+- complete classifier coverage for every real-world command
+- local process/service effects for server startup and simulator launch commands
+- subagent lineage and child-process hierarchy
+- append-only persistence for compiled learning artifacts
+- benchmark/replay loops that compare attempts over time
 
 ## What Lyo Records
 
@@ -189,6 +316,17 @@ lyo run-finish \
   --token-cost 1200
 ```
 
+Record the goal for that run:
+
+```sh
+lyo context goal \
+  --db .agent-learning/learning.sqlite \
+  --run-id run-1 \
+  --goal "Fix the failing local test" \
+  --success-criteria "The targeted test passes and the fix is scoped" \
+  --stop-condition "Stop after test verification or a clear blocker"
+```
+
 Record a model call:
 
 ```sh
@@ -210,6 +348,127 @@ Inspect the ledger summary:
 ```sh
 lyo report --db .agent-learning/learning.sqlite
 ```
+
+Inspect one run as a trace/effect report:
+
+```sh
+lyo report \
+  --db .agent-learning/learning.sqlite \
+  --effects \
+  --run-id turn-1
+```
+
+Inspect one run as a conservative workflow-style report:
+
+```sh
+lyo report \
+  --db .agent-learning/learning.sqlite \
+  --style \
+  --run-id turn-1
+```
+
+Learn from local telemetry across runs without writing artifacts:
+
+```sh
+lyo learn style --db .agent-learning/learning.sqlite
+```
+
+The style learning report aggregates model-call usage, token totals, manual
+prompting/orchestration versus loop-driven distribution, verifier/debugging
+habits, unverified edit stops, and reviewable learning candidates.
+
+Compare baseline, treatment, and variant runs for a controlled learning
+experiment:
+
+```sh
+lyo experiment \
+  --db .agent-learning/learning.sqlite \
+  --family-id lyo-compiler-classifier-v1 \
+  --baseline-run-id <A0-run-id> \
+  --treatment-run-id <A1-run-id> \
+  --variant-run-id <A2-run-id> \
+  --artifact verifier:compiler-frontend \
+  --association-edge "src/compiler/** -> tests/compiler-frontend.test.js"
+```
+
+The experiment report is read-only. It turns local trace/effect evidence into
+attempt deltas, association credit, and a reviewable decision such as
+`retain_candidate` or `generalize_candidate`.
+
+Inspect one run as a candidate at-bat report:
+
+```sh
+lyo report \
+  --db .agent-learning/learning.sqlite \
+  --at-bat \
+  --run-id turn-1 \
+  --task-context task-context.json
+```
+
+The task context is required because telemetry alone cannot score an interview
+fairly:
+
+```json
+{
+  "taskId": "etl-debugging-v1",
+  "language": "python",
+  "taskComplexity": 6,
+  "expectedPattern": "verifier-first debugging",
+  "successCriteria": ["targeted verifier passes after the fix"],
+  "allowedTools": ["Bash", "apply_patch"],
+  "verifiers": [
+    {
+      "id": "targeted-parser-test",
+      "commandPattern": "pytest tests/test_parser.py",
+      "kind": "targeted",
+      "required": true
+    }
+  ],
+  "baseline": {
+    "existingTestsPass": true,
+    "buildSucceeds": true,
+    "knownIssues": []
+  }
+}
+```
+
+Audit existing local ledgers without writing to them:
+
+```sh
+lyo audit --dir ~/repositories
+```
+
+Audit output includes a human-readable `summaryText` plus JSON fields such as:
+
+```text
+normalizedActionRate
+editVerificationRate
+stoppedAfterEditWithoutVerificationRuns
+unsafeWriteRuns
+topUnknownCommands
+topParkedUnknownCommands
+topMisclassificationCandidates
+```
+
+Candidate at-bat reports also include `finalClaim`, a deterministic summary of
+the last assistant stop message when available. Lyo classifies whether the
+candidate claimed completion, cited verifier evidence, explained a blocker, or
+left the final claim unknown. This is deliberately conservative: raw assistant
+text may be unavailable or redacted, and the v1 evaluator does not use an LLM
+judge for final-claim semantics.
+
+## Related Documentation
+
+The deterministic command classifier is documented separately because the rule
+set will grow with real telemetry. The candidate at-bat spec describes how Lyo
+can evaluate interview sessions as evidence-producing work loops.
+
+- [Deterministic Classification](docs/deterministic-classification.md)
+- [Style Learning](docs/style-learning.md)
+- [Cybernetic Association Learner](docs/cybernetic-association-learner.md)
+- [Cybernetic Learning Experiment Protocol](docs/cybernetic-learning-experiment-protocol.md)
+- [Candidate At-Bat Telemetry Spec](docs/candidate-at-bat-telemetry-spec.md)
+- [Candidate At-Bat Implementation PRD](issues/candidate-at-bat-prd.md)
 
 Record a workspace activation tracer:
 
@@ -282,6 +541,25 @@ Zone association reports include both raw support and normalized support:
 lyo zone associations \
   --db .agent-learning/learning.sqlite \
   --workspace-id nectr
+```
+
+For the Nectr data-engineering workspace, the default zones can be registered in
+one step:
+
+```sh
+lyo workspace init-nectr \
+  --db .agent-learning/learning.sqlite \
+  --root /Users/marcus.kim/repositories/work/nectr_data_eng
+```
+
+After passive hook normalization has produced zone associations, ask for the
+next likely associated zone from the current seed:
+
+```sh
+lyo associations recommend \
+  --db .agent-learning/learning.sqlite \
+  --workspace-id nectr_data_eng \
+  --seed-zone-id nectr_data_eng:business_logic
 ```
 
 The normalized fields are descriptive, not automatic policy:

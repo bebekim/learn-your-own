@@ -169,6 +169,32 @@ export function initLedger(kernel: LearningKernel): LearningKernel {
       created_at text not null
     );
 
+    create table if not exists run_tape_cells (
+      cell_id text primary key,
+      run_id text not null,
+      cell_index integer not null,
+      kind text not null check (
+        kind in (
+          'run_goal',
+          'verifier_spec',
+          'worker_action',
+          'assistant_claim',
+          'verifier_result',
+          'gap',
+          'outcome_completed',
+          'blocked'
+        )
+      ),
+      summary text not null,
+      evidence_ref text not null,
+      passed integer check (passed in (0, 1)),
+      state_before text not null,
+      state_after text not null,
+      payload_json text,
+      created_at text not null,
+      unique (run_id, cell_index)
+    );
+
     create table if not exists run_execution_contexts (
       run_id text primary key,
       task_shape text,
@@ -194,6 +220,23 @@ export function initLedger(kernel: LearningKernel): LearningKernel {
       guardrail_result text,
       created_at text not null,
       updated_at text not null
+    );
+
+    create table if not exists exercise_attempts (
+      attempt_id text primary key,
+      exercise_id text not null,
+      run_id text not null,
+      track text not null,
+      language text not null,
+      stage text not null,
+      status text not null check (
+        status in ('started', 'working', 'failed', 'passed', 'claimed_without_pass', 'blocked')
+      ),
+      score integer not null default 0,
+      last_failure_class text,
+      started_at text not null,
+      updated_at text not null,
+      unique (exercise_id, run_id)
     );
 
     create table if not exists workspaces (

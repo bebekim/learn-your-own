@@ -23,8 +23,10 @@ import {
   recordPathActivation,
   recordCommandActivation,
   recordDeploymentAction,
+  ensureNectrWorkspaceDefaults,
   deriveZoneActivationsForJob,
   deriveZoneCoactivationsForJob,
+  recommendZoneAssociations,
   updateZoneAssociationsFromJob,
   getJobActivationReport,
   getZoneAssociationReport,
@@ -332,6 +334,181 @@ test('activation report includes association support and zone strength evidence'
     assert.deepEqual(report.summary.zones.strengthByZoneId, { core: 1.5, domain: 1 });
     assert.deepEqual(report.summary.zones.byConfidence, { high: 1, medium: 1 });
     assert.deepEqual(report.summary.evidenceRefs, ['hook:core', 'hook:domain']);
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('old passive hook ledgers upgrade to activation-capable schemas without losing rows', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    kernel.db.exec(`
+      create table hook_events (
+        event_id text primary key,
+        session_id text not null,
+        turn_id text,
+        event_name text not null,
+        cwd text not null,
+        model text,
+        payload_json text not null,
+        created_at text not null
+      );
+      insert into hook_events (
+        event_id, session_id, turn_id, event_name, cwd, model, payload_json, created_at
+      )
+      values (
+        'hook-old', 'session-old', 'turn-old', 'PreToolUse', '/tmp/nectr_data_eng',
+        'gpt-test', '{}', '2026-05-20T00:00:00.000Z'
+      );
+    `);
+
+    initLedger(kernel);
+
+    const hookCount = kernel.db.prepare('select count(*) as count from hook_events').get().count;
+    const lyoVersionColumn = kernel.db.prepare('pragma table_info(hook_events)').all()
+      .some((column) => column.name === 'lyo_version');
+    const workspace = recordWorkspace(kernel, {
+      workspaceId: 'nectr_data_eng',
+      rootPath: '/tmp/nectr_data_eng',
+      name: 'nectr_data_eng',
+    });
+    recordJob(kernel, {
+      jobId: 'old-ledger-job',
+      workspaceId: workspace.workspaceId,
+    });
+
+    assert.equal(hookCount, 1);
+    assert.equal(lyoVersionColumn, true);
+    assert.equal(workspace.workspaceId, 'nectr_data_eng');
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('Nectr workspace defaults map passive data engineering activity across zones', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    const preset = ensureNectrWorkspaceDefaults(kernel, {
+      rootPath: '/Users/marcus.kim/repositories/work/nectr_data_eng',
+    });
+    assert.equal(preset.workspace.workspaceId, 'nectr_data_eng');
+    assert.deepEqual(
+      preset.zones.map((zone) => zone.name).sort(),
+      ['artifacts', 'business_logic', 'checks', 'docs', 'guardrails', 'platform_core', 'specs', 'tools']
+    );
+
+    recordJob(kernel, {
+      jobId: 'nectr-passive-job',
+      workspaceId: 'nectr_data_eng',
+      taskShape: 'databricks-migration',
+      status: 'completed',
+    });
+    recordPathActivation(kernel, {
+      jobId: 'nectr-passive-job',
+      path: 'nectr_data_engineering/domains/customer_billing/model.sql',
+      activationKind: 'file_written',
+      evidenceRef: 'hook:business',
+    });
+    recordPathActivation(kernel, {
+      jobId: 'nectr-passive-job',
+      path: 'nectr_data_eng_core/configs/customer_billing.yml',
+      activationKind: 'file_read',
+      evidenceRef: 'hook:core',
+    });
+
+    deriveZoneActivationsForJob(kernel, { jobId: 'nectr-passive-job' });
+    deriveZoneCoactivationsForJob(kernel, { jobId: 'nectr-passive-job' });
+    updateZoneAssociationsFromJob(kernel, {
+      jobId: 'nectr-passive-job',
+      outcome: 'positive',
+    });
+
+    const recommendations = recommendZoneAssociations(kernel, {
+      workspaceId: 'nectr_data_eng',
+      seedZoneIds: ['nectr_data_eng:business_logic'],
+    });
+
+    assert.equal(recommendations[0].targetZoneId, 'nectr_data_eng:platform_core');
+    assert.equal(recommendations[0].targetZoneName, 'platform_core');
+    assert.equal(recommendations[0].localEvidence, true);
+    assert.deepEqual(recommendations[0].evidenceJobIds, ['nectr-passive-job']);
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('negative association evidence suppresses risky Nectr recommendations', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+    ensureNectrWorkspaceDefaults(kernel, {
+      rootPath: '/Users/marcus.kim/repositories/work/nectr_data_eng',
+    });
+
+    recordJob(kernel, {
+      jobId: 'positive-platform-job',
+      workspaceId: 'nectr_data_eng',
+      status: 'completed',
+    });
+    recordPathActivation(kernel, {
+      jobId: 'positive-platform-job',
+      path: 'nectr_data_engineering/domains/retail/model.sql',
+      activationKind: 'file_written',
+    });
+    recordPathActivation(kernel, {
+      jobId: 'positive-platform-job',
+      path: 'nectr_data_eng_core/configs/retail.yml',
+      activationKind: 'file_read',
+    });
+    deriveZoneActivationsForJob(kernel, { jobId: 'positive-platform-job' });
+    deriveZoneCoactivationsForJob(kernel, { jobId: 'positive-platform-job' });
+    updateZoneAssociationsFromJob(kernel, {
+      jobId: 'positive-platform-job',
+      outcome: 'positive',
+    });
+
+    recordJob(kernel, {
+      jobId: 'negative-checks-job',
+      workspaceId: 'nectr_data_eng',
+      status: 'failed',
+    });
+    recordPathActivation(kernel, {
+      jobId: 'negative-checks-job',
+      path: 'nectr_data_engineering/domains/retail/model.sql',
+      activationKind: 'file_written',
+    });
+    recordPathActivation(kernel, {
+      jobId: 'negative-checks-job',
+      path: 'checks/legacy_probe.py',
+      activationKind: 'file_read',
+    });
+    deriveZoneActivationsForJob(kernel, { jobId: 'negative-checks-job' });
+    deriveZoneCoactivationsForJob(kernel, { jobId: 'negative-checks-job' });
+    updateZoneAssociationsFromJob(kernel, {
+      jobId: 'negative-checks-job',
+      outcome: 'negative',
+    });
+
+    const recommendations = recommendZoneAssociations(kernel, {
+      workspaceId: 'nectr_data_eng',
+      seedZoneIds: ['nectr_data_eng:business_logic'],
+    });
+    const riskyRecommendations = recommendZoneAssociations(kernel, {
+      workspaceId: 'nectr_data_eng',
+      seedZoneIds: ['nectr_data_eng:business_logic'],
+      includeNonPositive: true,
+    });
+
+    assert.equal(recommendations.some((item) => item.targetZoneId === 'nectr_data_eng:checks'), false);
+    assert.equal(recommendations[0].targetZoneId, 'nectr_data_eng:platform_core');
+    const checks = riskyRecommendations.find((item) => item.targetZoneId === 'nectr_data_eng:checks');
+    assert.equal(checks.riskRate, 1);
+    assert.equal(checks.score, 0);
   } finally {
     t.cleanup();
   }

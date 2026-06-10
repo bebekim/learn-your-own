@@ -102,6 +102,8 @@ export interface NormalizeHooksResult {
   zoneActivations: number;
   zoneCoactivations: number;
   associations: number;
+  exerciseAttempts: number;
+  exerciseEvents: number;
 }
 
 export interface DrainHookSpoolInput {

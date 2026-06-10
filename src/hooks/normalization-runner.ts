@@ -18,6 +18,7 @@ import type {
   NormalizeHooksInput,
   NormalizeHooksResult,
 } from '../types/observation.ts';
+import { applyExerciseHookFacts } from './exercise.ts';
 import { extractHookFacts } from './normalizer.ts';
 
 const ISO_NOW = () => new Date().toISOString();
@@ -49,6 +50,8 @@ export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInpu
   let pathActivations = 0;
   let commandActivations = 0;
   let deploymentActions = 0;
+  const exerciseAttemptIds = new Set<string>();
+  let exerciseEvents = 0;
 
   for (const event of events) {
     const extracted = extractHookFacts(event);
@@ -108,6 +111,10 @@ export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInpu
       pathActivations += 1;
     }
 
+    const exercise = applyExerciseHookFacts(kernel, event, extracted);
+    if (exercise.attemptId) exerciseAttemptIds.add(exercise.attemptId);
+    exerciseEvents += exercise.recordedEvents;
+
     kernel.db.prepare(`
       insert or ignore into hook_normalizations (event_id, job_id, normalized_at)
       values (?, ?, ?)
@@ -135,6 +142,8 @@ export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInpu
     zoneActivations,
     zoneCoactivations,
     associations,
+    exerciseAttempts: exerciseAttemptIds.size,
+    exerciseEvents,
   };
 }
 

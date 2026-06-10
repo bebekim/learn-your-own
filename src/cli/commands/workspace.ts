@@ -1,4 +1,5 @@
 import {
+  ensureNectrWorkspaceDefaults,
   finishJob,
   recordJob,
   recordWorkspace,
@@ -11,6 +12,7 @@ import { withKernel } from './context.ts';
 
 export const WORKSPACE_COMMANDS: Record<string, CommandHandler> = {
   'workspace register': workspaceRegisterCommand,
+  'workspace init-nectr': workspaceInitNectrCommand,
   'zone add': zoneAddCommand,
   'job start': jobStartCommand,
   'job finish': jobFinishCommand,
@@ -22,6 +24,17 @@ function workspaceRegisterCommand(args: CommandArgs): unknown {
     workspace: recordWorkspace(kernel, {
       workspaceId: args.flagValue('--workspace-id'),
       rootPath: args.requiredFlag('--root'),
+      name: args.flagValue('--name'),
+    }),
+  }));
+}
+
+function workspaceInitNectrCommand(args: CommandArgs): unknown {
+  return withKernel(args, (kernel) => ({
+    ok: true,
+    ...ensureNectrWorkspaceDefaults(kernel, {
+      rootPath: args.requiredFlag('--root'),
+      workspaceId: args.flagValue('--workspace-id'),
       name: args.flagValue('--name'),
     }),
   }));

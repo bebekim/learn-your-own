@@ -6,14 +6,19 @@ node_modules/
 
 # Private design notes
 /docs/
+!/docs/
+/docs/*
+!/docs/candidate-at-bat-telemetry-spec.md
+!/docs/cybernetic-association-learner.md
+!/docs/cybernetic-learning-experiment-protocol.md
+!/docs/deterministic-classification.md
+!/docs/style-learning.md
 
 # Local agent/runtime state
 /.agent-learning/
-/.beads/
 /.codex/
 /.omx/
 /.agent-assets/
-/.beads-credential-key
 
 # Generated package artifacts
 /dist/
