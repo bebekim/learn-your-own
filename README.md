@@ -119,7 +119,8 @@ Inspect one run as a workflow-style report:
 lyo report --db .agent-learning/learning.sqlite --style --run-id turn-1
 ```
 
-Learn style candidates across local telemetry without writing artifacts:
+Learn style candidates across local telemetry without writing artifacts. The
+default output is compact; add `--verbose` if you need every evidence run ID:
 
 ```sh
 lyo learn style --db .agent-learning/learning.sqlite

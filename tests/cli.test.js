@@ -647,6 +647,11 @@ test('lyo learn style emits aggregate LLM usage and style learning candidates', 
     assert.equal(parsed.learning.learningVersion, 'lyo/style-learning/v1');
     assert.equal(parsed.learning.mode, 'learn');
     assert.equal(parsed.learning.runCount, 1);
+    assert.equal(parsed.learning.analyzedRunCount, 1);
+    assert.deepEqual(parsed.learning.analyzedRunIdPreview, ['learn-style-turn']);
+    assert.equal(parsed.learning.analyzedRunIds, undefined);
+    assert.match(parsed.learning.summaryText, /Analyzed 1 telemetry runs/);
+    assert.equal(parsed.learning.summaryLines.some((line) => line.includes('Top learning candidates')), true);
     assert.equal(parsed.learning.modelUsage.totalModelCalls, 1);
     assert.equal(parsed.learning.modelUsage.totalTokens, 140);
     assert.equal(parsed.learning.styleDistribution.manualOrchestrated, 1);
@@ -654,6 +659,23 @@ test('lyo learn style emits aggregate LLM usage and style learning candidates', 
     assert.equal(parsed.learning.learningCandidates.some((candidate) => {
       return candidate.id === 'preserve-verifier-debug-loop';
     }), true);
+    assert.equal(parsed.learning.learningCandidates.some((candidate) => {
+      return candidate.id === 'preserve-verifier-debug-loop'
+        && candidate.evidenceRunCount === 1
+        && candidate.evidenceRunIdPreview[0] === 'learn-style-turn';
+    }), true);
+
+    const verboseOutput = execFileSync(
+      process.execPath,
+      ['src/cli.ts', 'learn', 'style', '--db', dbPath, '--verbose'],
+      { cwd: ROOT, encoding: 'utf8' }
+    );
+    const verbose = JSON.parse(verboseOutput);
+    assert.deepEqual(verbose.learning.analyzedRunIds, ['learn-style-turn']);
+    assert.deepEqual(
+      verbose.learning.learningCandidates.find((candidate) => candidate.id === 'preserve-verifier-debug-loop').evidenceRunIds,
+      ['learn-style-turn']
+    );
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
