@@ -364,6 +364,7 @@ function classifyWorkflowStyle(input: {
   modelCallCount: number;
 }): WorkflowStyleClassification {
   if (input.actionCount < 3 && input.humanPromptCount === 0) return 'insufficient_evidence';
+  if (input.humanPromptCount === 0 && input.modelCallCount === 0) return 'insufficient_evidence';
   const hasExplicitLoopEvidence = input.workflowInfrastructure >= 0.4
     || (input.modelCallCount > input.humanPromptCount && input.modelCallCount > 1);
   if (

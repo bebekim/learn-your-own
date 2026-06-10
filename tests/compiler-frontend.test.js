@@ -1615,6 +1615,40 @@ test('Lyo workflow style report classifies loop-driven candidates from long veri
   }
 });
 
+test('Lyo workflow style report does not infer loop-driven style from missing prompt lineage', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+    const runId = 'turn-style-missing-lineage';
+    const sessionId = 'session-style-missing-lineage';
+    const cwd = '/tmp/project';
+
+    recordPatch(kernel, { eventId: 'style-missing-lineage-01', sessionId, runId, cwd, path: 'AGENT_LOOP.md' });
+    recordPatch(kernel, { eventId: 'style-missing-lineage-02', sessionId, runId, cwd, path: 'tests/parser.test.ts' });
+    recordPatch(kernel, { eventId: 'style-missing-lineage-03', sessionId, runId, cwd, path: 'src/parser.ts' });
+    recordCommand(kernel, { eventId: 'style-missing-lineage-04', sessionId, runId, cwd, command: 'npm test', exitCode: 1 });
+    recordCommand(kernel, { eventId: 'style-missing-lineage-05', sessionId, runId, cwd, command: "sed -n '1,120p' src/parser.ts" });
+    recordPatch(kernel, { eventId: 'style-missing-lineage-06', sessionId, runId, cwd, path: 'src/parser.ts' });
+    recordCommand(kernel, { eventId: 'style-missing-lineage-07', sessionId, runId, cwd, command: 'npm test', exitCode: 0 });
+    recordCommand(kernel, { eventId: 'style-missing-lineage-08', sessionId, runId, cwd, command: 'npm run build', exitCode: 0 });
+
+    normalizeHooks(kernel);
+    const ast = compileTelemetryRunAst(kernel, { runId });
+    const report = buildWorkflowStyleReport(kernel, ast);
+
+    assert.equal(report.classification, 'insufficient_evidence');
+    assert.equal(report.confidence, 'low');
+    assert.equal(report.metrics.humanPromptCount, 0);
+    assert.equal(report.metrics.actionCount, 8);
+    assert.equal(report.metrics.actionsPerHumanPrompt, null);
+    assert.equal(report.metrics.loopArtifactTouches > 0, true);
+    assert.equal(report.missingSignals.includes('loop prompt emission event'), true);
+  } finally {
+    t.cleanup();
+  }
+});
+
 test('Lyo workflow style report treats long accepted agent sequences as manual orchestration without loop evidence', () => {
   const t = tempDb();
   try {
