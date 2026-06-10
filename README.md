@@ -248,6 +248,7 @@ console.log(getObserverSummary(kernel));
 - [Style Learning](docs/style-learning.md)
 - [Cybernetic Association Learner](docs/cybernetic-association-learner.md)
 - [Cybernetic Learning Experiment Protocol](docs/cybernetic-learning-experiment-protocol.md)
+- [Product Learning Log](docs/product-learning-log.md)
 - [Candidate At-Bat Telemetry Spec](docs/candidate-at-bat-telemetry-spec.md)
 - [Candidate At-Bat Implementation PRD](issues/candidate-at-bat-prd.md)
 
