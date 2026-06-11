@@ -302,6 +302,211 @@ The next rigorous implementation path is:
 7. Keep all beliefs derived and reproducible.
 ```
 
+## Algorithm v0: One Hypothesis, Message Vectors
+
+The first algorithm should be smaller than a general Bayesian network.
+
+Start with one binary hypothesis:
+
+```text
+H = "this hypothesis is useful in this scope"
+not H = "this hypothesis is not useful in this scope"
+```
+
+Each deterministic factor emits a two-entry message vector:
+
+```text
+m_factor = [support_if_not_H, support_if_H]
+```
+
+The prior is also a vector:
+
+```text
+pi_H = [P(not H), P(H)]
+```
+
+Belief is computed by elementwise product and normalization:
+
+```text
+u = pi_H
+    * m_scope
+    * m_chronology
+    * m_verifier
+    * m_freshness
+    * m_no_defeater
+    * m_no_rival
+    * m_independent
+
+BEL(H) = u[H] / (u[not H] + u[H])
+```
+
+This is the smallest useful Pearl-like shape:
+
+```text
+multiply independent local supports
+normalize into a belief
+```
+
+### Numeric Example
+
+Hypothesis:
+
+```text
+H:
+  src/compiler/** is usefully verified by tests/compiler-frontend.test.js
+```
+
+Prior:
+
+```text
+pi_H = [0.75, 0.25]
+```
+
+Observed evidence messages:
+
+```text
+m_scope        = [0.60, 1.00]  # source scope matched
+m_chronology   = [0.50, 1.00]  # verifier ran after final edit
+m_verifier     = [0.30, 1.00]  # verifier passed
+m_freshness    = [0.70, 1.00]  # evidence was fresh
+m_no_defeater  = [0.80, 1.00]  # no known defeater
+m_no_rival     = [0.85, 1.00]  # no stronger rival explanation
+m_independent  = [0.80, 1.00]  # evidence not a duplicate
+```
+
+Elementwise product:
+
+```text
+u[not H] =
+  0.75 * 0.60 * 0.50 * 0.30 * 0.70 * 0.80 * 0.85 * 0.80
+  = 0.025704
+
+u[H] =
+  0.25 * 1.00 * 1.00 * 1.00 * 1.00 * 1.00 * 1.00 * 1.00
+  = 0.25
+```
+
+Normalize:
+
+```text
+BEL(H) = 0.25 / (0.025704 + 0.25)
+       = 0.9068
+```
+
+So the hypothesis is not "proven." It has strong provisional support under
+this factor version.
+
+### Matrix View
+
+Each factor can be represented as a compatibility matrix. Rows are hypothesis
+states. Columns are observed factor states.
+
+Example scope factor:
+
+```text
+Phi_scope =
+
+              scope_false   scope_true
+not H             1.00          0.60
+H                 0.40          1.00
+```
+
+If `scope_true` is observed, the message to `H` is the observed column:
+
+```text
+m_scope = [0.60, 1.00]
+```
+
+Example chronology factor:
+
+```text
+Phi_chronology =
+
+              chronology_false   chronology_true
+not H                1.00              0.50
+H                    0.20              1.00
+```
+
+If `chronology_true` is observed:
+
+```text
+m_chronology = [0.50, 1.00]
+```
+
+This is enough for the first implementation. Lyo can emit the matrices,
+observed columns, intermediate products, and final normalized belief in a
+debuggable report.
+
+## Rival Explanation Sum
+
+The "sum" part becomes important when Lyo considers hidden rival explanations.
+
+Suppose:
+
+```text
+R = rival explanation for success
+R states:
+  none
+  repo_already_healthy
+  user_manual_correction
+```
+
+Lyo observes:
+
+```text
+O = verifier_passed
+```
+
+Instead of treating the pass as direct support for `H`, compute:
+
+```text
+m_outcome(H) = sum over r:
+  P(O = verifier_passed | H, r) * P(r)
+```
+
+Example table:
+
+```text
+P(r):
+
+none                    0.60
+repo_already_healthy     0.25
+user_manual_correction   0.15
+```
+
+```text
+P(verifier_passed | H, r):
+
+                          none   repo_already_healthy   user_manual_correction
+not H                     0.20          0.85                    0.75
+H                         0.80          0.90                    0.85
+```
+
+Then:
+
+```text
+m_outcome(not H) =
+  0.20*0.60 + 0.85*0.25 + 0.75*0.15
+  = 0.445
+
+m_outcome(H) =
+  0.80*0.60 + 0.90*0.25 + 0.85*0.15
+  = 0.8325
+```
+
+So the passing verifier supports `H`, but not as strongly as a naive update
+would. The sum over rivals discounts evidence that could be explained by other
+causes.
+
+This is the core reason to prefer explanation graphs over `+1 / 0 / -1`
+credit. The algorithm can say:
+
+```text
+the outcome supports H,
+but rival explanations explain part of the evidence,
+so credibility increases only provisionally.
+```
+
 The first useful graph should focus on one concrete hypothesis family:
 
 ```text

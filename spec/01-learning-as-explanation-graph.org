@@ -220,10 +220,204 @@ Implement:
 2. Deterministic factor extraction:
    scope, chronology, freshness, defeater, rival, novelty, outcome.
 3. One derived belief score using product/log-odds over factor values.
-4. Report comparing old association counters to explanation-graph belief.
-5. No automatic artifact promotion.
-6. No persistence beyond append-only evidence if persistence is added.
+4. Numeric report showing priors, factor messages, matrix columns,
+   intermediate products, and normalized belief.
+5. Report comparing old association counters to explanation-graph belief.
+6. No automatic artifact promotion.
+7. No persistence beyond append-only evidence if persistence is added.
 #+end_src
+
+* Algorithm V0: Binary Hypothesis Product
+
+Start with one binary hypothesis.
+
+#+begin_src text
+H     = hypothesis is useful in this scope
+not H = hypothesis is not useful in this scope
+#+end_src
+
+Prior:
+
+#+begin_src text
+pi_H = [P(not H), P(H)]
+#+end_src
+
+Each observed factor emits a two-entry message vector:
+
+#+begin_src text
+m_factor = [support_if_not_H, support_if_H]
+#+end_src
+
+Belief update:
+
+#+begin_src text
+u = pi_H
+    * m_scope
+    * m_chronology
+    * m_verifier
+    * m_freshness
+    * m_no_defeater
+    * m_no_rival
+    * m_independent
+
+BEL(H) = u[H] / (u[not H] + u[H])
+#+end_src
+
+All products are elementwise.
+
+* Numeric Example
+
+Hypothesis:
+
+#+begin_src text
+H:
+  src/compiler/** is usefully verified by tests/compiler-frontend.test.js
+#+end_src
+
+Prior:
+
+#+begin_src text
+pi_H = [0.75, 0.25]
+#+end_src
+
+Observed factor messages:
+
+#+begin_src text
+m_scope        = [0.60, 1.00]
+m_chronology   = [0.50, 1.00]
+m_verifier     = [0.30, 1.00]
+m_freshness    = [0.70, 1.00]
+m_no_defeater  = [0.80, 1.00]
+m_no_rival     = [0.85, 1.00]
+m_independent  = [0.80, 1.00]
+#+end_src
+
+Unnormalized belief:
+
+#+begin_src text
+u[not H] =
+  0.75 * 0.60 * 0.50 * 0.30 * 0.70 * 0.80 * 0.85 * 0.80
+  = 0.025704
+
+u[H] =
+  0.25 * 1.00 * 1.00 * 1.00 * 1.00 * 1.00 * 1.00 * 1.00
+  = 0.25
+#+end_src
+
+Normalized belief:
+
+#+begin_src text
+BEL(H) = 0.25 / (0.025704 + 0.25)
+       = 0.9068
+#+end_src
+
+* Matrix Form
+
+Factors can be stored as compatibility matrices.
+
+Scope factor:
+
+#+begin_src text
+Phi_scope =
+
+              scope_false   scope_true
+not H             1.00          0.60
+H                 0.40          1.00
+#+end_src
+
+If =scope_true= is observed:
+
+#+begin_src text
+m_scope = [0.60, 1.00]
+#+end_src
+
+Chronology factor:
+
+#+begin_src text
+Phi_chronology =
+
+              chronology_false   chronology_true
+not H                1.00              0.50
+H                    0.20              1.00
+#+end_src
+
+If =chronology_true= is observed:
+
+#+begin_src text
+m_chronology = [0.50, 1.00]
+#+end_src
+
+The v0 report must expose:
+
+#+begin_src text
+prior vector
+factor matrix
+observed column
+message vector
+elementwise product
+normalized belief
+#+end_src
+
+* Rival Explanation Sum
+
+The first "sum" operation should handle rival explanations.
+
+Let:
+
+#+begin_src text
+R = rival explanation for success
+R states:
+  none
+  repo_already_healthy
+  user_manual_correction
+#+end_src
+
+Observed outcome:
+
+#+begin_src text
+O = verifier_passed
+#+end_src
+
+Outcome message:
+
+#+begin_src text
+m_outcome(H) = sum over r:
+  P(O = verifier_passed | H, r) * P(r)
+#+end_src
+
+Rival prior:
+
+#+begin_src text
+P(r):
+
+none                    0.60
+repo_already_healthy     0.25
+user_manual_correction   0.15
+#+end_src
+
+Outcome table:
+
+#+begin_src text
+P(verifier_passed | H, r):
+
+                          none   repo_already_healthy   user_manual_correction
+not H                     0.20          0.85                    0.75
+H                         0.80          0.90                    0.85
+#+end_src
+
+Computed message:
+
+#+begin_src text
+m_outcome(not H) =
+  0.20*0.60 + 0.85*0.25 + 0.75*0.15
+  = 0.445
+
+m_outcome(H) =
+  0.80*0.60 + 0.90*0.25 + 0.85*0.15
+  = 0.8325
+#+end_src
+
+This discounts evidence that can be explained by rivals.
 
 * Example
 
