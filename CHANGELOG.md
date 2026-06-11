@@ -100,6 +100,12 @@ release.
   - `runLyo` for raw CLI output
   - `runLyoJson` for parsed JSON responses
   - expected-failure support for tests that assert structured CLI errors
+- Split the remaining generic CLI suite by workflow family:
+  - hooks
+  - context/runs/model calls
+  - tape/harness
+  - activation
+  - kept `cli.test.js` as a small smoke suite
 
 ## 0.2.0
 
