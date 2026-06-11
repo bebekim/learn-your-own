@@ -7,7 +7,7 @@ your own prompts, runs, repos, commands, verifiers, and outcomes so future runs
 can receive scoped, evidence-backed guidance.
 
 An agent has not learned just because a note was saved. For Lyo, learning means
-evidence changes future behavior.
+explanation-aware evidence changes future behavior.
 
 Lyo is not an agent runtime, memory daemon, workflow framework, or permission
 guard. It does not call your LLM, execute tools, or block tools. Hooks,
@@ -18,6 +18,8 @@ been learned.
 attempt
 -> trace
 -> verifier / preference / outcome
+-> association conjecture
+-> explanation-graph belief update
 -> scoped lesson candidate
 -> future delivery
 -> later evidence
@@ -27,19 +29,31 @@ attempt
 
 An agent has not learned just because a note was saved.
 
-For Lyo, learning means a behavior change is backed by evidence:
+For Lyo, learning means a behavior change is backed by explanation-aware
+evidence:
 
 ```text
 something happened
 -> evidence was recorded
--> a better behavior was identified
+-> an association conjecture was proposed
+-> rivals, defeaters, scope, chronology, and freshness were checked
+-> provisional belief changed
 -> a scoped artifact was promoted or tested
 -> a future run received it
 -> later evidence showed whether behavior changed
 ```
 
-The point is not to remember more text. The point is to change future behavior
-under provenance, scope, delivery, and feedback.
+The point is not to remember more text or count co-occurrences. Co-occurrence
+only proposes a hypothesis. Lyo should learn by asking whether an observation
+actually bears on that hypothesis after rival explanations, defeaters,
+chronology, freshness, and scope are represented.
+
+In short:
+
+```text
+association is hypothesis generation
+learning is inference over explanations plus intervention and feedback
+```
 
 ## Current Package
 
@@ -75,7 +89,8 @@ Current package version: `0.2.1`.
 - Workflow-style reports for prompt-driven, manually orchestrated,
   loop-assisted, and loop-driven traces.
 - Candidate at-bat reports for evidence-producing AI-assisted interview loops.
-- Dry-run semantic lowering and cybernetic experiment reports.
+- Dry-run semantic lowering, explanation-graph belief updates, and cybernetic
+  experiment reports.
 
 Not mature yet:
 
@@ -134,6 +149,12 @@ ledgers without persisting them:
 
 ```sh
 lyo learn associations --dir ~/repositories --dry-run
+```
+
+Evaluate an explicit explanation graph without persisting derived beliefs:
+
+```sh
+lyo learn explanation --dry-run --input explanation.json
 ```
 
 Compare baseline, treatment, and variant runs in a controlled learning
@@ -217,6 +238,8 @@ local prompt blobs are explicitly allowed.
 | `outcome` | Later evidence that guidance helped or failed. |
 | `NormalizedAction` | Compiler action with operation, intent, resources, risk, status, and facets. |
 | `effect summary` | Folded reads, writes, commands, and ordered evidence refs. |
+| `association conjecture` | Candidate relationship proposed by repeated telemetry; not yet learning by itself. |
+| `explanation graph` | Hypotheses, evidence, rivals, defeaters, and factors used to compute provisional belief. |
 | `experiment` | Baseline/treatment/variant comparison for testing a learning artifact. |
 
 ## API

@@ -1,5 +1,10 @@
 import { compileTelemetryRunAst } from './parser.ts';
 import {
+  buildExplanationGraphReport,
+  type ExplanationFactorInput,
+  type ExplanationGraphReport,
+} from './explanation-graph.ts';
+import {
   hasExternalSideEffects,
   hasStoppedAfterEditWithoutVerification,
   hasUnsafeWrite,
@@ -116,9 +121,28 @@ export interface AssociationLearningReport {
   evidenceEventCount: number;
   associationHypotheses: AssociationHypothesis[];
   evidenceEvents: AssociationEvidenceEvent[];
+  explanationBeliefs: AssociationExplanationBelief[];
   summaryText: string;
   summaryLines: string[];
   limitations: string[];
+}
+
+export interface AssociationExplanationBelief {
+  hypothesisId: string;
+  source: string;
+  target: string;
+  associationCredibility: AssociationCredibility;
+  associationCounters: {
+    supportCount: number;
+    weakenCount: number;
+    defeatCount: number;
+    neutralCount: number;
+    distinctRunCount: number;
+    distinctLedgerCount: number;
+    scopeWarnings: string[];
+    policyWarnings: string[];
+  };
+  explanation: ExplanationGraphReport;
 }
 
 interface RunSample {
@@ -188,6 +212,10 @@ export function buildAssociationLearningReport(input: { root: string }): Associa
   }
 
   const discovered = discoverAssociations(samples);
+  const explanationBeliefs = buildAssociationExplanationBeliefs(
+    discovered.hypotheses,
+    discovered.evidenceEvents
+  );
   const summaryLines = buildSummaryLines({
     ledgers: scannedDatabases.length,
     runCount: samples.length,
@@ -213,6 +241,7 @@ export function buildAssociationLearningReport(input: { root: string }): Associa
     evidenceEventCount: discovered.evidenceEvents.length,
     associationHypotheses: discovered.hypotheses,
     evidenceEvents: discovered.evidenceEvents,
+    explanationBeliefs,
     summaryText: summaryLines.join('\n'),
     summaryLines,
     limitations: limitations(samples, skippedDatabases),
@@ -309,6 +338,202 @@ function discoverAssociations(samples: RunSample[]): {
     .sort(compareEvidenceEvents);
 
   return { hypotheses, evidenceEvents };
+}
+
+function buildAssociationExplanationBeliefs(
+  hypotheses: AssociationHypothesis[],
+  evidenceEvents: AssociationEvidenceEvent[]
+): AssociationExplanationBelief[] {
+  return hypotheses.map((hypothesis) => {
+    const events = evidenceEvents.filter((event) => event.hypothesisId === hypothesis.id);
+    return {
+      hypothesisId: hypothesis.id,
+      source: hypothesis.source,
+      target: hypothesis.target,
+      associationCredibility: hypothesis.credibility,
+      associationCounters: {
+        supportCount: hypothesis.supportCount,
+        weakenCount: hypothesis.weakenCount,
+        defeatCount: hypothesis.defeatCount,
+        neutralCount: hypothesis.neutralCount,
+        distinctRunCount: hypothesis.distinctRunCount,
+        distinctLedgerCount: hypothesis.distinctLedgerCount,
+        scopeWarnings: hypothesis.scopeWarnings,
+        policyWarnings: hypothesis.policyWarnings,
+      },
+      explanation: buildExplanationGraphReport({
+        hypothesis: {
+          id: hypothesis.id,
+          label: `${hypothesis.source} ${hypothesis.relation} ${hypothesis.target}`,
+          source: hypothesis.source,
+          relation: hypothesis.relation,
+          target: hypothesis.target,
+          scope: hypothesis.scope,
+        },
+        prior: { notH: 0.75, h: 0.25 },
+        factors: associationExplanationFactors(hypothesis, events),
+      }),
+    };
+  });
+}
+
+function associationExplanationFactors(
+  hypothesis: AssociationHypothesis,
+  evidenceEvents: AssociationEvidenceEvent[]
+): ExplanationFactorInput[] {
+  return [
+    scopeQualityFactor(hypothesis),
+    distinctRunFactor(hypothesis),
+    distinctLedgerFactor(hypothesis),
+    ...evidenceEvents.flatMap((event, index) => evidenceEventFactors(event, index)),
+  ];
+}
+
+function scopeQualityFactor(hypothesis: AssociationHypothesis): ExplanationFactorInput {
+  const observedState = hypothesis.scopeWarnings.length === 0 ? 'source_scope' : 'warning_present';
+  return {
+    factorId: 'scope_quality',
+    label: 'hypothesis source scope is durable enough to reuse',
+    observedState,
+    states: ['source_scope', 'warning_present'],
+    matrix: {
+      notH: [0.75, 1],
+      h: [1, 0.55],
+    },
+  };
+}
+
+function distinctRunFactor(hypothesis: AssociationHypothesis): ExplanationFactorInput {
+  const observedState = hypothesis.distinctRunCount >= 2 ? 'varied_runs' : 'single_run';
+  return {
+    factorId: 'distinct_run_support',
+    label: 'support came from more than one telemetry run',
+    observedState,
+    states: ['single_run', 'varied_runs'],
+    matrix: {
+      notH: [1, 0.70],
+      h: [0.80, 1],
+    },
+  };
+}
+
+function distinctLedgerFactor(hypothesis: AssociationHypothesis): ExplanationFactorInput {
+  const observedState = hypothesis.distinctLedgerCount >= 2 ? 'varied_ledgers' : 'single_ledger';
+  return {
+    factorId: 'distinct_ledger_support',
+    label: 'support came from more than one ledger',
+    observedState,
+    states: ['single_ledger', 'varied_ledgers'],
+    matrix: {
+      notH: [1, 0.70],
+      h: [0.85, 1],
+    },
+  };
+}
+
+function evidenceEventFactors(event: AssociationEvidenceEvent, index: number): ExplanationFactorInput[] {
+  const ordinal = String(index + 1).padStart(2, '0');
+  return [
+    evidenceEffectFactor(event, ordinal),
+    evidenceFreshnessFactor(event, ordinal),
+    evidenceDefeaterFactor(event, ordinal),
+    evidenceRivalFactor(event, ordinal),
+  ];
+}
+
+function evidenceEffectFactor(event: AssociationEvidenceEvent, ordinal: string): ExplanationFactorInput {
+  if (event.credibilityEffect === 'supports') {
+    const supportStrength = event.evidenceIndependence === 'independent' ? 0.40 : 0.65;
+    return {
+      factorId: `evidence_supports_${ordinal}`,
+      label: 'evidence event supports the predicted consequence',
+      observedState: 'present',
+      states: ['absent', 'present'],
+      matrix: {
+        notH: [1, supportStrength],
+        h: [0.40, 1],
+      },
+    };
+  }
+
+  if (event.credibilityEffect === 'weakens') {
+    return {
+      factorId: `evidence_weakens_${ordinal}`,
+      label: 'evidence event weakens the hypothesis',
+      observedState: 'present',
+      states: ['absent', 'present'],
+      matrix: {
+        notH: [1, 1],
+        h: [1, 0.35],
+      },
+    };
+  }
+
+  if (event.credibilityEffect === 'defeats') {
+    return {
+      factorId: `evidence_defeats_${ordinal}`,
+      label: 'evidence event defeats the hypothesis',
+      observedState: 'present',
+      states: ['absent', 'present'],
+      matrix: {
+        notH: [1, 1],
+        h: [1, 0.10],
+      },
+    };
+  }
+
+  return {
+    factorId: `evidence_neutral_${ordinal}`,
+    label: 'evidence event is neutral or incomparable',
+    observedState: 'present',
+    states: ['absent', 'present'],
+    matrix: {
+      notH: [1, 1],
+      h: [1, 1],
+    },
+  };
+}
+
+function evidenceFreshnessFactor(event: AssociationEvidenceEvent, ordinal: string): ExplanationFactorInput {
+  const observedState = event.consequenceFreshness === 'fresh_after_source' ? 'fresh' : 'stale_or_missing';
+  return {
+    factorId: `evidence_freshness_${ordinal}`,
+    label: 'evidence consequence was fresh after source activation',
+    observedState,
+    states: ['stale_or_missing', 'fresh'],
+    matrix: {
+      notH: [1, 0.80],
+      h: [0.50, 1],
+    },
+  };
+}
+
+function evidenceDefeaterFactor(event: AssociationEvidenceEvent, ordinal: string): ExplanationFactorInput {
+  const observedState = event.defeatersPresent.length === 0 ? 'absent' : 'present';
+  return {
+    factorId: `evidence_defeater_${ordinal}`,
+    label: 'known defeaters are absent for this evidence event',
+    observedState,
+    states: ['absent', 'present'],
+    matrix: {
+      notH: [0.80, 1],
+      h: [1, 0.25],
+    },
+  };
+}
+
+function evidenceRivalFactor(event: AssociationEvidenceEvent, ordinal: string): ExplanationFactorInput {
+  const observedState = event.rivalExplanations.length === 0 ? 'absent' : 'present';
+  return {
+    factorId: `evidence_rival_${ordinal}`,
+    label: 'stronger rival explanations are absent for this evidence event',
+    observedState,
+    states: ['absent', 'present'],
+    matrix: {
+      notH: [0.85, 1],
+      h: [1, 0.70],
+    },
+  };
 }
 
 function supportEvidenceEvent(input: {
@@ -676,6 +901,7 @@ function limitations(samples: RunSample[], skippedDatabases: SkippedDatabase[]):
     'credibility is provisional and must be interpreted with defeaters, rival explanations, chronology, and scope warnings',
     'source scopes are deterministic path generalizations and may need later domain-specific refinement',
     'verifier credibility is separated from policy safety; a useful verifier can still appear in a risky run',
+    'explanation belief factor weights are explicit v1 defaults and must be validated against future intervention outcomes',
   ];
   if (samples.length === 0) values.push('no telemetry runs were available for association learning');
   if (skippedDatabases.length > 0) values.push('one or more discovered ledgers could not be scanned');

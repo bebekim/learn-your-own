@@ -89,6 +89,33 @@ analogies, but too heavy for the first learning substrate.
 
 The learner should treat early learning as plausible reasoning, not proof.
 
+Polya patterns should not be implemented as production rules. A pattern such as:
+
+```text
+A predicts B
+B happened
+therefore A is more credible
+```
+
+is only safe when rival explanations, defeaters, chronology, freshness, and
+scope have been represented. Otherwise the direction of the update can be
+wrong. A passing verifier can support a source -> verifier hypothesis, but it
+can also be explained by a healthy repo, a stale run, another source change, or
+a user correction.
+
+Therefore, in Lyo:
+
+```text
+Polya pattern:
+  descriptive evidence-pattern label
+
+association:
+  conjecture generator
+
+explanation graph:
+  credibility update mechanism
+```
+
 The discovery loop is:
 
 ```text

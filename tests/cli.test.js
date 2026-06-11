@@ -771,6 +771,22 @@ test('lyo learn associations discovers verifier hypotheses across ledger corpus'
     assert.equal(primary.predictedConsequences.includes('fresh passing verifier after source mutation'), true);
     assert.equal(primary.knownDefeaters.includes('target verifier fails after source mutation'), true);
 
+    const primaryBelief = parsed.learning.explanationBeliefs.find((belief) => {
+      return belief.hypothesisId === primary.id;
+    });
+    assert.ok(primaryBelief);
+    assert.equal(primaryBelief.explanation.explanationGraphVersion, 'lyo/explanation-graph/v1');
+    assert.equal(primaryBelief.associationCounters.supportCount, 2);
+    assert.equal(primaryBelief.explanation.hypothesis.source, 'src/compiler/**');
+    assert.equal(primaryBelief.explanation.hypothesis.target, 'npm test -- tests/compiler-frontend.test.js');
+    assert.equal(primaryBelief.explanation.credibility, 'provisionally_supported');
+    assert.equal(primaryBelief.explanation.factorMessages.some((message) => {
+      return message.factorId === 'scope_quality';
+    }), true);
+    assert.equal(primaryBelief.explanation.factorMessages.some((message) => {
+      return message.factorId.startsWith('evidence_supports_');
+    }), true);
+
     const primaryEvidence = parsed.learning.evidenceEvents.filter((event) => {
       return event.hypothesisId === primary.id;
     });
@@ -787,6 +803,9 @@ test('lyo learn associations discovers verifier hypotheses across ledger corpus'
     });
     assert.ok(noisy);
     assert.equal(noisy.scopeWarnings.includes('source_scope_is_test_tree'), true);
+    const noisyBelief = parsed.learning.explanationBeliefs.find((belief) => belief.hypothesisId === noisy.id);
+    assert.ok(noisyBelief);
+    assert.equal(noisyBelief.explanation.belief.h < primaryBelief.explanation.belief.h, true);
 
     const absolutePathHypothesis = parsed.learning.associationHypotheses.find((hypothesis) => {
       return hypothesis.source === 'jobs/utilibill/**'

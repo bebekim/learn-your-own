@@ -342,3 +342,90 @@ The effect algebra remains the sensor layer. It tells us what happened and
 when. The learning layer must decide whether the observation actually bears on a
 conjecture, whether the evidence is fresh, whether rival explanations exist,
 and whether the scope is good enough to reuse.
+
+## 2026-06-11: Polya Patterns Are Labels, Not Production Rules
+
+### Question
+
+We revisited Polya's plausible inference patterns and the Pearl-style critique:
+
+```text
+A predicts B
+B happened
+therefore A became more credible
+```
+
+This sounds useful, but it is unsafe as a machine rule. The direction of the
+credibility update can flip if a rival explanation or defeater is present.
+
+Example:
+
+```text
+fire -> smoke
+smoke observed
+```
+
+Smoke seems to support fire until another explanation appears:
+
+```text
+bad muffler -> smoke
+```
+
+Now smoke may support the muffler explanation and weaken the fire explanation.
+
+### Product Implication
+
+Lyo should not use Polya patterns as production rules.
+
+Instead:
+
+```text
+Polya pattern = evidence-pattern label
+association = hypothesis generation
+explanation graph = belief update mechanism
+artifact delivery = intervention
+future telemetry = feedback
+```
+
+The learner should only strengthen a hypothesis when evidence is represented
+with:
+
+```text
+scope
+chronology
+freshness
+rival explanations
+defeaters
+novelty / independence
+outcome
+```
+
+This keeps Lyo from treating co-occurrence as learning.
+
+### Implementation Consequence
+
+`lyo learn associations --dry-run` now needs to be interpreted as two layers:
+
+```text
+associationHypotheses:
+  conjectures generated from repeated trace structure
+
+explanationBeliefs:
+  derived belief reports that apply explicit explanation-graph factors to those
+  conjectures
+```
+
+The association counters remain useful evidence summaries, but they are not the
+learning rule. The explanation-graph report is the first place where Lyo asks:
+
+```text
+Given this evidence and its rivals/defeaters/scope, how much should belief in
+this hypothesis change?
+```
+
+### Remaining Gap
+
+The current factor tables are deterministic and explicit, but still hand-set.
+That is acceptable for the first transparent implementation. The next product
+step is to make the graph emitter inspectable and compare these factor-derived
+beliefs against future intervention outcomes.
