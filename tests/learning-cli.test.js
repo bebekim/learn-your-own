@@ -10,7 +10,10 @@ import {
   seedEditVerifierThenExternalLedger,
 } from './helpers/ledger-fixtures.js';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+import {
+  ROOT,
+  runLyoJson,
+} from './helpers/cli.js';
 
 test('lyo learn style emits aggregate LLM usage and style learning candidates', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-learn-style-'));
@@ -124,12 +127,7 @@ test('lyo learn style emits aggregate LLM usage and style learning candidates', 
     `;
     execFileSync(process.execPath, ['--eval', seed, dbPath], { cwd: ROOT });
 
-    const output = execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'learn', 'style', '--db', dbPath],
-      { cwd: ROOT, encoding: 'utf8' }
-    );
-    const parsed = JSON.parse(output);
+    const parsed = runLyoJson(['learn', 'style', '--db', dbPath]);
 
     assert.equal(parsed.ok, true);
     assert.equal(parsed.learning.learningVersion, 'lyo/style-learning/v1');
@@ -153,12 +151,7 @@ test('lyo learn style emits aggregate LLM usage and style learning candidates', 
         && candidate.evidenceRunIdPreview[0] === 'learn-style-turn';
     }), true);
 
-    const verboseOutput = execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'learn', 'style', '--db', dbPath, '--verbose'],
-      { cwd: ROOT, encoding: 'utf8' }
-    );
-    const verbose = JSON.parse(verboseOutput);
+    const verbose = runLyoJson(['learn', 'style', '--db', dbPath, '--verbose']);
     assert.deepEqual(verbose.learning.analyzedRunIds, ['learn-style-turn']);
     assert.deepEqual(
       verbose.learning.learningCandidates.find((candidate) => candidate.id === 'preserve-verifier-debug-loop').evidenceRunIds,
@@ -205,12 +198,7 @@ test('lyo learn associations discovers verifier hypotheses across ledger corpus'
     seedLedger('repo-g', 'assoc-run-pytest-canonical-a', 'src/pytest.ts', 'uv run pytest tests/test_rep655_market_meter_data_report.py');
     seedLedger('repo-h', 'assoc-run-pytest-canonical-b', 'src/pytest.ts', 'uv run pytest tests/test_rep655_market_meter_data_report.py -q');
 
-    const output = execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'learn', 'associations', '--dir', dir, '--dry-run'],
-      { cwd: ROOT, encoding: 'utf8' }
-    );
-    const parsed = JSON.parse(output);
+    const parsed = runLyoJson(['learn', 'associations', '--dir', dir, '--dry-run']);
 
     assert.equal(parsed.ok, true);
     assert.equal(parsed.learning.learningVersion, 'lyo/association-learning/v1');
@@ -330,12 +318,7 @@ test('lyo learn associations discovers verifier hypotheses across ledger corpus'
       false
     );
 
-    const compactOutput = execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'learn', 'associations', '--dir', dir, '--dry-run', '--compact'],
-      { cwd: ROOT, encoding: 'utf8' }
-    );
-    const compactParsed = JSON.parse(compactOutput);
+    const compactParsed = runLyoJson(['learn', 'associations', '--dir', dir, '--dry-run', '--compact']);
     assert.equal(compactParsed.ok, true);
     assert.equal(compactParsed.learning.hypothesisCount, parsed.learning.hypothesisCount);
     assert.equal('associationHypotheses' in compactParsed.learning, false);
@@ -376,12 +359,7 @@ test('lyo learn explanation evaluates a dry-run explanation graph from JSON inpu
       }],
     }));
 
-    const output = execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'learn', 'explanation', '--dry-run', '--input', inputPath],
-      { cwd: ROOT, encoding: 'utf8' }
-    );
-    const parsed = JSON.parse(output);
+    const parsed = runLyoJson(['learn', 'explanation', '--dry-run', '--input', inputPath]);
 
     assert.equal(parsed.ok, true);
     assert.equal(parsed.learning.explanationGraphVersion, 'lyo/explanation-graph/v1');

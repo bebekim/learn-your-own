@@ -5,18 +5,17 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+import {
+  ROOT,
+  runLyo,
+  runLyoJson,
+} from './helpers/cli.js';
 
 test('lyo init creates a SQLite ledger at the requested path', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-cli-'));
   try {
     const dbPath = join(dir, 'learning.sqlite');
-    const output = execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'init', '--db', dbPath],
-      { cwd: ROOT, encoding: 'utf8' }
-    );
-    const parsed = JSON.parse(output);
+    const parsed = runLyoJson(['init', '--db', dbPath]);
     assert.equal(parsed.ok, true);
     assert.equal(parsed.dbPath, dbPath);
     assert.equal(existsSync(dbPath), true);
@@ -26,12 +25,7 @@ test('lyo init creates a SQLite ledger at the requested path', () => {
 });
 
 test('lyo demo fixture-replay shows rejected first promotion and positive credit', () => {
-  const output = execFileSync(
-    process.execPath,
-    ['src/cli.ts', 'demo', 'fixture-replay', '--db', ':memory:'],
-    { cwd: ROOT, encoding: 'utf8' }
-  );
-  const parsed = JSON.parse(output);
+  const parsed = runLyoJson(['demo', 'fixture-replay', '--db', ':memory:']);
   assert.equal(parsed.ok, true);
   assert.match(parsed.firstPromotionError, /requires at least 2 evidence items/);
   assert.equal(parsed.promoted.status, 'active');
@@ -39,11 +33,7 @@ test('lyo demo fixture-replay shows rejected first promotion and positive credit
 });
 
 test('lyo help lists effect reports and audits', () => {
-  const output = execFileSync(
-    process.execPath,
-    ['src/cli.ts', '--help'],
-    { cwd: ROOT, encoding: 'utf8' }
-  );
+  const output = runLyo(['--help']);
 
   assert.match(
     output,
@@ -119,12 +109,9 @@ test('lyo codex-hook records a hook event and emits protocol overlay context', (
       model: 'gpt-test',
       prompt: 'Please change the extraction prompt',
     };
-    const output = execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'codex-hook', '--db', dbPath, '--channel', 'function.vision.extraction'],
-      { cwd: ROOT, input: JSON.stringify(hookEvent), encoding: 'utf8' }
-    );
-    const parsed = JSON.parse(output);
+    const parsed = runLyoJson(['codex-hook', '--db', dbPath, '--channel', 'function.vision.extraction'], {
+      input: JSON.stringify(hookEvent),
+    });
     assert.equal(parsed.continue, true);
     assert.equal(parsed.hookSpecificOutput.hookEventName, 'UserPromptSubmit');
     assert.match(parsed.hookSpecificOutput.additionalContext, /Fixture replay gate/);
@@ -140,66 +127,44 @@ test('lyo codex-hook records Codex session, prompt, response, and optional promp
     const dbPath = join(dir, 'learning.sqlite');
     const promptDir = join(dir, 'prompts');
 
-    execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'codex-hook', '--db', dbPath, '--prompt-dir', promptDir],
-      {
+    runLyo(['codex-hook', '--db', dbPath, '--prompt-dir', promptDir], {
+      input: JSON.stringify({
+        session_id: 'codex-session-1',
         cwd: ROOT,
-        input: JSON.stringify({
-          session_id: 'codex-session-1',
-          cwd: ROOT,
-          hook_event_name: 'SessionStart',
-          model: 'gpt-test',
-          source: 'startup',
-        }),
-        encoding: 'utf8',
-      }
-    );
+        hook_event_name: 'SessionStart',
+        model: 'gpt-test',
+        source: 'startup',
+      }),
+    });
 
-    execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'codex-hook', '--db', dbPath, '--prompt-dir', promptDir],
-      {
+    runLyo(['codex-hook', '--db', dbPath, '--prompt-dir', promptDir], {
+      input: JSON.stringify({
+        session_id: 'codex-session-1',
+        turn_id: 'turn-1',
         cwd: ROOT,
-        input: JSON.stringify({
-          session_id: 'codex-session-1',
-          turn_id: 'turn-1',
-          cwd: ROOT,
-          hook_event_name: 'UserPromptSubmit',
-          model: 'gpt-test',
-          prompt: 'Record this prompt.\nWith a second line.',
-        }),
-        encoding: 'utf8',
-      }
-    );
+        hook_event_name: 'UserPromptSubmit',
+        model: 'gpt-test',
+        prompt: 'Record this prompt.\nWith a second line.',
+      }),
+    });
 
-    execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'codex-hook', '--db', dbPath],
-      {
+    runLyo(['codex-hook', '--db', dbPath], {
+      input: JSON.stringify({
+        session_id: 'codex-session-1',
+        turn_id: 'turn-1',
         cwd: ROOT,
-        input: JSON.stringify({
-          session_id: 'codex-session-1',
-          turn_id: 'turn-1',
-          cwd: ROOT,
-          hook_event_name: 'Stop',
-          model: 'gpt-test',
-          last_assistant_message: 'Recorded the prompt successfully.',
-        }),
-        encoding: 'utf8',
-      }
-    );
+        hook_event_name: 'Stop',
+        model: 'gpt-test',
+        last_assistant_message: 'Recorded the prompt successfully.',
+      }),
+    });
 
     assert.equal(
       readFileSync(join(promptDir, 'turn-1-user.txt'), 'utf8'),
       'Record this prompt.\nWith a second line.'
     );
 
-    const summary = JSON.parse(execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'report', '--db', dbPath],
-      { cwd: ROOT, encoding: 'utf8' }
-    ));
+    const summary = runLyoJson(['report', '--db', dbPath]);
     assert.equal(summary.ok, true);
     assert.equal(summary.sessions, 1);
     assert.equal(summary.promptBoundaries, 2);
@@ -215,47 +180,31 @@ test('lyo claude-hook records Claude session and prompt events', () => {
     const dbPath = join(dir, 'learning.sqlite');
     const promptDir = join(dir, 'prompts');
 
-    const sessionOutput = execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'claude-hook', '--db', dbPath, '--prompt-dir', promptDir],
-      {
+    const sessionOutput = runLyo(['claude-hook', '--db', dbPath, '--prompt-dir', promptDir], {
+      input: JSON.stringify({
+        session_id: 'claude-session-1',
         cwd: ROOT,
-        input: JSON.stringify({
-          session_id: 'claude-session-1',
-          cwd: ROOT,
-          hook_event_name: 'SessionStart',
-          model: 'claude-test',
-          source: 'startup',
-        }),
-        encoding: 'utf8',
-      }
-    );
+        hook_event_name: 'SessionStart',
+        model: 'claude-test',
+        source: 'startup',
+      }),
+    });
     assert.deepEqual(JSON.parse(sessionOutput), {});
 
-    const promptOutput = execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'claude-hook', '--db', dbPath, '--prompt-dir', promptDir],
-      {
+    const promptOutput = runLyo(['claude-hook', '--db', dbPath, '--prompt-dir', promptDir], {
+      input: JSON.stringify({
+        session_id: 'claude-session-1',
+        turn_id: 'turn-1',
         cwd: ROOT,
-        input: JSON.stringify({
-          session_id: 'claude-session-1',
-          turn_id: 'turn-1',
-          cwd: ROOT,
-          hook_event_name: 'UserPromptSubmit',
-          model: 'claude-test',
-          prompt: 'Record this Claude prompt.',
-        }),
-        encoding: 'utf8',
-      }
-    );
+        hook_event_name: 'UserPromptSubmit',
+        model: 'claude-test',
+        prompt: 'Record this Claude prompt.',
+      }),
+    });
     assert.deepEqual(JSON.parse(promptOutput), {});
     assert.equal(readFileSync(join(promptDir, 'turn-1-user.txt'), 'utf8'), 'Record this Claude prompt.');
 
-    const summary = JSON.parse(execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'report', '--db', dbPath],
-      { cwd: ROOT, encoding: 'utf8' }
-    ));
+    const summary = runLyoJson(['report', '--db', dbPath]);
     assert.equal(summary.ok, true);
     assert.equal(summary.sessions, 1);
     assert.equal(summary.promptBoundaries, 1);
@@ -367,9 +316,7 @@ test('lyo experiment compares baseline, treatment, and variant attempts from a l
         'src/compiler/** -> tests/compiler-frontend.test.js',
         '--next-experiment',
         'try another compiler module variant',
-      ],
-      { cwd: ROOT, encoding: 'utf8' }
-    );
+      ]);
     const parsed = JSON.parse(output);
 
     assert.equal(parsed.ok, true);
@@ -428,11 +375,7 @@ test('lyo codex-hook can store records under the event cwd', () => {
       'Record this in the event workspace.'
     );
 
-    const summary = JSON.parse(execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'report', '--db', dbPath],
-      { cwd: ROOT, encoding: 'utf8' }
-    ));
+    const summary = runLyoJson(['report', '--db', dbPath]);
     assert.equal(summary.ok, true);
     assert.equal(summary.sessions, 1);
     assert.equal(summary.promptBoundaries, 1);
@@ -493,11 +436,7 @@ test('lyo session-start and record-prompt write observer rows without an externa
     assert.equal(prompt.ok, true);
     assert.equal(prompt.prompt.promptId, 'session-cli-1:prompt:0');
 
-    const report = JSON.parse(execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'report', '--db', dbPath],
-      { cwd: ROOT, encoding: 'utf8' }
-    ));
+    const report = runLyoJson(['report', '--db', dbPath]);
     assert.equal(report.sessions, 1);
     assert.equal(report.promptBoundaries, 1);
   } finally {
@@ -589,9 +528,7 @@ test('lyo tape records a verifier-gated closed loop', () => {
   try {
     const dbPath = join(dir, 'learning.sqlite');
 
-    execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'run-start', '--db', dbPath, '--run-id', 'run-tape-cli', '--task-shape', 'local-dev', '--channel', 'agent.task'],
+    runLyo(['run-start', '--db', dbPath, '--run-id', 'run-tape-cli', '--task-shape', 'local-dev', '--channel', 'agent.task'],
       { cwd: ROOT }
     );
     execFileSync(
@@ -615,11 +552,7 @@ test('lyo tape records a verifier-gated closed loop', () => {
       { cwd: ROOT }
     );
 
-    const failedView = JSON.parse(execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'tape', 'view', '--db', dbPath, '--run-id', 'run-tape-cli'],
-      { cwd: ROOT, encoding: 'utf8' }
-    ));
+    const failedView = runLyoJson(['tape', 'view', '--db', dbPath, '--run-id', 'run-tape-cli']);
     assert.equal(failedView.ok, true);
     assert.equal(failedView.view.state, 'verifying');
     assert.equal(failedView.view.scan.passed, false);
@@ -629,17 +562,13 @@ test('lyo tape records a verifier-gated closed loop', () => {
     try {
       execFileSync(
         process.execPath,
-        ['src/cli.ts', 'tape', 'record', '--db', dbPath, '--run-id', 'run-tape-cli', '--kind', 'outcome_completed', '--summary', 'Install completed.', '--evidence-ref', 'outcome:premature'],
-        { cwd: ROOT, encoding: 'utf8' }
-      );
+        ['src/cli.ts', 'tape', 'record', '--db', dbPath, '--run-id', 'run-tape-cli', '--kind', 'outcome_completed', '--summary', 'Install completed.', '--evidence-ref', 'outcome:premature']);
     } catch (error) {
       rejectedOutcome = JSON.parse(error.stdout);
     }
     assert.match(rejectedOutcome.error.message, /illegal tape transition/);
 
-    execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'tape', 'record', '--db', dbPath, '--run-id', 'run-tape-cli', '--kind', 'gap', '--summary', 'Binary missing from PATH.', '--evidence-ref', 'gap:missing-path'],
+    runLyo(['tape', 'record', '--db', dbPath, '--run-id', 'run-tape-cli', '--kind', 'gap', '--summary', 'Binary missing from PATH.', '--evidence-ref', 'gap:missing-path'],
       { cwd: ROOT }
     );
     execFileSync(
@@ -658,11 +587,7 @@ test('lyo tape records a verifier-gated closed loop', () => {
       { cwd: ROOT }
     );
 
-    const completedView = JSON.parse(execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'tape', 'view', '--db', dbPath, '--run-id', 'run-tape-cli'],
-      { cwd: ROOT, encoding: 'utf8' }
-    ));
+    const completedView = runLyoJson(['tape', 'view', '--db', dbPath, '--run-id', 'run-tape-cli']);
     assert.equal(completedView.view.state, 'completed');
     assert.equal(completedView.view.cells.length, 8);
     assert.deepEqual(completedView.view.legalNextKinds, []);
@@ -735,9 +660,7 @@ test('lyo harness learns a verifier gate from observed tapes', () => {
         'run-unverified-cli',
         '--protocol-id',
         'harness_verifier_gate_cli',
-      ],
-      { cwd: ROOT, encoding: 'utf8' }
-    ));
+      ]));
 
     assert.equal(learned.ok, true);
     assert.equal(learned.learned.protocol.protocolId, 'harness_verifier_gate_cli');
@@ -797,11 +720,7 @@ test('lyo model-call record writes model usage into the ledger report', () => {
     assert.equal(recorded.modelCall.totalTokens, 100);
     assert.equal(recorded.modelCall.promptHash.length, 64);
 
-    const report = JSON.parse(execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'report', '--db', dbPath],
-      { cwd: ROOT, encoding: 'utf8' }
-    ));
+    const report = runLyoJson(['report', '--db', dbPath]);
     assert.equal(report.modelCalls, 1);
     assert.equal(report.totalModelTokens, 100);
     assert.equal(report.estimatedModelCost, 0.003);
@@ -875,20 +794,12 @@ test('lyo CLI records workspace activation tracer bullet and reports association
     assert.equal(derived.ok, true);
     assert.equal(derived.zoneCoactivations.length, 1);
 
-    const report = JSON.parse(execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'activation', 'report', '--db', dbPath, '--job-id', 'REP-456'],
-      { cwd: ROOT, encoding: 'utf8' }
-    ));
+    const report = runLyoJson(['activation', 'report', '--db', dbPath, '--job-id', 'REP-456']);
     assert.equal(report.ok, true);
     assert.equal(report.pathActivations.length, 2);
     assert.equal(report.zoneCoactivations.length, 1);
 
-    const associations = JSON.parse(execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'zone', 'associations', '--db', dbPath, '--workspace-id', 'nectr'],
-      { cwd: ROOT, encoding: 'utf8' }
-    ));
+    const associations = runLyoJson(['zone', 'associations', '--db', dbPath, '--workspace-id', 'nectr']);
     assert.equal(associations.ok, true);
     assert.equal(associations.associations.length, 1);
     assert.equal(associations.associations[0].positiveOutcomes, 1);
@@ -927,9 +838,7 @@ test('lyo normalize hooks turns Codex hook events into activation records', () =
       '--kind', 'external_command',
     ], { cwd: ROOT });
 
-    execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'codex-hook', '--db', dbPath],
+    runLyo(['codex-hook', '--db', dbPath],
       {
         cwd: ROOT,
         input: JSON.stringify({
@@ -958,22 +867,14 @@ test('lyo normalize hooks turns Codex hook events into activation records', () =
       }
     );
 
-    const normalized = JSON.parse(execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'normalize', 'hooks', '--db', dbPath, '--workspace-id', 'demo'],
-      { cwd: ROOT, encoding: 'utf8' }
-    ));
+    const normalized = runLyoJson(['normalize', 'hooks', '--db', dbPath, '--workspace-id', 'demo']);
     assert.equal(normalized.ok, true);
     assert.equal(normalized.processedEvents, 2);
     assert.equal(normalized.pathActivations, 1);
     assert.equal(normalized.commandActivations, 1);
     assert.equal(normalized.zoneCoactivations, 1);
 
-    const report = JSON.parse(execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'activation', 'report', '--db', dbPath, '--job-id', normalized.jobs[0]],
-      { cwd: ROOT, encoding: 'utf8' }
-    ));
+    const report = runLyoJson(['activation', 'report', '--db', dbPath, '--job-id', normalized.jobs[0]]);
     assert.equal(report.ok, true);
     assert.equal(report.commandActivations[0].classification, 'unknown');
     assert.equal(report.pathActivations[0].path, 'src/index.ts');
@@ -993,16 +894,12 @@ test('lyo CLI initializes Nectr defaults and recommends associated zones from pa
         'src/cli.ts', 'workspace', 'init-nectr',
         '--db', dbPath,
         '--root', dir,
-      ],
-      { cwd: ROOT, encoding: 'utf8' }
-    ));
+      ]));
     assert.equal(initialized.ok, true);
     assert.equal(initialized.workspace.workspaceId, 'nectr_data_eng');
     assert.equal(initialized.zones.length, 8);
 
-    execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'codex-hook', '--db', dbPath, '--no-normalize-on-tool-use'],
+    runLyo(['codex-hook', '--db', dbPath, '--no-normalize-on-tool-use'],
       {
         cwd: ROOT,
         input: JSON.stringify({
@@ -1038,9 +935,7 @@ test('lyo CLI initializes Nectr defaults and recommends associated zones from pa
         '--db', dbPath,
         '--workspace-id', 'nectr_data_eng',
         '--outcome', 'positive',
-      ],
-      { cwd: ROOT, encoding: 'utf8' }
-    ));
+      ]));
     assert.equal(normalized.ok, true);
     assert.equal(normalized.zoneCoactivations, 1);
 
@@ -1089,21 +984,13 @@ test('lyo codex-hook can spool events before normalize hooks drains them', () =>
     assert.equal(existsSync(dbPath), false);
     assert.equal(readdirSync(join(spoolDir, 'incoming')).length, 1);
 
-    const normalized = JSON.parse(execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'normalize', 'hooks', '--db', dbPath, '--spool-dir', spoolDir],
-      { cwd: ROOT, encoding: 'utf8' }
-    ));
+    const normalized = runLyoJson(['normalize', 'hooks', '--db', dbPath, '--spool-dir', spoolDir]);
     assert.equal(normalized.ok, true);
     assert.equal(normalized.spool.processedPackets, 1);
     assert.equal(normalized.processedEvents, 1);
     assert.equal(readdirSync(join(spoolDir, 'incoming')).length, 0);
 
-    const report = JSON.parse(execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'activation', 'report', '--db', dbPath, '--job-id', normalized.jobs[0]],
-      { cwd: ROOT, encoding: 'utf8' }
-    ));
+    const report = runLyoJson(['activation', 'report', '--db', dbPath, '--job-id', normalized.jobs[0]]);
     assert.equal(report.ok, true);
     assert.equal(report.commandActivations[0].classification, 'unknown');
   } finally {
@@ -1148,7 +1035,7 @@ test('lyo codex-hook avoids unsupported continue field for PreToolUse output', (
   const dir = mkdtempSync(join(tmpdir(), 'lyo-codex-pretool-'));
   try {
     const dbPath = join(dir, 'learning.sqlite');
-    execFileSync(process.execPath, ['src/cli.ts', 'init', '--db', dbPath], { cwd: ROOT });
+    runLyo(['init', '--db', dbPath]);
     const output = execFileSync(
       process.execPath,
       ['src/cli.ts', 'codex-hook', '--db', dbPath],

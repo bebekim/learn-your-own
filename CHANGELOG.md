@@ -96,6 +96,10 @@ release.
   - moved compact learning output shaping into `src/cli/presenters/learning.ts`
   - moved learn, report, and audit CLI tests into command-family test files
   - extracted reusable association ledger seeding fixtures for CLI tests
+- Added shared CLI test execution helpers:
+  - `runLyo` for raw CLI output
+  - `runLyoJson` for parsed JSON responses
+  - expected-failure support for tests that assert structured CLI errors
 
 ## 0.2.0
 

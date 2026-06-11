@@ -5,7 +5,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+import {
+  ROOT,
+  runLyoJson,
+} from './helpers/cli.js';
 
 test('lyo report emits semantic run analysis for a run id', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-semantic-report-'));
@@ -52,12 +55,7 @@ test('lyo report emits semantic run analysis for a run id', () => {
     `;
     execFileSync(process.execPath, ['--eval', seed, dbPath], { cwd: ROOT });
 
-    const output = execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'report', '--db', dbPath, '--semantic', '--run-id', 'semantic-turn'],
-      { cwd: ROOT, encoding: 'utf8' }
-    );
-    const parsed = JSON.parse(output);
+    const parsed = runLyoJson(['report', '--db', dbPath, '--semantic', '--run-id', 'semantic-turn']);
 
     assert.equal(parsed.ok, true);
     assert.equal(parsed.semantic.runId, 'semantic-turn');
@@ -72,23 +70,13 @@ test('lyo report emits semantic run analysis for a run id', () => {
       failedAttempts: 0,
     }]);
 
-    const lowerOutput = execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'report', '--db', dbPath, '--semantic', '--lower', '--run-id', 'semantic-turn'],
-      { cwd: ROOT, encoding: 'utf8' }
-    );
-    const lowerParsed = JSON.parse(lowerOutput);
+    const lowerParsed = runLyoJson(['report', '--db', dbPath, '--semantic', '--lower', '--run-id', 'semantic-turn']);
     assert.equal(lowerParsed.ok, true);
     assert.deepEqual(lowerParsed.loweringPlan.verifierDrafts, ['npm test verifies src/main.ts']);
     assert.deepEqual(lowerParsed.loweringPlan.milestoneDrafts, ['verify_src_main_ts completed after 0 failed attempts']);
     assert.deepEqual(lowerParsed.loweringPlan.procedureDrafts, ['edit -> test pass']);
 
-    const effectsOutput = execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'report', '--db', dbPath, '--effects', '--run-id', 'semantic-turn'],
-      { cwd: ROOT, encoding: 'utf8' }
-    );
-    const effectsParsed = JSON.parse(effectsOutput);
+    const effectsParsed = runLyoJson(['report', '--db', dbPath, '--effects', '--run-id', 'semantic-turn']);
     assert.equal(effectsParsed.ok, true);
     assert.equal(effectsParsed.effects.effectVersion, 'lyo/effect/v1');
     assert.match(effectsParsed.effects.effectSignature, /^sha256:[a-f0-9]{64}$/);
@@ -246,12 +234,7 @@ test('lyo report emits workflow style analysis for a run id', () => {
     `;
     execFileSync(process.execPath, ['--eval', seed, dbPath], { cwd: ROOT });
 
-    const output = execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'report', '--db', dbPath, '--style', '--run-id', 'style-turn'],
-      { cwd: ROOT, encoding: 'utf8' }
-    );
-    const parsed = JSON.parse(output);
+    const parsed = runLyoJson(['report', '--db', dbPath, '--style', '--run-id', 'style-turn']);
 
     assert.equal(parsed.ok, true);
     assert.equal(parsed.style.styleVersion, 'lyo/workflow-style/v1');
@@ -362,22 +345,16 @@ test('lyo report emits candidate at-bat evaluation for a run id and task context
     `;
     execFileSync(process.execPath, ['--eval', seed, dbPath], { cwd: ROOT });
 
-    const output = execFileSync(
-      process.execPath,
-      [
-        'src/cli.ts',
-        'report',
-        '--db',
-        dbPath,
-        '--at-bat',
-        '--run-id',
-        'at-bat-turn',
-        '--task-context',
-        taskContextPath,
-      ],
-      { cwd: ROOT, encoding: 'utf8' }
-    );
-    const parsed = JSON.parse(output);
+    const parsed = runLyoJson([
+      'report',
+      '--db',
+      dbPath,
+      '--at-bat',
+      '--run-id',
+      'at-bat-turn',
+      '--task-context',
+      taskContextPath,
+    ]);
 
     assert.equal(parsed.ok, true);
     assert.equal(parsed.atBat.reportVersion, 'lyo/candidate-at-bat/v1');
@@ -397,11 +374,7 @@ test('lyo report emits candidate at-bat evaluation for a run id and task context
     assert.equal(parsed.atBat.techniqueSignature.includes('verifier-first'), true);
     assert.equal(parsed.atBat.evidenceRefs.includes('hook:at-bat-cli-04-test'), true);
 
-    const summary = JSON.parse(execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'report', '--db', dbPath],
-      { cwd: ROOT, encoding: 'utf8' }
-    ));
+    const summary = runLyoJson(['report', '--db', dbPath]);
     assert.equal(summary.hookEvents, 5);
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -421,34 +394,20 @@ test('lyo report rejects malformed candidate at-bat task context clearly', () =>
       allowedTools: [],
     }), 'utf8');
 
-    execFileSync(process.execPath, ['src/cli.ts', 'init', '--db', dbPath], { cwd: ROOT });
+    runLyoJson(['init', '--db', dbPath]);
 
-    assert.throws(
-      () => execFileSync(
-        process.execPath,
-        [
-          'src/cli.ts',
-          'report',
-          '--db',
-          dbPath,
-          '--at-bat',
-          '--run-id',
-          'missing-run',
-          '--task-context',
-          taskContextPath,
-        ],
-        { cwd: ROOT, encoding: 'utf8' }
-      ),
-      (error) => {
-        const output = error && typeof error === 'object' && 'stdout' in error
-          ? String(error.stdout)
-          : '';
-        const parsed = JSON.parse(output);
-        assert.equal(parsed.ok, false);
-        assert.match(parsed.error.message, /missing baseline object/);
-        return true;
-      }
-    );
+    const parsed = runLyoJson([
+      'report',
+      '--db',
+      dbPath,
+      '--at-bat',
+      '--run-id',
+      'missing-run',
+      '--task-context',
+      taskContextPath,
+    ], { expectFailure: true });
+    assert.equal(parsed.ok, false);
+    assert.match(parsed.error.message, /missing baseline object/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

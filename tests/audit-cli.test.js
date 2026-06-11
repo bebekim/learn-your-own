@@ -5,7 +5,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+import {
+  ROOT,
+  runLyoJson,
+} from './helpers/cli.js';
 
 test('lyo audit scans .agent-learning SQLite ledgers for effect metrics', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-effect-audit-'));
@@ -127,12 +130,7 @@ test('lyo audit scans .agent-learning SQLite ledgers for effect metrics', () => 
     `;
     execFileSync(process.execPath, ['--eval', seed, dbPath], { cwd: ROOT });
 
-    const output = execFileSync(
-      process.execPath,
-      ['src/cli.ts', 'audit', '--dir', dir],
-      { cwd: ROOT, encoding: 'utf8' }
-    );
-    const parsed = JSON.parse(output);
+    const parsed = runLyoJson(['audit', '--dir', dir]);
 
     assert.equal(parsed.ok, true);
     assert.equal(parsed.auditVersion, 'lyo/effect-audit/v1');
