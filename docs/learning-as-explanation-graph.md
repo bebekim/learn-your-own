@@ -188,6 +188,42 @@ or artifact helps future work.
 
 ## Mapping To Existing Lyo Layers
 
+The broader software-engineering model is:
+
+```text
+Traditional software:
+  S = (R, P, E, V)
+
+  R = runtime resources
+  P = persistent program structure
+  E = execution environment
+  V = verifier / evaluation harness
+
+Agentic software:
+  A = (L, T, Mem, Policy)
+
+  L      = language model / reasoning engine
+  T      = executable tools
+  Mem    = memory and retrieved context
+  Policy = planning, routing, and action-selection mechanism
+```
+
+Lyo's learning target is the adaptive trace loop between those two worlds:
+
+```text
+o_t       = observe(s_t)
+b_t       = infer(b_{t-1}, o_t, Mem_t)
+a_t       = Policy(b_t, goal, T)
+effect_t  = execute(a_t)
+s_{t+1}   = transition(s_t, effect_t)
+v_t       = verify(s_{t+1}, goal)
+Mem_{t+1} = learn(Mem_t, trace_t, v_t)
+```
+
+In plain terms, Lyo observes an agentic software loop as it changes a traditional
+software state, then updates future context only when evidence changes the
+credibility of an explanation.
+
 The current Lyo layers fit cleanly into this view:
 
 ```text

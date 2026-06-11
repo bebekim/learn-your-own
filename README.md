@@ -55,6 +55,18 @@ association is hypothesis generation
 learning is inference over explanations plus intervention and feedback
 ```
 
+Lyo's working model of agentic software engineering is:
+
+```text
+intent
+-> agent/user policy
+-> actions and effects
+-> verification
+-> explanation-aware belief update
+-> future context or artifact delivery
+-> later evidence
+```
+
 ## Current Package
 
 ```sh

@@ -5,6 +5,140 @@ not a specification and does not define promised behavior. Specs say what the
 product should do; this log records what the product has revealed so far, where
 the evidence is strong, and where the product is still misleading.
 
+## 2026-06-11: Cherry-Picked Agentic Software Lessons
+
+The useful lesson from the agentic-software framing is not that all traditional
+software disappears. The useful lesson is that Lyo should model software work as
+a controlled adaptive trace, not only as source-code production.
+
+Traditional software can be described as:
+
+```text
+S = (R, P, E, V)
+
+R = runtime resources
+P = persistent program structure
+E = execution environment
+V = verifier / evaluation harness
+```
+
+The important property is that most decision structure in `P` is persistent and
+must be designed, reviewed, changed, and verified by humans or by human-directed
+agents.
+
+Agentic software is better described as:
+
+```text
+A = (L, T, Mem, Policy)
+
+L      = language model / reasoning engine
+T      = executable tools
+Mem    = memory and retrieved context
+Policy = planning, routing, and action-selection mechanism
+```
+
+The useful state loop for Lyo is:
+
+```text
+o_t       = observe(s_t)
+b_t       = infer(b_{t-1}, o_t, Mem_t)
+a_t       = Policy(b_t, goal, T)
+effect_t  = execute(a_t)
+s_{t+1}   = transition(s_t, effect_t)
+v_t       = verify(s_{t+1}, goal)
+Mem_{t+1} = learn(Mem_t, trace_t, v_t)
+```
+
+Plain English:
+
+```text
+observe the system
+update belief/context
+choose an action
+produce an effect
+verify the changed state
+revise memory from the evidence
+```
+
+This is the software-engineering model Lyo should care about. It turns the
+question from:
+
+```text
+Did the agent generate code?
+```
+
+into:
+
+```text
+Did the agentic loop transform state into verified progress, and did the
+evidence improve future loops?
+```
+
+### Lessons Adopted
+
+Adopt:
+
+```text
+traditional software = persistent decision structure under verification
+agentic software = runtime policy plus tools, memory, and verification
+learning = evidence-backed change to future loop behavior
+```
+
+Adopt the perception-memory-action framing:
+
+```text
+perception -> telemetry normalization
+memory     -> explanation beliefs and scoped lessons
+action     -> commands, edits, tests, tool calls
+environment -> repo, shell, services, databases
+```
+
+Adopt the contrast:
+
+```text
+AI-assisted coding:
+  intent -> human/LLM coding loop -> static code -> execution -> result
+
+Agentic engineering:
+  intent -> agent loop -> tool actions/effects -> verification -> result
+
+Lyo learning:
+  intent -> loop -> effects -> verification -> belief update
+  -> future context/intervention -> later evidence
+```
+
+### Lessons Not Adopted Raw
+
+Do not depend on the paper's strongest asymptotic claims as product doctrine:
+
+```text
+all interaction topologies scale as 2^(n^2)
+human cognitive capacity is literally O(1)
+model capacity cleanly replaces human judgment
+```
+
+Those are useful rhetorical pointers, but they are too broad for Lyo's evidence
+model. Lyo should use weaker, more defensible claims:
+
+```text
+interaction surfaces grow faster than review bandwidth
+human attention and context are bounded
+agentic work still needs telemetry, verification, and governance
+```
+
+### Product Implication
+
+Lyo should not become a static memory notebook. It should become the observability
+and learning layer for agentic software engineering:
+
+```text
+trace what happened
+summarize effects
+infer provisional explanations
+deliver scoped context/artifacts
+measure whether future behavior improved
+```
+
 ## 2026-06-11: Work Corpus Association Learning Dogfood
 
 ### Question

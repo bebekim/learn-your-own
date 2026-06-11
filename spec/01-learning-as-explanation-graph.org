@@ -57,6 +57,60 @@ experiment report:
   feedback record comparing prediction to observed outcome
 #+end_src
 
+* Software Engineering State Model
+
+The explanation graph sits inside a broader model of software work.
+
+Traditional software:
+
+#+begin_src text
+S = (R, P, E, V)
+
+R = runtime resources
+P = persistent program structure
+E = execution environment
+V = verifier / evaluation harness
+#+end_src
+
+Agentic software:
+
+#+begin_src text
+A = (L, T, Mem, Policy)
+
+L      = language model / reasoning engine
+T      = executable tools
+Mem    = memory and retrieved context
+Policy = planning, routing, and action-selection mechanism
+#+end_src
+
+Lyo models the adaptive trace loop:
+
+#+begin_src text
+o_t       = observe(s_t)
+b_t       = infer(b_{t-1}, o_t, Mem_t)
+a_t       = Policy(b_t, goal, T)
+effect_t  = execute(a_t)
+s_{t+1}   = transition(s_t, effect_t)
+v_t       = verify(s_{t+1}, goal)
+Mem_{t+1} = learn(Mem_t, trace_t, v_t)
+#+end_src
+
+In this model:
+
+#+begin_src text
+effect algebra:
+  summarizes effect_t
+
+explanation graph:
+  updates belief over why v_t changed
+
+artifact delivery:
+  changes Mem_t or Policy inputs for a future loop
+
+experiment report:
+  checks whether the changed future loop improved outcomes
+#+end_src
+
 * Variable Nodes
 
 Initial variable node kinds:
