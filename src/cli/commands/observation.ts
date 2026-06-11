@@ -16,6 +16,12 @@ import {
   recordPromptBoundary,
   recordSessionStarted,
 } from '../../reducers.ts';
+import {
+  observationEffectsResponse,
+  observationLoweringPlanResponse,
+  observationReportResponse,
+  observationSummaryResponse,
+} from '../presenters/observation.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
 import { withKernel } from './context.ts';
 
@@ -71,10 +77,10 @@ function reportCommand(args: CommandArgs): unknown {
 
     return withKernel(args, (kernel) => {
       const telemetry = compileTelemetryRunAst(kernel, { runId });
-      return {
-        ok: true,
-        atBat: buildCandidateAtBatReport(kernel, telemetry, taskContext),
-      };
+      return observationReportResponse(
+        'atBat',
+        buildCandidateAtBatReport(kernel, telemetry, taskContext)
+      );
     });
   }
 
@@ -82,19 +88,15 @@ function reportCommand(args: CommandArgs): unknown {
     const runId = args.requiredFlag('--run-id');
     return withKernel(args, (kernel) => {
       const telemetry = compileTelemetryRunAst(kernel, { runId });
-      return {
-        ok: true,
-        style: buildWorkflowStyleReport(kernel, telemetry),
-      };
+      return observationReportResponse('style', buildWorkflowStyleReport(kernel, telemetry));
     });
   }
 
   if (args.hasFlag('--effects')) {
     const runId = args.requiredFlag('--run-id');
-    return withKernel(args, (kernel) => ({
-      ok: true,
-      effects: buildEffectReport(compileTelemetryRunAst(kernel, { runId })),
-    }));
+    return withKernel(args, (kernel) => (
+      observationEffectsResponse(buildEffectReport(compileTelemetryRunAst(kernel, { runId })))
+    ));
   }
 
   if (args.hasFlag('--semantic')) {
@@ -104,20 +106,14 @@ function reportCommand(args: CommandArgs): unknown {
       const semantic = analyzeTelemetrySemantics(telemetry);
 
       if (args.hasFlag('--lower')) {
-        return {
-          ok: true,
-          loweringPlan: planSemanticLowering({ telemetry, semantic }),
-        };
+        return observationLoweringPlanResponse(planSemanticLowering({ telemetry, semantic }));
       }
 
-      return {
-        ok: true,
-        semantic,
-      };
+      return observationReportResponse('semantic', semantic);
     });
   }
 
-  return withKernel(args, (kernel) => ({ ok: true, ...getObserverSummary(kernel) }));
+  return withKernel(args, (kernel) => observationSummaryResponse(getObserverSummary(kernel)));
 }
 
 function auditCommand(args: CommandArgs): unknown {
@@ -156,16 +152,16 @@ function experimentCommand(args: CommandArgs): unknown {
       });
     }
 
-    return {
-      ok: true,
-      experiment: buildCyberneticExperimentReport({
+    return observationReportResponse(
+      'experiment',
+      buildCyberneticExperimentReport({
         familyId,
         attempts,
         associationEdges: associationEdge && artifactId
           ? [{ edge: associationEdge, artifactId }]
           : [],
         nextExperiment: args.flagValue('--next-experiment') ?? null,
-      }),
-    };
+      })
+    );
   });
 }
