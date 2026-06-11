@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 
 import { buildAssociationLearningReport } from '../../compiler/association-learning.ts';
+import type {
+  AssociationHypothesis,
+  AssociationLearningReport,
+} from '../../compiler/association-learning.ts';
 import { buildExplanationGraphReport } from '../../compiler/explanation-graph.ts';
 import { buildStyleLearningReport } from '../../compiler/style-learning.ts';
 import type { ExplanationGraphInput } from '../../compiler/explanation-graph.ts';
@@ -21,12 +25,58 @@ function learnAssociationsCommand(args: CommandArgs): unknown {
   if (!args.hasFlag('--dry-run')) {
     throw new Error('learn associations is currently dry-run only; pass --dry-run');
   }
+  const report = buildAssociationLearningReport({
+    root: args.flagValue('--dir') ?? args.cwd,
+  });
 
   return {
     ok: true,
-    learning: buildAssociationLearningReport({
-      root: args.flagValue('--dir') ?? args.cwd,
-    }),
+    learning: args.hasFlag('--compact') ? compactAssociationLearningReport(report) : report,
+  };
+}
+
+function compactAssociationLearningReport(report: AssociationLearningReport): unknown {
+  const {
+    analyzedRunIds,
+    associationHypotheses,
+    evidenceEvents,
+    explanationBeliefs,
+    ...rest
+  } = report;
+  const promotionCandidates = associationHypotheses.filter((hypothesis) => hypothesis.promotionCandidate);
+  const blockedHypotheses = associationHypotheses.filter((hypothesis) => !hypothesis.promotionCandidate);
+
+  return {
+    ...rest,
+    analyzedRunCount: analyzedRunIds.length,
+    analyzedRunIdPreview: analyzedRunIds.slice(0, 20),
+    promotableCandidateCount: promotionCandidates.length,
+    blockedHypothesisCount: blockedHypotheses.length,
+    evidenceEventCount: evidenceEvents.length,
+    explanationBeliefCount: explanationBeliefs.length,
+    topPromotionCandidates: promotionCandidates.slice(0, 10).map(compactAssociationHypothesis),
+    topBlockedHypotheses: blockedHypotheses.slice(0, 10).map(compactAssociationHypothesis),
+  };
+}
+
+function compactAssociationHypothesis(hypothesis: AssociationHypothesis): unknown {
+  return {
+    id: hypothesis.id,
+    source: hypothesis.source,
+    relation: hypothesis.relation,
+    target: hypothesis.target,
+    credibility: hypothesis.credibility,
+    promotionCandidate: hypothesis.promotionCandidate,
+    promotionBlockers: hypothesis.promotionBlockers,
+    supportCount: hypothesis.supportCount,
+    weakenCount: hypothesis.weakenCount,
+    defeatCount: hypothesis.defeatCount,
+    distinctRunCount: hypothesis.distinctRunCount,
+    distinctLedgerCount: hypothesis.distinctLedgerCount,
+    scopeWarnings: hypothesis.scopeWarnings,
+    policyWarnings: hypothesis.policyWarnings,
+    runPolicyWarnings: hypothesis.runPolicyWarnings,
+    recommendedNextExperiment: hypothesis.recommendedNextExperiment,
   };
 }
 

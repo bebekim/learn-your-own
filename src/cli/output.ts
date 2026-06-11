@@ -18,7 +18,7 @@ export function usage(exitCode = 0): never {
 	  lyo harness learn-verifier-gate [--db path] --chosen-run-id id --rejected-run-id id [--protocol-id id] [--scope-kind worktree|repository|channel] [--scope-value value] [--recorded-by name]
 	  lyo exercise view [--db path] [--exercise-id id] [--run-id id] [--limit n]
 	  lyo learn style [--db path] [--verbose]
-	  lyo learn associations [--dir path] --dry-run
+	  lyo learn associations [--dir path] --dry-run [--compact]
 	  lyo learn explanation --dry-run --input path
 	  lyo workspace register [--db path] --root path [--workspace-id id] [--name name]
 	  lyo workspace init-nectr [--db path] --root path [--workspace-id id] [--name name]

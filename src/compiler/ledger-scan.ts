@@ -51,11 +51,14 @@ export function openReadOnlyLedger(dbPath: string): DatabaseSync {
   const errors: string[] = [];
 
   for (const filename of attempts) {
+    let db: DatabaseSync | null = null;
     try {
-      const db = new DatabaseSync(filename, { readOnly: true });
+      db = new DatabaseSync(filename, { readOnly: true });
       db.exec('PRAGMA query_only = ON');
+      db.prepare('select name from sqlite_master limit 1').get();
       return db;
     } catch (error) {
+      db?.close();
       errors.push(error instanceof Error ? error.message : String(error));
     }
   }

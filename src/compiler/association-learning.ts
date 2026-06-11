@@ -72,6 +72,8 @@ export interface AssociationHypothesis {
   prerequisites: string[];
   knownDefeaters: string[];
   credibility: AssociationCredibility;
+  promotionCandidate: boolean;
+  promotionBlockers: string[];
   supportCount: number;
   weakenCount: number;
   defeatCount: number;
@@ -81,6 +83,7 @@ export interface AssociationHypothesis {
   activatedSourceExamples: string[];
   scopeWarnings: string[];
   policyWarnings: string[];
+  runPolicyWarnings: string[];
   evidenceEventIds: string[];
   recommendedNextExperiment: string;
 }
@@ -97,6 +100,7 @@ export interface AssociationEvidenceEvent {
   rivalExplanations: string[];
   defeatersPresent: string[];
   policyWarnings: string[];
+  runPolicyWarnings: string[];
   evidenceIndependence: AssociationEvidenceIndependence;
   evidenceNovelty: AssociationEvidenceNovelty;
   credibilityEffect: AssociationCredibilityEffect;
@@ -141,6 +145,7 @@ export interface AssociationExplanationBelief {
     distinctLedgerCount: number;
     scopeWarnings: string[];
     policyWarnings: string[];
+    runPolicyWarnings: string[];
   };
   explanation: ExplanationGraphReport;
 }
@@ -173,6 +178,7 @@ interface HypothesisAccumulator {
   activatedSources: Set<string>;
   scopeWarnings: Set<string>;
   policyWarnings: Set<string>;
+  runPolicyWarnings: Set<string>;
 }
 
 export function buildAssociationLearningReport(input: { root: string }): AssociationLearningReport {
@@ -283,6 +289,7 @@ function discoverAssociations(samples: RunSample[]): {
         accumulator.activatedSources.add(source.resourceRef);
         for (const warning of sourceScopeWarnings(source.source)) accumulator.scopeWarnings.add(warning);
         for (const warning of event.policyWarnings) accumulator.policyWarnings.add(warning);
+        for (const warning of event.runPolicyWarnings) accumulator.runPolicyWarnings.add(warning);
       }
     }
   }
@@ -311,6 +318,7 @@ function discoverAssociations(samples: RunSample[]): {
         });
         accumulator.events.push(event);
         for (const warning of event.policyWarnings) accumulator.policyWarnings.add(warning);
+        for (const warning of event.runPolicyWarnings) accumulator.runPolicyWarnings.add(warning);
         continue;
       }
 
@@ -324,6 +332,7 @@ function discoverAssociations(samples: RunSample[]): {
         });
         accumulator.events.push(event);
         for (const warning of event.policyWarnings) accumulator.policyWarnings.add(warning);
+        for (const warning of event.runPolicyWarnings) accumulator.runPolicyWarnings.add(warning);
       }
     }
   }
@@ -360,6 +369,7 @@ function buildAssociationExplanationBeliefs(
         distinctLedgerCount: hypothesis.distinctLedgerCount,
         scopeWarnings: hypothesis.scopeWarnings,
         policyWarnings: hypothesis.policyWarnings,
+        runPolicyWarnings: hypothesis.runPolicyWarnings,
       },
       explanation: buildExplanationGraphReport({
         hypothesis: {
@@ -547,7 +557,12 @@ function supportEvidenceEvent(input: {
     sourceActivations(input.sample.ast.actions)
       .filter((source) => source.actionIndex < input.verifier.actionIndex && source.source !== input.source.source)
   );
-  const policyWarnings = policyWarningsForRun(input.sample.ast.actions);
+  const policyWarnings = policyWarningsForActionWindow(
+    input.sample.ast.actions,
+    input.source.actionIndex,
+    input.verifier.actionIndex
+  );
+  const runPolicyWarnings = policyWarningsForRun(input.sample.ast.actions);
   const novelty: AssociationEvidenceNovelty = input.priorActivatedSources.has(input.source.resourceRef)
     ? 'repeated_source_scope'
     : 'new_source_scope';
@@ -570,6 +585,7 @@ function supportEvidenceEvent(input: {
     rivalExplanations: otherSources.map((source) => `other_source_scope_also_activated:${source.source}`),
     defeatersPresent: [],
     policyWarnings,
+    runPolicyWarnings,
     evidenceIndependence: input.priorSupportCount === 0 || novelty === 'new_source_scope'
       ? 'independent'
       : 'partially_redundant',
@@ -593,7 +609,9 @@ function weakeningEvidenceEvent(input: {
   verifier: VerifierObservation | null;
   reason: string;
 }): AssociationEvidenceEvent {
-  const policyWarnings = policyWarningsForRun(input.sample.ast.actions);
+  const endIndex = input.verifier?.actionIndex ?? input.sample.ast.actions.length - 1;
+  const policyWarnings = policyWarningsForActionWindow(input.sample.ast.actions, input.source.actionIndex, endIndex);
+  const runPolicyWarnings = policyWarningsForRun(input.sample.ast.actions);
   return {
     evidenceEventId: evidenceEventId(
       input.source.source,
@@ -612,6 +630,7 @@ function weakeningEvidenceEvent(input: {
     rivalExplanations: [],
     defeatersPresent: [input.reason],
     policyWarnings,
+    runPolicyWarnings,
     evidenceIndependence: 'unknown',
     evidenceNovelty: 'unknown',
     credibilityEffect: 'weakens',
@@ -642,6 +661,7 @@ function ensureAccumulator(
     activatedSources: new Set(),
     scopeWarnings: new Set(sourceScopeWarnings(source)),
     policyWarnings: new Set(),
+    runPolicyWarnings: new Set(),
   };
   byKey.set(key, created);
   return created;
@@ -653,6 +673,8 @@ function toHypothesis(accumulator: HypothesisAccumulator): AssociationHypothesis
   const defeatCount = accumulator.events.filter((event) => event.credibilityEffect === 'defeats').length;
   const neutralCount = accumulator.events.filter((event) => event.credibilityEffect === 'neutral').length;
   const scopeWarnings = Array.from(accumulator.scopeWarnings).sort();
+  const policyWarnings = Array.from(accumulator.policyWarnings).sort();
+  const runPolicyWarnings = Array.from(accumulator.runPolicyWarnings).sort();
   const credibility = credibilityFor({
     supportCount,
     weakenCount,
@@ -660,6 +682,16 @@ function toHypothesis(accumulator: HypothesisAccumulator): AssociationHypothesis
     distinctRunCount: accumulator.supportRuns.size,
     distinctLedgerCount: accumulator.supportLedgers.size,
     scopeWarnings,
+  });
+  const promotionBlockers = promotionBlockersFor({
+    credibility,
+    supportCount,
+    weakenCount,
+    defeatCount,
+    distinctRunCount: accumulator.supportRuns.size,
+    distinctLedgerCount: accumulator.supportLedgers.size,
+    scopeWarnings,
+    policyWarnings,
   });
 
   return {
@@ -683,6 +715,8 @@ function toHypothesis(accumulator: HypothesisAccumulator): AssociationHypothesis
       'evidence repeats the same run or same source path without novelty',
     ],
     credibility,
+    promotionCandidate: promotionBlockers.length === 0,
+    promotionBlockers,
     supportCount,
     weakenCount,
     defeatCount,
@@ -691,10 +725,33 @@ function toHypothesis(accumulator: HypothesisAccumulator): AssociationHypothesis
     distinctLedgerCount: accumulator.supportLedgers.size,
     activatedSourceExamples: Array.from(accumulator.activatedSources).sort().slice(0, 10),
     scopeWarnings,
-    policyWarnings: Array.from(accumulator.policyWarnings).sort(),
+    policyWarnings,
+    runPolicyWarnings,
     evidenceEventIds: accumulator.events.map((event) => event.evidenceEventId).sort(),
     recommendedNextExperiment: `After the next change under ${accumulator.source}, run ${accumulator.target} and record whether it passes fresh.`,
   };
+}
+
+function promotionBlockersFor(input: {
+  credibility: AssociationCredibility;
+  supportCount: number;
+  weakenCount: number;
+  defeatCount: number;
+  distinctRunCount: number;
+  distinctLedgerCount: number;
+  scopeWarnings: string[];
+  policyWarnings: string[];
+}): string[] {
+  const blockers: string[] = [];
+  if (input.credibility !== 'credible') blockers.push(`association_credibility:${input.credibility}`);
+  if (input.supportCount < 2) blockers.push('support_count_below_2');
+  if (input.distinctRunCount < 2) blockers.push('distinct_run_count_below_2');
+  if (input.distinctLedgerCount < 2) blockers.push('distinct_ledger_count_below_2');
+  if (input.weakenCount > 0) blockers.push('weaken_events_present');
+  if (input.defeatCount > 0) blockers.push('defeat_events_present');
+  for (const warning of input.scopeWarnings) blockers.push(`scope_warning:${warning}`);
+  for (const warning of input.policyWarnings) blockers.push(`evidence_policy_warning:${warning}`);
+  return Array.from(new Set(blockers)).sort();
 }
 
 function credibilityFor(input: {
@@ -745,12 +802,20 @@ function verifierObservations(actions: NormalizedAction[]): VerifierObservation[
   actions.forEach((action, actionIndex) => {
     if (!isTestAction(action) || !action.command?.argvSummary) return;
     observations.push({
-      command: action.command.argvSummary,
+      command: normalizeVerifierCommand(action.command.argvSummary),
       action,
       actionIndex,
     });
   });
   return observations;
+}
+
+function normalizeVerifierCommand(cmd: string): string {
+  return cmd
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/\s+(?:-q|--quiet)(?=\s|$)/g, '')
+    .trim();
 }
 
 function uniqueSources(sources: SourceActivation[]): SourceActivation[] {
@@ -783,8 +848,13 @@ function sourceScopeForPath(path: string): string {
   if (parts[0] === 'tmp') return 'tmp/**';
   if (parts[0] === 'tests' || parts[0] === '__tests__') return `${parts[0]}/**`;
   if (parts[0] === '.agent-learning') return '.agent-learning/**';
+  if (parts.length === 2 && isFilePath(parts[1])) return `${parts[0]}/${parts[1]}`;
   if (parts.length >= 2) return `${parts[0]}/${parts[1]}/**`;
   return parts[0];
+}
+
+function isFilePath(pathPart: string): boolean {
+  return /\.[A-Za-z0-9]+$/.test(pathPart);
 }
 
 function anchorProjectPathParts(parts: string[]): string[] {
@@ -815,6 +885,20 @@ function sourceScopeWarnings(source: string): string[] {
 }
 
 function policyWarningsForRun(actions: NormalizedAction[]): string[] {
+  return policyWarningsForActions(actions);
+}
+
+function policyWarningsForActionWindow(
+  actions: NormalizedAction[],
+  startIndex: number,
+  endIndex: number
+): string[] {
+  const start = Math.max(0, startIndex);
+  const end = Math.min(actions.length - 1, Math.max(start, endIndex));
+  return policyWarningsForActions(actions.slice(start, end + 1));
+}
+
+function policyWarningsForActions(actions: NormalizedAction[]): string[] {
   const warnings: string[] = [];
   if (actions.some(hasExternalSideEffects)) warnings.push('run_contains_external_side_effects');
   if (hasUnsafeWrite(actions)) warnings.push('run_contains_unsafe_write');

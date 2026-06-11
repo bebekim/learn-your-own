@@ -2,17 +2,15 @@
 
 Lyo means **Learn Your Own**.
 
-It is a local learning ledger for AI-agent work. It records what happened in
+Lyo treats learning as inference over a graph of explanations.
+Learning is not remembering; it is updating belief over explanations, changing
+future behavior, then testing whether that behavior improves outcomes.
+
+To enable this, Lyo is a local learning ledger for AI-agent work. It records what happened in
 your own prompts, runs, repos, commands, verifiers, and outcomes so future runs
 can receive scoped, evidence-backed guidance.
 
-An agent has not learned just because a note was saved. For Lyo, learning means
-explanation-aware evidence changes future behavior.
 
-Lyo is not an agent runtime, memory daemon, workflow framework, or permission
-guard. It does not call your LLM, execute tools, or block tools. Hooks,
-adapters, CLIs, and agent loops call Lyo to record evidence and ask what has
-been learned.
 
 ```text
 attempt
@@ -161,6 +159,13 @@ ledgers without persisting them:
 
 ```sh
 lyo learn associations --dir ~/repositories --dry-run
+```
+
+Use `--compact` when you want promotion-oriented output without the full
+hypothesis and evidence arrays:
+
+```sh
+lyo learn associations --dir ~/repositories --dry-run --compact
 ```
 
 Evaluate an explicit explanation graph without persisting derived beliefs:

@@ -685,7 +685,59 @@ test('lyo learn style emits aggregate LLM usage and style learning candidates', 
 test('lyo learn associations discovers verifier hypotheses across ledger corpus', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-learn-associations-'));
   try {
-    const seedLedger = (repoName, runId, sourcePath) => {
+    const seedLedger = (
+      repoName,
+      runId,
+      sourcePath,
+      verifierCommand = 'npm test -- tests/compiler-frontend.test.js'
+    ) => {
+      const dbDir = join(dir, repoName, '.agent-learning');
+      mkdirSync(dbDir, { recursive: true });
+      const dbPath = join(dbDir, 'learning.sqlite');
+      const seed = `
+        import {
+          createKernel,
+          initLedger,
+          recordHookEvent
+        } from './src/index.ts';
+
+        const kernel = createKernel({ dbPath: process.argv[1] });
+        initLedger(kernel);
+        const common = {
+          sessionId: process.argv[2],
+          turnId: process.argv[2],
+          cwd: process.cwd()
+        };
+        recordHookEvent(kernel, {
+          ...common,
+          eventId: process.argv[2] + '-01-edit',
+          eventName: 'PostToolUse',
+          payload: {
+            hook_event_name: 'PostToolUse',
+            tool_name: 'apply_patch',
+            tool_input: {
+              patch: '*** Begin Patch\\n*** Update File: ' + process.argv[3] + '\\n@@\\n-old\\n+new\\n*** End Patch'
+            },
+            tool_response: { exit_code: 0 }
+          }
+        });
+        recordHookEvent(kernel, {
+          ...common,
+          eventId: process.argv[2] + '-02-test',
+          eventName: 'PostToolUse',
+          payload: {
+            hook_event_name: 'PostToolUse',
+            tool_name: 'Bash',
+            tool_input: {
+              command: process.argv[4]
+            },
+            tool_response: { exit_code: 0, stdout: 'ok' }
+          }
+        });
+      `;
+      execFileSync(process.execPath, ['--eval', seed, dbPath, runId, sourcePath, verifierCommand], { cwd: ROOT });
+    };
+    const seedLedgerWithPostVerifierExternal = (repoName, runId, sourcePath) => {
       const dbDir = join(dir, repoName, '.agent-learning');
       mkdirSync(dbDir, { recursive: true });
       const dbPath = join(dbDir, 'learning.sqlite');
@@ -729,6 +781,19 @@ test('lyo learn associations discovers verifier hypotheses across ledger corpus'
             tool_response: { exit_code: 0, stdout: 'ok' }
           }
         });
+        recordHookEvent(kernel, {
+          ...common,
+          eventId: process.argv[2] + '-03-external',
+          eventName: 'PostToolUse',
+          payload: {
+            hook_event_name: 'PostToolUse',
+            tool_name: 'Bash',
+            tool_input: {
+              command: 'railway up'
+            },
+            tool_response: { exit_code: 0, stdout: 'deployed' }
+          }
+        });
       `;
       execFileSync(process.execPath, ['--eval', seed, dbPath, runId, sourcePath], { cwd: ROOT });
     };
@@ -741,6 +806,10 @@ test('lyo learn associations discovers verifier hypotheses across ledger corpus'
       'assoc-run-absolute-work-path',
       '/Users/marcus.kim/repositories/work/nao/jobs/utilibill/main.py'
     );
+    seedLedger('repo-e', 'assoc-run-top-level-file', 'src/index.ts');
+    seedLedgerWithPostVerifierExternal('repo-f', 'assoc-run-post-verifier-external', 'src/external.ts');
+    seedLedger('repo-g', 'assoc-run-pytest-canonical-a', 'src/pytest.ts', 'uv run pytest tests/test_rep655_market_meter_data_report.py');
+    seedLedger('repo-h', 'assoc-run-pytest-canonical-b', 'src/pytest.ts', 'uv run pytest tests/test_rep655_market_meter_data_report.py -q');
 
     const output = execFileSync(
       process.execPath,
@@ -753,7 +822,7 @@ test('lyo learn associations discovers verifier hypotheses across ledger corpus'
     assert.equal(parsed.learning.learningVersion, 'lyo/association-learning/v1');
     assert.equal(parsed.learning.mode, 'learn');
     assert.equal(parsed.learning.dryRun, true);
-    assert.equal(parsed.learning.ledgers, 4);
+    assert.equal(parsed.learning.ledgers, 8);
     assert.equal(parsed.learning.persisted, false);
     assert.match(parsed.learning.summaryText, /Discovered/);
 
@@ -767,6 +836,8 @@ test('lyo learn associations discovers verifier hypotheses across ledger corpus'
     assert.equal(primary.supportCount, 2);
     assert.equal(primary.distinctRunCount, 2);
     assert.equal(primary.distinctLedgerCount, 2);
+    assert.equal(primary.promotionCandidate, true);
+    assert.deepEqual(primary.promotionBlockers, []);
     assert.deepEqual(primary.scopeWarnings, []);
     assert.equal(primary.predictedConsequences.includes('fresh passing verifier after source mutation'), true);
     assert.equal(primary.knownDefeaters.includes('target verifier fails after source mutation'), true);
@@ -802,6 +873,8 @@ test('lyo learn associations discovers verifier hypotheses across ledger corpus'
         && hypothesis.target === 'npm test -- tests/compiler-frontend.test.js';
     });
     assert.ok(noisy);
+    assert.equal(noisy.promotionCandidate, false);
+    assert.equal(noisy.promotionBlockers.includes('scope_warning:source_scope_is_test_tree'), true);
     assert.equal(noisy.scopeWarnings.includes('source_scope_is_test_tree'), true);
     const noisyBelief = parsed.learning.explanationBeliefs.find((belief) => belief.hypothesisId === noisy.id);
     assert.ok(noisyBelief);
@@ -815,6 +888,65 @@ test('lyo learn associations discovers verifier hypotheses across ledger corpus'
     assert.equal(
       parsed.learning.associationHypotheses.some((hypothesis) => hypothesis.source === 'Users/marcus.kim/**'),
       false
+    );
+
+    const topLevelFileHypothesis = parsed.learning.associationHypotheses.find((hypothesis) => {
+      return hypothesis.source === 'src/index.ts'
+        && hypothesis.target === 'npm test -- tests/compiler-frontend.test.js';
+    });
+    assert.ok(topLevelFileHypothesis);
+    assert.equal(
+      parsed.learning.associationHypotheses.some((hypothesis) => hypothesis.source === 'src/index.ts/**'),
+      false
+    );
+
+    const postVerifierExternalHypothesis = parsed.learning.associationHypotheses.find((hypothesis) => {
+      return hypothesis.source === 'src/external.ts'
+        && hypothesis.target === 'npm test -- tests/compiler-frontend.test.js';
+    });
+    assert.ok(postVerifierExternalHypothesis);
+    assert.deepEqual(postVerifierExternalHypothesis.policyWarnings, []);
+    assert.deepEqual(postVerifierExternalHypothesis.runPolicyWarnings, ['run_contains_external_side_effects']);
+    const postVerifierExternalEvent = parsed.learning.evidenceEvents.find((event) => {
+      return event.hypothesisId === postVerifierExternalHypothesis.id;
+    });
+    assert.ok(postVerifierExternalEvent);
+    assert.deepEqual(postVerifierExternalEvent.policyWarnings, []);
+    assert.deepEqual(postVerifierExternalEvent.runPolicyWarnings, ['run_contains_external_side_effects']);
+
+    const canonicalPytestHypothesis = parsed.learning.associationHypotheses.find((hypothesis) => {
+      return hypothesis.source === 'src/pytest.ts'
+        && hypothesis.target === 'uv run pytest tests/test_rep655_market_meter_data_report.py';
+    });
+    assert.ok(canonicalPytestHypothesis);
+    assert.equal(canonicalPytestHypothesis.supportCount, 2);
+    assert.equal(canonicalPytestHypothesis.distinctRunCount, 2);
+    assert.equal(
+      parsed.learning.associationHypotheses.some((hypothesis) => {
+        return hypothesis.source === 'src/pytest.ts'
+          && hypothesis.target === 'uv run pytest tests/test_rep655_market_meter_data_report.py -q';
+      }),
+      false
+    );
+
+    const compactOutput = execFileSync(
+      process.execPath,
+      ['src/cli.ts', 'learn', 'associations', '--dir', dir, '--dry-run', '--compact'],
+      { cwd: ROOT, encoding: 'utf8' }
+    );
+    const compactParsed = JSON.parse(compactOutput);
+    assert.equal(compactParsed.ok, true);
+    assert.equal(compactParsed.learning.hypothesisCount, parsed.learning.hypothesisCount);
+    assert.equal('associationHypotheses' in compactParsed.learning, false);
+    assert.equal('evidenceEvents' in compactParsed.learning, false);
+    assert.equal(compactParsed.learning.promotableCandidateCount >= 1, true);
+    assert.equal(
+      compactParsed.learning.topPromotionCandidates.some((candidate) => {
+        return candidate.source === 'src/compiler/**'
+          && candidate.target === 'npm test -- tests/compiler-frontend.test.js'
+          && candidate.promotionCandidate === true;
+      }),
+      true
     );
   } finally {
     rmSync(dir, { recursive: true, force: true });
