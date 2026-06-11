@@ -131,6 +131,11 @@ trace
 -> credibility update
 ```
 
+The current learning direction treats that credibility update as inference over
+an explanation graph:
+
+- [Learning As Inference Over An Explanation Graph](learning-as-explanation-graph.md)
+
 The probability of interest is not PageRank's probability of visiting a page or
 an LLM's probability of the next token. The relevant probability is closer to:
 
@@ -171,6 +176,10 @@ Was this independent evidence or just a duplicate?
 That is why Lyo should not treat `A predicts B` and `B happened` as automatic
 proof. Plausible learning is provisional. It needs chronology, scope, rival
 explanations, defeaters, and repeated varied evidence.
+
+In belief-propagation terms, learned context is supported when top-down
+expectation from prior scoped experience and bottom-up diagnostic evidence from
+the current trace agree without a stronger defeater.
 
 ## Static Harnesses And Learned Context Are Complementary
 

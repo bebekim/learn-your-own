@@ -41,6 +41,15 @@ friction.
 This is a Polya-style conjecture, not a theorem. It must be tested by future
 runs.
 
+The current inference direction is documented here:
+
+- [Learning As Inference Over An Explanation Graph](learning-as-explanation-graph.md)
+
+The experiment should treat association extraction as hypothesis generation,
+not as the final learning rule. Evidence should update an explanation graph
+containing scope, chronology, freshness, rival explanations, defeaters, and
+outcomes.
+
 ## Experimental Unit
 
 The unit of experiment is a repeated task family.
@@ -142,6 +151,17 @@ edit -> required future verifier
 failure -> diagnostic action
 manual orchestration -> candidate loop artifact
 action class -> policy boundary
+```
+
+Those associations become explanation-graph hypotheses. The experiment should
+then ask:
+
+```text
+Does this observation bear on this hypothesis?
+Did the expected consequence occur after the source activation?
+Was the evidence fresh and independent?
+Was there a stronger rival explanation?
+Was a defeater present?
 ```
 
 ## Credibility Rules

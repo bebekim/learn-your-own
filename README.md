@@ -6,6 +6,9 @@ It is a local learning ledger for AI-agent work. It records what happened in
 your own prompts, runs, repos, commands, verifiers, and outcomes so future runs
 can receive scoped, evidence-backed guidance.
 
+An agent has not learned just because a note was saved. For Lyo, learning means
+evidence changes future behavior.
+
 Lyo is not an agent runtime, memory daemon, workflow framework, or permission
 guard. It does not call your LLM, execute tools, or block tools. Hooks,
 adapters, CLIs, and agent loops call Lyo to record evidence and ask what has
@@ -256,6 +259,7 @@ console.log(getObserverSummary(kernel));
 - [Cybernetic Association Learner](docs/cybernetic-association-learner.md)
 - [Cybernetic Learning Experiment Protocol](docs/cybernetic-learning-experiment-protocol.md)
 - [Learned Context As Thermodynamic Control](docs/learned-context-thermodynamics.md)
+- [Learning As Inference Over An Explanation Graph](docs/learning-as-explanation-graph.md)
 - [Product Learning Log](docs/product-learning-log.md)
 - [Candidate At-Bat Telemetry Spec](docs/candidate-at-bat-telemetry-spec.md)
 - [Candidate At-Bat Implementation PRD](issues/candidate-at-bat-prd.md)

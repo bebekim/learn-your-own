@@ -13,6 +13,17 @@ association conjecture + observed consequence + defeater check
   = provisional credibility change
 ```
 
+The stronger current direction is:
+
+```text
+association is hypothesis generation
+learning is inference over a graph of explanations
+```
+
+See:
+
+- [Learning As Inference Over An Explanation Graph](learning-as-explanation-graph.md)
+
 This document defines the first implementation target for that learning loop.
 It sits above the deterministic trace/effect compiler and below future hosted or
 interview-product workflows.
@@ -58,11 +69,16 @@ The useful cybernetic structures for Lyo are:
    Later versions can replace raw credibility-effect counts with
    likelihood-style scoring.
 
-4. **Replicator dynamics**
+4. **Belief propagation / local computation**
+   Hypotheses, evidence, scopes, rivals, and defeaters should form an
+   explanation graph where credibility is inferred by local message passing,
+   not assigned by flat co-occurrence counters.
+
+5. **Replicator dynamics**
    Artifacts that improve outcomes are delivered more often; artifacts that
    hurt outcomes shrink or are demoted.
 
-5. **Viability bounds**
+6. **Viability bounds**
    Safety and friction constraints prevent runaway optimization.
 
 The first version should not start with PID control, Kalman filtering,
@@ -142,6 +158,10 @@ procedure delivered + verified completion
 ```
 
 Those co-fired items become association candidates.
+
+They do not become learning by themselves. In the explanation-graph direction,
+co-fired items become conjectures. Credibility is then inferred from evidence,
+scope, chronology, freshness, rival explanations, and defeaters.
 
 ## Local Update Rule
 

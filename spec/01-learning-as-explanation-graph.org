@@ -1,0 +1,284 @@
+* Learning As Explanation Graph
+
+This is the formal implementation target for Lyo's next learning layer.
+
+The doctrine is:
+
+#+begin_src text
+association is hypothesis generation
+learning is inference over a graph of explanations
+#+end_src
+
+* Goal
+
+Given append-only telemetry, Lyo should infer provisional credibility for
+learning hypotheses and artifacts.
+
+The inference target is not:
+
+#+begin_src text
+count(A near B)
+#+end_src
+
+The inference target is:
+
+#+begin_src text
+P(H is useful | evidence, scope, chronology, freshness, rivals, defeaters)
+#+end_src
+
+For delivered artifacts:
+
+#+begin_src text
+P(delivering artifact improves future run | current run context)
+#+end_src
+
+* Roles Of Existing Layers
+
+#+begin_src text
+NormalizedAction trace:
+  ordered observations
+
+effect algebra:
+  sensor summary over reads, writes, commands, evidence refs
+
+association extractor:
+  candidate hypothesis generator
+
+explanation graph:
+  variables and factors that determine whether evidence bears on hypotheses
+
+belief propagation:
+  local inference over the explanation graph
+
+artifact delivery:
+  intervention that changes future traces
+
+experiment report:
+  feedback record comparing prediction to observed outcome
+#+end_src
+
+* Variable Nodes
+
+Initial variable node kinds:
+
+#+begin_src text
+hypothesis_useful
+artifact_deliverable
+evidence_observed
+scope_matches
+chronology_valid
+evidence_fresh
+defeater_present
+rival_explanation_present
+evidence_independent
+outcome_improved
+#+end_src
+
+Each variable has a finite domain in v1.
+
+Example:
+
+#+begin_src text
+hypothesis_useful:
+  false | true
+
+defeater_present:
+  absent | present
+
+credibility_effect:
+  supports | weakens | defeats | neutral | incomparable
+#+end_src
+
+* Factor Nodes
+
+Initial factor node kinds:
+
+#+begin_src text
+scope_factor(H, S)
+chronology_factor(H, C)
+freshness_factor(H, F)
+defeater_factor(H, D)
+rival_factor(H, R)
+novelty_factor(H, I)
+outcome_factor(H, A, O)
+#+end_src
+
+Factors are deterministic or table-valued in v1.
+
+They must be versioned:
+
+#+begin_src text
+factor_version = "lyo/explanation-factor/v1"
+#+end_src
+
+* Message Semantics
+
+A message from node A to node B must exclude B's own contribution.
+
+Reason:
+
+#+begin_src text
+If A sends its full belief back to B after B already influenced A,
+the graph double-counts evidence.
+#+end_src
+
+This is the Pearl message-passing discipline.
+
+* Sum-Product Shape
+
+For a variable node V:
+
+#+begin_src text
+message(V -> F) = product of incoming messages from factors other than F
+#+end_src
+
+For a factor node F:
+
+#+begin_src text
+message(F -> V) =
+  sum over hidden neighboring variables
+  of factor_value * product of incoming messages from other variables
+#+end_src
+
+In words:
+
+#+begin_src text
+multiply independent supports
+sum over hidden alternatives
+#+end_src
+
+* Lyo-Specific Hidden Alternatives
+
+The learner must be able to represent rival explanations.
+
+Examples:
+
+#+begin_src text
+verifier passed because the delivered artifact helped
+verifier passed because the user already knew what to do
+verifier passed because the repo was already healthy
+context pack helped reduce wandering
+context pack was unused
+the apparent improvement came from a different artifact
+#+end_src
+
+* Exactness Bound
+
+If the explanation graph is a tree or local polytree, message passing may be
+treated as exact for that subgraph.
+
+If the graph has loops, Lyo must treat message passing as approximate.
+
+Required reporting language:
+
+#+begin_src text
+provisional belief
+approximate belief
+supported / weakened / defeated
+needs specialization
+needs more evidence
+#+end_src
+
+Forbidden reporting language:
+
+#+begin_src text
+proven
+globally true
+converged to ground truth
+#+end_src
+
+* Append-Only Invariant
+
+Canonical evidence is append-only.
+
+Derived beliefs may be recomputed.
+
+#+begin_src text
+evidence_events:
+  source of truth
+
+factor_values:
+  derived from evidence and factor version
+
+messages:
+  derived cache
+
+beliefs:
+  derived cache
+#+end_src
+
+No mutable belief table may replace evidence events as the source of truth.
+
+* First Implementation Slice
+
+The first slice should not implement generic loopy BP.
+
+Implement:
+
+#+begin_src text
+1. ExplanationGraph JSON for resource -> verifier hypotheses.
+2. Deterministic factor extraction:
+   scope, chronology, freshness, defeater, rival, novelty, outcome.
+3. One derived belief score using product/log-odds over factor values.
+4. Report comparing old association counters to explanation-graph belief.
+5. No automatic artifact promotion.
+6. No persistence beyond append-only evidence if persistence is added.
+#+end_src
+
+* Example
+
+Hypothesis:
+
+#+begin_src text
+H:
+  src/compiler/** is usefully verified by tests/compiler-frontend.test.js
+#+end_src
+
+Evidence:
+
+#+begin_src text
+source scope was edited
+verifier ran after final edit
+verifier passed
+evidence came from a distinct run
+no stronger rival verifier explanation was present
+no defeater was present
+#+end_src
+
+Belief result:
+
+#+begin_src text
+H receives stronger provisional support
+#+end_src
+
+Possible artifact:
+
+#+begin_src text
+suggest tests/compiler-frontend.test.js for future src/compiler/** changes
+#+end_src
+
+* Failure Modes
+
+The graph must expose these cases:
+
+#+begin_src text
+co-occurrence without relevance
+stale verifier evidence
+decorative test runs
+duplicate evidence from the same hidden cause
+rival artifact explains the outcome better
+scope too broad
+defeater undercuts the hypothesis
+loopy graph oscillation
+#+end_src
+
+* Relationship To Product Docs
+
+Readable product explanation:
+
+#+begin_src text
+docs/learning-as-explanation-graph.md
+#+end_src
+
+Existing docs should treat association learning as hypothesis generation and
+this spec as the next inference substrate.
