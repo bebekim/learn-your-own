@@ -823,6 +823,13 @@ test('lyo learn associations discovers verifier hypotheses across ledger corpus'
     assert.equal(parsed.learning.mode, 'learn');
     assert.equal(parsed.learning.dryRun, true);
     assert.equal(parsed.learning.ledgers, 8);
+    assert.equal(parsed.learning.scannedLedgers.length, 8);
+    assert.equal(parsed.learning.scannedLedgers.some((ledger) => {
+      return ledger.dbPath === join(dir, 'repo-a', '.agent-learning', 'learning.sqlite')
+        && ledger.workspaceRoot === join(dir, 'repo-a')
+        && ledger.relativeWorkspace === 'repo-a'
+        && ledger.depth === 1;
+    }), true);
     assert.equal(parsed.learning.persisted, false);
     assert.match(parsed.learning.summaryText, /Discovered/);
 
@@ -1431,6 +1438,12 @@ test('lyo audit scans .agent-learning SQLite ledgers for effect metrics', () => 
     assert.equal(parsed.ok, true);
     assert.equal(parsed.auditVersion, 'lyo/effect-audit/v1');
     assert.equal(parsed.ledgers, 1);
+    assert.deepEqual(parsed.scannedLedgers, [{
+      dbPath,
+      workspaceRoot: join(dir, 'repo-a'),
+      relativeWorkspace: 'repo-a',
+      depth: 1,
+    }]);
     assert.deepEqual(parsed.scannedDatabases, [dbPath]);
     assert.deepEqual(parsed.skippedDatabases, []);
     assert.equal(parsed.totalRuns, 2);

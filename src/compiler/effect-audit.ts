@@ -1,10 +1,11 @@
 import { compileTelemetryRunAst } from './parser.ts';
 import {
   countHookEvents,
-  findAgentLearningDatabases,
+  discoverAgentLearningLedgers,
   hasTable,
   listTelemetryRunIds,
   openReadOnlyLedger,
+  type AgentLearningLedgerLocation,
   type SkippedDatabase,
 } from './ledger-scan.ts';
 import {
@@ -24,6 +25,7 @@ export interface EffectAuditReport {
   auditVersion: 'lyo/effect-audit/v1';
   root: string;
   ledgers: number;
+  scannedLedgers: AgentLearningLedgerLocation[];
   scannedDatabases: string[];
   skippedDatabases: SkippedDatabase[];
   totalRuns: number;
@@ -70,8 +72,9 @@ export interface CommandAggregate {
 }
 
 export function auditEffectLedgers(input: { root: string }): EffectAuditReport {
-  const dbPaths = findAgentLearningDatabases(input.root);
+  const discoveredLedgers = discoverAgentLearningLedgers(input.root);
   const skippedDatabases: SkippedDatabase[] = [];
+  const scannedLedgers: AgentLearningLedgerLocation[] = [];
   const scannedDatabases: string[] = [];
   const unknownSamples: AuditSample[] = [];
   const parkedUnknownSamples: AuditSample[] = [];
@@ -92,7 +95,8 @@ export function auditEffectLedgers(input: { root: string }): EffectAuditReport {
   let stoppedAfterEditWithoutVerificationRuns = 0;
   let unsafeWriteRuns = 0;
 
-  for (const dbPath of dbPaths) {
+  for (const ledger of discoveredLedgers) {
+    const dbPath = ledger.dbPath;
     let db: ReturnType<typeof openReadOnlyLedger> | null = null;
     try {
       db = openReadOnlyLedger(dbPath);
@@ -102,6 +106,7 @@ export function auditEffectLedgers(input: { root: string }): EffectAuditReport {
         continue;
       }
 
+      scannedLedgers.push(ledger);
       scannedDatabases.push(dbPath);
       totalEvents += countHookEvents(kernel);
 
@@ -185,6 +190,7 @@ export function auditEffectLedgers(input: { root: string }): EffectAuditReport {
     auditVersion: 'lyo/effect-audit/v1',
     root: input.root,
     ledgers: scannedDatabases.length,
+    scannedLedgers,
     scannedDatabases,
     skippedDatabases,
     totalRuns,

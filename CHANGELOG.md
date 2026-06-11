@@ -90,6 +90,8 @@ release.
   - documented nested child workspace behavior with a focused test fixture
   - made dependency, build, coverage, framework-cache, and virtualenv skip
     policy explicit to avoid copied or generated `.agent-learning` ledgers
+  - surfaced rich scanned-ledger metadata in effect audit and association
+    learning reports while preserving `scannedDatabases`
 
 ## 0.2.0
 

@@ -11,10 +11,11 @@ import {
 } from './semantics.ts';
 import {
   countHookEvents,
-  findAgentLearningDatabases,
+  discoverAgentLearningLedgers,
   hasTable,
   listTelemetryRunIds,
   openReadOnlyLedger,
+  type AgentLearningLedgerLocation,
   type SkippedDatabase,
 } from './ledger-scan.ts';
 import {
@@ -128,6 +129,7 @@ export interface AssociationLearningReport {
   persisted: false;
   root: string;
   ledgers: number;
+  scannedLedgers: AgentLearningLedgerLocation[];
   scannedDatabases: string[];
   skippedDatabases: SkippedDatabase[];
   totalEvents: number;
@@ -194,13 +196,15 @@ interface HypothesisAccumulator {
 }
 
 export function buildAssociationLearningReport(input: { root: string }): AssociationLearningReport {
-  const dbPaths = findAgentLearningDatabases(input.root);
+  const discoveredLedgers = discoverAgentLearningLedgers(input.root);
   const skippedDatabases: SkippedDatabase[] = [];
+  const scannedLedgers: AgentLearningLedgerLocation[] = [];
   const scannedDatabases: string[] = [];
   const samples: RunSample[] = [];
   let totalEvents = 0;
 
-  for (const dbPath of dbPaths) {
+  for (const ledger of discoveredLedgers) {
+    const dbPath = ledger.dbPath;
     let db: ReturnType<typeof openReadOnlyLedger> | null = null;
     try {
       db = openReadOnlyLedger(dbPath);
@@ -210,6 +214,7 @@ export function buildAssociationLearningReport(input: { root: string }): Associa
         continue;
       }
 
+      scannedLedgers.push(ledger);
       scannedDatabases.push(dbPath);
       totalEvents += countHookEvents(kernel);
       for (const runId of listTelemetryRunIds(kernel)) {
@@ -250,6 +255,7 @@ export function buildAssociationLearningReport(input: { root: string }): Associa
     persisted: false,
     root: input.root,
     ledgers: scannedDatabases.length,
+    scannedLedgers,
     scannedDatabases,
     skippedDatabases,
     totalEvents,
