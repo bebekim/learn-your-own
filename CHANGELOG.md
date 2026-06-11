@@ -88,6 +88,8 @@ release.
     and nesting depth metadata
   - kept `findAgentLearningDatabases` as the stable path-only compatibility API
   - documented nested child workspace behavior with a focused test fixture
+  - made dependency, build, coverage, framework-cache, and virtualenv skip
+    policy explicit to avoid copied or generated `.agent-learning` ledgers
 
 ## 0.2.0
 

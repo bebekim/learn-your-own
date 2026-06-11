@@ -1,10 +1,21 @@
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-const SKIPPED_DIRECTORY_NAMES = new Set([
+export const AGENT_LEARNING_LEDGER_DISCOVERY_SKIPPED_DIRECTORIES = [
   '.git',
+  '.cache',
+  '.next',
+  '.turbo',
+  '.venv',
+  'build',
+  'coverage',
+  'dist',
   'node_modules',
-]);
+] as const;
+
+const SKIPPED_DIRECTORY_NAMES = new Set<string>(
+  AGENT_LEARNING_LEDGER_DISCOVERY_SKIPPED_DIRECTORIES
+);
 
 export interface AgentLearningLedgerLocation {
   dbPath: string;

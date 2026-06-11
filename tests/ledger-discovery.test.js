@@ -53,3 +53,29 @@ test('ledger discovery scans repo forests with nested child workspaces', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('ledger discovery skips generated dependency and build cache directories', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-ledger-noise-'));
+  try {
+    const ledger = (workspace) => {
+      const dbDir = join(dir, workspace, '.agent-learning');
+      mkdirSync(dbDir, { recursive: true });
+      const dbPath = join(dbDir, 'learning.sqlite');
+      writeFileSync(dbPath, '');
+      return dbPath;
+    };
+
+    const sourceLedger = ledger('repo-a');
+    ledger('repo-a/dist/copied-package');
+    ledger('repo-a/build/copied-package');
+    ledger('repo-a/coverage/copied-package');
+    ledger('repo-a/.next/server');
+    ledger('repo-a/.turbo/cache');
+    ledger('repo-a/.cache/tool');
+    ledger('repo-a/.venv/lib/package');
+
+    assert.deepEqual(findAgentLearningDatabases(dir), [sourceLedger]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
