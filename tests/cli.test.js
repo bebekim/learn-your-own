@@ -802,6 +802,46 @@ test('lyo learn associations discovers verifier hypotheses across ledger corpus'
   }
 });
 
+test('lyo learn explanation evaluates a dry-run explanation graph from JSON input', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-learn-explanation-'));
+  try {
+    const inputPath = join(dir, 'explanation.json');
+    writeFileSync(inputPath, JSON.stringify({
+      hypothesis: {
+        id: 'hyp-compiler-verifier',
+        label: 'compiler source changes are verified by compiler frontend tests',
+      },
+      prior: { notH: 0.75, h: 0.25 },
+      factors: [{
+        factorId: 'verifier_passed',
+        label: 'predicted verifier passed',
+        observedState: 'present',
+        states: ['absent', 'present'],
+        matrix: {
+          notH: [1, 0.30],
+          h: [0.10, 1],
+        },
+      }],
+    }));
+
+    const output = execFileSync(
+      process.execPath,
+      ['src/cli.ts', 'learn', 'explanation', '--dry-run', '--input', inputPath],
+      { cwd: ROOT, encoding: 'utf8' }
+    );
+    const parsed = JSON.parse(output);
+
+    assert.equal(parsed.ok, true);
+    assert.equal(parsed.learning.explanationGraphVersion, 'lyo/explanation-graph/v1');
+    assert.equal(parsed.learning.hypothesis.id, 'hyp-compiler-verifier');
+    assert.deepEqual(parsed.learning.factorMessages[0].message, { notH: 0.3, h: 1 });
+    assert.equal(Number(parsed.learning.belief.h.toFixed(4)), 0.5263);
+    assert.equal(parsed.learning.persisted, false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('lyo report emits candidate at-bat evaluation for a run id and task context', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-at-bat-report-'));
   try {

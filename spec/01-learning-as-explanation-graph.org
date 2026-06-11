@@ -227,6 +227,23 @@ Implement:
 7. No persistence beyond append-only evidence if persistence is added.
 #+end_src
 
+Status:
+
+#+begin_src text
+implemented:
+  binary hypothesis product update
+  factor matrix observed-column projection
+  rival explanation outcome sum
+  dry-run CLI: lyo learn explanation --dry-run --input path
+
+not yet implemented:
+  deterministic explanation graph emission from telemetry
+  association-counter comparison report
+  damped loopy belief propagation
+  artifact delivery intervention
+  append-only persistence for evidence/belief derivations
+#+end_src
+
 * Algorithm V0: Binary Hypothesis Product
 
 Start with one binary hypothesis.

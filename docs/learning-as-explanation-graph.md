@@ -302,6 +302,39 @@ The next rigorous implementation path is:
 7. Keep all beliefs derived and reproducible.
 ```
 
+## Implemented v0 Surface
+
+Lyo now includes a small, read-only explanation-graph kernel:
+
+```text
+src/compiler/explanation-graph.ts
+```
+
+It implements:
+
+```text
+buildExplanationGraphReport(input)
+  normalizes the binary prior
+  projects observed factor-matrix columns into messages
+  multiplies prior and factor messages elementwise
+  normalizes the result into provisional belief
+
+computeRivalOutcomeMessage(input)
+  sums over rival explanations before converting an observed outcome into a
+  message for H vs not H
+```
+
+The CLI exposes the same dry-run surface:
+
+```bash
+lyo learn explanation --dry-run --input explanation.json
+```
+
+The input JSON is intentionally explicit: hypothesis, prior, factor matrices,
+observed factor states, and optional rival-outcome data should be supplied by
+the caller or by a later deterministic graph emitter. This command does not
+persist hypotheses, messages, beliefs, artifacts, or policies.
+
 ## Algorithm v0: One Hypothesis, Message Vectors
 
 The first algorithm should be smaller than a general Bayesian network.

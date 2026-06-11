@@ -19,6 +19,7 @@ export function usage(exitCode = 0): never {
 	  lyo exercise view [--db path] [--exercise-id id] [--run-id id] [--limit n]
 	  lyo learn style [--db path] [--verbose]
 	  lyo learn associations [--dir path] --dry-run
+	  lyo learn explanation --dry-run --input path
 	  lyo workspace register [--db path] --root path [--workspace-id id] [--name name]
 	  lyo workspace init-nectr [--db path] --root path [--workspace-id id] [--name name]
 	  lyo zone add [--db path] --workspace-id id --name name --kind kind [--zone-id id] [--parent-zone-id id] [--path-glob glob] [--description text]
