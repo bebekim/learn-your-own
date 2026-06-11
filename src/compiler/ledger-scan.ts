@@ -1,46 +1,16 @@
-import { existsSync, readdirSync, statSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
+export {
+  discoverAgentLearningLedgers,
+  findAgentLearningDatabases,
+  type AgentLearningLedgerLocation,
+} from './ledger-discovery.ts';
 import type { LearningKernel } from '../ledger.ts';
 
 export interface SkippedDatabase {
   dbPath: string;
   reason: string;
-}
-
-export function findAgentLearningDatabases(root: string): string[] {
-  if (!existsSync(root)) return [];
-
-  const found: string[] = [];
-  const visit = (dir: string) => {
-    for (const entry of readdirSync(dir)) {
-      if (entry === 'node_modules' || entry === '.git') continue;
-      const fullPath = join(dir, entry);
-      let stats;
-      try {
-        stats = statSync(fullPath);
-      } catch {
-        continue;
-      }
-
-      if (stats.isDirectory()) {
-        visit(fullPath);
-        continue;
-      }
-
-      if (
-        stats.isFile()
-        && fullPath.includes(`${join('.agent-learning')}`)
-        && (entry === 'learning.sqlite' || entry.endsWith('.sqlite'))
-      ) {
-        found.push(fullPath);
-      }
-    }
-  };
-
-  visit(root);
-  return found.sort();
 }
 
 export function openReadOnlyLedger(dbPath: string): DatabaseSync {

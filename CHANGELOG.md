@@ -83,6 +83,11 @@ release.
   - verifier command canonicalization for quiet pytest variants
   - separate window-level policy warnings from broader run-level policy
     warnings
+- Refactored ledger discovery for repo forests:
+  - added `discoverAgentLearningLedgers` with workspace root, relative workspace,
+    and nesting depth metadata
+  - kept `findAgentLearningDatabases` as the stable path-only compatibility API
+  - documented nested child workspace behavior with a focused test fixture
 
 ## 0.2.0
 
