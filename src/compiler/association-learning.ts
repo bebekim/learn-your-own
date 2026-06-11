@@ -5,9 +5,7 @@ import {
   type ExplanationGraphReport,
 } from './explanation-graph.ts';
 import {
-  hasExternalSideEffects,
   hasStoppedAfterEditWithoutVerification,
-  hasUnsafeWrite,
   isEditAction,
   isTestAction,
 } from './semantics.ts';
@@ -19,8 +17,22 @@ import {
   openReadOnlyLedger,
   type SkippedDatabase,
 } from './ledger-scan.ts';
+import {
+  compareHypotheses,
+  credibilityFor,
+  promotionBlockersFor,
+} from './association-learning/promotion.ts';
+import {
+  normalizeResourceRef,
+  sourceScopeForPath,
+  sourceScopeWarnings,
+} from './association-learning/scope.ts';
+import {
+  policyWarningsForActionWindow,
+  policyWarningsForRun,
+} from './association-learning/policy.ts';
 import type { LearningKernel } from '../ledger.ts';
-import type { NormalizedAction, ResourceRef, RunTelemetryAst } from './syntax.ts';
+import type { NormalizedAction, RunTelemetryAst } from './syntax.ts';
 
 export const ASSOCIATION_LEARNING_VERSION = 'lyo/association-learning/v1';
 
@@ -732,53 +744,6 @@ function toHypothesis(accumulator: HypothesisAccumulator): AssociationHypothesis
   };
 }
 
-function promotionBlockersFor(input: {
-  credibility: AssociationCredibility;
-  supportCount: number;
-  weakenCount: number;
-  defeatCount: number;
-  distinctRunCount: number;
-  distinctLedgerCount: number;
-  scopeWarnings: string[];
-  policyWarnings: string[];
-}): string[] {
-  const blockers: string[] = [];
-  if (input.credibility !== 'credible') blockers.push(`association_credibility:${input.credibility}`);
-  if (input.supportCount < 2) blockers.push('support_count_below_2');
-  if (input.distinctRunCount < 2) blockers.push('distinct_run_count_below_2');
-  if (input.distinctLedgerCount < 2) blockers.push('distinct_ledger_count_below_2');
-  if (input.weakenCount > 0) blockers.push('weaken_events_present');
-  if (input.defeatCount > 0) blockers.push('defeat_events_present');
-  for (const warning of input.scopeWarnings) blockers.push(`scope_warning:${warning}`);
-  for (const warning of input.policyWarnings) blockers.push(`evidence_policy_warning:${warning}`);
-  return Array.from(new Set(blockers)).sort();
-}
-
-function credibilityFor(input: {
-  supportCount: number;
-  weakenCount: number;
-  defeatCount: number;
-  distinctRunCount: number;
-  distinctLedgerCount: number;
-  scopeWarnings: string[];
-}): AssociationCredibility {
-  if (input.defeatCount > 0) return 'defeated';
-  if (input.weakenCount > input.supportCount) return 'weakened';
-  if (
-    input.supportCount >= 2
-    && input.distinctRunCount >= 2
-    && input.distinctLedgerCount >= 2
-    && input.weakenCount === 0
-    && input.scopeWarnings.length === 0
-  ) {
-    return 'credible';
-  }
-  if (input.supportCount > 0 && input.weakenCount === 0) return 'plausible';
-  if (input.supportCount > input.weakenCount) return 'plausible';
-  if (input.weakenCount > 0) return 'weakened';
-  return 'conjectural';
-}
-
 function sourceActivations(actions: NormalizedAction[]): SourceActivation[] {
   const activations: SourceActivation[] = [];
   actions.forEach((action, actionIndex) => {
@@ -829,82 +794,6 @@ function uniqueSources(sources: SourceActivation[]): SourceActivation[] {
   });
 }
 
-function normalizeResourceRef(resource: ResourceRef, action: NormalizedAction): string {
-  const cwd = action.provenance.cwd.replaceAll('\\', '/').replace(/\/+$/, '');
-  let ref = resource.ref.replaceAll('\\', '/');
-  if (cwd && ref.startsWith(`${cwd}/`)) ref = ref.slice(cwd.length + 1);
-  ref = ref.replace(/^\.\//, '');
-  ref = ref.replace(/\/+/g, '/');
-  return ref;
-}
-
-function sourceScopeForPath(path: string): string {
-  const clean = path.replace(/^\/+/, '');
-  let parts = clean.split('/').filter(Boolean);
-  const anchoredParts = anchorProjectPathParts(parts);
-  if (anchoredParts.length > 0) parts = anchoredParts;
-  if (parts.length === 0) return path;
-  if (parts[0] === 'private' && parts[1] === 'tmp') return 'private/tmp/**';
-  if (parts[0] === 'tmp') return 'tmp/**';
-  if (parts[0] === 'tests' || parts[0] === '__tests__') return `${parts[0]}/**`;
-  if (parts[0] === '.agent-learning') return '.agent-learning/**';
-  if (parts.length === 2 && isFilePath(parts[1])) return `${parts[0]}/${parts[1]}`;
-  if (parts.length >= 2) return `${parts[0]}/${parts[1]}/**`;
-  return parts[0];
-}
-
-function isFilePath(pathPart: string): boolean {
-  return /\.[A-Za-z0-9]+$/.test(pathPart);
-}
-
-function anchorProjectPathParts(parts: string[]): string[] {
-  const rootMarkers = new Set([
-    '__tests__',
-    'app',
-    'dbt',
-    'jobs',
-    'lib',
-    'models',
-    'notebooks',
-    'packages',
-    'scripts',
-    'sql',
-    'src',
-    'tests',
-  ]);
-  const markerIndex = parts.findIndex((part) => rootMarkers.has(part));
-  return markerIndex === -1 ? parts : parts.slice(markerIndex);
-}
-
-function sourceScopeWarnings(source: string): string[] {
-  const warnings: string[] = [];
-  if (source === 'tests/**' || source === '__tests__/**') warnings.push('source_scope_is_test_tree');
-  if (source === 'private/tmp/**' || source === 'tmp/**') warnings.push('source_scope_is_transient');
-  if (source === '.agent-learning/**') warnings.push('source_scope_is_telemetry_storage');
-  return warnings;
-}
-
-function policyWarningsForRun(actions: NormalizedAction[]): string[] {
-  return policyWarningsForActions(actions);
-}
-
-function policyWarningsForActionWindow(
-  actions: NormalizedAction[],
-  startIndex: number,
-  endIndex: number
-): string[] {
-  const start = Math.max(0, startIndex);
-  const end = Math.min(actions.length - 1, Math.max(start, endIndex));
-  return policyWarningsForActions(actions.slice(start, end + 1));
-}
-
-function policyWarningsForActions(actions: NormalizedAction[]): string[] {
-  const warnings: string[] = [];
-  if (actions.some(hasExternalSideEffects)) warnings.push('run_contains_external_side_effects');
-  if (hasUnsafeWrite(actions)) warnings.push('run_contains_unsafe_write');
-  return warnings;
-}
-
 function actionSucceeded(action: NormalizedAction): boolean {
   return action.status === 'succeeded' || action.command?.exitCode === 0;
 }
@@ -937,23 +826,6 @@ function slug(value: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 96) || 'unknown';
-}
-
-function compareHypotheses(left: AssociationHypothesis, right: AssociationHypothesis): number {
-  return credibilityRank(right.credibility) - credibilityRank(left.credibility)
-    || right.supportCount - left.supportCount
-    || right.distinctLedgerCount - left.distinctLedgerCount
-    || left.scopeWarnings.length - right.scopeWarnings.length
-    || left.source.localeCompare(right.source)
-    || left.target.localeCompare(right.target);
-}
-
-function credibilityRank(value: AssociationCredibility): number {
-  if (value === 'credible') return 4;
-  if (value === 'plausible') return 3;
-  if (value === 'conjectural') return 2;
-  if (value === 'weakened') return 1;
-  return 0;
 }
 
 function compareEvidenceEvents(left: AssociationEvidenceEvent, right: AssociationEvidenceEvent): number {

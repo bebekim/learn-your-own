@@ -67,6 +67,22 @@ release.
   - verifier/debugging and unverified-edit learning signals
   - reviewable procedure, critic, context-pack, and instrumentation candidates
   - no persistence or scoring rubric changes
+- Added first-class dry-run association learning:
+  - `lyo learn associations --dir <path> --dry-run`
+  - `lyo/association-learning/v1`
+  - source-scope to verifier hypotheses from historical hook telemetry
+  - support, weakening, defeater, freshness, novelty, and provenance evidence
+  - explanation-graph belief reports for each generated hypothesis
+  - promotion candidates and blockers for deciding which hypotheses are ready
+    for later artifact delivery
+  - compact promotion-oriented output via `--compact`
+- Improved association learner adoption details:
+  - immutable read-only ledger open fallback for historical SQLite files
+  - project-root anchoring for absolute paths under common source roots
+  - top-level file scopes such as `src/index.ts`
+  - verifier command canonicalization for quiet pytest variants
+  - separate window-level policy warnings from broader run-level policy
+    warnings
 
 ## 0.2.0
 

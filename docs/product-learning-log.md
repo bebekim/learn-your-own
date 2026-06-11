@@ -403,13 +403,20 @@ The dogfood run exposed several concrete product gaps.
    current Node SQLite path. Lyo needs an immutable read-only open mode, a safe
    temp-copy fallback, or both.
 
-2. Hypothesis discovery is still a script, not a first-class CLI.
+2. Hypothesis discovery needed a first-class CLI.
 
-   The audit command reports telemetry health, but it does not yet emit
-   association hypotheses. The product needs:
+   The audit command reported telemetry health, but did not emit association
+   hypotheses. That gap is now addressed by:
 
    ```sh
    lyo learn associations --dir /Users/marcus.kim/repositories/work --dry-run
+   ```
+
+   Use `--compact` for promotion-oriented output that omits the full hypothesis,
+   evidence, and explanation-belief arrays:
+
+   ```sh
+   lyo learn associations --dir /Users/marcus.kim/repositories/work --dry-run --compact
    ```
 
 3. Scope ranking is too naive.
@@ -444,14 +451,14 @@ The dogfood run exposed several concrete product gaps.
 
 ### Product Direction After This Run
 
-The next product slice should not be another scoring rubric. It should make the
-observed learning path first-class:
+The next product slice was not another scoring rubric. It made the observed
+learning path first-class:
 
 ```text
 lyo learn associations --dir <root> --dry-run
 ```
 
-The output should contain:
+The output now contains:
 
 ```text
 AssociationHypothesis records
@@ -463,7 +470,17 @@ provenance refs
 recommended next experiment
 ```
 
-It should remain read-only until append-only persistence is designed and tested.
+The compact output now adds:
+
+```text
+promotableCandidateCount
+blockedHypothesisCount
+topPromotionCandidates
+topBlockedHypotheses
+promotionBlockers
+```
+
+It remains read-only until append-only persistence is designed and tested.
 
 The core product learning is:
 
@@ -563,3 +580,77 @@ The current factor tables are deterministic and explicit, but still hand-set.
 That is acceptable for the first transparent implementation. The next product
 step is to make the graph emitter inspectable and compare these factor-derived
 beliefs against future intervention outcomes.
+
+## 2026-06-11: Association Promotion Output Becomes Reviewable
+
+### Question
+
+Once association hypotheses exist as first-class CLI output, the next adoption
+question is:
+
+```text
+Which hypotheses are ready to test as future behavior changes, and which ones
+are blocked?
+```
+
+Raw hypothesis and evidence arrays are useful for inspection, but they make the
+operator do too much work. The promotion decision needs to be visible in the
+report itself.
+
+### What Changed
+
+`lyo learn associations` now distinguishes:
+
+```text
+promotionCandidate:
+  true when a hypothesis has credible evidence and no current blockers
+
+promotionBlockers:
+  explicit reasons the hypothesis should not yet be promoted
+```
+
+Current blockers include:
+
+```text
+association_credibility:<state>
+support_count_below_2
+distinct_run_count_below_2
+distinct_ledger_count_below_2
+weaken_events_present
+defeat_events_present
+scope_warning:<warning>
+evidence_policy_warning:<warning>
+```
+
+The compact output is intentionally review-oriented:
+
+```sh
+lyo learn associations --dir <root> --dry-run --compact
+```
+
+It reports counts plus the top promotion-ready and blocked hypotheses without
+emitting every evidence event.
+
+### Product Lesson
+
+Promotion is not the same as credibility.
+
+A source-to-verifier association can be locally useful while still blocked from
+promotion by scope quality, insufficient distinct evidence, weakening evidence,
+or policy-sensitive actions near the support window. This keeps Lyo's learning
+loop conservative:
+
+```text
+conjecture
+-> explanation-aware belief
+-> explicit promotion gate
+-> future intervention
+-> later outcome evidence
+```
+
+### Remaining Gap
+
+Promotion candidates are still reports, not delivered artifacts. The next
+durable step is an append-only persistence path for hypotheses, evidence events,
+and promotion decisions, followed by a separate delivery mechanism that can be
+measured against future telemetry.
