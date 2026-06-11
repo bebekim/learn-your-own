@@ -92,6 +92,10 @@ release.
     policy explicit to avoid copied or generated `.agent-learning` ledgers
   - surfaced rich scanned-ledger metadata in effect audit and association
     learning reports while preserving `scannedDatabases`
+- Split CLI learning presentation and command-family tests:
+  - moved compact learning output shaping into `src/cli/presenters/learning.ts`
+  - moved learn, report, and audit CLI tests into command-family test files
+  - extracted reusable association ledger seeding fixtures for CLI tests
 
 ## 0.2.0
 
