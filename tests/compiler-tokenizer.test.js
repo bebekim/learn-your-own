@@ -617,6 +617,51 @@ test('Lyo compiler frontend classifies classic command families without overfitt
   }
 });
 
+test('Lyo compiler frontend classifies wait and polling commands as non-mutating wait actions', () => {
+  const t = tempDb();
+  try {
+    const kernel = createKernel({ dbPath: t.dbPath });
+    initLedger(kernel);
+
+    const commands = [
+      ['sleep-short', 'sleep 30'],
+      ['sleep-long', 'sleep 120'],
+    ];
+
+    for (const [suffix, command] of commands) {
+      recordHookEvent(kernel, {
+        eventId: `wait-${suffix}`,
+        sessionId: 'session-wait-classifier',
+        turnId: 'turn-wait-classifier',
+        eventName: 'PostToolUse',
+        cwd: '/tmp/project',
+        payload: {
+          hook_event_name: 'PostToolUse',
+          tool_name: 'Bash',
+          tool_input: { command },
+          tool_response: { exit_code: 0, stdout: '' },
+        },
+      });
+    }
+
+    const actions = tokenizeTelemetryActions(kernel, { runId: 'turn-wait-classifier' });
+    const byCommand = new Map(actions.map((action) => [action.command?.argvSummary, action]));
+
+    for (const command of ['sleep 30', 'sleep 120']) {
+      const action = byCommand.get(command);
+      assert.ok(action, `expected action for ${command}`);
+      assert.equal(action.operation, 'wait');
+      assert.equal(action.intent, 'wait');
+      assert.equal(action.risk, 'none');
+      assert.deepEqual(action.resources.read, []);
+      assert.deepEqual(action.resources.written, []);
+      assert.equal(action.facets.includes('read_only'), true);
+    }
+  } finally {
+    t.cleanup();
+  }
+});
+
 test('Lyo compiler frontend classifies database and project-generation commands conservatively', () => {
   const t = tempDb();
   try {

@@ -25,6 +25,8 @@ node_modules/
 /.codex/
 /.omx/
 /.agent-assets/
+/.tmp/
+/tmp-corpus-query.mjs
 
 # Generated package artifacts
 /dist/

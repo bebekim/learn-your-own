@@ -25,6 +25,9 @@ test('ledger discovery scans repo forests with nested child workspaces', () => {
     const nestedTool = ledger('repo-a/packages/tool');
     ledger('repo-a/node_modules/dependency');
     ledger('repo-b/.git/worktrees/ignored');
+    const snapshotDir = join(dir, 'repo-a', '.agent-learning', 'snapshots');
+    mkdirSync(snapshotDir, { recursive: true });
+    writeFileSync(join(snapshotDir, 'learning-20260522T090543Z.sqlite'), '');
     writeFileSync(join(dir, 'repo-a', '.agent-learning', 'notes.txt'), '');
 
     assert.deepEqual(findAgentLearningDatabases(dir), [

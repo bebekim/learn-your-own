@@ -57,6 +57,7 @@ export interface CorpusReportLedger {
   ledgerId: string;
   dbPath: string;
   workspaceRoot: string;
+  workspaceLabel: string;
   relativeWorkspace: string;
   repoName: string;
   runs: number;
@@ -137,23 +138,44 @@ export function corpusReport(input: CorpusReportInput): CorpusReport {
   const corpus = new DatabaseSync(input.corpusPath, { readOnly: true });
   try {
     const ledgers = corpus.prepare(`
+      with
+        run_counts as (
+          select source_ledger_id, count(*) as runs
+          from corpus_runs
+          group by source_ledger_id
+        ),
+        event_counts as (
+          select source_ledger_id, count(*) as hookEvents
+          from corpus_events
+          group by source_ledger_id
+        ),
+        action_counts as (
+          select source_ledger_id, count(*) as actions
+          from corpus_actions
+          group by source_ledger_id
+        ),
+        effect_counts as (
+          select source_ledger_id, count(*) as effects
+          from corpus_effects
+          group by source_ledger_id
+        )
       select
         l.ledger_id as ledgerId,
         l.db_path as dbPath,
         l.workspace_root as workspaceRoot,
+        l.workspace_root as workspaceLabel,
         l.relative_workspace as relativeWorkspace,
         l.repo_name as repoName,
         l.last_seen_at as lastSeenAt,
-        count(distinct r.run_id) as runs,
-        count(distinct e.event_id) as hookEvents,
-        count(distinct a.action_id) as actions,
-        count(distinct fx.scope_kind || ':' || fx.scope_id) as effects
+        coalesce(run_counts.runs, 0) as runs,
+        coalesce(event_counts.hookEvents, 0) as hookEvents,
+        coalesce(action_counts.actions, 0) as actions,
+        coalesce(effect_counts.effects, 0) as effects
       from sync_ledgers l
-      left join corpus_runs r on r.source_ledger_id = l.ledger_id
-      left join corpus_events e on e.source_ledger_id = l.ledger_id
-      left join corpus_actions a on a.source_ledger_id = l.ledger_id
-      left join corpus_effects fx on fx.source_ledger_id = l.ledger_id
-      group by l.ledger_id
+      left join run_counts on run_counts.source_ledger_id = l.ledger_id
+      left join event_counts on event_counts.source_ledger_id = l.ledger_id
+      left join action_counts on action_counts.source_ledger_id = l.ledger_id
+      left join effect_counts on effect_counts.source_ledger_id = l.ledger_id
       order by l.relative_workspace
     `).all() as unknown as CorpusReportLedger[];
     return {

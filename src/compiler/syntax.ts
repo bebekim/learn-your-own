@@ -50,6 +50,7 @@ export type OperationKind =
   | 'verify'
   | 'build'
   | 'version_control'
+  | 'wait'
   | 'approve'
   | 'delegate'
   | 'model_call'
@@ -62,6 +63,7 @@ export type IntentKind =
   | 'build'
   | 'deploy'
   | 'version'
+  | 'wait'
   | 'delegate'
   | 'unknown';
 

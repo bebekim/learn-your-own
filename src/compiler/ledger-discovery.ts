@@ -31,6 +31,7 @@ export function discoverAgentLearningLedgers(root: string): AgentLearningLedgerL
   const visit = (dir: string) => {
     for (const entry of readdirSync(dir)) {
       if (SKIPPED_DIRECTORY_NAMES.has(entry)) continue;
+      if (isAgentLearningArchiveDirectory(dir, entry)) continue;
       const fullPath = join(dir, entry);
       let stats;
       try {
@@ -61,6 +62,11 @@ export function findAgentLearningDatabases(root: string): string[] {
 function isAgentLearningDatabasePath(fullPath: string, entry: string): boolean {
   return fullPath.split(/[\\/]/).includes('.agent-learning')
     && (entry === 'learning.sqlite' || entry.endsWith('.sqlite'));
+}
+
+function isAgentLearningArchiveDirectory(parentDir: string, entry: string): boolean {
+  return entry === 'snapshots'
+    && parentDir.split(/[\\/]/).at(-1) === '.agent-learning';
 }
 
 function ledgerLocation(root: string, dbPath: string): AgentLearningLedgerLocation {

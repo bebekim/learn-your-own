@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 
+import { initCorpusDb } from '../src/corpus/schema.ts';
 import { runLyoJson } from './helpers/cli.js';
 import { seedEditThenVerifierLedger } from './helpers/ledger-fixtures.js';
 
@@ -68,6 +69,8 @@ test('sync once imports discovered repo ledgers into a local corpus', () => {
     assert.equal(report.totals.effects, 2);
     assert.deepEqual(
       report.ledgers.map((ledger) => ({
+        workspaceLabel: ledger.workspaceLabel,
+        workspaceRoot: ledger.workspaceRoot,
         relativeWorkspace: ledger.relativeWorkspace,
         runs: ledger.runs,
         hookEvents: ledger.hookEvents,
@@ -75,12 +78,16 @@ test('sync once imports discovered repo ledgers into a local corpus', () => {
         effects: ledger.effects,
       })),
       [{
+        workspaceLabel: join(reposRoot, 'repo-a'),
+        workspaceRoot: join(reposRoot, 'repo-a'),
         relativeWorkspace: 'repo-a',
         runs: 0,
         hookEvents: 2,
         actions: 2,
         effects: 1,
       }, {
+        workspaceLabel: join(reposRoot, 'repo-b'),
+        workspaceRoot: join(reposRoot, 'repo-b'),
         relativeWorkspace: 'repo-b',
         runs: 0,
         hookEvents: 2,
@@ -175,3 +182,155 @@ test('sync once imports discovered repo ledgers into a local corpus', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('corpus report aggregates large child tables without a fanout join', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-corpus-report-'));
+  try {
+    const corpusPath = join(dir, 'corpus.sqlite');
+    seedFanoutCorpus(corpusPath, 1000);
+
+    const report = runLyoJson([
+      'corpus',
+      'report',
+      '--db',
+      corpusPath,
+      '--json',
+    ], { timeout: 1500 });
+
+    assert.equal(report.ok, true);
+    assert.deepEqual(report.totals, {
+      ledgers: 1,
+      runs: 1,
+      hookEvents: 1000,
+      actions: 1000,
+      effects: 1000,
+    });
+    assert.deepEqual(
+      report.ledgers.map((ledger) => ({
+        workspaceLabel: ledger.workspaceLabel,
+        workspaceRoot: ledger.workspaceRoot,
+        relativeWorkspace: ledger.relativeWorkspace,
+        runs: ledger.runs,
+        hookEvents: ledger.hookEvents,
+        actions: ledger.actions,
+        effects: ledger.effects,
+      })),
+      [{
+        workspaceLabel: '/tmp/repo-fanout',
+        workspaceRoot: '/tmp/repo-fanout',
+        relativeWorkspace: 'repo-fanout',
+        runs: 1,
+        hookEvents: 1000,
+        actions: 1000,
+        effects: 1000,
+      }]
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+function seedFanoutCorpus(corpusPath, count) {
+  const db = new DatabaseSync(corpusPath);
+  try {
+    db.exec('PRAGMA foreign_keys = ON');
+    initCorpusDb(db);
+    db.exec('BEGIN');
+    db.prepare(`
+      insert into sync_ledgers (
+        ledger_id,
+        db_path,
+        workspace_root,
+        relative_workspace,
+        repo_name,
+        first_seen_at,
+        last_seen_at,
+        status
+      ) values ('ledger-fanout', '/tmp/repo-fanout/.agent-learning/learning.sqlite', '/tmp/repo-fanout', 'repo-fanout', 'repo-fanout', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', 'active')
+    `).run();
+    db.prepare(`
+      insert into sync_batches (batch_id, ledger_id, status, started_at, finished_at)
+      values ('batch-fanout', 'ledger-fanout', 'completed', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')
+    `).run();
+    db.prepare(`
+      insert into corpus_runs (
+        source_ledger_id,
+        run_id,
+        task_shape,
+        channel,
+        status,
+        token_cost,
+        created_at,
+        imported_at
+      ) values ('ledger-fanout', 'run-fanout', 'implementation', 'local', 'completed', 0, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')
+    `).run();
+
+    const insertEvent = db.prepare(`
+      insert into corpus_events (
+        source_ledger_id,
+        event_id,
+        session_id,
+        turn_id,
+        event_name,
+        cwd,
+        model,
+        lyo_version,
+        payload_json,
+        created_at,
+        imported_at
+      ) values ('ledger-fanout', ?, 'session-fanout', 'turn-fanout', 'tool.after', '/tmp/repo-fanout', 'gpt-5', '0.1.0', '{}', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')
+    `);
+    const insertAction = db.prepare(`
+      insert into corpus_actions (
+        source_ledger_id,
+        action_id,
+        run_id,
+        session_id,
+        event_id,
+        event_name,
+        ordinal,
+        operation,
+        intent,
+        risk,
+        status,
+        event_kind,
+        confidence,
+        resources_read_json,
+        resources_written_json,
+        command_json,
+        facets_json,
+        provenance_json,
+        created_at,
+        import_batch_id,
+        imported_at
+      ) values ('ledger-fanout', ?, 'run-fanout', 'session-fanout', ?, 'tool.after', ?, 'observe', 'inspect', 'none', 'succeeded', 'tool.after', 'high', '[]', '[]', null, '{}', '{}', '2026-01-01T00:00:00.000Z', 'batch-fanout', '2026-01-01T00:00:00.000Z')
+    `);
+    const insertEffect = db.prepare(`
+      insert into corpus_effects (
+        source_ledger_id,
+        scope_kind,
+        scope_id,
+        reads_json,
+        writes_json,
+        executed_commands_json,
+        evidence_refs_json,
+        predicates_json,
+        import_batch_id,
+        imported_at
+      ) values ('ledger-fanout', 'run', ?, '[]', '[]', '[]', '[]', '{}', 'batch-fanout', '2026-01-01T00:00:00.000Z')
+    `);
+
+    for (let index = 0; index < count; index += 1) {
+      const id = String(index).padStart(4, '0');
+      insertEvent.run(`event-${id}`);
+      insertAction.run(`action-${id}`, `event-${id}`, index);
+      insertEffect.run(`effect-${id}`);
+    }
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  } finally {
+    db.close();
+  }
+}

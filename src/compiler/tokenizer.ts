@@ -242,6 +242,8 @@ export function tokenizeTelemetryActions(
           operation = 'build';
         } else if (cmd.classification === 'git' || cmdNameLower === 'git') {
           operation = 'version_control';
+        } else if (isWaitCommand(cmdNameLower, normalizedArgv)) {
+          operation = 'wait';
         } else if (eventKind === 'approval') {
           operation = 'approve';
         } else if (
@@ -305,6 +307,11 @@ export function tokenizeTelemetryActions(
           confidence = 'high';
           rule = 'deploy_classification';
           rationale = 'Identified deploy or cloud classification';
+        } else if (isWaitCommand(cmdNameLower, normalizedArgv)) {
+          intent = 'wait';
+          confidence = 'high';
+          rule = 'wait_command';
+          rationale = 'Identified local waiting or polling delay command';
         } else if (isPackagePublishCommand(normalizedArgv)) {
           intent = 'deploy';
           confidence = 'high';
@@ -600,6 +607,11 @@ function isShellEmitCommand(normalizedName: string, normalizedArgv: string): boo
 function isHelpOrVersionCommand(normalizedArgv: string): boolean {
   return /(^|\s)(--help|-h|help)(\s|$)/.test(normalizedArgv)
     || /(^|\s)(version|--version|-v)\s*$/.test(normalizedArgv);
+}
+
+function isWaitCommand(normalizedName: string, normalizedArgv: string): boolean {
+  return normalizedName === 'sleep'
+    && /^sleep\s+\d+(?:\.\d+)?(?:[smhd])?$/.test(normalizedArgv);
 }
 
 function isSqliteReadOnlyCommand(normalizedArgv: string): boolean {
