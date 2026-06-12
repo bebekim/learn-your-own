@@ -173,7 +173,7 @@ test('typecheck is part of the local and CI verification surface', () => {
 
 test('candidate at-bat report assembly delegates verifier policy and scoring', () => {
   const candidateDir = join(SRC, 'compiler', 'candidate-at-bat');
-  for (const fileName of ['verifiers.ts', 'scoring.ts']) {
+  for (const fileName of ['verifiers.ts', 'scoring.ts', 'final-claim.ts']) {
     assert.equal(existsSync(join(candidateDir, fileName)), true, fileName);
   }
 
@@ -185,6 +185,9 @@ test('candidate at-bat report assembly delegates verifier policy and scoring', (
     'function classifyFailureRecovery',
     'function classifyRiskControl',
     'function classifyClaimEvidenceAlignment',
+    'function extractFinalClaim',
+    'function finalMessageFromPayload',
+    'function truncateSummary',
   ]) {
     assert.equal(assembler.includes(extractedFunction), false, extractedFunction);
   }
