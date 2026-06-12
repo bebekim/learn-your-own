@@ -27,6 +27,15 @@ import {
   classifyRiskControl,
 } from './candidate-at-bat/scoring.ts';
 import { extractFinalClaim } from './candidate-at-bat/final-claim.ts';
+import {
+  actionTime,
+  timingMetrics,
+} from './candidate-at-bat/timing.ts';
+import {
+  repeatedEditHotspots,
+  resourceTouchCounts,
+  writeCountsByResource,
+} from './candidate-at-bat/resource-churn.ts';
 
 export const CANDIDATE_AT_BAT_REPORT_VERSION = 'lyo/candidate-at-bat/v1';
 
@@ -326,77 +335,6 @@ function hasCleanStopWithJustification(input: {
     && !input.unsafeWrite;
 }
 
-function timingMetrics(actions: NormalizedAction[]): CandidateAtBatReport['timing'] {
-  const firstTime = actionTime(actions[0]);
-  const lastTime = actionTime(actions[actions.length - 1]);
-  const firstInspectTime = actionTime(actions.find(isInspectAction));
-  const firstEditTime = actionTime(actions.find(isEditAction));
-  const firstVerifierTime = actionTime(actions.find(isTestAction));
-
-  return {
-    timeToFirstInspectMs: diffMs(firstTime, firstInspectTime),
-    timeToFirstEditMs: diffMs(firstTime, firstEditTime),
-    timeToFirstVerifierMs: diffMs(firstTime, firstVerifierTime),
-    meanEditToVerifierDelayMs: meanEditToVerifierDelayMs(actions),
-    failureRecoveryLatencyMs: failureRecoveryLatencyMs(actions),
-    totalSessionDurationMs: diffMs(firstTime, lastTime),
-  };
-}
-
-function meanEditToVerifierDelayMs(actions: NormalizedAction[]): number | null {
-  const delays: number[] = [];
-  for (let index = 0; index < actions.length; index += 1) {
-    const action = actions[index];
-    if (!isEditAction(action)) continue;
-    const editTime = actionTime(action);
-    const verifierTime = actionTime(actions.slice(index + 1).find(isTestAction));
-    const delay = diffMs(editTime, verifierTime);
-    if (delay !== null) delays.push(delay);
-  }
-  if (delays.length === 0) return null;
-  return Math.round(delays.reduce((sum, value) => sum + value, 0) / delays.length);
-}
-
-function failureRecoveryLatencyMs(actions: NormalizedAction[]): number | null {
-  const failedVerifierIndex = actions.findIndex((action) => isTestAction(action) && actionFailed(action));
-  if (failedVerifierIndex === -1) return null;
-  const failureTime = actionTime(actions[failedVerifierIndex]);
-  const recoveryTime = actionTime(
-    actions.slice(failedVerifierIndex + 1).find((action) => {
-      return (isInspectAction(action) || isEditAction(action) || isTestAction(action) && actionSucceeded(action));
-    })
-  );
-  return diffMs(failureTime, recoveryTime);
-}
-
-function writeCountsByResource(actions: NormalizedAction[]): Record<string, number> {
-  const counts: Record<string, number> = {};
-  for (const action of actions) {
-    for (const resource of action.resources.written) {
-      const key = resource.ref;
-      counts[key] = (counts[key] ?? 0) + 1;
-    }
-  }
-  return sortRecord(counts);
-}
-
-function resourceTouchCounts(actions: NormalizedAction[]): Record<string, number> {
-  const counts: Record<string, number> = {};
-  for (const action of actions) {
-    for (const resource of [...action.resources.read, ...action.resources.written]) {
-      const key = resource.ref;
-      counts[key] = (counts[key] ?? 0) + 1;
-    }
-  }
-  return sortRecord(counts);
-}
-
-function repeatedEditHotspots(actions: NormalizedAction[]): string[] {
-  return Object.entries(writeCountsByResource(actions))
-    .filter(([, count]) => count > 1)
-    .map(([resource]) => resource);
-}
-
 function techniqueSignatures(input: {
   workflowClassification: WorkflowStyleClassification;
   inspectBeforeEdit: boolean;
@@ -451,17 +389,6 @@ function limitations(input: {
   }
 
   return Array.from(new Set(values));
-}
-
-function actionTime(action: NormalizedAction | undefined): number | null {
-  if (!action) return null;
-  const time = Date.parse(action.provenance.createdAt);
-  return Number.isFinite(time) ? time : null;
-}
-
-function diffMs(left: number | null, right: number | null): number | null {
-  if (left === null || right === null) return null;
-  return Math.max(0, right - left);
 }
 
 function requiredString(input: Record<string, unknown>, key: string): string {
@@ -569,8 +496,4 @@ function optionalBoolean(value: unknown): boolean | null {
     throw new Error('candidate at-bat task context baseline fields must be booleans');
   }
   return value;
-}
-
-function sortRecord(input: Record<string, number>): Record<string, number> {
-  return Object.fromEntries(Object.entries(input).sort(([left], [right]) => left.localeCompare(right)));
 }
