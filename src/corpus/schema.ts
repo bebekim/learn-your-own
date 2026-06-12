@@ -105,5 +105,89 @@ export function initCorpusDb(db: DatabaseSync): void {
       imported_at text not null,
       primary key (source_ledger_id, scope_kind, scope_id)
     );
+
+    create table if not exists git_repositories (
+      repo_id text primary key,
+      repo_path text not null unique,
+      head_sha text,
+      first_seen_at text not null,
+      last_seen_at text not null,
+      status text not null,
+      source text not null default 'git_history',
+      visibility text not null default 'committed_trace_only',
+      confidence text not null default 'weak'
+    );
+
+    create table if not exists git_import_batches (
+      batch_id text primary key,
+      repo_id text not null references git_repositories(repo_id),
+      status text not null,
+      started_at text not null,
+      finished_at text,
+      error text
+    );
+
+    create table if not exists git_commits (
+      repo_id text not null references git_repositories(repo_id),
+      commit_sha text not null,
+      parent_shas_json text not null,
+      author_name text not null,
+      author_email text not null,
+      authored_at text not null,
+      subject text not null,
+      is_merge integer not null,
+      is_revert integer not null,
+      import_batch_id text not null references git_import_batches(batch_id),
+      imported_at text not null,
+      primary key (repo_id, commit_sha)
+    );
+
+    create table if not exists git_commit_files (
+      repo_id text not null references git_repositories(repo_id),
+      commit_sha text not null,
+      path text not null,
+      old_path text,
+      change_status text not null,
+      additions integer not null,
+      deletions integer not null,
+      file_role text not null,
+      language text not null,
+      import_batch_id text not null references git_import_batches(batch_id),
+      imported_at text not null,
+      primary key (repo_id, commit_sha, path)
+    );
+
+    create table if not exists git_commit_hunks (
+      repo_id text not null references git_repositories(repo_id),
+      commit_sha text not null,
+      path text not null,
+      hunk_index integer not null,
+      old_start integer,
+      old_lines integer,
+      new_start integer,
+      new_lines integer,
+      hunk_header text not null,
+      added_lines_sample text not null,
+      removed_lines_sample text not null,
+      import_batch_id text not null references git_import_batches(batch_id),
+      imported_at text not null,
+      primary key (repo_id, commit_sha, path, hunk_index)
+    );
+
+    create table if not exists git_commit_change_tokens (
+      repo_id text not null references git_repositories(repo_id),
+      commit_sha text not null,
+      path text not null,
+      hunk_index integer,
+      token_kind text not null,
+      token_value text not null,
+      language text not null,
+      file_role text not null,
+      confidence text not null,
+      evidence_ref text not null,
+      import_batch_id text not null references git_import_batches(batch_id),
+      imported_at text not null,
+      primary key (repo_id, commit_sha, path, hunk_index, token_kind, token_value)
+    );
   `);
 }

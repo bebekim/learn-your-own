@@ -210,6 +210,17 @@ Inspect the local corpus:
 lyo corpus report --db ~/.lyo/corpus.sqlite --json
 ```
 
+Import committed OSS/project history into dedicated git corpus tables:
+
+```sh
+lyo import git --repo ~/repositories/oss/requests --corpus ~/.lyo/corpus.sqlite --limit 500 --json
+```
+
+Git imports are weak evidence from committed history only. They store commit,
+file, hunk, and primitive change-token rows separately from native hook
+telemetry so later motif discovery can compare both sources without pretending
+git history captured prompts or local verifier loops.
+
 For the full CLI surface:
 
 ```sh

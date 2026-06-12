@@ -20,6 +20,7 @@ export function usage(exitCode = 0): never {
 	  lyo learn style [--db path] [--verbose]
 	  lyo learn associations [--dir path] --dry-run [--compact]
 	  lyo learn explanation --dry-run --input path
+	  lyo import git --repo path --corpus path [--limit n] [--json]
 	  lyo sync once --dir path --corpus path [--json]
 	  lyo corpus report [--db path] [--json]
 	  lyo workspace register [--db path] --root path [--workspace-id id] [--name name]
