@@ -223,6 +223,21 @@ test('compiler frontend tests are split by report family', () => {
   }
 });
 
+test('compiler report tests share telemetry fixture builders', () => {
+  const helper = join(ROOT, 'tests', 'helpers', 'telemetry.js');
+  assert.equal(existsSync(helper), true);
+
+  const source = readFileSync(helper, 'utf8');
+  for (const exportedBuilder of [
+    'telemetryAction',
+    'telemetryToken',
+    'telemetryAst',
+    'compiledTelemetryRun',
+  ]) {
+    assert.match(source, new RegExp(`export function ${exportedBuilder}\\b`), exportedBuilder);
+  }
+});
+
 test('compiler frontend exposes a compiled telemetry run boundary', () => {
   assert.equal(existsSync(join(SRC, 'compiler', 'frontend.ts')), true);
 

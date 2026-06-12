@@ -40,6 +40,10 @@ import {
   computeRivalOutcomeMessage,
   recordModelCall,
 } from '../src/index.ts';
+import {
+  compiledTelemetryRun,
+  telemetryAction as action,
+} from './helpers/telemetry.js';
 
 function tempDb() {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-compiler-'));
@@ -47,32 +51,6 @@ function tempDb() {
     dir,
     dbPath: join(dir, 'learning.sqlite'),
     cleanup: () => rmSync(dir, { recursive: true, force: true }),
-  };
-}
-
-function action(overrides) {
-  const eventId = overrides.eventId ?? overrides.actionId ?? 'action';
-  return {
-    actionId: overrides.actionId ?? `act-${eventId}`,
-    provenance: {
-      eventId,
-      eventName: overrides.eventName ?? 'PostToolUse',
-      evidenceRef: overrides.evidenceRef ?? `hook:${eventId}`,
-      sessionId: 'session-algebra',
-      runId: 'turn-algebra',
-      cwd: '/tmp/project',
-      createdAt: overrides.createdAt ?? '2026-01-01T00:00:00.000Z',
-      ordinal: overrides.ordinal ?? 0,
-    },
-    eventKind: overrides.eventKind ?? 'tool_use',
-    operation: overrides.operation ?? 'observe',
-    intent: overrides.intent ?? 'inspect',
-    resources: overrides.resources ?? { read: [], written: [] },
-    risk: overrides.risk ?? 'none',
-    status: overrides.status ?? 'succeeded',
-    facets: overrides.facets ?? ['local', 'read_only'],
-    confidence: overrides.confidence ?? 'high',
-    command: overrides.command,
   };
 }
 
@@ -976,6 +954,40 @@ test('Lyo effect algebra satisfies identity and associativity laws', () => {
     'hook:algebra-write',
     'hook:algebra-test',
   ]);
+});
+
+test('Lyo telemetry fixtures build compiled runs without SQLite', () => {
+  const edit = action({
+    eventId: 'fixture-edit',
+    operation: 'mutate_local',
+    intent: 'implement',
+    resources: { read: [], written: [{ type: 'local_file', ref: 'src/a.ts' }] },
+    risk: 'low',
+    facets: ['local', 'write'],
+  });
+  const verifier = action({
+    eventId: 'fixture-test',
+    operation: 'verify',
+    intent: 'verify',
+    resources: { read: [{ type: 'local_repo', ref: '.' }], written: [] },
+    facets: ['local', 'test', 'read_only'],
+    command: { name: 'npm', argvSummary: 'npm test', exitCode: 0 },
+  });
+
+  const compiled = compiledTelemetryRun({
+    runId: 'fixture-run',
+    actions: [edit, verifier],
+  });
+
+  assert.equal(compiled.runId, 'fixture-run');
+  assert.deepEqual(compiled.episodes.map((episode) => episode.phase), [
+    'implementation',
+    'passed_verification',
+  ]);
+  assert.deepEqual(compiled.semantic.verifiers.map((semanticVerifier) => semanticVerifier.command), [
+    'npm test',
+  ]);
+  assert.deepEqual(compiled.semantic.verifiers[0].scopePaths, ['src/a.ts']);
 });
 
 test('Lyo effect algebra detects independent, conflicting, and external actions', () => {
