@@ -1,6 +1,10 @@
 import type { LearningKernel } from '../ledger.ts';
 import { extractHookFacts } from '../hooks/normalizer.ts';
 import type { CommandClassification, CommandStatus } from '../types/activation.ts';
+import {
+  finalizeCommandResources,
+  inferPreOperationCommandResources,
+} from './tokenizer/command-resources.ts';
 import type {
   NormalizedAction,
   TelemetryToken,
@@ -210,35 +214,19 @@ export function tokenizeTelemetryActions(
         const normalizedArgv = cmd.argv.toLowerCase();
         const cmdNameLower = cmd.commandName.toLowerCase();
 
-        const read = [...readResources];
-        const written = [...writtenResources];
-
-        // Parse path references from the command line string when path activations are absent
-        const parsedCmdPaths = extractPathsFromCommand(cmd.argv);
-
-        // Git and external resources mapping
-        if (cmd.classification === 'git' || /^(git status|git diff|git log|git show|git)\b/.test(normalizedArgv)) {
-          read.push({ type: 'local_repo', ref: '.' });
-        }
-        if (cmd.classification === 'deploy' || cmd.classification === 'cloud' || /^(databricks|railway|aws|gcloud|kubectl)\b/.test(normalizedArgv)) {
-          if (cmd.status === 'succeeded' || cmd.status === 'attempted') {
-            let ref = 'deployment';
-            const match = cmd.argvSummary.toLowerCase().match(/\b(databricks|railway|aws|gcloud|kubectl)\b/);
-            if (match) {
-              ref = match[1];
-            }
-            written.push({ type: 'external_resource', ref });
-          }
-        }
-        if (isPackageRegistryInspectCommand(normalizedArgv)) {
-          read.push({ type: 'external_resource', ref: 'package_registry' });
-        }
-        if (isPackagePublishCommand(normalizedArgv)) {
-          written.push({ type: 'external_resource', ref: 'package_registry' });
-        }
-        if (isDockerComposeMutationCommand(normalizedArgv)) {
-          written.push({ type: 'local_cache', ref: 'docker' });
-        }
+        const inferredResources = inferPreOperationCommandResources({
+          commandClassification: cmd.classification,
+          commandStatus: cmd.status,
+          argv: cmd.argv,
+          argvSummary: cmd.argvSummary,
+          readResources,
+          writtenResources,
+          isPackageRegistryInspect: isPackageRegistryInspectCommand(normalizedArgv),
+          isPackagePublish: isPackagePublishCommand(normalizedArgv),
+          isDockerComposeMutation: isDockerComposeMutationCommand(normalizedArgv),
+        });
+        let read = inferredResources.read;
+        let written = inferredResources.written;
 
         // Determine primary operation
         let operation: OperationKind = 'unknown';
@@ -270,24 +258,12 @@ export function tokenizeTelemetryActions(
           operation = 'observe';
         }
 
-        if (operation === 'verify' || operation === 'build') {
-          if (!read.some(r => r.type === 'local_repo' && r.ref === '.')) {
-            read.push({ type: 'local_repo', ref: '.' });
-          }
-        }
-
-        // Distribute parsed paths based on the primary operation
-        for (const path of parsedCmdPaths) {
-          const res: ResourceRef = { type: 'local_file', ref: path };
-          if (operation === 'mutate_local') {
-            if (!written.some(w => w.ref === path)) written.push(res);
-          } else if (operation === 'observe') {
-            if (!read.some(r => r.ref === path)) read.push(res);
-          }
-        }
-        if (operation === 'mutate_local' && written.length === 0) {
-          written.push({ type: 'local_repo', ref: '.' });
-        }
+        ({ read, written } = finalizeCommandResources({
+          read,
+          written,
+          operation,
+          parsedPaths: inferredResources.parsedPaths,
+        }));
 
         // Determine Risk
         let risk: RiskClass = 'none';
@@ -494,23 +470,6 @@ export function tokenizeTelemetryRun(
   input: { runId: string }
 ): TelemetryToken[] {
   return deriveTelemetryTokens(tokenizeTelemetryActions(kernel, input));
-}
-
-function extractPathsFromCommand(command: string): string[] {
-  const paths: string[] = [];
-  const tokens = command.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) ?? [];
-  for (let i = 1; i < tokens.length; i++) {
-    const token = tokens[i].replace(/^["']|["']$/g, '').trim();
-    if (token.startsWith('-')) continue;
-    if (
-      token.includes('/') ||
-      /\.[a-zA-Z0-9]+$/.test(token) ||
-      ['src', 'tests', 'lib', 'dist'].includes(token)
-    ) {
-      paths.push(token.replace(/^\.\//, '').replace(/\/$/, ''));
-    }
-  }
-  return paths;
 }
 
 function isLocalWriteCommand(name: string, argv: string): boolean {

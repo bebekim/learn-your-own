@@ -223,6 +223,20 @@ test('compiler frontend tests are split by report family', () => {
   }
 });
 
+test('tokenizer delegates command resource inference', () => {
+  assert.equal(existsSync(join(SRC, 'compiler', 'tokenizer', 'command-resources.ts')), true);
+
+  const tokenizer = readFileSync(join(SRC, 'compiler', 'tokenizer.ts'), 'utf8');
+  for (const delegatedDetail of [
+    "read.push({ type: 'local_repo'",
+    "written.push({ type: 'external_resource'",
+    "written.push({ type: 'local_cache'",
+    'function extractPathsFromCommand',
+  ]) {
+    assert.equal(tokenizer.includes(delegatedDetail), false, delegatedDetail);
+  }
+});
+
 function sourceFiles(root) {
   const files = [];
   for (const entry of readdirSync(root)) {
