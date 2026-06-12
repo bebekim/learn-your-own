@@ -7,8 +7,7 @@ import { buildCyberneticExperimentReport } from '../../compiler/cybernetic-exper
 import type { CyberneticExperimentAttemptInput } from '../../compiler/cybernetic-experiment.ts';
 import { auditEffectLedgers } from '../../compiler/effect-audit.ts';
 import { buildEffectReport } from '../../compiler/effect-report.ts';
-import { compileTelemetryRun } from '../../compiler/frontend.ts';
-import { compileTelemetryRunAst } from '../../compiler/parser.ts';
+import { compileTelemetryRun, compileTelemetryRunAst } from '../../compiler/frontend.ts';
 import { planSemanticLowering } from '../../compiler/lowering.ts';
 import { buildWorkflowStyleReport } from '../../compiler/workflow-style.ts';
 import {

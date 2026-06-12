@@ -1,5 +1,5 @@
 import type { LearningKernel } from '../ledger.ts';
-import { compileTelemetryRunAst } from './parser.ts';
+import { compileTelemetryRunAst } from './frontend.ts';
 import {
   hasDebugging,
   hasStoppedAfterEditWithoutVerification,

@@ -227,6 +227,7 @@ test('compiler frontend exposes a compiled telemetry run boundary', () => {
   assert.equal(existsSync(join(SRC, 'compiler', 'frontend.ts')), true);
 
   const frontend = readFileSync(join(SRC, 'compiler', 'frontend.ts'), 'utf8');
+  assert.match(frontend, /export \{ compileTelemetryRunAst \}/);
   assert.match(frontend, /function compileTelemetryRun/);
   assert.match(frontend, /compileTelemetryRunAst/);
   assert.match(frontend, /analyzeTelemetrySemantics/);
@@ -234,6 +235,17 @@ test('compiler frontend exposes a compiled telemetry run boundary', () => {
   const publicBarrel = readFileSync(join(SRC, 'index.ts'), 'utf8');
   assert.match(publicBarrel, /compileTelemetryRun/);
   assert.match(publicBarrel, /CompiledTelemetryRun/);
+
+  const productionParserConsumers = sourceFiles(SRC)
+    .filter((filePath) => ![
+      'src/compiler/frontend.ts',
+      'src/compiler/parser.ts',
+      'src/index.ts',
+    ].includes(relative(ROOT, filePath)))
+    .filter((filePath) => /from\s+['"].*\/parser\.ts['"]/.test(readFileSync(filePath, 'utf8')))
+    .map((filePath) => relative(ROOT, filePath));
+
+  assert.deepEqual(productionParserConsumers, []);
 });
 
 test('tokenizer delegates command resource inference', () => {

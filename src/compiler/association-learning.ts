@@ -1,4 +1,4 @@
-import { compileTelemetryRunAst } from './parser.ts';
+import { compileTelemetryRunAst } from './frontend.ts';
 import {
   buildExplanationGraphReport,
   type ExplanationFactorInput,

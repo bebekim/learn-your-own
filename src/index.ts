@@ -76,8 +76,8 @@ export {
   spoolCodexHookEvent,
 } from './hooks/runtime.ts';
 export { tokenizeTelemetryActions, deriveTelemetryTokens, tokenizeTelemetryRun } from './compiler/tokenizer.ts';
-export { parseTelemetryEpisodes, compileTelemetryRunAst } from './compiler/parser.ts';
-export { compileTelemetryRun } from './compiler/frontend.ts';
+export { parseTelemetryEpisodes } from './compiler/parser.ts';
+export { compileTelemetryRun, compileTelemetryRunAst } from './compiler/frontend.ts';
 export type { CompiledTelemetryRun } from './compiler/frontend.ts';
 export { analyzeTelemetrySemantics } from './compiler/analyzer.ts';
 export {

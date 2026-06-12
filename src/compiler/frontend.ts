@@ -8,6 +8,8 @@ export interface CompiledTelemetryRun extends RunTelemetryAst {
   semantic: SemanticRunAst;
 }
 
+export { compileTelemetryRunAst };
+
 export function compileTelemetryRun(
   kernel: LearningKernel,
   input: { runId: string }
