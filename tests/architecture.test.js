@@ -210,6 +210,19 @@ test('candidate at-bat report assembly delegates verifier policy and scoring', (
   }
 });
 
+test('compiler frontend tests are split by report family', () => {
+  assert.equal(existsSync(join(ROOT, 'tests', 'compiler-frontend.test.js')), false);
+  for (const fileName of [
+    'compiler-tokenizer.test.js',
+    'workflow-style.test.js',
+    'candidate-at-bat.test.js',
+    'cybernetic-experiment.test.js',
+    'explanation-graph.test.js',
+  ]) {
+    assert.equal(existsSync(join(ROOT, 'tests', fileName)), true, fileName);
+  }
+});
+
 function sourceFiles(root) {
   const files = [];
   for (const entry of readdirSync(root)) {
