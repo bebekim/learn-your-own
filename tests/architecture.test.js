@@ -171,6 +171,25 @@ test('typecheck is part of the local and CI verification surface', () => {
   assert.match(workflow, /npm run typecheck/);
 });
 
+test('candidate at-bat report assembly delegates verifier policy and scoring', () => {
+  const candidateDir = join(SRC, 'compiler', 'candidate-at-bat');
+  for (const fileName of ['verifiers.ts', 'scoring.ts']) {
+    assert.equal(existsSync(join(candidateDir, fileName)), true, fileName);
+  }
+
+  const assembler = readFileSync(join(SRC, 'compiler', 'candidate-at-bat.ts'), 'utf8');
+  for (const extractedFunction of [
+    'function evaluateVerifierSpecs',
+    'function verifierQuality',
+    'function classifyOutcome',
+    'function classifyFailureRecovery',
+    'function classifyRiskControl',
+    'function classifyClaimEvidenceAlignment',
+  ]) {
+    assert.equal(assembler.includes(extractedFunction), false, extractedFunction);
+  }
+});
+
 function sourceFiles(root) {
   const files = [];
   for (const entry of readdirSync(root)) {

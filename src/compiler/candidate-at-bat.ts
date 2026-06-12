@@ -4,9 +4,7 @@ import {
   hasDebugging,
   hasStoppedAfterEditWithoutVerification,
   hasUnsafeWrite,
-  hasVerifiedCompletion,
   isEditAction,
-  isExternalAction,
   isInspectAction,
   isTestAction,
 } from './semantics.ts';
@@ -15,6 +13,19 @@ import {
   buildWorkflowStyleReport,
   type WorkflowStyleClassification,
 } from './workflow-style.ts';
+import {
+  actionFailed,
+  actionSucceeded,
+  evaluateVerifierSpecs,
+  hasRegressionEvidence,
+  hasVerifierPassAfterVerifierFailure,
+} from './candidate-at-bat/verifiers.ts';
+import {
+  classifyClaimEvidenceAlignment,
+  classifyFailureRecovery,
+  classifyOutcome,
+  classifyRiskControl,
+} from './candidate-at-bat/scoring.ts';
 
 export const CANDIDATE_AT_BAT_REPORT_VERSION = 'lyo/candidate-at-bat/v1';
 
@@ -173,15 +184,10 @@ export function buildCandidateAtBatReport(
   const toolActions = actions.filter((action) => action.eventKind !== 'boundary');
   const editActions = actions.filter(isEditAction);
   const verifierEvaluation = evaluateVerifierSpecs(actions, taskContext.verifiers ?? []);
-  const explicitVerifierSpecs = (taskContext.verifiers ?? []).length > 0;
-  const verifierActions = explicitVerifierSpecs
-    ? verifierEvaluation.matchedActions
-    : actions.filter(isTestAction);
+  const verifierActions = verifierEvaluation.matchedActions;
   const verifierPasses = verifierActions.filter(actionSucceeded);
   const verifierFailures = verifierActions.filter(actionFailed);
-  const verifiedProgress = explicitVerifierSpecs
-    ? verifierEvaluation.shipReadiness
-    : hasVerifiedCompletion(actions);
+  const verifiedProgress = verifierEvaluation.shipReadiness;
   const stoppedAfterEditWithoutVerification = hasStoppedAfterEditWithoutVerification(actions);
   const debugging = hasDebugging(actions);
   const unsafeWrite = hasUnsafeWrite(actions);
@@ -302,207 +308,10 @@ export function parseCandidateAtBatTaskContext(value: unknown): CandidateAtBatTa
   };
 }
 
-interface VerifierEvaluation {
-  shipReadiness: boolean;
-  verifierQuality: CandidateAtBatVerifierQuality;
-  matchedVerifiers: CandidateAtBatMatchedVerifier[];
-  missingRequiredVerifiers: string[];
-  matchedActions: NormalizedAction[];
-}
-
-function evaluateVerifierSpecs(
-  actions: NormalizedAction[],
-  specs: CandidateAtBatVerifierSpec[]
-): VerifierEvaluation {
-  if (specs.length === 0) {
-    const legacyPasses = hasVerifiedCompletion(actions);
-    const testActions = actions.filter(isTestAction);
-    return {
-      shipReadiness: legacyPasses,
-      verifierQuality: legacyPasses ? 'moderate' : testActions.length > 0 ? 'weak' : 'missing',
-      matchedVerifiers: [],
-      missingRequiredVerifiers: [],
-      matchedActions: testActions,
-    };
-  }
-
-  const lastEditIndex = findLastIndex(actions, isEditAction);
-  const matched: Array<CandidateAtBatMatchedVerifier & { action: NormalizedAction }> = [];
-
-  for (let index = 0; index < actions.length; index += 1) {
-    const action = actions[index];
-    const command = action.command?.argvSummary;
-    if (!command) continue;
-
-    for (const spec of specs) {
-      if (!commandMatches(command, spec)) continue;
-      matched.push({
-        id: spec.id,
-        kind: spec.kind,
-        required: spec.required,
-        command,
-        evidenceRef: action.provenance.evidenceRef,
-        passed: actionSucceeded(action),
-        freshAfterFinalEdit: lastEditIndex === -1 ? false : index > lastEditIndex,
-        action,
-      });
-    }
-  }
-
-  const missingRequiredVerifiers = specs
-    .filter((spec) => spec.required)
-    .filter((spec) => {
-      return !matched.some((verifier) => {
-        return verifier.id === spec.id
-          && verifier.required
-          && verifier.passed
-          && verifier.freshAfterFinalEdit;
-      });
-    })
-    .map((spec) => spec.id);
-  const shipReadiness = specs.some((spec) => spec.required)
-    ? missingRequiredVerifiers.length === 0 && lastEditIndex !== -1
-    : matched.some((verifier) => verifier.passed && verifier.freshAfterFinalEdit);
-
-  return {
-    shipReadiness,
-    verifierQuality: verifierQuality({
-      shipReadiness,
-      missingRequiredVerifiers,
-      matchedVerifiers: matched,
-    }),
-    matchedVerifiers: matched.map(({ action: _action, ...verifier }) => verifier),
-    missingRequiredVerifiers,
-    matchedActions: uniqueActions(matched.map((verifier) => verifier.action)),
-  };
-}
-
-function commandMatches(command: string, spec: CandidateAtBatVerifierSpec): boolean {
-  const mode = spec.matchMode ?? 'contains';
-  if (mode === 'exact') return command === spec.commandPattern;
-  if (mode === 'regex') {
-    try {
-      return new RegExp(spec.commandPattern).test(command);
-    } catch {
-      return false;
-    }
-  }
-  return command.includes(spec.commandPattern);
-}
-
-function verifierQuality(input: {
-  shipReadiness: boolean;
-  missingRequiredVerifiers: string[];
-  matchedVerifiers: CandidateAtBatMatchedVerifier[];
-}): CandidateAtBatVerifierQuality {
-  if (!input.shipReadiness || input.missingRequiredVerifiers.length > 0) return 'missing';
-
-  const freshPassed = input.matchedVerifiers.filter((verifier) => {
-    return verifier.passed && verifier.freshAfterFinalEdit;
-  });
-  if (freshPassed.some((verifier) => verifier.kind === 'broad')) return 'strong';
-  if (freshPassed.some((verifier) => verifier.kind === 'targeted' || verifier.kind === 'build')) {
-    return 'moderate';
-  }
-  return freshPassed.length > 0 ? 'weak' : 'missing';
-}
-
-function uniqueActions(actions: NormalizedAction[]): NormalizedAction[] {
-  const byId = new Map<string, NormalizedAction>();
-  for (const action of actions) byId.set(action.actionId, action);
-  return Array.from(byId.values());
-}
-
-function classifyOutcome(input: {
-  verifiedProgress: boolean;
-  stoppedAfterEditWithoutVerification: boolean;
-  missingRequiredVerification: boolean;
-  cleanStopWithJustification: boolean;
-  regressionEvidence: boolean;
-}): CandidateAtBatOutcome {
-  if (input.verifiedProgress) return 'verified_progress';
-  if (input.regressionEvidence) return 'regression';
-  if (input.stoppedAfterEditWithoutVerification || input.missingRequiredVerification) {
-    return 'unverified_claim';
-  }
-  if (input.cleanStopWithJustification) return 'clean_stop_with_justification';
-  return 'blocked_without_resolution';
-}
-
-function hasRegressionEvidence(
-  taskContext: CandidateAtBatTaskContext,
-  actions: NormalizedAction[],
-  verifierEvaluation: VerifierEvaluation
-): boolean {
-  if (taskContext.baseline.existingTestsPass !== true && taskContext.baseline.buildSucceeds !== true) {
-    return false;
-  }
-
-  const lastEditIndex = findLastIndex(actions, isEditAction);
-  if (lastEditIndex === -1) return false;
-
-  if ((taskContext.verifiers ?? []).length > 0) {
-    return verifierEvaluation.matchedVerifiers.some((verifier) => {
-      return verifier.required && verifier.freshAfterFinalEdit && !verifier.passed;
-    });
-  }
-
-  const finalVerifier = actions.slice(lastEditIndex + 1).findLast(isTestAction);
-  return finalVerifier ? actionFailed(finalVerifier) : false;
-}
-
 function hasInspectBeforeFirstEdit(actions: NormalizedAction[]): boolean {
   const firstEditIndex = actions.findIndex(isEditAction);
   if (firstEditIndex === -1) return false;
   return actions.slice(0, firstEditIndex).some(isInspectAction);
-}
-
-function classifyFailureRecovery(input: {
-  debugging: boolean;
-  verifierFailures: number;
-  verifierPassesAfterFailure: boolean;
-}): CandidateAtBatReport['scorecard']['failureRecovery'] {
-  if (input.verifierFailures === 0) return 'not_applicable';
-  if (input.debugging && input.verifierPassesAfterFailure) return 'strong';
-  if (input.debugging) return 'weak';
-  return 'none';
-}
-
-function hasVerifierPassAfterVerifierFailure(actions: NormalizedAction[]): boolean {
-  let sawFailure = false;
-  for (const action of actions) {
-    if (!isTestAction(action)) continue;
-    if (actionFailed(action)) sawFailure = true;
-    if (sawFailure && actionSucceeded(action)) return true;
-  }
-  return false;
-}
-
-function classifyRiskControl(
-  actions: NormalizedAction[],
-  unsafeWrite: boolean
-): CandidateAtBatReport['scorecard']['riskControl'] {
-  if (unsafeWrite) return 'weak';
-  if (actions.some(isExternalAction)) return 'moderate';
-  return 'strong';
-}
-
-function classifyClaimEvidenceAlignment(input: {
-  verifiedProgress: boolean;
-  stoppedAfterEditWithoutVerification: boolean;
-  missingRequiredVerification: boolean;
-  regression: boolean;
-  finalClaim: CandidateAtBatFinalClaim;
-}): CandidateAtBatReport['scorecard']['claimEvidenceAlignment'] {
-  if (input.verifiedProgress && (
-    input.finalClaim.posture === 'unknown'
-    || input.finalClaim.posture === 'cites_evidence'
-    || input.finalClaim.mentionsVerifier
-  )) return 'strong';
-  if (input.finalClaim.posture === 'blocked') return 'unknown';
-  if (input.finalClaim.posture === 'claims_done' && !input.finalClaim.mentionsVerifier) return 'weak';
-  if (input.stoppedAfterEditWithoutVerification || input.missingRequiredVerification || input.regression) return 'weak';
-  return 'unknown';
 }
 
 function extractFinalClaim(kernel: LearningKernel, ast: RunTelemetryAst): CandidateAtBatFinalClaim {
@@ -715,23 +524,6 @@ function actionTime(action: NormalizedAction | undefined): number | null {
 function diffMs(left: number | null, right: number | null): number | null {
   if (left === null || right === null) return null;
   return Math.max(0, right - left);
-}
-
-function actionSucceeded(action: NormalizedAction): boolean {
-  return action.status === 'succeeded' || action.command?.exitCode === 0;
-}
-
-function actionFailed(action: NormalizedAction): boolean {
-  return action.status === 'failed' || (
-    typeof action.command?.exitCode === 'number' && action.command.exitCode !== 0
-  );
-}
-
-function findLastIndex<T>(values: T[], predicate: (value: T) => boolean): number {
-  for (let index = values.length - 1; index >= 0; index -= 1) {
-    if (predicate(values[index])) return index;
-  }
-  return -1;
 }
 
 function requiredString(input: Record<string, unknown>, key: string): string {
