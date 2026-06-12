@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import { analyzeTelemetrySemantics } from '../../compiler/analyzer.ts';
 import {
   buildCandidateAtBatReport,
   parseCandidateAtBatTaskContext,
@@ -8,6 +7,7 @@ import { buildCyberneticExperimentReport } from '../../compiler/cybernetic-exper
 import type { CyberneticExperimentAttemptInput } from '../../compiler/cybernetic-experiment.ts';
 import { auditEffectLedgers } from '../../compiler/effect-audit.ts';
 import { buildEffectReport } from '../../compiler/effect-report.ts';
+import { compileTelemetryRun } from '../../compiler/frontend.ts';
 import { compileTelemetryRunAst } from '../../compiler/parser.ts';
 import { planSemanticLowering } from '../../compiler/lowering.ts';
 import { buildWorkflowStyleReport } from '../../compiler/workflow-style.ts';
@@ -102,14 +102,16 @@ function reportCommand(args: CommandArgs): unknown {
   if (args.hasFlag('--semantic')) {
     const runId = args.requiredFlag('--run-id');
     return withKernel(args, (kernel) => {
-      const telemetry = compileTelemetryRunAst(kernel, { runId });
-      const semantic = analyzeTelemetrySemantics(telemetry);
+      const telemetry = compileTelemetryRun(kernel, { runId });
 
       if (args.hasFlag('--lower')) {
-        return observationLoweringPlanResponse(planSemanticLowering({ telemetry, semantic }));
+        return observationLoweringPlanResponse(planSemanticLowering({
+          telemetry,
+          semantic: telemetry.semantic,
+        }));
       }
 
-      return observationReportResponse('semantic', semantic);
+      return observationReportResponse('semantic', telemetry.semantic);
     });
   }
 

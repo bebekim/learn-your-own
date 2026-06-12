@@ -223,6 +223,19 @@ test('compiler frontend tests are split by report family', () => {
   }
 });
 
+test('compiler frontend exposes a compiled telemetry run boundary', () => {
+  assert.equal(existsSync(join(SRC, 'compiler', 'frontend.ts')), true);
+
+  const frontend = readFileSync(join(SRC, 'compiler', 'frontend.ts'), 'utf8');
+  assert.match(frontend, /function compileTelemetryRun/);
+  assert.match(frontend, /compileTelemetryRunAst/);
+  assert.match(frontend, /analyzeTelemetrySemantics/);
+
+  const publicBarrel = readFileSync(join(SRC, 'index.ts'), 'utf8');
+  assert.match(publicBarrel, /compileTelemetryRun/);
+  assert.match(publicBarrel, /CompiledTelemetryRun/);
+});
+
 test('tokenizer delegates command resource inference', () => {
   assert.equal(existsSync(join(SRC, 'compiler', 'tokenizer', 'command-resources.ts')), true);
 

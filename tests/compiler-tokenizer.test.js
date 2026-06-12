@@ -29,6 +29,7 @@ import {
   tokenizeTelemetryRun,
   parseTelemetryEpisodes,
   compileTelemetryRunAst,
+  compileTelemetryRun,
   analyzeTelemetrySemantics,
   planSemanticLowering,
   buildWorkflowStyleReport,
@@ -350,6 +351,13 @@ test('Lyo compiler frontend tokenizes and parses a standard verify-edit-debug-pa
 	      associatedPaths: ['src/main.ts'],
 	      failedAttempts: 1,
 	    }]);
+
+      const compiled = compileTelemetryRun(kernel, { runId: turnId });
+      assert.equal(compiled.runId, ast.runId);
+      assert.deepEqual(compiled.actions, ast.actions);
+      assert.deepEqual(compiled.tokens, ast.tokens);
+      assert.deepEqual(compiled.episodes, ast.episodes);
+      assert.deepEqual(compiled.semantic, semantic);
 	  } finally {
 	    t.cleanup();
 	  }
