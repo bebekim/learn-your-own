@@ -14,6 +14,7 @@ node_modules/
 !/docs/deterministic-classification.md
 !/docs/learned-context-thermodynamics.md
 !/docs/learning-as-explanation-graph.md
+!/docs/local-corpus-effect-algebra-spec.md
 !/docs/style-learning.md
 
 # Editor backup files

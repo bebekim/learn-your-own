@@ -116,6 +116,10 @@ export {
   parseCandidateAtBatTaskContext,
 } from './compiler/candidate-at-bat.ts';
 export { buildCyberneticExperimentReport } from './compiler/cybernetic-experiment.ts';
+export {
+  corpusReport,
+  syncCorpusOnce,
+} from './corpus/sync.ts';
 export type * from './compiler/syntax.ts';
 export type * from './compiler/semantics.ts';
 export type * from './compiler/workflow-style.ts';
@@ -124,4 +128,5 @@ export type * from './compiler/association-learning.ts';
 export type * from './compiler/explanation-graph.ts';
 export type * from './compiler/candidate-at-bat.ts';
 export type * from './compiler/cybernetic-experiment.ts';
+export type * from './corpus/sync.ts';
 export type * from './types.ts';

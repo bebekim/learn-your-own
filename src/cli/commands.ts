@@ -2,6 +2,7 @@ import { CliArgs } from './args.ts';
 import { ACTIVATION_COMMANDS } from './commands/activation.ts';
 import { ASSOCIATION_COMMANDS } from './commands/associations.ts';
 import { CONTEXT_COMMANDS } from './commands/context.ts';
+import { CORPUS_COMMANDS } from './commands/corpus.ts';
 import { DEMO_COMMANDS } from './commands/demo.ts';
 import { EXERCISE_COMMANDS } from './commands/exercise.ts';
 import { HARNESS_COMMANDS } from './commands/harness.ts';
@@ -27,6 +28,7 @@ const COMMAND_HANDLERS: Record<string, CommandHandler> = {
   ...ACTIVATION_COMMANDS,
   ...ASSOCIATION_COMMANDS,
   ...CONTEXT_COMMANDS,
+  ...CORPUS_COMMANDS,
   ...EXERCISE_COMMANDS,
   ...DEMO_COMMANDS,
 };

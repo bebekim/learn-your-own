@@ -194,6 +194,22 @@ Audit existing local ledgers:
 lyo audit --dir ~/repositories
 ```
 
+Collect scattered repo-local ledgers into a personal local corpus:
+
+```sh
+lyo sync once --dir ~/repositories --corpus ~/.lyo/corpus.sqlite --json
+```
+
+The sync imports source runs and hook events, then materializes normalized
+`corpus_actions` and run-level `corpus_effects` using the same effect algebra as
+single-run reports.
+
+Inspect the local corpus:
+
+```sh
+lyo corpus report --db ~/.lyo/corpus.sqlite --json
+```
+
 For the full CLI surface:
 
 ```sh

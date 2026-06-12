@@ -32,11 +32,17 @@ export function runLyoJson(args, options = {}) {
 }
 
 function commandFailureOutput(error) {
-  if (typeof error?.stdout === 'string' || typeof error?.stderr === 'string') {
-    return `${error.stdout ?? ''}${error.stderr ?? ''}`;
+  if (typeof error?.stdout === 'string' && error.stdout.length > 0) {
+    return error.stdout;
   }
-  if (Buffer.isBuffer(error?.stdout) || Buffer.isBuffer(error?.stderr)) {
-    return `${error.stdout?.toString('utf8') ?? ''}${error.stderr?.toString('utf8') ?? ''}`;
+  if (typeof error?.stderr === 'string' && error.stderr.length > 0) {
+    return error.stderr;
+  }
+  if (Buffer.isBuffer(error?.stdout) && error.stdout.length > 0) {
+    return error.stdout.toString('utf8');
+  }
+  if (Buffer.isBuffer(error?.stderr) && error.stderr.length > 0) {
+    return error.stderr.toString('utf8');
   }
   return error instanceof Error ? error.message : String(error);
 }
