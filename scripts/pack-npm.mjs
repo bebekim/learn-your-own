@@ -37,7 +37,7 @@ writeFileSync(
   readFileSync(join(root, 'docs/deterministic-classification.md'))
 );
 
-execFileSync('npm', ['run', 'build:npm'], { cwd: root, stdio: 'inherit' });
+execFileSync(process.execPath, ['scripts/build-npm.mjs'], { cwd: root, stdio: 'inherit' });
 
 execFileSync('tar', [
   '-czf',
