@@ -3,11 +3,13 @@ import {
   syncCorpusOnce,
 } from '../../corpus/sync.ts';
 import { importGitHistory } from '../../corpus/git-import.ts';
+import { collectGitCorpusPool } from '../../corpus/pool.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
 
 export const CORPUS_COMMANDS: Record<string, CommandHandler> = {
   'corpus report': corpusReportCommand,
   'import git': importGitCommand,
+  'pool collect': poolCollectCommand,
   'sync once': syncOnceCommand,
 };
 
@@ -29,6 +31,23 @@ function importGitCommand(args: CommandArgs): unknown {
     repoPath: args.requiredFlag('--repo'),
     corpusPath: args.requiredFlag('--corpus'),
     limit: numberFlag(args.flagValue('--limit')),
+    projectTag: args.flagValue('--tag') ?? null,
+  });
+}
+
+function poolCollectCommand(args: CommandArgs): unknown {
+  const sources = args.flagValues('--source');
+  const tags = args.flagValues('--tag');
+  if (sources.length === 0) throw new Error('expected at least one --source');
+  if (sources.length !== tags.length) {
+    throw new Error(`expected one --tag per --source, got ${sources.length} sources and ${tags.length} tags`);
+  }
+  return collectGitCorpusPool({
+    poolPath: args.requiredFlag('--pool'),
+    sources: sources.map((sourcePath, index) => ({
+      sourcePath,
+      tag: tags[index],
+    })),
   });
 }
 
