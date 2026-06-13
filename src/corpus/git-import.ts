@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { basename, resolve } from 'node:path';
+import { mkdirSync } from 'node:fs';
+import { basename, dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
 import { initCorpusDb } from './schema.ts';
@@ -8,6 +9,7 @@ export interface ImportGitHistoryInput {
   repoPath: string;
   corpusPath: string;
   limit?: number | null;
+  projectTag?: string | null;
 }
 
 export interface ImportGitHistoryResult {
@@ -18,6 +20,7 @@ export interface ImportGitHistoryResult {
   corpusPath: string;
   repoPath: string;
   repoId: string;
+  projectTag: string | null;
   headSha: string | null;
   commitsScanned: number;
   imported: {
@@ -69,20 +72,24 @@ interface ChangeToken {
   tokenValue: string;
   language: string;
   fileRole: string;
+  projectTag: string | null;
+  sourceCorpusPath: string;
   confidence: 'low' | 'medium' | 'high';
   evidenceRef: string;
 }
 
 export function importGitHistory(input: ImportGitHistoryInput): ImportGitHistoryResult {
   const repoPath = resolve(input.repoPath);
-  const corpus = openWritableCorpus(input.corpusPath);
+  const corpusPath = resolve(input.corpusPath);
+  const projectTag = input.projectTag ?? null;
+  const corpus = openWritableCorpus(corpusPath);
   const now = new Date().toISOString();
   const repoId = repoIdForPath(repoPath);
   const batchId = `${repoId}:${now}`;
   const headSha = git(repoPath, ['rev-parse', '--verify', 'HEAD']).trim() || null;
 
   try {
-    upsertRepository(corpus, repoId, repoPath, headSha, now);
+    upsertRepository(corpus, repoId, repoPath, headSha, projectTag, corpusPath, now);
     startBatch(corpus, batchId, repoId, now);
     const commits = listCommits(repoPath, input.limit ?? null);
     const imported = { commits: 0, files: 0, hunks: 0, changeTokens: 0 };
@@ -109,19 +116,21 @@ export function importGitHistory(input: ImportGitHistoryInput): ImportGitHistory
           deletions: file.deletions,
           language,
           fileRole,
+          projectTag,
+          sourceCorpusPath: corpusPath,
           batchId,
           importedAt: now,
         });
 
-        for (const token of fileLevelTokens(repoId, commit.sha, file.path, language, fileRole, batchId, now)) {
+        for (const token of fileLevelTokens(repoId, commit.sha, file.path, language, fileRole, projectTag, corpusPath)) {
           imported.changeTokens += insertToken(corpus, token, batchId, now);
         }
 
         const patch = patchByPath.get(file.path);
         if (!patch) continue;
         for (const hunk of patch.hunks) {
-          imported.hunks += insertHunk(corpus, repoId, commit.sha, file.path, hunk, batchId, now);
-          for (const token of hunkTokens(repoId, commit.sha, file.path, hunk, language, fileRole)) {
+          imported.hunks += insertHunk(corpus, repoId, commit.sha, file.path, hunk, projectTag, corpusPath, batchId, now);
+          for (const token of hunkTokens(repoId, commit.sha, file.path, hunk, language, fileRole, projectTag, corpusPath)) {
             imported.changeTokens += insertToken(corpus, token, batchId, now);
           }
         }
@@ -134,9 +143,10 @@ export function importGitHistory(input: ImportGitHistoryInput): ImportGitHistory
       source: 'git_history',
       visibility: 'committed_trace_only',
       confidence: 'weak',
-      corpusPath: input.corpusPath,
+      corpusPath,
       repoPath,
       repoId,
+      projectTag,
       headSha,
       commitsScanned: commits.length,
       imported,
@@ -150,6 +160,7 @@ export function importGitHistory(input: ImportGitHistoryInput): ImportGitHistory
 }
 
 function openWritableCorpus(corpusPath: string): DatabaseSync {
+  mkdirSync(dirname(corpusPath), { recursive: true });
   const db = new DatabaseSync(corpusPath);
   db.exec('PRAGMA foreign_keys = ON');
   db.exec('PRAGMA journal_mode = WAL');
@@ -158,17 +169,28 @@ function openWritableCorpus(corpusPath: string): DatabaseSync {
   return db;
 }
 
-function upsertRepository(corpus: DatabaseSync, repoId: string, repoPath: string, headSha: string | null, now: string): void {
+function upsertRepository(
+  corpus: DatabaseSync,
+  repoId: string,
+  repoPath: string,
+  headSha: string | null,
+  projectTag: string | null,
+  sourceCorpusPath: string,
+  now: string
+): void {
   corpus.prepare(`
     insert into git_repositories (
-      repo_id, repo_path, head_sha, first_seen_at, last_seen_at, status
-    ) values (?, ?, ?, ?, ?, 'active')
+      repo_id, repo_path, head_sha, first_seen_at, last_seen_at, status,
+      project_tag, source_corpus_path
+    ) values (?, ?, ?, ?, ?, 'active', ?, ?)
     on conflict(repo_id) do update set
       repo_path = excluded.repo_path,
       head_sha = excluded.head_sha,
       last_seen_at = excluded.last_seen_at,
-      status = excluded.status
-  `).run(repoId, repoPath, headSha, now, now);
+      status = excluded.status,
+      project_tag = excluded.project_tag,
+      source_corpus_path = excluded.source_corpus_path
+  `).run(repoId, repoPath, headSha, now, now, projectTag, sourceCorpusPath);
 }
 
 function startBatch(corpus: DatabaseSync, batchId: string, repoId: string, now: string): void {
@@ -220,11 +242,17 @@ function listCommits(repoPath: string, limit: number | null): CommitMeta[] {
 }
 
 function insertCommit(corpus: DatabaseSync, repoId: string, commit: CommitMeta, batchId: string, importedAt: string): number {
+  const repo = corpus.prepare(`
+    select project_tag as projectTag, source_corpus_path as sourceCorpusPath
+    from git_repositories
+    where repo_id = ?
+  `).get(repoId) as { projectTag: string | null; sourceCorpusPath: string | null };
   const result = corpus.prepare(`
     insert or ignore into git_commits (
       repo_id, commit_sha, parent_shas_json, author_name, author_email,
-      authored_at, subject, is_merge, is_revert, import_batch_id, imported_at
-    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      authored_at, subject, is_merge, is_revert, project_tag, source_corpus_path,
+      import_batch_id, imported_at
+    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     repoId,
     commit.sha,
@@ -235,6 +263,8 @@ function insertCommit(corpus: DatabaseSync, repoId: string, commit: CommitMeta, 
     commit.subject,
     commit.parents.length > 1 ? 1 : 0,
     /^revert\b/i.test(commit.subject) ? 1 : 0,
+    repo.projectTag,
+    repo.sourceCorpusPath,
     batchId,
     importedAt
   );
@@ -276,14 +306,16 @@ function insertCommitFile(corpus: DatabaseSync, input: {
   deletions: number;
   language: string;
   fileRole: string;
+  projectTag: string | null;
+  sourceCorpusPath: string;
   batchId: string;
   importedAt: string;
 }): number {
   const result = corpus.prepare(`
     insert or ignore into git_commit_files (
       repo_id, commit_sha, path, old_path, change_status, additions, deletions,
-      file_role, language, import_batch_id, imported_at
-    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      file_role, language, project_tag, source_corpus_path, import_batch_id, imported_at
+    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     input.repoId,
     input.commitSha,
@@ -294,6 +326,8 @@ function insertCommitFile(corpus: DatabaseSync, input: {
     input.deletions,
     input.fileRole,
     input.language,
+    input.projectTag,
+    input.sourceCorpusPath,
     input.batchId,
     input.importedAt
   );
@@ -354,6 +388,8 @@ function insertHunk(
   commitSha: string,
   path: string,
   hunk: ParsedHunk,
+  projectTag: string | null,
+  sourceCorpusPath: string,
   batchId: string,
   importedAt: string
 ): number {
@@ -361,8 +397,8 @@ function insertHunk(
     insert or ignore into git_commit_hunks (
       repo_id, commit_sha, path, hunk_index, old_start, old_lines, new_start,
       new_lines, hunk_header, added_lines_sample, removed_lines_sample,
-      import_batch_id, imported_at
-    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      project_tag, source_corpus_path, import_batch_id, imported_at
+    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     repoId,
     commitSha,
@@ -375,6 +411,8 @@ function insertHunk(
     hunk.hunkHeader,
     sampleLines(hunk.addedLines),
     sampleLines(hunk.removedLines),
+    projectTag,
+    sourceCorpusPath,
     batchId,
     importedAt
   );
@@ -387,11 +425,9 @@ function fileLevelTokens(
   path: string,
   language: string,
   fileRole: string,
-  batchId: string,
-  importedAt: string
+  projectTag: string | null,
+  sourceCorpusPath: string
 ): ChangeToken[] {
-  void batchId;
-  void importedAt;
   return [{
     repoId,
     commitSha,
@@ -401,6 +437,8 @@ function fileLevelTokens(
     tokenValue: fileRole,
     language,
     fileRole,
+    projectTag,
+    sourceCorpusPath,
     confidence: 'high',
     evidenceRef: `git:${repoId}:${commitSha}:${path}`,
   }];
@@ -412,7 +450,9 @@ function hunkTokens(
   path: string,
   hunk: ParsedHunk,
   language: string,
-  fileRole: string
+  fileRole: string,
+  projectTag: string | null,
+  sourceCorpusPath: string
 ): ChangeToken[] {
   const added = hunk.addedLines.join('\n');
   const normalized = added.toLowerCase();
@@ -427,6 +467,8 @@ function hunkTokens(
       tokenValue,
       language,
       fileRole,
+      projectTag,
+      sourceCorpusPath,
       confidence,
       evidenceRef: `git:${repoId}:${commitSha}:${path}:hunk:${hunk.hunkIndex}`,
     });
@@ -465,19 +507,22 @@ function insertToken(corpus: DatabaseSync, token: ChangeToken, batchId: string, 
   const result = corpus.prepare(`
     insert or ignore into git_commit_change_tokens (
       repo_id, commit_sha, path, hunk_index, token_kind, token_value,
-      language, file_role, confidence, evidence_ref, import_batch_id, imported_at
-    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      language, file_role, confidence, evidence_ref, project_tag, source_corpus_path,
+      import_batch_id, imported_at
+    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     token.repoId,
     token.commitSha,
     token.path,
-    token.hunkIndex,
+    token.hunkIndex ?? -1,
     token.tokenKind,
     token.tokenValue,
     token.language,
     token.fileRole,
     token.confidence,
     token.evidenceRef,
+    token.projectTag,
+    token.sourceCorpusPath,
     batchId,
     importedAt
   );

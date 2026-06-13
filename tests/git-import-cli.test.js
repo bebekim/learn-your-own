@@ -121,6 +121,127 @@ test('import git records committed history into dedicated corpus tables with hun
   }
 });
 
+test('import git stores project tags and pool collect preserves source provenance', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-git-pool-'));
+  try {
+    const repoA = join(dir, 'repo-a');
+    const repoB = join(dir, 'repo-b');
+    const poolPath = join(dir, 'pool.sqlite');
+    seedGitRepo(repoA);
+    seedGitRepo(repoB);
+
+    const corpusA = join(repoA, '.lyo', 'git-history.sqlite');
+    const corpusB = join(repoB, '.lyo', 'git-history.sqlite');
+
+    const importA = runLyoJson([
+      'import',
+      'git',
+      '--repo',
+      repoA,
+      '--corpus',
+      corpusA,
+      '--tag',
+      'alpha',
+      '--json',
+    ]);
+    const importB = runLyoJson([
+      'import',
+      'git',
+      '--repo',
+      repoB,
+      '--corpus',
+      corpusB,
+      '--tag',
+      'beta',
+      '--json',
+    ]);
+
+    assert.equal(importA.projectTag, 'alpha');
+    assert.equal(importB.projectTag, 'beta');
+
+    const pool = runLyoJson([
+      'pool',
+      'collect',
+      '--pool',
+      poolPath,
+      '--source',
+      corpusA,
+      '--tag',
+      'alpha',
+      '--source',
+      corpusB,
+      '--tag',
+      'beta',
+      '--json',
+    ]);
+
+    assert.equal(pool.ok, true);
+    assert.deepEqual(pool.imported, {
+      repositories: 2,
+      commits: 6,
+      files: 8,
+      hunks: 8,
+      changeTokens: 22,
+    });
+
+    const secondPool = runLyoJson([
+      'pool',
+      'collect',
+      '--pool',
+      poolPath,
+      '--source',
+      corpusA,
+      '--tag',
+      'alpha',
+      '--source',
+      corpusB,
+      '--tag',
+      'beta',
+      '--json',
+    ]);
+
+    assert.deepEqual(secondPool.imported, {
+      repositories: 0,
+      commits: 0,
+      files: 0,
+      hunks: 0,
+      changeTokens: 0,
+    });
+
+    const db = new DatabaseSync(poolPath, { readOnly: true });
+    try {
+      const repos = db.prepare(`
+        select project_tag as projectTag, source_corpus_path as sourceCorpusPath
+        from git_repositories
+        order by project_tag
+      `).all();
+      assert.deepEqual(
+        repos.map((repo) => repo.projectTag),
+        ['alpha', 'beta']
+      );
+      assert.deepEqual(
+        repos.map((repo) => repo.sourceCorpusPath),
+        [corpusA, corpusB]
+      );
+
+      const commitTags = db.prepare(`
+        select project_tag as projectTag, count(*) as n
+        from git_commits
+        group by project_tag
+        order by project_tag
+      `).all();
+      assert.deepEqual(
+        commitTags.map((row) => [row.projectTag, Number(row.n)]),
+        [['alpha', 3], ['beta', 3]]
+      );
+    } finally {
+      db.close();
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 function seedGitRepo(repoPath) {
   mkdirSync(repoPath, { recursive: true });
   git(repoPath, ['init']);

@@ -39,6 +39,16 @@ export class CliArgs {
     return this.argv[index + 1];
   }
 
+  flagValues(name: string): string[] {
+    const values: string[] = [];
+    for (let index = 0; index < this.argv.length; index += 1) {
+      if (this.argv[index] === name && this.argv[index + 1]) {
+        values.push(this.argv[index + 1]);
+      }
+    }
+    return values;
+  }
+
   hasFlag(name: string): boolean {
     return this.argv.includes(name);
   }

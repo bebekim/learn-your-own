@@ -115,7 +115,9 @@ export function initCorpusDb(db: DatabaseSync): void {
       status text not null,
       source text not null default 'git_history',
       visibility text not null default 'committed_trace_only',
-      confidence text not null default 'weak'
+      confidence text not null default 'weak',
+      project_tag text,
+      source_corpus_path text
     );
 
     create table if not exists git_import_batches (
@@ -137,6 +139,8 @@ export function initCorpusDb(db: DatabaseSync): void {
       subject text not null,
       is_merge integer not null,
       is_revert integer not null,
+      project_tag text,
+      source_corpus_path text,
       import_batch_id text not null references git_import_batches(batch_id),
       imported_at text not null,
       primary key (repo_id, commit_sha)
@@ -152,6 +156,8 @@ export function initCorpusDb(db: DatabaseSync): void {
       deletions integer not null,
       file_role text not null,
       language text not null,
+      project_tag text,
+      source_corpus_path text,
       import_batch_id text not null references git_import_batches(batch_id),
       imported_at text not null,
       primary key (repo_id, commit_sha, path)
@@ -169,6 +175,8 @@ export function initCorpusDb(db: DatabaseSync): void {
       hunk_header text not null,
       added_lines_sample text not null,
       removed_lines_sample text not null,
+      project_tag text,
+      source_corpus_path text,
       import_batch_id text not null references git_import_batches(batch_id),
       imported_at text not null,
       primary key (repo_id, commit_sha, path, hunk_index)
@@ -185,9 +193,27 @@ export function initCorpusDb(db: DatabaseSync): void {
       file_role text not null,
       confidence text not null,
       evidence_ref text not null,
+      project_tag text,
+      source_corpus_path text,
       import_batch_id text not null references git_import_batches(batch_id),
       imported_at text not null,
       primary key (repo_id, commit_sha, path, hunk_index, token_kind, token_value)
     );
   `);
+  ensureColumn(db, 'git_repositories', 'project_tag', 'text');
+  ensureColumn(db, 'git_repositories', 'source_corpus_path', 'text');
+  ensureColumn(db, 'git_commits', 'project_tag', 'text');
+  ensureColumn(db, 'git_commits', 'source_corpus_path', 'text');
+  ensureColumn(db, 'git_commit_files', 'project_tag', 'text');
+  ensureColumn(db, 'git_commit_files', 'source_corpus_path', 'text');
+  ensureColumn(db, 'git_commit_hunks', 'project_tag', 'text');
+  ensureColumn(db, 'git_commit_hunks', 'source_corpus_path', 'text');
+  ensureColumn(db, 'git_commit_change_tokens', 'project_tag', 'text');
+  ensureColumn(db, 'git_commit_change_tokens', 'source_corpus_path', 'text');
+}
+
+function ensureColumn(db: DatabaseSync, tableName: string, columnName: string, definition: string): void {
+  const rows = db.prepare(`pragma table_info(${tableName})`).all() as { name: string }[];
+  if (rows.some((row) => row.name === columnName)) return;
+  db.exec(`alter table ${tableName} add column ${columnName} ${definition}`);
 }
