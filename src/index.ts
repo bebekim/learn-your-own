@@ -343,6 +343,7 @@ export type {
   TraceRow,
 } from './lyo/lesson-store.ts';
 export { collectGitCorpusPool } from './corpus/pool.ts';
+export { analyzePythonLayer2Delta } from './corpus/git-layer2.ts';
 export type * from './compiler/syntax.ts';
 export type * from './compiler/semantics.ts';
 export type * from './compiler/workflow-style.ts';
@@ -355,4 +356,5 @@ export type * from './compiler/prompt-artifacts.ts';
 export type * from './corpus/sync.ts';
 export type * from './corpus/git-import.ts';
 export type * from './corpus/pool.ts';
+export type * from './corpus/git-layer2.ts';
 export type * from './types.ts';
