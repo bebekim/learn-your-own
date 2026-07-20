@@ -8,6 +8,7 @@ node_modules/
 /docs/
 !/docs/
 /docs/*
+!/docs/behavior-as-code.md
 !/docs/candidate-at-bat-telemetry-spec.md
 !/docs/cybernetic-association-learner.md
 !/docs/cybernetic-learning-experiment-protocol.md

@@ -322,6 +322,7 @@ console.log(getObserverSummary(kernel));
 ## Documentation
 
 - [Deterministic Classification](docs/deterministic-classification.md)
+- [Behavior As Code](docs/behavior-as-code.md)
 - [Style Learning](docs/style-learning.md)
 - [Cybernetic Association Learner](docs/cybernetic-association-learner.md)
 - [Cybernetic Learning Experiment Protocol](docs/cybernetic-learning-experiment-protocol.md)
