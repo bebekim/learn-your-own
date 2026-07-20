@@ -204,3 +204,130 @@ test('lyo model-call record writes model usage into the ledger report', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('lyo context preference records a user preference pair', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-context-pref-cli-'));
+  try {
+    const dbPath = join(dir, 'learning.sqlite');
+
+    // 1. Start two runs
+    execFileSync(process.execPath, [
+      'src/cli.ts', 'run-start',
+      '--db', dbPath,
+      '--run-id', 'run-chosen',
+      '--task-shape', 'local-dev',
+      '--channel', 'agent.task',
+    ], { cwd: ROOT, encoding: 'utf8' });
+
+    execFileSync(process.execPath, [
+      'src/cli.ts', 'run-start',
+      '--db', dbPath,
+      '--run-id', 'run-rejected',
+      '--task-shape', 'local-dev',
+      '--channel', 'agent.task',
+    ], { cwd: ROOT, encoding: 'utf8' });
+
+    // Set goals to initialize the tapes
+    execFileSync(process.execPath, [
+      'src/cli.ts', 'tape', 'record',
+      '--db', dbPath,
+      '--run-id', 'run-chosen',
+      '--kind', 'run_goal',
+      '--summary', 'Implement local media player.',
+      '--evidence-ref', 'goal-chosen',
+    ], { cwd: ROOT, encoding: 'utf8' });
+
+    execFileSync(process.execPath, [
+      'src/cli.ts', 'tape', 'record',
+      '--db', dbPath,
+      '--run-id', 'run-rejected',
+      '--kind', 'run_goal',
+      '--summary', 'Implement Telegram bot daemon.',
+      '--evidence-ref', 'goal-rejected',
+    ], { cwd: ROOT, encoding: 'utf8' });
+
+    // Record verifier specifications to transition the tape to verifier_gated
+    execFileSync(process.execPath, [
+      'src/cli.ts', 'tape', 'record',
+      '--db', dbPath,
+      '--run-id', 'run-chosen',
+      '--kind', 'verifier_spec',
+      '--summary', 'Verify local CLI player output and tests pass.',
+      '--evidence-ref', 'verifier-chosen',
+    ], { cwd: ROOT, encoding: 'utf8' });
+
+    execFileSync(process.execPath, [
+      'src/cli.ts', 'tape', 'record',
+      '--db', dbPath,
+      '--run-id', 'run-rejected',
+      '--kind', 'verifier_spec',
+      '--summary', 'Verify Telegram bot replies and mock tests pass.',
+      '--evidence-ref', 'verifier-rejected',
+    ], { cwd: ROOT, encoding: 'utf8' });
+
+    // 2. Record tape cells for both runs (tape state setup)
+    execFileSync(process.execPath, [
+      'src/cli.ts', 'tape', 'record',
+      '--db', dbPath,
+      '--run-id', 'run-chosen',
+      '--kind', 'worker_action',
+      '--summary', 'Preferred implementation strategy.',
+      '--evidence-ref', 'evidence-chosen',
+    ], { cwd: ROOT, encoding: 'utf8' });
+
+    execFileSync(process.execPath, [
+      'src/cli.ts', 'tape', 'record',
+      '--db', dbPath,
+      '--run-id', 'run-rejected',
+      '--kind', 'worker_action',
+      '--summary', 'Rejected complex solution.',
+      '--evidence-ref', 'evidence-rejected',
+    ], { cwd: ROOT, encoding: 'utf8' });
+
+    // 3. Record learning traces to reference in the preference pair.
+    // Tape cells are not traces; traces are explicit learning_traces rows.
+    const chosenTrace = JSON.parse(execFileSync(process.execPath, [
+      'src/cli.ts', 'context', 'trace',
+      '--db', dbPath,
+      '--trace-id', 'trace-chosen-implementation',
+      '--run-id', 'run-chosen',
+      '--kind', 'behavior',
+      '--summary', 'Preferred implementation strategy.',
+      '--ref', 'evidence-chosen',
+    ], { cwd: ROOT, encoding: 'utf8' }));
+
+    const rejectedTrace = JSON.parse(execFileSync(process.execPath, [
+      'src/cli.ts', 'context', 'trace',
+      '--db', dbPath,
+      '--trace-id', 'trace-rejected-implementation',
+      '--run-id', 'run-rejected',
+      '--kind', 'behavior',
+      '--summary', 'Rejected complex solution.',
+      '--ref', 'evidence-rejected',
+    ], { cwd: ROOT, encoding: 'utf8' }));
+
+    const chosenTraceId = chosenTrace.trace.traceId;
+    const rejectedTraceId = rejectedTrace.trace.traceId;
+
+    // 4. Record preference pair
+    const recorded = JSON.parse(execFileSync(process.execPath, [
+      'src/cli.ts', 'context', 'preference',
+      '--db', dbPath,
+      '--chosen-trace-id', chosenTraceId,
+      '--rejected-trace-id', rejectedTraceId,
+      '--reason', 'Prefer simple local CLI player over complex Telegram bot daemon.',
+      '--evidence-ref', 'github-issue-12',
+      '--confidence', 'high',
+      '--recorded-by', 'user-preference-test',
+    ], { cwd: ROOT, encoding: 'utf8' }));
+
+    assert.equal(recorded.ok, true);
+    assert.equal(recorded.preference.chosenTraceId, chosenTraceId);
+    assert.equal(recorded.preference.rejectedTraceId, rejectedTraceId);
+    assert.equal(recorded.preference.reason, 'Prefer simple local CLI player over complex Telegram bot daemon.');
+    assert.equal(recorded.preference.confidence, 'high');
+    assert.equal(recorded.preference.recordedBy, 'user-preference-test');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
