@@ -1,0 +1,1023 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
+import test from 'node:test';
+
+import { LessonStore } from '../src/lyo/lesson-store.ts';
+import { classifyValidationFailure } from '../src/lyo/failure-classifier.ts';
+
+// Deterministic rng (mulberry32) for reproducible Thompson draws.
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function makeLesson(store, overrides = {}) {
+  return store.createLesson({
+    failure_class: 'output_generation',
+    trigger_cue: 'tests failed: npm test',
+    explanation: 'Tests failed',
+    intervention: 'Fix the tests',
+    run_id: 'run-1',
+    actor: 'reflector',
+    ...overrides,
+  });
+}
+
+// Record one application per outcome and immediately resolve it. Keep the
+// total below the default curator watermark (25 MARK deltas) unless a test
+// explicitly exercises curation.
+function applyOutcomes(store, lessonId, outcomes) {
+  outcomes.forEach((outcome, index) => {
+    const runId = `${lessonId}-run-${index}`;
+    store.recordApplication({
+      lesson_id: lessonId,
+      run_id: runId,
+      trigger_message_id: `${runId}-msg`,
+      task_cue: 'cue',
+      sampled_score: 0.5,
+    });
+    store.applyValidationOutcome({ run_id: runId, outcome });
+  });
+}
+
+test('LYO lesson store: creates the schema: tables, indexes, library view, and meta table', () => {
+  const store = new LessonStore(':memory:');
+
+  const tables = store.db
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+    .all()
+    .map((row) => row.name);
+  assert.ok(tables.includes('lesson'));
+  assert.ok(tables.includes('lesson_delta'));
+  assert.ok(tables.includes('lesson_application'));
+  assert.ok(tables.includes('lyo_meta'));
+
+  const views = store.db
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'view'")
+    .all()
+    .map((row) => row.name);
+  assert.ok(views.includes('v_lesson_library'));
+
+  store.close();
+});
+
+test('LYO lesson store: emits CREATE on first sight and EDIT-merges a duplicate cue', () => {
+  const store = new LessonStore(':memory:');
+
+  const first = store.createLesson({
+    failure_class: 'output_generation',
+    trigger_cue: 'Tests Failed: npm test',
+    explanation: 'e1',
+    intervention: 'i1',
+    run_id: 'run-a',
+    actor: 'reflector',
+  });
+  assert.strictEqual(first.status, 'candidate');
+  assert.match(first.lesson_id, /^les_[0-9a-f]{16}$/);
+  assert.deepStrictEqual(JSON.parse(first.provenance), ['run-a']);
+  // trigger_cue is stored normalized
+  assert.strictEqual(first.trigger_cue, 'tests failed: npm test');
+
+  // Same failure_class + identical normalized cue -> merge into the existing lesson
+  const second = store.createLesson({
+    failure_class: 'output_generation',
+    trigger_cue: 'tests   failed:  npm test',
+    explanation: 'e2',
+    intervention: 'i2',
+    run_id: 'run-b',
+    actor: 'reflector',
+  });
+  assert.strictEqual(second.lesson_id, first.lesson_id);
+  assert.deepStrictEqual(JSON.parse(second.provenance), ['run-a', 'run-b']);
+  // Text content is never rewritten by an EDIT merge (ACE no-re-summarization rule)
+  assert.strictEqual(second.explanation, 'e1');
+  assert.strictEqual(second.intervention, 'i1');
+
+  const deltaTypes = store.getDeltas(first.lesson_id).map((delta) => delta.delta_type);
+  assert.deepStrictEqual(deltaTypes, ['CREATE', 'EDIT']);
+
+  // Same cue but different failure_class -> brand-new lesson
+  const third = store.createLesson({
+    failure_class: 'system_execution',
+    trigger_cue: 'tests failed: npm test',
+    explanation: 'e3',
+    intervention: 'i3',
+    run_id: 'run-c',
+    actor: 'reflector',
+  });
+  assert.notStrictEqual(third.lesson_id, first.lesson_id);
+
+  store.close();
+});
+
+test('LYO lesson store: records applications idempotently per (lesson, run, trigger message)', () => {
+  const store = new LessonStore(':memory:');
+  const lesson = makeLesson(store);
+
+  const first = store.recordApplication({
+    lesson_id: lesson.lesson_id,
+    run_id: 'run-1',
+    trigger_message_id: 'msg-1',
+    task_cue: 'cue',
+    sampled_score: 0.7,
+  });
+  assert.match(first.application_id, /^app_[0-9a-f]{16}$/);
+  assert.strictEqual(first.outcome, 'pending');
+  assert.strictEqual(first.counted, 0);
+  assert.strictEqual(first.sampled_score, 0.7);
+
+  const duplicate = store.recordApplication({
+    lesson_id: lesson.lesson_id,
+    run_id: 'run-1',
+    trigger_message_id: 'msg-1',
+    task_cue: 'cue',
+    sampled_score: 0.7,
+  });
+  assert.strictEqual(duplicate.application_id, first.application_id);
+  assert.strictEqual(store.getLesson(lesson.lesson_id).uses, 1);
+
+  // A different trigger message is a different validation cycle -> new row
+  const secondCycle = store.recordApplication({
+    lesson_id: lesson.lesson_id,
+    run_id: 'run-1',
+    trigger_message_id: 'msg-2',
+    task_cue: 'cue',
+    sampled_score: 0.4,
+  });
+  assert.notStrictEqual(secondCycle.application_id, first.application_id);
+  assert.strictEqual(store.getLesson(lesson.lesson_id).uses, 2);
+
+  store.close();
+});
+
+test('LYO lesson store: moves counters only through application rows, grounded in validation outcomes', () => {
+  const store = new LessonStore(':memory:');
+  const lesson = makeLesson(store);
+
+  const passApp = store.recordApplication({
+    lesson_id: lesson.lesson_id,
+    run_id: 'run-pass',
+    trigger_message_id: 'msg-pass',
+    task_cue: 'cue',
+    sampled_score: 0.6,
+  });
+  const passResult = store.applyValidationOutcome({ run_id: 'run-pass', outcome: 'passed' });
+  assert.strictEqual(passResult.updated, 1);
+
+  let row = store.getLesson(lesson.lesson_id);
+  assert.strictEqual(row.helpful_count, 1);
+  assert.strictEqual(row.harmful_count, 0);
+
+  const helpfulDelta = store
+    .getDeltas(lesson.lesson_id)
+    .find((delta) => delta.delta_type === 'MARK_HELPFUL');
+  assert.ok(helpfulDelta);
+  assert.strictEqual(helpfulDelta.actor, 'validator-rule');
+  assert.deepStrictEqual(JSON.parse(helpfulDelta.payload), {
+    application_id: passApp.application_id,
+    outcome: 'passed',
+  });
+
+  const countedApp = store.db
+    .prepare('SELECT * FROM lesson_application WHERE application_id = ?')
+    .get(passApp.application_id);
+  assert.strictEqual(countedApp.counted, 1);
+  assert.strictEqual(countedApp.outcome, 'passed');
+
+  // Re-applying the same run is a no-op (already counted)
+  const repeatResult = store.applyValidationOutcome({ run_id: 'run-pass', outcome: 'passed' });
+  assert.strictEqual(repeatResult.updated, 0);
+  assert.strictEqual(store.getLesson(lesson.lesson_id).helpful_count, 1);
+
+  store.recordApplication({
+    lesson_id: lesson.lesson_id,
+    run_id: 'run-fail',
+    trigger_message_id: 'msg-fail',
+    task_cue: 'cue',
+    sampled_score: 0.6,
+  });
+  store.applyValidationOutcome({ run_id: 'run-fail', outcome: 'failed' });
+  row = store.getLesson(lesson.lesson_id);
+  assert.strictEqual(row.helpful_count, 1);
+  assert.strictEqual(row.harmful_count, 1);
+
+  // CRITICAL INVARIANT: a lesson with no application row never moves counters
+  const bystander = makeLesson(store, { trigger_cue: 'lint errors in generated output' });
+  store.applyValidationOutcome({ run_id: 'run-unrelated', outcome: 'passed' });
+  store.applyValidationOutcome({ run_id: 'run-pass', outcome: 'failed' });
+  const bystanderRow = store.getLesson(bystander.lesson_id);
+  assert.strictEqual(bystanderRow.helpful_count, 0);
+  assert.strictEqual(bystanderRow.harmful_count, 0);
+
+  store.close();
+});
+
+test('LYO lesson store: promotes a candidate to active after 8 helpful outcomes (no PROMOTE delta)', () => {
+  const store = new LessonStore(':memory:');
+  const lesson = makeLesson(store);
+
+  applyOutcomes(store, lesson.lesson_id, Array(8).fill('passed'));
+
+  const row = store.getLesson(lesson.lesson_id);
+  assert.strictEqual(row.helpful_count, 8);
+  assert.strictEqual(row.harmful_count, 0);
+  assert.strictEqual(row.status, 'active');
+
+  // Documented deviation: promotion folds into the row WITHOUT a delta;
+  // only CREATE + 8 MARK_HELPFUL deltas exist.
+  const deltaTypes = store.getDeltas(lesson.lesson_id).map((delta) => delta.delta_type);
+  assert.deepStrictEqual(deltaTypes, ['CREATE', ...Array(8).fill('MARK_HELPFUL')]);
+
+  store.close();
+});
+
+test('LYO lesson store: quarantines a lesson when the Wilson upper bound drops below useful', () => {
+  const store = new LessonStore(':memory:');
+  const lesson = makeLesson(store, { trigger_cue: 'build broke on ci' });
+
+  // At n = 8 (1 passed + 7 failed) the Wilson upper bound is ~0.471 > 0.45:
+  // still a candidate, not yet quarantined.
+  applyOutcomes(store, lesson.lesson_id, ['passed', ...Array(7).fill('failed')]);
+  assert.strictEqual(store.getLesson(lesson.lesson_id).status, 'candidate');
+
+  // At n = 9 (1 passed + 8 failed) the upper bound is ~0.435 < 0.45: quarantine.
+  const runId = `${lesson.lesson_id}-run-final`;
+  store.recordApplication({
+    lesson_id: lesson.lesson_id,
+    run_id: runId,
+    trigger_message_id: `${runId}-msg`,
+    task_cue: 'cue',
+    sampled_score: 0.5,
+  });
+  store.applyValidationOutcome({ run_id: runId, outcome: 'failed' });
+
+  const row = store.getLesson(lesson.lesson_id);
+  assert.strictEqual(row.helpful_count, 1);
+  assert.strictEqual(row.harmful_count, 8);
+  assert.strictEqual(row.status, 'quarantined');
+
+  const quarantineDelta = store
+    .getDeltas(lesson.lesson_id)
+    .find((delta) => delta.delta_type === 'QUARANTINE');
+  assert.ok(quarantineDelta);
+  assert.strictEqual(quarantineDelta.actor, 'validator-rule');
+
+  // Quarantined lessons leave the library view but keep their rows
+  const viewRows = store.db
+    .prepare('SELECT * FROM v_lesson_library WHERE lesson_id = ?')
+    .all(lesson.lesson_id);
+  assert.strictEqual(viewRows.length, 0);
+
+  // Replay reconstructs the same state from deltas alone
+  const replayed = store.replayLesson(lesson.lesson_id);
+  assert.strictEqual(replayed.status, 'quarantined');
+  assert.strictEqual(replayed.helpful_count, 1);
+  assert.strictEqual(replayed.harmful_count, 8);
+
+  store.close();
+});
+
+test('LYO lesson store: selectLessons Thompson-samples the library view', () => {
+  const store = new LessonStore(':memory:');
+  makeLesson(store, { trigger_cue: 'cue alpha' });
+  makeLesson(store, { trigger_cue: 'cue beta' });
+  makeLesson(store, { trigger_cue: 'cue gamma' });
+  makeLesson(store, { failure_class: 'system_execution', trigger_cue: 'cue other class' });
+
+  const selected = store.selectLessons({ failure_class: 'output_generation', limit: 2 });
+  assert.strictEqual(selected.length, 2);
+  for (const row of selected) {
+    assert.strictEqual(row.failure_class, 'output_generation');
+    assert.ok(row.sampled_score >= 0 && row.sampled_score <= 1);
+  }
+
+  // Candidate-status lessons are part of the view (exploration)
+  const all = store.selectLessons({ failure_class: 'output_generation', limit: 10 });
+  assert.strictEqual(all.length, 3);
+
+  // An injected deterministic rng makes the draw reproducible
+  const first = store.selectLessons({
+    failure_class: 'output_generation',
+    limit: 3,
+    rng: mulberry32(42),
+  });
+  const second = store.selectLessons({
+    failure_class: 'output_generation',
+    limit: 3,
+    rng: mulberry32(42),
+  });
+  assert.deepStrictEqual(
+    first.map((row) => [row.lesson_id, row.sampled_score]),
+    second.map((row) => [row.lesson_id, row.sampled_score])
+  );
+
+  store.close();
+});
+
+test('LYO lesson store: maybeCurate does nothing below the MARK-delta watermark', () => {
+  const store = new LessonStore(':memory:');
+  const stale = makeLesson(store, { trigger_cue: 'stale candidate cue' });
+  const oldIso = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+  store.db
+    .prepare('UPDATE lesson SET created_at = ? WHERE lesson_id = ?')
+    .run(oldIso, stale.lesson_id);
+
+  const driver = makeLesson(store, { trigger_cue: 'evidence cue' });
+  applyOutcomes(store, driver.lesson_id, ['passed', 'failed']); // 2 MARK deltas < 25
+
+  const result = store.maybeCurate();
+  assert.strictEqual(result.curated, false);
+  assert.strictEqual(store.getLesson(stale.lesson_id).status, 'candidate');
+
+  store.close();
+});
+
+test('LYO lesson store: maybeCurate prunes stale candidates and merges duplicate cues above the watermark', () => {
+  const store = new LessonStore(':memory:');
+
+  const driver = makeLesson(store, { trigger_cue: 'driver cue' });
+  applyOutcomes(store, driver.lesson_id, ['passed', 'passed', 'failed']); // 3 MARK deltas
+
+  // Stale candidate: uses = 0, created long ago
+  const stale = makeLesson(store, { trigger_cue: 'stale candidate cue' });
+  const oldIso = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
+  store.db
+    .prepare('UPDATE lesson SET created_at = ? WHERE lesson_id = ?')
+    .run(oldIso, stale.lesson_id);
+
+  // Exact-duplicate cue pair, inserted directly (createLesson would merge them)
+  const now = new Date().toISOString();
+  const insertLesson = store.db.prepare(
+    `INSERT INTO lesson (
+       lesson_id, status, failure_class, trigger_cue, explanation, intervention,
+       helpful_count, harmful_count, uses, created_at, updated_at, provenance
+     ) VALUES (?, 'candidate', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+  const insertDelta = store.db.prepare(
+    `INSERT INTO lesson_delta (lesson_id, run_id, actor, delta_type, payload)
+     VALUES (?, NULL, 'reflector', 'CREATE', ?)`
+  );
+  const createPayload = (explanation, intervention, provenance) =>
+    JSON.stringify({
+      failure_class: 'output_generation',
+      trigger_cue: 'duplicated cue',
+      explanation,
+      intervention,
+      created_at: now,
+      updated_at: now,
+      provenance,
+    });
+  insertLesson.run(
+    'les_dup_target',
+    'output_generation',
+    'duplicated cue',
+    'e-target',
+    'i-target',
+    3,
+    0,
+    3,
+    now,
+    now,
+    JSON.stringify(['run-t'])
+  );
+  insertDelta.run('les_dup_target', createPayload('e-target', 'i-target', ['run-t']));
+  insertLesson.run(
+    'les_dup_source',
+    'output_generation',
+    'duplicated cue',
+    'e-source',
+    'i-source',
+    1,
+    1,
+    5,
+    now,
+    now,
+    JSON.stringify(['run-s', 'run-t2'])
+  );
+  insertDelta.run('les_dup_source', createPayload('e-source', 'i-source', ['run-s', 'run-t2']));
+  // Counters only move via MARK_* deltas, so the fabricated rows need a
+  // delta-consistent counter history for replay to reconstruct them.
+  const insertMarkDelta = store.db.prepare(
+    `INSERT INTO lesson_delta (lesson_id, run_id, actor, delta_type, payload)
+     VALUES (?, NULL, 'validator-rule', ?, ?)`
+  );
+  for (let i = 0; i < 3; i++) {
+    insertMarkDelta.run(
+      'les_dup_target',
+      'MARK_HELPFUL',
+      JSON.stringify({ application_id: `app_t${i}`, outcome: 'passed' })
+    );
+  }
+  insertMarkDelta.run(
+    'les_dup_source',
+    'MARK_HELPFUL',
+    JSON.stringify({ application_id: 'app_s0', outcome: 'passed' })
+  );
+  insertMarkDelta.run(
+    'les_dup_source',
+    'MARK_HARMFUL',
+    JSON.stringify({ application_id: 'app_s1', outcome: 'failed' })
+  );
+
+  const result = store.maybeCurate({ markInterval: 3 });
+  assert.strictEqual(result.curated, true);
+  assert.strictEqual(result.merged, 1);
+  assert.strictEqual(result.pruned, 1);
+
+  // Prune: stale candidate retired via a RETIRE delta (never hard-deleted)
+  const staleRow = store.getLesson(stale.lesson_id);
+  assert.strictEqual(staleRow.status, 'retired');
+  const retireDelta = store
+    .getDeltas(stale.lesson_id)
+    .find((delta) => delta.delta_type === 'RETIRE');
+  assert.ok(retireDelta);
+  assert.strictEqual(retireDelta.actor, 'curator');
+
+  // Merge: highest (helpful + harmful) row absorbs the other
+  const target = store.getLesson('les_dup_target');
+  assert.strictEqual(target.helpful_count, 4);
+  assert.strictEqual(target.harmful_count, 1);
+  assert.strictEqual(target.uses, 8);
+  assert.deepStrictEqual(JSON.parse(target.provenance), ['run-t', 'run-s', 'run-t2']);
+  // Curation never rewrites lesson text (ACE no-re-summarization rule)
+  assert.strictEqual(target.explanation, 'e-target');
+  assert.strictEqual(target.intervention, 'i-target');
+  assert.strictEqual(target.trigger_cue, 'duplicated cue');
+
+  const source = store.getLesson('les_dup_source');
+  assert.strictEqual(source.status, 'retired');
+  assert.strictEqual(source.helpful_count, 0);
+  assert.strictEqual(source.harmful_count, 0);
+  const mergeDelta = store
+    .getDeltas('les_dup_source')
+    .find((delta) => delta.delta_type === 'MERGE_INTO');
+  assert.ok(mergeDelta);
+  assert.strictEqual(mergeDelta.actor, 'curator');
+  assert.strictEqual(JSON.parse(mergeDelta.payload).target_lesson_id, 'les_dup_target');
+
+  // Replay reconstructs both sides of the merge from deltas
+  const targetReplay = store.replayLesson('les_dup_target');
+  assert.strictEqual(targetReplay.helpful_count, 4);
+  assert.strictEqual(targetReplay.harmful_count, 1);
+  assert.deepStrictEqual(targetReplay.provenance, ['run-t', 'run-s', 'run-t2']);
+  const sourceReplay = store.replayLesson('les_dup_source');
+  assert.strictEqual(sourceReplay.status, 'retired');
+  assert.strictEqual(sourceReplay.helpful_count, 0);
+
+  store.close();
+});
+
+test('LYO lesson store: replayLesson folds deltas back to the current lesson row state', () => {
+  const store = new LessonStore(':memory:');
+  const lesson = makeLesson(store, {
+    trigger_cue: 'replay cue',
+    run_id: 'replay-a',
+    explanation: 'original explanation',
+    intervention: 'original intervention',
+  });
+  // EDIT merge from a second run
+  makeLesson(store, { trigger_cue: 'replay cue', run_id: 'replay-b' });
+  // 7 passed + 1 failed -> n = 8, wilson_lower > 0.5 -> active
+  applyOutcomes(store, lesson.lesson_id, [
+    'passed',
+    'passed',
+    'failed',
+    'passed',
+    'passed',
+    'passed',
+    'passed',
+    'passed',
+  ]);
+
+  const row = store.getLesson(lesson.lesson_id);
+  const replayed = store.replayLesson(lesson.lesson_id);
+
+  assert.strictEqual(replayed.lesson_id, row.lesson_id);
+  assert.strictEqual(replayed.status, row.status);
+  assert.strictEqual(replayed.status, 'active');
+  assert.strictEqual(replayed.helpful_count, row.helpful_count);
+  assert.strictEqual(replayed.harmful_count, row.harmful_count);
+  assert.deepStrictEqual(replayed.provenance, JSON.parse(row.provenance));
+  assert.deepStrictEqual(replayed.provenance, ['replay-a', 'replay-b']);
+  assert.strictEqual(replayed.explanation, row.explanation);
+  assert.strictEqual(replayed.intervention, row.intervention);
+  assert.strictEqual(replayed.trigger_cue, row.trigger_cue);
+  assert.strictEqual(replayed.created_at, row.created_at);
+  assert.strictEqual(replayed.updated_at, row.updated_at);
+
+  store.close();
+});
+
+test('LYO decision log (v0.2): returns every candidate with posterior params and propensities summing to the limit', () => {
+  const store = new LessonStore(':memory:');
+  const a = makeLesson(store, { trigger_cue: 'cue a' });
+  const b = makeLesson(store, { trigger_cue: 'cue b' });
+  makeLesson(store, { trigger_cue: 'cue c' });
+  applyOutcomes(store, a.lesson_id, ['passed', 'passed', 'failed']);
+
+  const { selected, candidates, null_arm } = store.selectWithDecision({
+    failure_class: 'output_generation',
+    limit: 2,
+    rng: mulberry32(42),
+  });
+
+  assert.strictEqual(null_arm, 0);
+  assert.strictEqual(candidates.length, 3);
+  const byId = new Map(candidates.map((entry) => [entry.lesson_id, entry]));
+  assert.strictEqual(byId.get(a.lesson_id).alpha, 3); // helpful 2 + 1
+  assert.strictEqual(byId.get(a.lesson_id).beta, 2); // harmful 1 + 1
+  assert.strictEqual(byId.get(b.lesson_id).alpha, 1);
+  assert.strictEqual(byId.get(b.lesson_id).beta, 1);
+  for (const candidate of candidates) {
+    assert.ok(candidate.propensity >= 0 && candidate.propensity <= 1);
+  }
+  // Each MC replicate selects exactly `limit` lessons, so propensities sum
+  // to the limit in expectation (MC noise tolerated).
+  const propensitySum = candidates.reduce((sum, entry) => sum + entry.propensity, 0);
+  assert.ok(
+    Math.abs(propensitySum - 2) < 0.15,
+    `propensities should sum to the limit (2), got ${propensitySum}`
+  );
+
+  assert.strictEqual(selected.length, 2);
+  for (const lesson of selected) {
+    assert.ok(lesson.sampled_score >= 0 && lesson.sampled_score <= 1);
+  }
+
+  store.close();
+});
+
+test('LYO decision log (v0.2): estimates propensities close to the analytic inclusion probability', () => {
+  const store = new LessonStore(':memory:');
+  const veteran = makeLesson(store, { trigger_cue: 'veteran cue' });
+  const newcomer = makeLesson(store, { trigger_cue: 'newcomer cue' });
+  applyOutcomes(store, veteran.lesson_id, Array(9).fill('passed'));
+
+  const { candidates } = store.selectWithDecision({
+    failure_class: 'output_generation',
+    limit: 1,
+    rng: mulberry32(7),
+    propensityReplicates: 2000,
+  });
+
+  // Analytic: veteran is Beta(10,1), newcomer Beta(1,1) (uniform).
+  // P(newcomer wins) = E[1 - theta_veteran] = 1 - 10/11 = 1/11 ≈ 0.091.
+  const byId = new Map(candidates.map((entry) => [entry.lesson_id, entry]));
+  const newcomerPropensity = byId.get(newcomer.lesson_id).propensity;
+  assert.ok(
+    Math.abs(newcomerPropensity - 1 / 11) < 0.05,
+    `newcomer propensity ${newcomerPropensity} should be near 1/11 ≈ 0.091`
+  );
+  const veteranPropensity = byId.get(veteran.lesson_id).propensity;
+  assert.ok(
+    Math.abs(veteranPropensity - 10 / 11) < 0.05,
+    `veteran propensity ${veteranPropensity} should be near 10/11 ≈ 0.909`
+  );
+
+  store.close();
+});
+
+test('LYO decision log (v0.2): assigns propensity exactly 1 when every candidate fits in the limit', () => {
+  const store = new LessonStore(':memory:');
+  makeLesson(store, { trigger_cue: 'cue one' });
+  makeLesson(store, { trigger_cue: 'cue two' });
+
+  const { selected, candidates, null_arm } = store.selectWithDecision({
+    failure_class: 'output_generation',
+    limit: 2,
+    rng: mulberry32(11),
+  });
+
+  assert.strictEqual(null_arm, 0);
+  assert.strictEqual(candidates.length, 2);
+  assert.ok(candidates.every((entry) => entry.propensity === 1));
+  assert.strictEqual(selected.length, 2);
+
+  store.close();
+});
+
+test('LYO decision log (v0.2): returns the null arm when no candidate exists for the class', () => {
+  const store = new LessonStore(':memory:');
+  const { selected, candidates, null_arm } = store.selectWithDecision({
+    failure_class: 'no_such_class',
+    limit: 2,
+  });
+  assert.deepStrictEqual(selected, []);
+  assert.deepStrictEqual(candidates, []);
+  assert.strictEqual(null_arm, 1);
+  store.close();
+});
+
+test('LYO decision log (v0.2): persists decision rows and joins applications via decision_id', () => {
+  const store = new LessonStore(':memory:');
+  const lesson = makeLesson(store, { trigger_cue: 'cue join' });
+  const { selected, candidates, null_arm } = store.selectWithDecision({
+    failure_class: 'output_generation',
+    limit: 2,
+    rng: mulberry32(3),
+  });
+
+  const decision = store.recordDecision({
+    run_id: 'run-decision',
+    trigger_message_id: 'msg-1',
+    cycle_index: 1,
+    failure_class: 'output_generation',
+    task_cue: 'cue join',
+    candidates,
+    selected: selected.map((entry) => ({
+      lesson_id: entry.lesson_id,
+      theta: entry.sampled_score,
+    })),
+    null_arm,
+  });
+
+  assert.ok(decision.decision_id.startsWith('dec_'));
+  assert.strictEqual(decision.policy, 'thompson-beta@1');
+  assert.strictEqual(decision.run_id, 'run-decision');
+  assert.strictEqual(decision.cycle_index, 1);
+  assert.strictEqual(decision.null_arm, 0);
+  const storedCandidates = JSON.parse(decision.candidates);
+  assert.strictEqual(storedCandidates.length, 1);
+  assert.strictEqual(storedCandidates[0].lesson_id, lesson.lesson_id);
+  assert.strictEqual(storedCandidates[0].propensity, 1);
+  const storedSelected = JSON.parse(decision.selected);
+  assert.strictEqual(storedSelected.length, 1);
+  assert.strictEqual(storedSelected[0].lesson_id, lesson.lesson_id);
+
+  const application = store.recordApplication({
+    lesson_id: lesson.lesson_id,
+    run_id: 'run-decision',
+    trigger_message_id: 'msg-1',
+    task_cue: 'cue join',
+    sampled_score: selected[0].sampled_score,
+    decision_id: decision.decision_id,
+  });
+  assert.strictEqual(application.decision_id, decision.decision_id);
+
+  assert.strictEqual(store.getDecision(decision.decision_id).decision_id, decision.decision_id);
+  assert.strictEqual(store.getDecision('dec_missing'), null);
+
+  assert.throws(
+    () => store.recordDecision({ failure_class: 'x', candidates: [], selected: [] }),
+    /run_id and failure_class/
+  );
+  assert.throws(
+    () =>
+      store.recordDecision({ run_id: 'r', failure_class: 'x', candidates: 'nope', selected: [] }),
+    /candidates and selected/
+  );
+
+  store.close();
+});
+
+test('LYO decision log (v0.2): accepts a pluggable selection policy and records its id', () => {
+  const store = new LessonStore(':memory:');
+  const veteran = makeLesson(store, { trigger_cue: 'policy veteran cue' });
+  const underdog = makeLesson(store, { trigger_cue: 'policy underdog cue' });
+  applyOutcomes(store, veteran.lesson_id, Array(9).fill('passed'));
+
+  // A deterministic policy that ALWAYS picks the weakest posterior mean —
+  // the opposite of what Thompson-Beta would usually do. Ignores rng.
+  const contrarian = {
+    name: 'contrarian',
+    version: 7,
+    sampleSelection(candidates, limit) {
+      return candidates
+        .map((candidate, index) => ({
+          index,
+          score: null,
+          mean: candidate.alpha / (candidate.alpha + candidate.beta),
+        }))
+        .sort((a, b) => a.mean - b.mean)
+        .slice(0, Math.max(0, limit));
+    },
+  };
+
+  const { selected, candidates, null_arm, policy } = store.selectWithDecision({
+    failure_class: 'output_generation',
+    limit: 1,
+    policy: contrarian,
+  });
+
+  assert.strictEqual(policy, 'contrarian@7');
+  assert.strictEqual(null_arm, 0);
+  assert.strictEqual(selected.length, 1);
+  assert.strictEqual(selected[0].lesson_id, underdog.lesson_id); // the weak one
+  assert.strictEqual(selected[0].sampled_score, null);
+  // Deterministic policy: MC replays the identical draw => propensity 0/1.
+  const byId = new Map(candidates.map((entry) => [entry.lesson_id, entry]));
+  assert.strictEqual(byId.get(underdog.lesson_id).propensity, 1);
+  assert.strictEqual(byId.get(veteran.lesson_id).propensity, 0);
+
+  const decision = store.recordDecision({
+    run_id: 'run-policy',
+    failure_class: 'output_generation',
+    candidates,
+    selected: selected.map((entry) => ({
+      lesson_id: entry.lesson_id,
+      score: entry.sampled_score,
+    })),
+    policy,
+  });
+  assert.strictEqual(decision.policy, 'contrarian@7');
+
+  store.close();
+});
+
+test('LYO decision log (v0.2): resolves registry policy ids and rejects unknown ones', () => {
+  const store = new LessonStore(':memory:');
+  makeLesson(store, { trigger_cue: 'registry cue' });
+
+  const viaString = store.selectWithDecision({
+    failure_class: 'output_generation',
+    limit: 1,
+    policy: 'thompson-beta@1',
+    rng: mulberry32(9),
+  });
+  assert.strictEqual(viaString.policy, 'thompson-beta@1');
+  assert.strictEqual(viaString.selected.length, 1);
+
+  assert.throws(
+    () =>
+      store.selectWithDecision({
+        failure_class: 'output_generation',
+        policy: 'no-such-policy@9',
+      }),
+    /unknown selection policy/
+  );
+
+  store.close();
+});
+
+test('LYO decision log (v0.2): migrates a pre-v0.2 store: adds decision_id and preserves existing receipts', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lyo-migrate-'));
+  const dbPath = path.join(tempDir, 'old-lessons.db');
+  try {
+    // Hand-build the v1 schema (lesson_application WITHOUT decision_id, no
+    // lesson_decision table) with one lesson and one counted receipt.
+    const raw = new DatabaseSync(dbPath);
+    raw.exec(`
+      CREATE TABLE lesson_delta (
+        delta_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        lesson_id TEXT NOT NULL,
+        run_id TEXT,
+        ts TEXT NOT NULL DEFAULT (datetime('now')),
+        actor TEXT NOT NULL,
+        delta_type TEXT NOT NULL,
+        payload TEXT NOT NULL
+      );
+      CREATE TABLE lesson (
+        lesson_id TEXT PRIMARY KEY,
+        status TEXT NOT NULL DEFAULT 'candidate',
+        failure_class TEXT NOT NULL,
+        trigger_cue TEXT NOT NULL,
+        explanation TEXT NOT NULL,
+        intervention TEXT NOT NULL,
+        helpful_count INTEGER NOT NULL DEFAULT 0,
+        harmful_count INTEGER NOT NULL DEFAULT 0,
+        uses INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        provenance TEXT NOT NULL DEFAULT '[]'
+      );
+      CREATE TABLE lesson_application (
+        application_id TEXT PRIMARY KEY,
+        lesson_id TEXT NOT NULL,
+        run_id TEXT NOT NULL,
+        trigger_message_id TEXT,
+        task_cue TEXT,
+        sampled_score REAL,
+        outcome TEXT NOT NULL DEFAULT 'pending',
+        counted INTEGER NOT NULL DEFAULT 0,
+        UNIQUE(lesson_id, run_id, trigger_message_id)
+      );
+      CREATE TABLE lyo_meta (key TEXT PRIMARY KEY, value TEXT);
+      INSERT INTO lesson (lesson_id, status, failure_class, trigger_cue, explanation, intervention,
+                          helpful_count, harmful_count, uses, created_at, updated_at, provenance)
+        VALUES ('les_legacy', 'candidate', 'output_generation', 'legacy cue', 'why', 'do this',
+                2, 0, 1, '2026-07-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z', '["run-legacy"]');
+      INSERT INTO lesson_application (application_id, lesson_id, run_id, trigger_message_id,
+                                      task_cue, sampled_score, outcome, counted)
+        VALUES ('app_legacy', 'les_legacy', 'run-legacy', 'msg-legacy', 'legacy cue', 0.5, 'passed', 1);
+    `);
+    raw.close();
+
+    const store = new LessonStore(dbPath);
+
+    const applicationColumns = store.db
+      .prepare('PRAGMA table_info(lesson_application)')
+      .all()
+      .map((column) => column.name);
+    assert.ok(applicationColumns.includes('decision_id'), 'migration adds decision_id');
+    const decisionColumns = store.db
+      .prepare('PRAGMA table_info(lesson_decision)')
+      .all()
+      .map((column) => column.name);
+    assert.ok(decisionColumns.includes('policy'), 'migration adds policy');
+    assert.deepStrictEqual(store.db.prepare('SELECT * FROM lesson_decision').all(), []);
+    const lessonColumns = store.db
+      .prepare('PRAGMA table_info(lesson)')
+      .all()
+      .map((column) => column.name);
+    assert.ok(lessonColumns.includes('reflector_policy'), 'migration adds reflector_policy');
+    assert.ok(lessonColumns.includes('reflector_model'), 'migration adds reflector_model');
+    assert.ok(lessonColumns.includes('executor_model'), 'migration adds executor_model');
+    assert.strictEqual(store._getMeta('schema_version'), '4');
+
+    // Pre-existing data untouched: receipt still counted, decision_id NULL.
+    const receipt = store.db
+      .prepare('SELECT * FROM lesson_application WHERE application_id = ?')
+      .get('app_legacy');
+    assert.strictEqual(receipt.outcome, 'passed');
+    assert.strictEqual(receipt.counted, 1);
+    assert.strictEqual(receipt.decision_id, null);
+    const legacy = store.getLesson('les_legacy');
+    assert.strictEqual(legacy.helpful_count, 2);
+    assert.strictEqual(legacy.status, 'candidate');
+    // Pre-v4 rows carry no pair provenance.
+    assert.strictEqual(legacy.reflector_policy, null);
+    assert.strictEqual(legacy.reflector_model, null);
+    assert.strictEqual(legacy.executor_model, null);
+
+    // The migrated store is fully operational: selection + decision logging.
+    const { candidates, null_arm } = store.selectWithDecision({
+      failure_class: 'output_generation',
+      limit: 2,
+      rng: mulberry32(5),
+    });
+    assert.strictEqual(null_arm, 0);
+    assert.strictEqual(candidates.length, 1);
+    assert.strictEqual(candidates[0].alpha, 3); // helpful 2 + 1
+    assert.strictEqual(candidates[0].propensity, 1);
+    const decision = store.recordDecision({
+      run_id: 'run-new',
+      failure_class: 'output_generation',
+      candidates,
+      selected: [],
+    });
+    assert.ok(decision.decision_id.startsWith('dec_'));
+    assert.strictEqual(decision.policy, 'thompson-beta@1');
+
+    store.close();
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('LYO pair provenance (v4): persists the model trio on create and defaults to null when omitted', () => {
+  const store = new LessonStore(':memory:');
+  const withTrio = store.createLesson({
+    failure_class: 'output_generation',
+    trigger_cue: 'trio cue',
+    explanation: 'why',
+    intervention: 'do this',
+    run_id: 'run-1',
+    reflector: 'elaborator@1',
+    reflector_model: 'openai/gpt-4o-mini',
+    executor_model: 'claude:level2',
+  });
+  assert.strictEqual(withTrio.reflector_policy, 'elaborator@1');
+  assert.strictEqual(withTrio.reflector_model, 'openai/gpt-4o-mini');
+  assert.strictEqual(withTrio.executor_model, 'claude:level2');
+  const payload = JSON.parse(store.getDeltas(withTrio.lesson_id)[0].payload);
+  assert.strictEqual(payload.reflector, 'elaborator@1');
+  assert.strictEqual(payload.reflector_model, 'openai/gpt-4o-mini');
+  assert.strictEqual(payload.executor_model, 'claude:level2');
+
+  const bare = store.createLesson({
+    failure_class: 'output_generation',
+    trigger_cue: 'bare cue',
+    explanation: 'why',
+    intervention: 'do this',
+    run_id: 'run-1',
+  });
+  assert.strictEqual(bare.reflector_policy, null);
+  assert.strictEqual(bare.reflector_model, null);
+  assert.strictEqual(bare.executor_model, null);
+  store.close();
+});
+
+test('LYO pair provenance (v4): aggregates grounded outcomes per executor x reflector pair', () => {
+  const store = new LessonStore(':memory:');
+  const seed = (cue, trio, helpful, harmful) => {
+    const lesson = store.createLesson({
+      failure_class: 'output_generation',
+      trigger_cue: cue,
+      explanation: 'why',
+      intervention: 'do this',
+      run_id: 'run-1',
+      ...trio,
+    });
+    store.db
+      .prepare('UPDATE lesson SET helpful_count = ?, harmful_count = ? WHERE lesson_id = ?')
+      .run(helpful, harmful, lesson.lesson_id);
+  };
+  seed(
+    'cue a1',
+    {
+      reflector: 'elaborator@1',
+      reflector_model: 'openai/gpt-4o-mini',
+      executor_model: 'claude:level2',
+    },
+    6,
+    1
+  );
+  seed(
+    'cue a2',
+    {
+      reflector: 'elaborator@1',
+      reflector_model: 'openai/gpt-4o-mini',
+      executor_model: 'claude:level2',
+    },
+    3,
+    1
+  );
+  seed('cue b1', { reflector: 'template@1', executor_model: 'claude:level2' }, 2, 4);
+  seed('cue c1', {}, 1, 0); // unknown pair
+
+  const stats = store.getPairStats();
+  assert.strictEqual(stats.length, 3);
+  // Best pair first: elaborator pair (9 helpful / 2 harmful) beats template (2/4).
+  const top = stats[0];
+  assert.strictEqual(top.reflector_policy, 'elaborator@1');
+  assert.strictEqual(top.reflector_model, 'openai/gpt-4o-mini');
+  assert.strictEqual(top.executor_model, 'claude:level2');
+  assert.strictEqual(top.lessons, 2);
+  assert.strictEqual(top.helpful, 9);
+  assert.strictEqual(top.harmful, 2);
+  assert.ok(Math.abs(top.pair_posterior_mean - 10 / 13) < 1e-9);
+  const templatePair = stats.find((row) => row.reflector_policy === 'template@1');
+  assert.strictEqual(templatePair.reflector_model, '(none)');
+  assert.strictEqual(templatePair.helpful, 2);
+  assert.strictEqual(templatePair.harmful, 4);
+  const unknown = stats.find((row) => row.reflector_policy === '(unknown)');
+  assert.strictEqual(unknown.executor_model, '(unknown)');
+  store.close();
+});
+
+test('LYO failure classifier: maps validator feedback to the seeded taxonomy deterministically', () => {
+  const asMessage = (text, errors, criteriaResults) => ({
+    content: { text, data: { errors, criteriaResults } },
+  });
+
+  assert.strictEqual(
+    classifyValidationFailure(asMessage('Tests failed: npm test', ['missing coverage']))
+      .failure_class,
+    'output_generation'
+  );
+  assert.strictEqual(
+    classifyValidationFailure(asMessage('git push failed: permission denied')).failure_class,
+    'system_execution'
+  );
+  assert.strictEqual(
+    classifyValidationFailure(asMessage('agent stuck in a loop during handoff')).failure_class,
+    'orchestration'
+  );
+  assert.strictEqual(
+    classifyValidationFailure(asMessage('context truncated: token limit exceeded')).failure_class,
+    'context_handling'
+  );
+  assert.strictEqual(
+    classifyValidationFailure(asMessage('wrong tool used: api misuse of parameter'))
+      .failure_class,
+    'tool_selection'
+  );
+  assert.strictEqual(
+    classifyValidationFailure(asMessage('requirement misunderstood, goal not met')).failure_class,
+    'goal_deviation'
+  );
+  // Fallback
+  assert.strictEqual(
+    classifyValidationFailure(asMessage('rejected without a recognized cause')).failure_class,
+    'output_generation'
+  );
+});
+
+test('LYO failure classifier: builds the cue from the first error line, normalized and truncated', () => {
+  const { cue } = classifyValidationFailure({
+    content: {
+      text: 'IGNORED TEXT',
+      data: { errors: ['  Missing   Regression\nsecond line'], approved: false },
+    },
+  });
+  assert.strictEqual(cue, 'missing regression');
+
+  const textCue = classifyValidationFailure({
+    content: { text: 'Some Failure Happened\ndetails', data: { approved: false } },
+  });
+  assert.strictEqual(textCue.cue, 'some failure happened');
+
+  const longCue = classifyValidationFailure({
+    content: { text: 'x'.repeat(500), data: { approved: false } },
+  });
+  assert.ok(longCue.cue.length <= 120);
+});

@@ -121,6 +121,86 @@ export {
   syncCorpusOnce,
 } from './corpus/sync.ts';
 export { importGitHistory } from './corpus/git-import.ts';
+export {
+  DEFAULT_POLICY,
+  DEFAULT_POLICY_ID,
+  POLICY_REGISTRY,
+  THOMPSON_BETA_POLICY,
+  policyId,
+  resolvePolicy,
+  sampleGamma,
+} from './lyo/selection-policies.ts';
+export {
+  INVERSION_MAP,
+  executorFamily,
+  invertedReflectorModel,
+} from './lyo/model-inversion.ts';
+export {
+  FAILURE_CLASSES,
+  classifyValidationFailure,
+  normalizeCue,
+} from './lyo/failure-classifier.ts';
+export {
+  DEFAULT_REFLECTOR,
+  EXPLANATION_MAX_LENGTH,
+  REFLECTOR_REGISTRY,
+  TEMPLATE_REFLECTOR,
+  buildGuidanceText,
+  formatValidationFeedback,
+  isValidReflection,
+  reflectorId,
+  resolveReflector,
+} from './lyo/reflector-policies.ts';
+export {
+  DEFAULT_MODEL,
+  OPENROUTER_URL,
+  buildPrompt,
+  createElaboratorReflector,
+  parseReflectionJson,
+} from './lyo/elaborator-reflector.ts';
+export { LessonStore } from './lyo/lesson-store.ts';
+export type {
+  ScoredSelection,
+  SelectionCandidate,
+  SelectionPolicy,
+  SelectionPolicyRef,
+} from './lyo/selection-policies.ts';
+export type { FailureClassification } from './lyo/failure-classifier.ts';
+export type {
+  Reflection,
+  ReflectionInput,
+  Reflector,
+  ReflectorContext,
+  ReflectorRef,
+  ValidationMessage,
+} from './lyo/reflector-policies.ts';
+export type {
+  BuildPromptInput,
+  ChatFn,
+  ChatMessage,
+  ElaboratorReflectorOptions,
+} from './lyo/elaborator-reflector.ts';
+export type {
+  ApplicationRow,
+  CreateLessonInput,
+  DecisionCandidate,
+  DecisionRow,
+  DeltaRow,
+  LessonRow,
+  LibraryRow,
+  PairStatsRow,
+  PreferencePairRow,
+  RecordApplicationInput,
+  RecordDecisionInput,
+  RecordPreferencePairInput,
+  RecordTraceInput,
+  ReplayState,
+  SelectLessonsInput,
+  SelectWithDecisionInput,
+  SelectWithDecisionResult,
+  SelectedLesson,
+  TraceRow,
+} from './lyo/lesson-store.ts';
 export type * from './compiler/syntax.ts';
 export type * from './compiler/semantics.ts';
 export type * from './compiler/workflow-style.ts';
