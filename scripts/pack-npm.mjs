@@ -17,6 +17,7 @@ const publishedPackageJson = {
   ...packageJson,
   bin: {
     lyo: './src/cli.js',
+    'lyo-session-hook': './src/lyo/session-hook.js',
   },
   exports: {
     '.': './src/index.js',

@@ -1,6 +1,6 @@
 {
   "name": "lyo-kernel",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "SQLite reducer kernel for evidence-backed agent learning protocols.",
   "type": "module",
   "files": [
@@ -18,7 +18,8 @@
     "LICENSE.md"
   ],
   "bin": {
-    "lyo": "./src/cli.ts"
+    "lyo": "./src/cli.ts",
+    "lyo-session-hook": "./src/lyo/session-hook.ts"
   },
   "exports": {
     ".": "./src/index.ts"

@@ -159,12 +159,18 @@ export {
   parseReflectionJson,
 } from './lyo/elaborator-reflector.ts';
 export { LessonStore } from './lyo/lesson-store.ts';
+export {
+  emitSessionLessons,
+  renderSessionLessons,
+  resolveSessionLessonStorePath,
+} from './lyo/session-hook.ts';
 export type {
   ScoredSelection,
   SelectionCandidate,
   SelectionPolicy,
   SelectionPolicyRef,
 } from './lyo/selection-policies.ts';
+export type { SessionHookPayload } from './lyo/session-hook.ts';
 export type { FailureClassification } from './lyo/failure-classifier.ts';
 export type {
   Reflection,
