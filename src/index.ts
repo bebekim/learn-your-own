@@ -192,9 +192,13 @@ export {
 } from './corpus/sync.ts';
 export { importGitHistory } from './corpus/git-import.ts';
 export {
+  DEFAULT_POLICY,
   DEFAULT_POLICY_ID,
+  POLICY_REGISTRY,
+  THOMPSON_BETA_POLICY,
+  policyId,
+  resolvePolicy,
   sampleGamma,
-  sampleThompsonBetaSelection,
 } from './lyo/selection-policies.ts';
 export {
   INVERSION_MAP,
@@ -279,6 +283,8 @@ export {
 export type {
   ScoredSelection,
   SelectionCandidate,
+  SelectionPolicy,
+  SelectionPolicyRef,
 } from './lyo/selection-policies.ts';
 export type {
   ApplyVerifierRulesInput,
@@ -321,6 +327,7 @@ export type {
   RecordPreferencePairInput,
   RecordTraceInput,
   ReplayState,
+  SelectLessonsInput,
   SelectWithDecisionInput,
   SelectWithDecisionResult,
   SelectedLesson,

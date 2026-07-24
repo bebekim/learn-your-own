@@ -11,7 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { pathToFileURL } from 'node:url';
-import { sampleThompsonBetaSelection } from './selection-policies.ts';
+import { resolvePolicy } from './selection-policies.ts';
 
 const LIMIT = 5;
 const MAX_TEXT = 220;
@@ -77,7 +77,7 @@ export function renderSessionLessons(payload: SessionHookPayload = {}): string |
       alpha: Number(row.helpful_count) + 1,
       beta: Number(row.harmful_count) + 1,
     }));
-    const picks = sampleThompsonBetaSelection(candidates, LIMIT);
+    const picks = resolvePolicy(null).sampleSelection(candidates, LIMIT);
     const lines = picks.map(({ index }) => formatLesson(rows[index])).filter(Boolean);
     if (lines.length === 0) return null;
 

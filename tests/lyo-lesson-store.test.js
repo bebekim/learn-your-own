@@ -286,6 +286,43 @@ test('LYO lesson store: quarantines a lesson when the Wilson upper bound drops b
   store.close();
 });
 
+test('LYO lesson store: selectLessons Thompson-samples the library view', () => {
+  const store = new LessonStore(':memory:');
+  makeLesson(store, { trigger_cue: 'cue alpha' });
+  makeLesson(store, { trigger_cue: 'cue beta' });
+  makeLesson(store, { trigger_cue: 'cue gamma' });
+  makeLesson(store, { failure_class: 'system_execution', trigger_cue: 'cue other class' });
+
+  const selected = store.selectLessons({ failure_class: 'output_generation', limit: 2 });
+  assert.strictEqual(selected.length, 2);
+  for (const row of selected) {
+    assert.strictEqual(row.failure_class, 'output_generation');
+    assert.ok(row.sampled_score >= 0 && row.sampled_score <= 1);
+  }
+
+  // Candidate-status lessons are part of the view (exploration)
+  const all = store.selectLessons({ failure_class: 'output_generation', limit: 10 });
+  assert.strictEqual(all.length, 3);
+
+  // An injected deterministic rng makes the draw reproducible
+  const first = store.selectLessons({
+    failure_class: 'output_generation',
+    limit: 3,
+    rng: mulberry32(42),
+  });
+  const second = store.selectLessons({
+    failure_class: 'output_generation',
+    limit: 3,
+    rng: mulberry32(42),
+  });
+  assert.deepStrictEqual(
+    first.map((row) => [row.lesson_id, row.sampled_score]),
+    second.map((row) => [row.lesson_id, row.sampled_score])
+  );
+
+  store.close();
+});
+
 test('LYO lesson store: maybeCurate does nothing below the MARK-delta watermark', () => {
   const store = new LessonStore(':memory:');
   const stale = makeLesson(store, { trigger_cue: 'stale candidate cue' });
@@ -480,7 +517,7 @@ test('LYO lesson store: replayLesson folds deltas back to the current lesson row
   store.close();
 });
 
-test('LYO decision log (v0.2): returns every candidate with posterior params', () => {
+test('LYO decision log (v0.2): returns every candidate with posterior params and propensities summing to the limit', () => {
   const store = new LessonStore(':memory:');
   const a = makeLesson(store, { trigger_cue: 'cue a' });
   const b = makeLesson(store, { trigger_cue: 'cue b' });
@@ -500,11 +537,70 @@ test('LYO decision log (v0.2): returns every candidate with posterior params', (
   assert.strictEqual(byId.get(a.lesson_id).beta, 2); // harmful 1 + 1
   assert.strictEqual(byId.get(b.lesson_id).alpha, 1);
   assert.strictEqual(byId.get(b.lesson_id).beta, 1);
+  for (const candidate of candidates) {
+    assert.ok(candidate.propensity >= 0 && candidate.propensity <= 1);
+  }
+  // Each MC replicate selects exactly `limit` lessons, so propensities sum
+  // to the limit in expectation (MC noise tolerated).
+  const propensitySum = candidates.reduce((sum, entry) => sum + entry.propensity, 0);
+  assert.ok(
+    Math.abs(propensitySum - 2) < 0.15,
+    `propensities should sum to the limit (2), got ${propensitySum}`
+  );
 
   assert.strictEqual(selected.length, 2);
   for (const lesson of selected) {
     assert.ok(lesson.sampled_score >= 0 && lesson.sampled_score <= 1);
   }
+
+  store.close();
+});
+
+test('LYO decision log (v0.2): estimates propensities close to the analytic inclusion probability', () => {
+  const store = new LessonStore(':memory:');
+  const veteran = makeLesson(store, { trigger_cue: 'veteran cue' });
+  const newcomer = makeLesson(store, { trigger_cue: 'newcomer cue' });
+  applyOutcomes(store, veteran.lesson_id, Array(9).fill('passed'));
+
+  const { candidates } = store.selectWithDecision({
+    failure_class: 'output_generation',
+    limit: 1,
+    rng: mulberry32(7),
+    propensityReplicates: 2000,
+  });
+
+  // Analytic: veteran is Beta(10,1), newcomer Beta(1,1) (uniform).
+  // P(newcomer wins) = E[1 - theta_veteran] = 1 - 10/11 = 1/11 ≈ 0.091.
+  const byId = new Map(candidates.map((entry) => [entry.lesson_id, entry]));
+  const newcomerPropensity = byId.get(newcomer.lesson_id).propensity;
+  assert.ok(
+    Math.abs(newcomerPropensity - 1 / 11) < 0.05,
+    `newcomer propensity ${newcomerPropensity} should be near 1/11 ≈ 0.091`
+  );
+  const veteranPropensity = byId.get(veteran.lesson_id).propensity;
+  assert.ok(
+    Math.abs(veteranPropensity - 10 / 11) < 0.05,
+    `veteran propensity ${veteranPropensity} should be near 10/11 ≈ 0.909`
+  );
+
+  store.close();
+});
+
+test('LYO decision log (v0.2): assigns propensity exactly 1 when every candidate fits in the limit', () => {
+  const store = new LessonStore(':memory:');
+  makeLesson(store, { trigger_cue: 'cue one' });
+  makeLesson(store, { trigger_cue: 'cue two' });
+
+  const { selected, candidates, null_arm } = store.selectWithDecision({
+    failure_class: 'output_generation',
+    limit: 2,
+    rng: mulberry32(11),
+  });
+
+  assert.strictEqual(null_arm, 0);
+  assert.strictEqual(candidates.length, 2);
+  assert.ok(candidates.every((entry) => entry.propensity === 1));
+  assert.strictEqual(selected.length, 2);
 
   store.close();
 });
@@ -552,8 +648,7 @@ test('LYO decision log (v0.2): persists decision rows and joins applications via
   const storedCandidates = JSON.parse(decision.candidates);
   assert.strictEqual(storedCandidates.length, 1);
   assert.strictEqual(storedCandidates[0].lesson_id, lesson.lesson_id);
-  assert.strictEqual(storedCandidates[0].alpha, 1);
-  assert.strictEqual(storedCandidates[0].beta, 1);
+  assert.strictEqual(storedCandidates[0].propensity, 1);
   const storedSelected = JSON.parse(decision.selected);
   assert.strictEqual(storedSelected.length, 1);
   assert.strictEqual(storedSelected[0].lesson_id, lesson.lesson_id);
@@ -579,6 +674,85 @@ test('LYO decision log (v0.2): persists decision rows and joins applications via
     () =>
       store.recordDecision({ run_id: 'r', failure_class: 'x', candidates: 'nope', selected: [] }),
     /candidates and selected/
+  );
+
+  store.close();
+});
+
+test('LYO decision log (v0.2): accepts a pluggable selection policy and records its id', () => {
+  const store = new LessonStore(':memory:');
+  const veteran = makeLesson(store, { trigger_cue: 'policy veteran cue' });
+  const underdog = makeLesson(store, { trigger_cue: 'policy underdog cue' });
+  applyOutcomes(store, veteran.lesson_id, Array(9).fill('passed'));
+
+  // A deterministic policy that ALWAYS picks the weakest posterior mean —
+  // the opposite of what Thompson-Beta would usually do. Ignores rng.
+  const contrarian = {
+    name: 'contrarian',
+    version: 7,
+    sampleSelection(candidates, limit) {
+      return candidates
+        .map((candidate, index) => ({
+          index,
+          score: null,
+          mean: candidate.alpha / (candidate.alpha + candidate.beta),
+        }))
+        .sort((a, b) => a.mean - b.mean)
+        .slice(0, Math.max(0, limit));
+    },
+  };
+
+  const { selected, candidates, null_arm, policy } = store.selectWithDecision({
+    failure_class: 'output_generation',
+    limit: 1,
+    policy: contrarian,
+  });
+
+  assert.strictEqual(policy, 'contrarian@7');
+  assert.strictEqual(null_arm, 0);
+  assert.strictEqual(selected.length, 1);
+  assert.strictEqual(selected[0].lesson_id, underdog.lesson_id); // the weak one
+  assert.strictEqual(selected[0].sampled_score, null);
+  // Deterministic policy: MC replays the identical draw => propensity 0/1.
+  const byId = new Map(candidates.map((entry) => [entry.lesson_id, entry]));
+  assert.strictEqual(byId.get(underdog.lesson_id).propensity, 1);
+  assert.strictEqual(byId.get(veteran.lesson_id).propensity, 0);
+
+  const decision = store.recordDecision({
+    run_id: 'run-policy',
+    failure_class: 'output_generation',
+    candidates,
+    selected: selected.map((entry) => ({
+      lesson_id: entry.lesson_id,
+      score: entry.sampled_score,
+    })),
+    policy,
+  });
+  assert.strictEqual(decision.policy, 'contrarian@7');
+
+  store.close();
+});
+
+test('LYO decision log (v0.2): resolves registry policy ids and rejects unknown ones', () => {
+  const store = new LessonStore(':memory:');
+  makeLesson(store, { trigger_cue: 'registry cue' });
+
+  const viaString = store.selectWithDecision({
+    failure_class: 'output_generation',
+    limit: 1,
+    policy: 'thompson-beta@1',
+    rng: mulberry32(9),
+  });
+  assert.strictEqual(viaString.policy, 'thompson-beta@1');
+  assert.strictEqual(viaString.selected.length, 1);
+
+  assert.throws(
+    () =>
+      store.selectWithDecision({
+        failure_class: 'output_generation',
+        policy: 'no-such-policy@9',
+      }),
+    /unknown selection policy/
   );
 
   store.close();
@@ -683,7 +857,7 @@ test('LYO decision log (v0.2): migrates a pre-v0.2 store: adds decision_id and p
     assert.strictEqual(null_arm, 0);
     assert.strictEqual(candidates.length, 1);
     assert.strictEqual(candidates[0].alpha, 3); // helpful 2 + 1
-    assert.strictEqual(candidates[0].beta, 1);
+    assert.strictEqual(candidates[0].propensity, 1);
     const decision = store.recordDecision({
       run_id: 'run-new',
       failure_class: 'output_generation',
