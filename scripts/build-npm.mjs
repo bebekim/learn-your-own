@@ -27,7 +27,9 @@ for (const sourcePath of sourceFiles(join(root, 'src'))) {
   const outputPath = join(outputDir, relativePath.replace(/\.ts$/, '.js'));
   mkdirSync(dirname(outputPath), { recursive: true });
   writeFileSync(outputPath, output);
-  if (relativePath === 'cli.ts') chmodSync(outputPath, 0o755);
+  if (relativePath === 'cli.ts' || relativePath === 'lyo/session-hook.ts') {
+    chmodSync(outputPath, 0o755);
+  }
 }
 
 function sourceFiles(dir) {

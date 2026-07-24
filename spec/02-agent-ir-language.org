@@ -1,0 +1,229 @@
+* Agent IR: A Plan-Shaped Language For LLM Work
+
+This document sketches a Lisp-like intermediate representation (IR) for
+agent behavior, extending the argument in
+[[../docs/behavior-as-code.md][Behavior As Code]].
+
+The doctrine is:
+
+#+begin_src text
+English is a rendering layer
+the IR is the source of truth
+
+the same structural language describes
+  what the agent will do (plan)
+  what the agent is doing (trace)
+  what the agent did (episodes, effects)
+#+end_src
+
+* Motivation
+
+Today Lyo's structural language only describes the past:
+
+#+begin_src text
+hook event -> NormalizedAction -> tokens -> episodes -> effect summary
+#+end_src
+
+Prompts and plans cross the boundary as English prose. Prose has no eval
+semantics, cannot be diffed structurally, and cannot be verified before
+execution. The agent's future is opaque to the same machinery that makes
+its past inspectable.
+
+Closing the loop means authoring plans in the same shape the compiler
+frontend already produces, so one grammar covers intent, action, and
+evidence.
+
+* Design Constraints
+
+1. Homoiconic. Plans, data, queries, and constraints share one shape, so
+   the model manipulates its own plans with the same skill it uses for
+   data. Lisp's lesson, not Lisp's syntax per se.
+
+2. LLM-native. The vocabulary stays close to English structure: readable
+   keywords, shallow nesting. A too-alien IR degrades model performance;
+   models were trained on prose.
+
+3. Mechanically checkable. A dumb, trustworthy verifier can enumerate what
+   is sayable and reject what is not, without model judgment in the loop.
+
+4. Aligned with existing types. The IR reuses =TokenKind=,
+   =OperationKind=, =IntentKind=, =RiskClass=, and =FacetKind= from
+   =src/compiler/syntax.ts= rather than inventing a parallel taxonomy.
+
+5. Lossy-but-faithful rendering. English in and English out are
+   projections. Translation loss is accepted; the IR holds the truth.
+
+* Language Shape
+
+Everything is a form:
+
+#+begin_src lisp
+(run
+  (goal "fix the failing parser test")
+  (plan
+    (inspect "src/compiler/parser.ts")
+    (inspect "tests/parser.test.js")
+    (edit "src/compiler/parser.ts")
+    (verify (cmd "npm test -- parser")))
+  (constraint (no-write-outside "src/" "tests/"))
+  (constraint (risk-ceiling low))
+  (on-fail (retry 2) (escalate :human)))
+#+end_src
+
+Form heads draw from a small closed vocabulary mirroring the compiler
+frontend:
+
+#+begin_src text
+action heads:    inspect edit cmd build git delegate prompt stop
+verification:    verify expect
+control:         plan seq par retry on-fail escalate
+data:            quote bind let
+constraints:     constraint no-write-outside risk-ceiling budget
+#+end_src
+
+Every form carries optional provenance and facet annotations, so a plan
+node and a trace node are structurally comparable:
+
+#+begin_src lisp
+(edit "src/compiler/parser.ts"
+      :intent implement
+      :risk low
+      :facets (write local))
+#+end_src
+
+* Quote And Eval
+
+The quote/eval distinction is what makes the IR a language rather than a
+log format.
+
+- =(quote form)= passes a plan fragment as data: inspectable, composable,
+  revisable, inert.
+- =eval= is never the model's call. A plan becomes behavior only through a
+  trusted executor after static checks pass.
+- =macroexpand= has a direct analog: lower a plan to its full
+  =NormalizedAction=-shaped expansion and show it, without running
+  anything. Dry-run is a first-class mode, matching the existing
+  =--dry-run= convention.
+
+#+begin_src text
+parse English intent
+-> emit plan (quoted, inert)
+-> static checks over the plan as data
+-> human or policy gate
+-> eval step by step, each step emitting a trace token
+#+end_src
+
+* Plans As Data: Static Verification
+
+Because the plan is data, checks are ordinary predicates, the same shape
+as =src/compiler/semantics.ts= functions over traces:
+
+#+begin_src text
+hasUnsafeWrite(plan)
+exceedsRiskCeiling(plan, ceiling)
+writesOutsideScope(plan, allowedPaths)
+hasVerificationAfterEdit(plan)
+estimatedBudget(plan) <= budget
+#+end_src
+
+The key symmetry: the predicate =hasVerificationAfterEdit= should mean the
+same thing over a plan and over a trace. One semantics, two tenses. The
+style learner's critic candidates ("run targeted tests before ending a run
+after edits") become pre-execution plan checks instead of only
+post-hoc detections.
+
+* Eval Semantics
+
+Eval executes one form at a time and emits the existing token stream, so
+execution produces telemetry in the same grammar the plan was written in:
+
+#+begin_src text
+(inspect path)  -> observe action,           token INSPECT
+(edit path)     -> mutate_local action,      token EDIT
+(cmd argv)      -> command action,           token TEST | BUILD | GIT | EXTERNAL
+(verify form)   -> verify action plus recorded status succeeded | failed
+(stop)          -> boundary,                 token STOP
+#+end_src
+
+Each emitted token carries =TokenProvenance= as today, plus the plan-node
+id it instantiates. That id is the join key for plan-vs-trace comparison.
+
+* Plan Vs Trace Diffing
+
+After a run, two structures in the same grammar exist:
+
+#+begin_src text
+plan:  quoted tree, authored before execution
+trace: RunTelemetryAst, observed during execution
+#+end_src
+
+Diffing reuses the effect algebra (=docs/telemetry-effect-semantics-for-lyo.md=):
+
+#+begin_src text
+fold plan  -> predicted effect summary (reads, writes, commands)
+fold trace -> observed effect summary
+
+compare:
+  missing steps      (planned, not executed)
+  surprise steps     (executed, not planned)
+  status divergence  (verify planned succeeded, observed failed)
+  scope drift        (writes outside planned paths)
+#+end_src
+
+This comparison is the missing evidence source for the explanation graph:
+deviation from plan is a structured rival explanation for outcomes, more
+informative than raw telemetry alone. "The agent planned to verify and did
+not" is a fact the current pipeline can only infer post hoc; with plans in
+the IR it becomes a direct structural diff.
+
+* English As Rendering Layer
+
+#+begin_src text
+English in:  parse intent -> plan draft (model judgment, lossy, revisable)
+English out: render plan or trace -> prose summary (projection, never truth)
+#+end_src
+
+Consequences:
+
+- Prompts remain natural; users never write the IR by hand unless they
+  want to.
+- Reports like =lyo report --style= are renderers over the same AST.
+- Disagreement between the English summary and the IR is a bug in the
+  renderer, never a license to trust the prose.
+
+* Relation To Existing Layers
+
+#+begin_src text
+compiler frontend:   the reader (events -> tokens -> actions)
+semantics.ts:        predicates shared across plan and trace
+effect algebra:      fold for both predicted and observed summaries
+style learner:       macro writer: builds candidate plan-rewrites from traces
+protocols table:     promoted plan fragments, scoped and statused
+deliveries table:    eval event: a plan fragment entered a run's context
+outcomes table:      feedback: did eval of the delivered fragment help
+explanation graph:   consumes plan-vs-trace diffs as structured evidence
+#+end_src
+
+* Open Questions
+
+1. Vocabulary size. How small can the head set stay while covering real
+   agent work? The token taxonomy suggests eight action heads suffice;
+   control flow is less certain.
+
+2. Partial plans. Agents revise mid-run. Is a plan a tree edited over
+   time (with its own version history) or a stream of plan-deltas?
+
+3. Failure attribution. When eval of a verified plan still fails, is the
+   defect in the plan, the renderer, or the world model? The experiment
+   protocol (=docs/cybernetic-learning-experiment-protocol.md=) is the
+   likely instrument.
+
+4. Model competence. Which models emit well-formed IR reliably, and does
+   grammar-constrained decoding help or hurt plan quality?
+
+* Status
+
+Sketch. No implementation. The cheapest first step is read-only: emit
+plans in the IR from English prompts, run static checks and macroexpand
+style dry-runs, but keep execution English-driven. That validates the
+vocabulary and the renderers before any executor trusts the IR.

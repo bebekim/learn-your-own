@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.3.0
+
+This minor release ports the LYO learning layer from the zeroshot fork into
+the kernel as first-class TypeScript modules; the learning brain now lives
+here, and execution engines (zeroshot, session hooks) consume it as a
+package.
+
+### What changed
+
+- New `src/lyo/` modules (ported from CommonJS/better-sqlite3 to strict ESM
+  TypeScript on `node:sqlite`, zero native dependencies):
+  - `lesson-store.ts` - lesson-delta event log, Beta-Bernoulli counters,
+    Wilson promote/quarantine gates, Thompson selection, decision log with
+    selection propensities, schema migrations v1-v4, `v_lesson_library` and
+    `v_lyo_pair_stats` views, learning traces + preference pairs
+  - `selection-policies.ts` - pluggable selection policy interface
+    (`thompson-beta@1` default), Marsaglia-Tsang sampler, registry
+  - `reflector-policies.ts` - pluggable reflector interface (`template@1`
+    default), registry, validation-feedback formatting
+  - `elaborator-reflector.ts` - async LLM reflector (`elaborator@1`) via
+    OpenRouter with template fallback
+  - `model-inversion.ts` - Greptile-style cross-family reflector routing
+  - `failure-classifier.ts` - deterministic validation-failure taxonomy
+- Re-exported from the package root (`src/index.ts`).
+
 ## 0.2.1
 
 This patch release improves adoption after the `0.2.0` telemetry compiler

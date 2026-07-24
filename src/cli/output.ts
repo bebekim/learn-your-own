@@ -13,6 +13,8 @@ export function usage(exitCode = 0): never {
 	  lyo run-start [--db path] --run-id id --task-shape shape --channel channel [--status status] [--token-cost n]
 	  lyo run-finish [--db path] --run-id id [--status status] [--token-cost n]
 	  lyo context goal [--db path] --run-id id --goal text [--success-criteria text] [--stop-condition text] [--expected-process text] [--risk-class class]
+	  lyo context preference [--db path] --chosen-trace-id id --rejected-trace-id id --reason text --evidence-ref ref [--confidence low|medium|high] [--recorded-by name] [--context text] [--context-hash hash]
+	  lyo context trace [--db path] --trace-id id [--run-id id] --kind behavior|protocol_application|agent_response|tool_use|other --summary text [--ref ref] [--payload-json json]
 	  lyo tape record [--db path] --run-id id --kind kind --summary text --evidence-ref ref [--passed true|false] [--payload-json json]
 	  lyo tape view [--db path] --run-id id
 	  lyo harness learn-verifier-gate [--db path] --chosen-run-id id --rejected-run-id id [--protocol-id id] [--scope-kind worktree|repository|channel] [--scope-value value] [--recorded-by name]
