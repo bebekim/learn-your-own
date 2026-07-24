@@ -4,6 +4,7 @@ import { ASSOCIATION_COMMANDS } from './commands/associations.ts';
 import { CONTEXT_COMMANDS } from './commands/context.ts';
 import { CORPUS_COMMANDS } from './commands/corpus.ts';
 import { DEMO_COMMANDS } from './commands/demo.ts';
+import { EVAL_COMMANDS } from './commands/eval.ts';
 import { EXERCISE_COMMANDS } from './commands/exercise.ts';
 import { HARNESS_COMMANDS } from './commands/harness.ts';
 import { HOOK_COMMANDS } from './commands/hooks.ts';
@@ -31,6 +32,7 @@ const COMMAND_HANDLERS: Record<string, CommandHandler> = {
   ...CORPUS_COMMANDS,
   ...EXERCISE_COMMANDS,
   ...DEMO_COMMANDS,
+  ...EVAL_COMMANDS,
 };
 
 export async function runCommand(args: CliArgs, stdin: AsyncIterable<string | Buffer>): Promise<unknown> {

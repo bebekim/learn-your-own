@@ -30,6 +30,7 @@
     "typecheck": "tsc --noEmit",
     "lyo:init": "node src/cli.ts init --db .agent-learning/learning.sqlite",
     "lyo:report": "node src/cli.ts report --db .agent-learning/learning.sqlite",
+    "eval:validate": "node src/cli.ts eval validate",
     "demo": "node src/cli.ts demo fixture-replay",
     "pack:local": "node scripts/pack-npm.mjs",
     "publish:registry": "node scripts/publish-npm.mjs"

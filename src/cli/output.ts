@@ -43,6 +43,7 @@ export function usage(exitCode = 0): never {
 	  lyo experiment [--db path] --family-id id --baseline-run-id id --treatment-run-id id [--variant-run-id id] [--artifact id --association-edge edge] [--next-experiment text]
 	  lyo audit [--dir path]
 	  lyo demo fixture-replay [--db path]
+	  lyo eval validate [--dir path]
 
 	Environment:
 	  LEARNLOOP_DB       Default SQLite path. Defaults to .agent-learning/learning.sqlite

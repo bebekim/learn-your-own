@@ -1,0 +1,11 @@
+{
+  "train": [
+    "lyo-session-hook-store-resolution"
+  ],
+  "selection": [
+    "lyo-selection-policy-compatibility"
+  ],
+  "test": [
+    "lyo-cli-command-registry"
+  ]
+}

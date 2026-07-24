@@ -1,0 +1,33 @@
+{
+  "task_id": "lyo-selection-policy-compatibility",
+  "split": "selection",
+  "repo_ref": {
+    "kind": "git",
+    "ref": "ef957f65b83b310c2282e4e81c6c7a8fa85bb897"
+  },
+  "prompt": "Preserve LYO selection extension points while changing selection behavior. A correct change keeps string policy ids, object policy injection, selectLessons compatibility, and decision logging intact.",
+  "allowed_tools": [
+    "read",
+    "edit",
+    "shell"
+  ],
+  "budget": {
+    "max_turns": 24,
+    "max_wall_time_seconds": 1200,
+    "max_tokens": 24000
+  },
+  "success_check": {
+    "kind": "command",
+    "command": "node --test tests/lyo-lesson-store.test.js"
+  },
+  "expected_touched_paths": [
+    "src/lyo/selection-policies.ts",
+    "src/lyo/lesson-store.ts",
+    "tests/lyo-lesson-store.test.js"
+  ],
+  "tags": [
+    "lyo",
+    "selection",
+    "compatibility"
+  ]
+}

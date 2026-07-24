@@ -1,0 +1,33 @@
+{
+  "task_id": "lyo-cli-command-registry",
+  "split": "test",
+  "repo_ref": {
+    "kind": "git",
+    "ref": "ef957f65b83b310c2282e4e81c6c7a8fa85bb897"
+  },
+  "prompt": "Add or modify a CLI command without breaking command lookup, JSON error output, or help discoverability.",
+  "allowed_tools": [
+    "read",
+    "edit",
+    "shell"
+  ],
+  "budget": {
+    "max_turns": 16,
+    "max_wall_time_seconds": 900,
+    "max_tokens": 16000
+  },
+  "success_check": {
+    "kind": "command",
+    "command": "node --test tests/cli.test.js"
+  },
+  "expected_touched_paths": [
+    "src/cli/commands.ts",
+    "src/cli/output.ts",
+    "tests/cli.test.js"
+  ],
+  "tags": [
+    "cli",
+    "command-registry",
+    "json-output"
+  ]
+}

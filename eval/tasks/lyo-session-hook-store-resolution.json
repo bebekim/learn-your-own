@@ -1,0 +1,32 @@
+{
+  "task_id": "lyo-session-hook-store-resolution",
+  "split": "train",
+  "repo_ref": {
+    "kind": "git",
+    "ref": "ef957f65b83b310c2282e4e81c6c7a8fa85bb897"
+  },
+  "prompt": "Preserve LYO session-hook store resolution across stdin JSON hook mode and explicit cwd mode. A correct change keeps cwd-scoped stores preferred and global fallback working.",
+  "allowed_tools": [
+    "read",
+    "edit",
+    "shell"
+  ],
+  "budget": {
+    "max_turns": 20,
+    "max_wall_time_seconds": 900,
+    "max_tokens": 20000
+  },
+  "success_check": {
+    "kind": "command",
+    "command": "node --test tests/lyo-session-hook.test.js"
+  },
+  "expected_touched_paths": [
+    "src/lyo/session-hook.ts",
+    "tests/lyo-session-hook.test.js"
+  ],
+  "tags": [
+    "lyo",
+    "session-hook",
+    "store-resolution"
+  ]
+}
