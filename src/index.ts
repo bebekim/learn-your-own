@@ -117,6 +117,10 @@ export {
 } from './compiler/candidate-at-bat.ts';
 export { buildCyberneticExperimentReport } from './compiler/cybernetic-experiment.ts';
 export {
+  compilePromptArtifact,
+  compileSeparatedCodeAndTestPromptArtifacts,
+} from './compiler/prompt-artifacts.ts';
+export {
   corpusReport,
   syncCorpusOnce,
 } from './corpus/sync.ts';
@@ -226,6 +230,7 @@ export type * from './compiler/association-learning.ts';
 export type * from './compiler/explanation-graph.ts';
 export type * from './compiler/candidate-at-bat.ts';
 export type * from './compiler/cybernetic-experiment.ts';
+export type * from './compiler/prompt-artifacts.ts';
 export type * from './corpus/sync.ts';
 export type * from './corpus/git-import.ts';
 export type * from './types.ts';
