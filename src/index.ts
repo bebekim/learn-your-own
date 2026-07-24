@@ -159,6 +159,7 @@ export {
   parseReflectionJson,
 } from './lyo/elaborator-reflector.ts';
 export { LessonStore } from './lyo/lesson-store.ts';
+export { LearnedRuleStore } from './lyo/learned-rules.ts';
 export {
   emitSessionLessons,
   renderSessionLessons,
@@ -170,6 +171,16 @@ export type {
   SelectionPolicy,
   SelectionPolicyRef,
 } from './lyo/selection-policies.ts';
+export type {
+  ApplyVerifierRulesInput,
+  CreateVerifierRuleInput,
+  LearnedRuleApplicationRow,
+  LearnedRuleDeltaRow,
+  LearnedRuleOutcome,
+  LearnedRuleRow,
+  LearnedRuleStatus,
+  VerifierGate,
+} from './lyo/learned-rules.ts';
 export type { SessionHookPayload } from './lyo/session-hook.ts';
 export type { FailureClassification } from './lyo/failure-classifier.ts';
 export type {
