@@ -37,6 +37,54 @@ The comparison must freeze model, task budget, harness, and evaluator. Otherwise
 "better" just means someone spent more tokens, picked an easier task split, or
 leaked the answer into context.
 
+## Literature-Derived Eval Discipline
+
+Do not start from "what can Lyo measure?" Start from "what claim is Lyo making?"
+Then pick the smallest evaluation that could falsify that claim.
+
+The current Lyo claim is:
+
+```text
+grounded learned rules improve future agent episodes without uncontrolled
+context cost, hidden regressions, or unverifiable self-approval
+```
+
+The useful patterns from existing LLM eval work:
+
+| Pattern | What to copy | What to avoid |
+| --- | --- | --- |
+| HELM-style scenario eval | Declare scenarios, metrics, model, prompts, budget, and raw outputs | One headline score that hides cost or robustness |
+| SWE-bench-style coding eval | Prefer real repo tasks with executable tests | Toy tasks where success is subjective |
+| AgentBench/GAIA-style agent eval | Score tool-using episodes by final environment outcome and trace | Judging only the final prose answer |
+| Arena/preference eval | Use pairwise comparisons when quality is subjective | Treating preference as proof of correctness |
+| LLM-as-judge eval | Use judges only for secondary soft scores, with bias controls | Letting a judge replace executable evidence |
+| Memory/RAG eval | Separate retrieval/memory hit quality from downstream task success | Claiming memory works because it retrieved something plausible |
+| SkillOpt-style optimization eval | Use train/selection/test, validation gates, and ablations | Updating the learned artifact on the final test split |
+
+Implications for Lyo:
+
+```text
+1. Freeze the executor model, harness, prompts, budget, and tools.
+2. Keep train, selection, and final test separate.
+3. Use executable or externally checkable outcomes whenever possible.
+4. Report cost, context overhead, and regressions beside success.
+5. Run ablations so the lift is attributable to learned rules, not more context.
+6. Keep raw traces and ledger deltas so every accepted rule has provenance.
+```
+
+Useful references:
+
+```text
+HELM: https://github.com/stanford-crfm/helm
+SWE-bench: https://www.swebench.com/
+AgentBench: https://github.com/THUDM/AgentBench
+GAIA: https://huggingface.co/datasets/gaia-benchmark/GAIA
+Chatbot Arena: https://lmarena.ai/
+LongMemEval: https://github.com/xiaowu0162/LongMemEval
+LoCoMo: https://snap-research.github.io/locomo/
+SkillOpt: /Users/marcus.kim/repositories/oss/SkillOpt
+```
+
 ## Related Baseline: SkillOpt
 
 SkillOpt's relevant pattern:
