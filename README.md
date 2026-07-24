@@ -80,7 +80,7 @@ lyo --help
 
 Requires Node.js 24+ for `node:sqlite`.
 
-Current package version: `0.2.1`.
+Current package version: `0.3.0`.
 
 ## What Works Now
 
@@ -99,6 +99,10 @@ Current package version: `0.2.1`.
 - Workflow-style reports for prompt-driven, manually orchestrated,
   loop-assisted, and loop-driven traces.
 - Candidate at-bat reports for evidence-producing AI-assisted interview loops.
+- LYO lesson store, selection policies, reflector policies, model-inversion
+  routing, failure classification, and session-start lesson injection.
+- Eval task fixtures, split validation, offline lesson replay, learned
+  verifier rules, local baseline episode rows, and eval report/gate logic.
 - Dry-run semantic lowering, explanation-graph belief updates, and cybernetic
   experiment reports.
 
@@ -109,7 +113,7 @@ Not mature yet:
 - complete command coverage;
 - subagent/child-process lineage;
 - append-only persistence for learned compiler artifacts;
-- automatic benchmark/replay orchestration.
+- full external-agent benchmark orchestration across Codex, Claude, and Kimi.
 
 ## Core Commands
 
@@ -186,6 +190,43 @@ lyo experiment \
   --variant-run-id <A2-run-id> \
   --artifact verifier:compiler-frontend \
   --association-edge "src/compiler/** -> tests/compiler-frontend.test.js"
+```
+
+Validate the frozen eval task set:
+
+```sh
+lyo eval validate
+```
+
+Run a zero-cost offline replay from a recorded trace into the lesson store:
+
+```sh
+lyo eval replay \
+  --db .agent-learning/lyo-lessons.sqlite \
+  --trace traces/replay.json \
+  --seed 1
+```
+
+Run a local baseline episode from one eval task. This executes only the task's
+declared verifier command and records a comparable episode row:
+
+```sh
+lyo eval run-local \
+  --task eval/tasks/lyo-cli-command-registry.json \
+  --baseline B0 \
+  --model local \
+  --harness local-shell
+```
+
+Generate an eval report and rule gate decision from episode rows:
+
+```sh
+lyo eval report \
+  --episodes episodes.json \
+  --baseline B0 \
+  --treatment B4 \
+  --rule-id rule_123 \
+  --markdown
 ```
 
 Audit existing local ledgers:
@@ -280,6 +321,11 @@ local prompt blobs are explicitly allowed.
 | `protocol` | Scoped lesson candidate or promoted guidance. |
 | `delivery` | Evidence that future work received guidance. |
 | `outcome` | Later evidence that guidance helped or failed. |
+| `lesson` | Grounded behavioral hypothesis with selection, application, and outcome counters. |
+| `learned_rule` | Mutable data program interpreted by the fixed kernel; first rule kind is `verifier_for_path`. |
+| `eval task` | Frozen task spec with split, repo ref, budget, verifier, and expected touched paths. |
+| `episode` | One baseline run record containing injected context, verifier evidence, cost, time, and outcome. |
+| `gate` | Selection-split accept/reject decision for a candidate rule. |
 | `NormalizedAction` | Compiler action with operation, intent, resources, risk, status, and facets. |
 | `effect summary` | Folded reads, writes, commands, and ordered evidence refs. |
 | `association conjecture` | Candidate relationship proposed by repeated telemetry; not yet learning by itself. |
@@ -330,6 +376,7 @@ console.log(getObserverSummary(kernel));
 - [Learning As Inference Over An Explanation Graph](docs/learning-as-explanation-graph.md)
 - [Product Learning Log](docs/product-learning-log.md)
 - [Candidate At-Bat Telemetry Spec](docs/candidate-at-bat-telemetry-spec.md)
+- [Learned Reducer Rules And Eval Rubric](docs/learned-reducer-rules-eval-rubric.md)
 - [Candidate At-Bat Implementation PRD](issues/candidate-at-bat-prd.md)
 
 ## Development
