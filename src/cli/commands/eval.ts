@@ -5,6 +5,11 @@ import {
   runLocalEpisode,
 } from '../../eval/live-runner.ts';
 import {
+  buildEvalReport,
+  readEpisodeRows,
+  renderEvalReportMarkdown,
+} from '../../eval/report.ts';
+import {
   readReplayTrace,
   replayTrace,
 } from '../../eval/replay.ts';
@@ -16,6 +21,7 @@ import { LessonStore } from '../../lyo/lesson-store.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
 
 export const EVAL_COMMANDS: Record<string, CommandHandler> = {
+  'eval report': evalReportCommand,
   'eval replay': evalReplayCommand,
   'eval run-local': evalRunLocalCommand,
   'eval validate': evalValidateCommand,
@@ -59,5 +65,18 @@ function evalRunLocalCommand(args: CommandArgs): unknown {
       scopeValue: args.flagValue('--scope-value') ?? args.cwd,
       staticSkill: args.flagValue('--static-skill') ?? null,
     }),
+  };
+}
+
+function evalReportCommand(args: CommandArgs): unknown {
+  const report = buildEvalReport(readEpisodeRows(resolve(args.cwd, args.requiredFlag('--episodes'))), {
+    ruleId: args.flagValue('--rule-id'),
+    baselineId: args.flagValue('--baseline') ? parseBaselineId(args.requiredFlag('--baseline')) : undefined,
+    treatmentId: args.flagValue('--treatment') ? parseBaselineId(args.requiredFlag('--treatment')) : undefined,
+  });
+  return {
+    ok: true,
+    report,
+    markdown: args.hasFlag('--markdown') ? renderEvalReportMarkdown(report) : undefined,
   };
 }

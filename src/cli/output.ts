@@ -43,6 +43,7 @@ export function usage(exitCode = 0): never {
 	  lyo experiment [--db path] --family-id id --baseline-run-id id --treatment-run-id id [--variant-run-id id] [--artifact id --association-edge edge] [--next-experiment text]
 	  lyo audit [--dir path]
 	  lyo demo fixture-replay [--db path]
+	  lyo eval report --episodes path [--baseline B0] [--treatment B4] [--rule-id id] [--markdown]
 	  lyo eval replay [--db path] --trace path [--seed n] [--limit n]
 	  lyo eval run-local [--db path] --task path --baseline B0|B1|B3|B4 [--model name] [--harness name] [--scope-kind kind] [--scope-value value] [--static-skill text]
 	  lyo eval validate [--dir path]
