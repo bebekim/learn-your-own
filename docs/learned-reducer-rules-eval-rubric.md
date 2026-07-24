@@ -481,6 +481,253 @@ at least one cheap model and one frontier model
 all raw traces and eval summaries committed or archived
 ```
 
+## Five Feature Specs
+
+Build this as five small branches. Each feature must leave one runnable check.
+
+### Feature 1: Eval Tasks And Fixtures
+
+Purpose:
+
+```text
+define the frozen task set before building the learner
+```
+
+Minimal files:
+
+```text
+eval/tasks/*.json
+eval/splits.json
+eval/fixtures/README.md
+```
+
+Task schema:
+
+```text
+task_id
+split                 -- train | selection | test
+repo_ref              -- fixture path, git ref, or archive hash
+prompt
+allowed_tools
+budget
+success_check         -- command or exact evaluator id
+expected_touched_paths
+tags
+```
+
+Acceptance:
+
+```text
+train/selection/test are explicit
+test tasks are never read by rule proposal code
+each task has at least one executable or externally checkable success condition
+one command validates task JSON and split integrity
+```
+
+Out of scope:
+
+```text
+agent execution
+rule learning
+score aggregation
+```
+
+### Feature 2: Offline Replay Eval
+
+Purpose:
+
+```text
+test the kernel's learning mechanics without spending model tokens
+```
+
+Input:
+
+```text
+recorded trace JSON
+recorded touched paths
+recorded verifier commands/results
+recorded final outcome
+```
+
+Output:
+
+```text
+selected lessons/rules
+credit/debit updates
+promotion/quarantine decisions
+replay report JSON
+```
+
+Acceptance:
+
+```text
+seeded replay is deterministic
+replay does not call external models or shell verifiers
+credit assignment is tied to recorded outcomes
+report shows what would have been injected and why
+one test proves a useful verifier rule gains credit over repeated traces
+one test proves a harmful verifier rule is debited or quarantined
+```
+
+Out of scope:
+
+```text
+live agents
+new rule synthesis beyond observed trace patterns
+SkillOpt comparison
+```
+
+### Feature 3: Learned Verifier Rules
+
+Purpose:
+
+```text
+make the first mutable program: path patterns emit verifier gates
+```
+
+Rule kind:
+
+```text
+verifier_for_path
+```
+
+Interpreter:
+
+```text
+if touched_paths match condition.path_glob
+then emit action.command as a required or recommended verifier
+```
+
+Acceptance:
+
+```text
+rules persist in SQLite
+rule deltas are append-only
+rule applications are logged with run_id and emitted command
+outcomes update helpful/harmful counters once
+active rules inject verifier gates
+quarantined rules do not inject
+one migration test covers new tables
+one interpreter test covers match/no-match/quarantined cases
+```
+
+Out of scope:
+
+```text
+generic rule language
+rule composition
+agent-written TypeScript reducer patches
+```
+
+### Feature 4: Live Baseline Runner
+
+Purpose:
+
+```text
+compare real agent episodes under frozen conditions
+```
+
+Baselines:
+
+```text
+B0 vanilla
+B1 static skill
+B3 Lyo observe-only
+B4 Lyo learned verifier rules
+```
+
+Episode output:
+
+```text
+task_id
+baseline_id
+model
+harness
+budget
+trace_ref
+diff_ref
+verifier_evidence
+token_usage
+wall_time
+injected_context
+outcome
+```
+
+Acceptance:
+
+```text
+same task/model/budget/tool permissions across baselines
+runner records enough data to replay the episode offline
+observe-only records ledger events but injects no behavior changes
+B4 records every rule application
+failed verifier evidence is preserved, not summarized away
+one smoke task runs through B0 and B3 locally
+```
+
+Out of scope:
+
+```text
+full 80-episode pilot
+cloud runner
+automatic PR creation
+```
+
+### Feature 5: Eval Report And Gate
+
+Purpose:
+
+```text
+turn episode rows into an accept/reject decision and a credible claim
+```
+
+Report formats:
+
+```text
+eval-report.json
+eval-report.md
+```
+
+Required report fields:
+
+```text
+verified_success_rate by baseline
+false_gate_rate
+regression_rate
+token_cost
+context_overhead_tokens
+wall_time
+rule applications
+accepted/rejected/quarantined rules
+worst regressions
+task split hashes
+```
+
+Gate:
+
+```text
+accept a candidate rule only when selection hard score improves
+or hard score is unchanged and cost/safety improves
+```
+
+Acceptance:
+
+```text
+report command consumes episode rows only
+test split remains read-only during rule selection
+bootstrap or exact interval is reported for the headline metric
+gate can reject a rule with higher false_gate_rate
+gate can accept a rule with equal success and lower cost
+one fixture report is committed for review
+```
+
+Out of scope:
+
+```text
+dashboard
+statistical overkill before the pilot has enough runs
+memory benchmarks unrelated to the verifier-rule claim
+```
+
 ## First Implementation Slice
 
 Build only:
