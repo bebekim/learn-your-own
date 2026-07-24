@@ -1,0 +1,16 @@
+{
+  "version": "lyo.test.v1",
+  "specRef": {
+    "path": "spec.json",
+    "sha256": "2002309fe6620f1fe9ab8390e6329365ffa3503585290e59292c96c2b80b1b77"
+  },
+  "files": [
+    {
+      "path": "artifacts/tests/generated/tests/semver.test.js",
+      "sha256": "6199fc2e6e6ee6b37266847fb2a894ac2f41e5f6b87959e6e79214f4b4f30ff2"
+    }
+  ],
+  "language": "javascript",
+  "framework": "node:test",
+  "frozen": true
+}

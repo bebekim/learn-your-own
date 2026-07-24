@@ -1,0 +1,206 @@
+TAP version 13
+# Subtest: example: compareSemver('1.2.3', '1.2.4') === -1
+ok 1 - example: compareSemver('1.2.3', '1.2.4') === -1
+  ---
+  duration_ms: 0.753375
+  type: 'test'
+  ...
+# Subtest: example: compareSemver('2.0.0', '10.0.0') === -1 (numeric, not lexical)
+ok 2 - example: compareSemver('2.0.0', '10.0.0') === -1 (numeric, not lexical)
+  ---
+  duration_ms: 0.0535
+  type: 'test'
+  ...
+# Subtest: example: compareSemver('1.0.0-alpha', '1.0.0') === -1
+ok 3 - example: compareSemver('1.0.0-alpha', '1.0.0') === -1
+  ---
+  duration_ms: 0.045708
+  type: 'test'
+  ...
+# Subtest: example: compareSemver('1.0.0-alpha', '1.0.0-alpha.1') === -1 (fewer identifiers lower)
+ok 4 - example: compareSemver('1.0.0-alpha', '1.0.0-alpha.1') === -1 (fewer identifiers lower)
+  ---
+  duration_ms: 0.084625
+  type: 'test'
+  ...
+# Subtest: example: compareSemver('1.0.0-alpha.1', '1.0.0-alpha.beta') === -1 (numeric lower than alphanumeric)
+ok 5 - example: compareSemver('1.0.0-alpha.1', '1.0.0-alpha.beta') === -1 (numeric lower than alphanumeric)
+  ---
+  duration_ms: 0.047042
+  type: 'test'
+  ...
+# Subtest: example: compareSemver('1.0.0-beta.2', '1.0.0-beta.11') === -1 (numeric prerelease compare numerically)
+ok 6 - example: compareSemver('1.0.0-beta.2', '1.0.0-beta.11') === -1 (numeric prerelease compare numerically)
+  ---
+  duration_ms: 0.076042
+  type: 'test'
+  ...
+# Subtest: example: compareSemver('1.0.0-rc.1', '1.0.0') === -1
+ok 7 - example: compareSemver('1.0.0-rc.1', '1.0.0') === -1
+  ---
+  duration_ms: 0.036083
+  type: 'test'
+  ...
+# Subtest: example: compareSemver('1.0.0+build.5', '1.0.0') === 0 (build metadata ignored)
+ok 8 - example: compareSemver('1.0.0+build.5', '1.0.0') === 0 (build metadata ignored)
+  ---
+  duration_ms: 0.033959
+  type: 'test'
+  ...
+# Subtest: major version compared numerically
+ok 9 - major version compared numerically
+  ---
+  duration_ms: 0.044958
+  type: 'test'
+  ...
+# Subtest: minor version compared numerically when major equal
+ok 10 - minor version compared numerically when major equal
+  ---
+  duration_ms: 0.125084
+  type: 'test'
+  ...
+# Subtest: patch version compared numerically when major and minor equal
+ok 11 - patch version compared numerically when major and minor equal
+  ---
+  duration_ms: 0.113667
+  type: 'test'
+  ...
+# Subtest: equal versions return 0
+ok 12 - equal versions return 0
+  ---
+  duration_ms: 0.067792
+  type: 'test'
+  ...
+# Subtest: prerelease version lower than same version without prerelease
+ok 13 - prerelease version lower than same version without prerelease
+  ---
+  duration_ms: 0.052417
+  type: 'test'
+  ...
+# Subtest: prerelease identifiers compared left to right, alphanumeric lexically
+ok 14 - prerelease identifiers compared left to right, alphanumeric lexically
+  ---
+  duration_ms: 0.045916
+  type: 'test'
+  ...
+# Subtest: numeric prerelease identifier lower than alphanumeric
+ok 15 - numeric prerelease identifier lower than alphanumeric
+  ---
+  duration_ms: 0.033292
+  type: 'test'
+  ...
+# Subtest: numeric prerelease identifiers compared numerically (multi-digit)
+ok 16 - numeric prerelease identifiers compared numerically (multi-digit)
+  ---
+  duration_ms: 0.028375
+  type: 'test'
+  ...
+# Subtest: fewer prerelease identifiers lower when preceding identifiers equal
+ok 17 - fewer prerelease identifiers lower when preceding identifiers equal
+  ---
+  duration_ms: 0.031167
+  type: 'test'
+  ...
+# Subtest: build metadata ignored for precedence (no prerelease)
+ok 18 - build metadata ignored for precedence (no prerelease)
+  ---
+  duration_ms: 0.03225
+  type: 'test'
+  ...
+# Subtest: build metadata ignored for precedence (with prerelease)
+ok 19 - build metadata ignored for precedence (with prerelease)
+  ---
+  duration_ms: 0.029625
+  type: 'test'
+  ...
+# Subtest: build metadata does not affect prerelease ordering
+ok 20 - build metadata does not affect prerelease ordering
+  ---
+  duration_ms: 0.020542
+  type: 'test'
+  ...
+# Subtest: antisymmetry: compareSemver(a,b) === -compareSemver(b,a)
+not ok 21 - antisymmetry: compareSemver(a,b) === -compareSemver(b,a)
+  ---
+  duration_ms: 0.705292
+  type: 'test'
+  location: '/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-045943-4d0f10/verify/generated/tests/semver.test.js:117:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    antisymmetry failed for (1.0.0, 1.0.0)
+    + actual - expected
+    
+    + 0
+    - -0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: -0
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-045943-4d0f10/verify/generated/tests/semver.test.js:135:12)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+  ...
+# Subtest: reflexivity: compareSemver(a, a) === 0
+ok 22 - reflexivity: compareSemver(a, a) === 0
+  ---
+  duration_ms: 0.036959
+  type: 'test'
+  ...
+# Subtest: mixed numeric and alphanumeric prerelease identifiers
+ok 23 - mixed numeric and alphanumeric prerelease identifiers
+  ---
+  duration_ms: 0.022291
+  type: 'test'
+  ...
+# Subtest: prerelease chains of different lengths with equal prefixes
+ok 24 - prerelease chains of different lengths with equal prefixes
+  ---
+  duration_ms: 0.017875
+  type: 'test'
+  ...
+# Subtest: alphanumeric prerelease identifiers compare lexically in ASCII order
+ok 25 - alphanumeric prerelease identifiers compare lexically in ASCII order
+  ---
+  duration_ms: 0.017667
+  type: 'test'
+  ...
+# Subtest: major/minor/patch with multiple digits
+ok 26 - major/minor/patch with multiple digits
+  ---
+  duration_ms: 0.019209
+  type: 'test'
+  ...
+# Subtest: prerelease only affects comparison when core versions equal
+ok 27 - prerelease only affects comparison when core versions equal
+  ---
+  duration_ms: 0.016542
+  type: 'test'
+  ...
+# Subtest: zero numeric prerelease identifier
+ok 28 - zero numeric prerelease identifier
+  ---
+  duration_ms: 0.019042
+  type: 'test'
+  ...
+# Subtest: complex build metadata ignored across full precedence chain
+ok 29 - complex build metadata ignored across full precedence chain
+  ---
+  duration_ms: 0.018709
+  type: 'test'
+  ...
+1..29
+# tests 29
+# suites 0
+# pass 28
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 39.691333

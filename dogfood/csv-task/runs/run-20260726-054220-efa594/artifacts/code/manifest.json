@@ -1,0 +1,14 @@
+{
+  "version": "lyo.code.v1",
+  "specRef": {
+    "path": "spec.json",
+    "sha256": "35e4234cba55d194d479749663daa7eac7b3eb3a83fb8dfc580fffb497daeab4"
+  },
+  "files": [
+    {
+      "path": "artifacts/code/generated/src/csv-line.js",
+      "sha256": "f7c908306de9c42c298daf8d63eb604282845f730e11a932cab2023313de19e5"
+    }
+  ],
+  "language": "javascript"
+}

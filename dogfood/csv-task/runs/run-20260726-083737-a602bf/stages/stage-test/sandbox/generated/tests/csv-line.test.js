@@ -1,0 +1,35 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { parseCsvLine } = require('../src/csv-line.js');
+
+test('fields are split on unquoted commas', () => {
+  assert.deepEqual(parseCsvLine('a,b,c'), ['a', 'b', 'c']);
+});
+
+test('quoted field has surrounding quotes removed', () => {
+  assert.deepEqual(parseCsvLine('\"hello, world\",x'), ['hello, world', 'x']);
+});
+
+test('quoted field may contain commas', () => {
+  assert.deepEqual(parseCsvLine('\"she said \"\"hi\"\"\",y'), ['she said \"hi\"', 'y']);
+});
+
+test('empty string returns single empty field', () => {
+  assert.deepEqual(parseCsvLine(''), ['']);
+});
+
+test('empty fields between consecutive commas', () => {
+  assert.deepEqual(parseCsvLine('a,,b'), ['a', '', 'b']);
+});
+
+test('quoted empty string', () => {
+  assert.deepEqual(parseCsvLine('\"\",x'), ['', 'x']);
+});
+
+test('field containing double quotes', () => {
+  assert.deepEqual(parseCsvLine('a,\"b\"\"c\",d'), ['a', 'b"c', 'd']);
+});
+
+test('quoted field with spaces', () => {
+  assert.deepEqual(parseCsvLine(' \"  a  \" , b '), ['  a  ', 'b']);
+});

@@ -1,0 +1,87 @@
+{
+  "version": "lyo.lyo-update.v0",
+  "basedOnTraces": [
+    {
+      "path": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-033735-1d3ad0/trace.json",
+      "sha256": "0e917814ad4a93f2ff62fa57897e24f3982dcd17b9fb203085be46619b4391a9"
+    },
+    {
+      "path": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-034825-d5ff86/trace.json",
+      "sha256": "8c4ad652f9206b300792be549587935740042529ea64ed3828f2186020eb5524"
+    },
+    {
+      "path": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-042403-f77e15/trace.json",
+      "sha256": "61a4f9e4e5960fd480569f1ca7bfd7b3dfccbc13f54d2484c6a13d8502ca5ab7"
+    },
+    {
+      "path": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-043841-2bacf2/trace.json",
+      "sha256": "fc67336d3e0de9cb757c9a91584f0bf75f6a3da1b0f83d56e88a9289b070b98c"
+    },
+    {
+      "path": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-044729-9c8ff8/trace.json",
+      "sha256": "97b62c832873a960774f63fa6a0f0bb03a8ed6bfcd4d20fd6f1f6669b395f101"
+    }
+  ],
+  "promotions": [
+    {
+      "artifactRef": {
+        "path": "lyo-lessons/lesson-1-test-hallucination.md",
+        "sha256": "de9df4aa6f510456b883123f1517a39a414fdbd35f7fadcd76c62a31c4ffbc5f"
+      },
+      "scope": "future-runs",
+      "rationale": "test-hallucination: observed in 5 run(s), 1 spec(s), helpful=5 harmful=0 wilsonLower=0.57 — The spec's invariant states compareSemver(a, b) === -compareSemver(b, a), using ordinary equality where 0 === -0 is true. The implementation returns plain 0 in the equal-version case, which is mathematically correct. However, the test computes ab and -ba and compares them with node:assert/strict's assert.equal, which is aliased to strictEqual and uses Object.is semantics, distinguishing 0 from -0. When both compareSemver calls return 0, negating one produces -0, and Object.is(0, -0) is false, causing a spurious failure that has nothing to do with the correctness of compareSemver's precedence logic."
+    }
+  ],
+  "beliefUpdates": [
+    {
+      "key": "run.run-20260727-033735-1d3ad0.disagreements",
+      "value": {
+        "total": 1,
+        "codeBugs": 0,
+        "testHallucinations": 1,
+        "specGaps": 0
+      },
+      "rationale": "Judge classifications for this run's verifier disagreements."
+    },
+    {
+      "key": "run.run-20260727-034825-d5ff86.disagreements",
+      "value": {
+        "total": 1,
+        "codeBugs": 0,
+        "testHallucinations": 1,
+        "specGaps": 0
+      },
+      "rationale": "Judge classifications for this run's verifier disagreements."
+    },
+    {
+      "key": "run.run-20260727-042403-f77e15.disagreements",
+      "value": {
+        "total": 1,
+        "codeBugs": 0,
+        "testHallucinations": 1,
+        "specGaps": 0
+      },
+      "rationale": "Judge classifications for this run's verifier disagreements."
+    },
+    {
+      "key": "run.run-20260727-043841-2bacf2.disagreements",
+      "value": {
+        "total": 1,
+        "codeBugs": 0,
+        "testHallucinations": 1,
+        "specGaps": 0
+      },
+      "rationale": "Judge classifications for this run's verifier disagreements."
+    },
+    {
+      "key": "run.run-20260727-044729-9c8ff8.disagreements",
+      "value": {
+        "total": 2,
+        "codeBugs": 0,
+        "testHallucinations": 2,
+        "specGaps": 0
+      },
+      "rationale": "Judge classifications for this run's verifier disagreements."
+    }
+  ]
+}

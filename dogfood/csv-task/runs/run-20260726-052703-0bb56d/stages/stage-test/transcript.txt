@@ -1,0 +1,43 @@
+We need to output test files under generated/tests based on spec. The spec is about parseCsvLine function. Need to design tests for observable behavior, not private implementation. Likely produce a test file with many test cases, possibly using Node's built-in assert or a testing framework, but given instructions, we just need to output code that can be run with `node --test`. Node's built-in test runner supports test files with .test.js extension using `test` and `assert`. We can write a test file that imports parseCsvLine from '../src/csv-line.js' (since generated/tests will be sibling tree where src is sibling). So we should produce a single test file maybe named csv-line.test.js. Or multiple files? The instruction says "Return each file as a fenced code block tagged with its path". Could produce one file. Let's produce a comprehensive test suite covering all invariants and edge cases.
+
+We need to ensure spec's examples are covered, plus edge case hints: empty line, quoted field containing commas, escaped double quotes inside quoted fields, empty fields between consecutive commas, quoted empty string.
+
+Also test that parsing a line with only commas returns appropriate empty fields. For example 'a,,c' should produce ['a', '', 'c'].
+
+Also test that quoted empty string '' inside quotes yields empty field: parseCsvLine('""') => [''] (since two double quotes decode to one literal double quote? Actually spec: Two double quotes inside a quoted field decode to one literal double quote. That's for escaped double quotes. For empty quoted field, like '""' there are two quotes, they decode to one literal double quote? Wait: In CSV, an empty quoted field is represented as '""' - the quotes are delimiters, inside there is nothing, so after removing surrounding quotes we get empty string. However spec says two double quotes inside a quoted field decode to one literal double quote. That is for escaped quotes: within quotes, two double quotes represent a literal double quote. So '""' inside quotes? Eg parseCsvLine('"")' maybe. But edge case hint: quoted empty string. Could test '"",' etc.
+
+Let's design test cases:
+
+1. Simple comma separated: "a,b,c" => ['a','b','c']
+2. Quoted field with comma: '"hello, world",x' => ['hello, world','x']
+3. Escaped quotes: '"she said ""hi""",y' => ['she said "hi"','y']
+4. Empty string: '' => ['']
+5. Single field: 'a' => ['a']
+6. Trailing comma: 'a,b,' => ['a','b','']
+7. Leading comma: ',a,b' => ['', 'a', 'b']
+8. Empty fields: 'a,,b' => ['a', '', 'b']
+9. Quoted empty string: '""' => [''] (maybe)
+10. Quotes only: '""' test.
+11. Quoted field containing double quotes: '"a""b"' => ['a"b']? Actually inside quotes two double quotes decode to one literal double quote. So '"a""b"' should become ['a"b']. Let's test.
+12. Quoted field with escaped quotes at end: '"a""" => maybe? But careful: CSV uses two double quotes to escape a quote, so to have a literal double quote at end, you'd need '"""'? Actually to have a quoted field ending with a quote, you'd have outer quotes, inside you'd have two quotes to represent one literal quote, then closing quote. Example: '"She said ""hi"""' => outer quotes removed, inside: She said "hi". That's example 3. For a field that ends with a quote: '"abc"""' => outer quotes removed, inside: abc" (since the last two quotes become one literal quote). So test.
+13. Quoted field with multiple commas: '"a,b,c",d' => ['a,b,c','d']
+14. Mixed quoted and unquoted with commas inside unquoted? Unquoted fields cannot contain commas, so parse should split on commas regardless. Example: 'a,"b,c",d' => ['a','b,c','d']
+15. Unquoted field containing double quotes? That would be invalid, but spec doesn't forbid; probably treat as literal double quote? Usually CSV parsing would treat double quotes inside unquoted field as part of field. We'll ignore.
+16. Edge case: line with only quotes: '""' handled.
+17. Edge case: line with only quotes and commas: '","' maybe? That's a field that is a single double quote? Actually '" ,"'? Let's think: parseCsvLine('","') => outer quotes removed, inside ',' => a single comma. So output [',']. That's a field containing a comma.
+18. Edge case: line with multiple quotes: '""""' (four quotes). That's empty quoted field? Actually '""""' -> outer quotes removed, inside '""' which decodes to one double quote. So output ['"'].
+
+We need to ensure tests are comprehensive.
+
+Write test file using Node's test runner: import { test, assert } from 'node:test'; import { strict } from 'node:assert'; Actually node:test exports test function and assert module. We'll use assert.deepStrictEqual.
+
+We'll write a test suite with multiple test cases, each using assert.deepStrictEqual.
+
+We'll also include a test for error handling? Not required.
+
+Let's produce final output as one fenced code block with path generated/tests/csv-line.test.js.
+
+Make sure to import parseCsvLine from '../src/csv-line.js'.
+
+We'll write the test file.
+

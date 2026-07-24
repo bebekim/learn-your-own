@@ -1,0 +1,123 @@
+{
+  "version": "lyo.verifier-report.v1",
+  "specRef": {
+    "path": "spec.json",
+    "sha256": "35e4234cba55d194d479749663daa7eac7b3eb3a83fb8dfc580fffb497daeab4"
+  },
+  "codeRef": {
+    "path": "artifacts/code/manifest.json",
+    "sha256": "3e6fd148fff09638562b3d65e123d02ec6aeec575327433e2bb622248e35360f"
+  },
+  "testRef": {
+    "path": "artifacts/tests/manifest.json",
+    "sha256": "2e12e00204aac5d0e64675e5d1714b35f276116ae9076bdd221e5cb24433c12e"
+  },
+  "counts": {
+    "total": 25,
+    "passed": 25,
+    "failed": 0
+  },
+  "outcome": "pass",
+  "perTest": [
+    {
+      "name": "splits simple unquoted fields on commas",
+      "status": "pass"
+    },
+    {
+      "name": "returns a single field when there are no commas",
+      "status": "pass"
+    },
+    {
+      "name": "parsing an empty string returns a single empty field",
+      "status": "pass"
+    },
+    {
+      "name": "removes surrounding double quotes from a quoted field",
+      "status": "pass"
+    },
+    {
+      "name": "preserves commas inside a quoted field",
+      "status": "pass"
+    },
+    {
+      "name": "does not split on commas enclosed in double quotes",
+      "status": "pass"
+    },
+    {
+      "name": "decodes two consecutive double quotes inside a quoted field as one literal double quote",
+      "status": "pass"
+    },
+    {
+      "name": "handles escaped quotes at the start of a quoted field",
+      "status": "pass"
+    },
+    {
+      "name": "handles escaped quotes at the end of a quoted field",
+      "status": "pass"
+    },
+    {
+      "name": "handles a quoted field consisting only of escaped quotes",
+      "status": "pass"
+    },
+    {
+      "name": "handles empty fields between consecutive commas",
+      "status": "pass"
+    },
+    {
+      "name": "handles trailing comma producing a trailing empty field",
+      "status": "pass"
+    },
+    {
+      "name": "handles leading comma producing a leading empty field",
+      "status": "pass"
+    },
+    {
+      "name": "handles a single comma producing two empty fields",
+      "status": "pass"
+    },
+    {
+      "name": "handles a quoted empty string field",
+      "status": "pass"
+    },
+    {
+      "name": "handles a quoted empty string field among other fields",
+      "status": "pass"
+    },
+    {
+      "name": "handles multiple quoted fields with commas and escaped quotes",
+      "status": "pass"
+    },
+    {
+      "name": "handles a quoted field containing only commas",
+      "status": "pass"
+    },
+    {
+      "name": "handles whitespace inside quoted fields",
+      "status": "pass"
+    },
+    {
+      "name": "handles a mix of quoted and unquoted empty fields",
+      "status": "pass"
+    },
+    {
+      "name": "handles escaped quotes adjacent to commas inside quoted field",
+      "status": "pass"
+    },
+    {
+      "name": "handles a quoted field followed immediately by another quoted field",
+      "status": "pass"
+    },
+    {
+      "name": "handles a line with many fields",
+      "status": "pass"
+    },
+    {
+      "name": "handles newlines preserved inside quoted fields",
+      "status": "pass"
+    },
+    {
+      "name": "handles tabs preserved inside quoted fields",
+      "status": "pass"
+    }
+  ]
+}

@@ -1,0 +1,273 @@
+• Using the `test-driven-development` skill to guide the implementation.
+
+• Implemented `generated/src/csv-line.js` exporting `parseCsvLine` as a CommonJS named export.
+
+  The parser is a small state machine that:
+  - Splits fields on commas outside double quotes
+  - Strips surrounding double quotes from quoted fields
+  - Preserves commas inside quoted fields
+  - Decodes paired double quotes (`""`) inside quoted fields to a single literal `"`
+  - Returns `['']` for an empty input string
+  - Handles empty fields between consecutive commas and quoted empty strings
+
+  I did not write or run tests, per the stage constraints (`terminal=false`, no test artifacts).
+
+
+• Let me analyze the request:
+
+  1. The task is to implement a CSV line parser in JavaScript (CommonJS).
+  2. The stage is `code-writer` with role `implementation`.
+  3. Only allowed to read `spec.json` and write to `generated/src`.
+  4. Need to create `csv-line.js` exporting `parseCsvLine`.
+  5. It's a pure function, no I/O, no dependencies.
+  6. Must not read or write test artifacts.
+
+  Skills check:
+  - The task is implementation. The skill listing includes `api-design`, `implementation`, `refactoring` under the skills section, but these are not in the available skills list as separate entries. They look like tags/categories.
+  - Relevant Superpowers skills might include:
+    - `test-driven-development`: "Use when implementing any feature or bugfix, before writing implementation code" - This applies!
+    - `writing-plans`: "Use when you have a spec or requirements for a multi-step task, before touching code" - This might apply since I have a spec.
+    - `using-superpowers`: Already invoked at session start.
+    - `brainstorming`: For creative work - might apply but implementation is straightforward from spec.
+    - `verification-before-completion`: Use when about to claim work is complete.
+
+  The EXTREMELY IMPORTANT note says if I think there's even 1% chance a skill might apply, I must invoke it. So `test-driven-development` definitely applies as I'm implementing a feature. `writing-plans` might apply. `verification-before-completion` applies at the end.
+
+  However, I need to be careful: the instructions say "Do not write test artifacts" and "Leave test design to the test-writer stage." So I cannot write tests. But the TDD skill might expect writing tests first. Let me read the skill to see what it says.
+
+  Actually, let me think about this more carefully. The TDD skill says "Use when implementing any feature or bugfix, before writing implementation code". But the constraints explicitly forbid writing test artifacts. So I should read the skill and adapt, or perhaps the skill will conflict with the task constraints.
+
+  Similarly, `writing-plans` might involve creating plan files, which I may not be allowed to do (allowed writes are only `generated/src`). Let me check.
+
+  Wait - the instruction says "Allowed writes: generated/src". So I can only write to generated/src. A plan file elsewhere would violate this. But maybe a plan is just mental or I can write it in generated/src? Actually the skill instructions should guide.
+
+  Let me invoke `test-driven-development` skill first since implementation is the task. But the skill might require writing tests. Since I can't write tests, maybe I should just implement directly. But the rule says use the skill.
+
+  Actually, re-reading: the skills listed at the top are just tags, not actual skills. The actual skills are in the Available skills section. The tags include `api-design`, `implementation`, `refactoring` which might correspond to Extra skills, but they're not in the list. So I don't need to invoke those.
+
+  Let me check which actual skills apply:
+  - `test-driven-development`: "Use when implementing any feature or bugfix, before writing implementation code" - Yes, this applies.
+  - `verification-before-completion`: Will apply at the end.
+  - `writing-plans`: "Use when you have a spec or requirements for a multi-step task, before touching code" - This is a multi-step task with a spec. Yes.
+
+  But writing-plans might create a plan file. Since allowed writes are only generated/src, I might need to create the plan within generated/src or just read the skill to see. Let me read these skills.
+
+  Actually, the task is fairly simple - implement a CSV parser. I might not need a written plan. But the skill says "Use when you have a spec or requirements for a multi-step task". This is not super multi-step, but it does have requirements. Hmm.
+
+  Also, the constraints say I cannot use terminal (terminal=false). So I cannot run tests or node. I can write files but not execute commands.
+
+  Let me invoke `test-driven-development` skill to understand the approach, and maybe `writing-plans`. But I can only invoke one at a time via Skill tool. Let me start with test-driven-development.
+
+• The TDD skill says to write tests first, but the task explicitly forbids writing test artifacts. There's a direct conflict. However, the task constraints take precedence over skills ("User instructions ... take precedence over skills"). The user instructions (the compiled prompt artifact) say:
+  - "Forbidden writes: generated/tests"
+  - "Do not write test artifacts."
+  - "Leave test design to the test-writer stage."
+
+  So I cannot follow TDD to the letter. I need to implement without writing tests. The skill itself mentions exceptions: "Exceptions (ask your human partner): Throwaway prototypes, Generated code, Configuration files". This isn't exactly those, but the constraint is explicit.
+
+  Since I'm in auto permission mode, I shouldn't ask the user. I should make a reasonable decision: implement directly according to the spec, without writing tests, because the task forbids test artifacts.
+
+  I should still try to be systematic and reason through the behavior as if testing, but not produce test files.
+
+  Let me also consider the `writing-plans` skill. It says use when you have a spec for a multi-step task. This is a single-file implementation, fairly straightforward. I think I can skip writing a formal plan since it's minimal and the spec is clear. But to be safe and follow skills, maybe I should invoke it. However, I already invoked TDD. Let me just implement now.
+
+  The implementation should be in `generated/src/csv-line.js`.
+
+  Specification behavior:
+  - `parseCsvLine(line: string): string[]`
+  - Fields split on commas not enclosed in double quotes
+  - Double-quoted fields have surrounding quotes removed
+  - Two double quotes inside a quoted field decode to one literal double quote
+  - Empty string returns `['']`
+  - Quoted field may contain commas preserved
+
+  Edge cases:
+  - Empty line: `''` -> `['']`
+  - Quoted field with commas: `'"hello, world",x'` -> `['hello, world', 'x']`
+  - Escaped quotes: `'"she said ""hi""",y'` -> `['she said "hi"', 'y']`
+  - Empty fields between commas: `'a,,b'` -> `['a', '', 'b']`
+  - Quoted empty string: `'""'` -> `['']`
+
+  I need to write a state-machine parser or use a careful approach.
+
+  A simple state machine approach:
+
+  States:
+  - `unquoted`: reading a regular field
+  - `quoted`: inside a quoted field
+
+  Algorithm:
+  1. If line is empty, return `['']`.
+  2. Initialize `fields = []`, `current = ''`, `state = unquoted`.
+  3. Iterate through each char with index:
+     - If state is unquoted:
+       - If char is `,`: push current to fields, reset current.
+       - If char is `"`: switch to quoted.
+       - Else: append char to current.
+     - If state is quoted:
+       - If char is `"`:
+         - Look ahead to next char. If next char is also `"`: append `"` to current, skip next char.
+         - Else: switch to unquoted.
+       - Else: append char to current.
+  4. After loop, push current to fields.
+  5. Return fields.
+
+  Wait, but what about the case when a field starts with quote but we don't close it? The spec probably assumes well-formed CSV. We can just handle closing quote.
+
+  Also, what about fields like `a"b`? Probably not valid, but if we're in unquoted state and see `"`, we switch to quoted. That's fine.
+
+  What about `'"a",b'`? The first field is quoted, then comma ends field. In quoted state, when we see `"` and next char is `,`, we switch to unquoted but don't consume the comma. The next iteration sees comma in unquoted state and ends field. Good.
+
+  What about `'"a""b"'`? In quoted state, see `"`, next is `"`, append `"`, skip next. Good.
+
+  What about `'"a",'`? After quoted field ends, comma ends field, then end of string pushes empty. Good.
+
+  What about trailing quoted field: `'"a"'`? End of loop, push current. Good.
+
+  What about empty string? `''` -> fields empty, push current `''`. Good.
+
+  What about `'a,b,c'`? Unquoted throughout, splits on commas. Good.
+
+  What about `'a,"b,c",d'`? Good.
+
+  What about `'a,"b,c'` (unclosed quote)? We end in quoted state, push current. That's acceptable for minimal implementation.
+
+  What about whitespace? Spec doesn't mention trimming, so we don't trim.
+
+  What about `'"",'`? First quoted empty field, then comma, then empty. Good.
+
+  Let me write the code.
+
+  Wait, I should also consider if I should handle newline characters? Spec says "line", so probably no newlines in input, but if there are, they'd be treated as characters. Not required.
+
+  Implementation:
+
+  ```javascript
+  function parseCsvLine(line) {
+    if (line === '') {
+      return [''];
+    }
+
+    const fields = [];
+    let current = '';
+    let quoted = false;
+    let i = 0;
+
+    while (i < line.length) {
+      const char = line[i];
+
+      if (quoted) {
+        if (char === '"') {
+          if (i + 1 < line.length && line[i + 1] === '"') {
+            current += '"';
+            i += 2;
+          } else {
+            quoted = false;
+            i += 1;
+          }
+        } else {
+          current += char;
+          i += 1;
+        }
+      } else {
+        if (char === ',') {
+          fields.push(current);
+          current = '';
+          i += 1;
+        } else if (char === '"') {
+          quoted = true;
+          i += 1;
+        } else {
+          current += char;
+          i += 1;
+        }
+      }
+    }
+
+    fields.push(current);
+    return fields;
+  }
+
+  module.exports = { parseCsvLine };
+  ```
+
+  Wait, the empty string check `if (line === '')` is not strictly necessary because the while loop won't execute and we push `''`, but it documents the behavior. Actually it is necessary for correctness only if we had an early return. Without it, we still return `['']`. But the spec says empty string returns single empty field, so it's clear. I'll keep it or remove it. Keeping it is fine.
+
+  Hmm, but actually I should think: does the empty string check affect the result for other inputs? No. It just makes it explicit. I'll keep it.
+
+  Wait, what about a line that is just `,`? That should return `['', '']`. My algorithm: unquoted, char `,` pushes `''`, current reset. Then end, push `''`. Good.
+
+  What about `'"",'`? Quoted empty: state quoted, see `"`, next is `,`, switch unquoted. Next iteration: `,` pushes `''`. End pushes `''`. Good.
+
+  What about `'a,""'`? After first comma pushes `a`, then quoted empty pushes `''` at end. Good.
+
+  Now, since I cannot write tests, I should manually verify with the examples in the spec.
+
+  Example 1: `parseCsvLine('a,b,c')` -> `['a', 'b', 'c']`
+  - unquoted: a, then comma pushes a, b, comma pushes b, c, end pushes c. Good.
+
+  Example 2: `parseCsvLine('"hello, world",x')` -> `['hello, world', 'x']`
+  - `"` -> quoted. hello, world (comma inside quoted appended). `"` -> next is `,`, unquoted. `,` pushes 'hello, world'. x. End pushes x. Good.
+
+  Example 3: `parseCsvLine('"she said ""hi""",y')` -> `['she said "hi"', 'y']`
+  - `"` -> quoted. she said . `"` -> next is `"`, append `"`, skip. hi. `"` -> next is `"`, append `"`, skip. `"` -> next is `,`, unquoted. `,` pushes field. y. End pushes y. Good.
+
+  Example 4: `parseCsvLine('')` -> `['']`
+  - Empty check returns ['']. Good.
+
+  Edge cases:
+  - Empty fields: `parseCsvLine('a,,b')` -> `['a', '', 'b']`
+  - Quoted empty: `parseCsvLine('""')` -> `['']`
+
+  Good.
+
+  Should I also handle CRLF? Not in spec.
+
+  One thing: The function is pure, no I/O, no dependencies. Yes.
+
+  CommonJS module: `module.exports = { parseCsvLine };` or `module.exports = parseCsvLine;`? The spec says "CommonJS module exporting parseCsvLine via module.exports". Could be either. The signature is `parseCsvLine(line: string): string[]`. Most CommonJS modules export an object with the function. But exporting the function directly is also valid and minimal. 
+
+  The examples call `parseCsvLine(...)`, not `csvLine.parseCsvLine(...)`. If the test imports with `const parseCsvLine = require('./csv-line')`, then direct export works. If they destructure `const { parseCsvLine } = require('./csv-line')`, then object export works. 
+
+  The spec says "exporting parseCsvLine via module.exports". This is ambiguous. To be safe, I could export both: `module.exports = parseCsvLine; module.exports.parseCsvLine = parseCsvLine;`. But that's a bit unusual. Alternatively, export an object. The test will likely use one or the other. 
+
+  Given the signature is named `parseCsvLine`, and examples show calling it directly, I think exporting the function directly is slightly more natural for a single-function module. But object export is more common. 
+
+  Hmm, the constraint says "CommonJS module exporting parseCsvLine via module.exports". It doesn't say "default export" or "named export". In CommonJS, `module.exports = { parseCsvLine }` exports an object with parseCsvLine property. I think that's the safest interpretation. If the test does `const { parseCsvLine } = require('./csv-line')`, it works. If they do `const parseCsvLine = require('./csv-line')`, they'd get an object, not a function. But that's less likely for a named function.
+
+  Actually, given the spec signature is `parseCsvLine(line: string): string[]` and examples call `parseCsvLine(...)`, the test writer might import it either way. To maximize compatibility, I'll export an object with `parseCsvLine`. This is the standard CommonJS way to export a named function.
+
+  Wait, but maybe I should export both to be safe? That's over-engineering. I'll go with object export.
+
+  Actually, let me reconsider. The examples in the spec show `parseCsvLine('a,b,c')` as input. In JavaScript tests, they might do:
+  ```javascript
+  const parseCsvLine = require('./csv-line');
+  ```
+  or
+  ```javascript
+  const { parseCsvLine } = require('./csv-line');
+  ```
+
+  If I export `{ parseCsvLine }`, the destructuring works. If I export the function directly, the direct require works. 
+
+  The spec says "exporting parseCsvLine via module.exports" which is most naturally read as "module.exports is set to something that provides parseCsvLine". An object is fine. A function with a property is also fine.
+
+  I'll go with object export as it's most conventional for CommonJS named exports.
+
+  Now I need to write the file. I should create `generated/src/csv-line.js`.
+
+  Let me also think if I need to use any tools to check directory. I can just Write it, which creates parent dirs.
+
+  Let me write the file.The file has been written. Now I should verify it. I cannot run tests (terminal=false), but I can read the file to confirm it matches what I intended. Also I should consider the `verification-before-completion` skill, but since I can't run commands, I can only visually verify.
+
+  Let me read the file to confirm.The file is written correctly. Now I need to provide a concise completion message. I should mention:
+  - I implemented `generated/src/csv-line.js`
+  - It exports `parseCsvLine` as CommonJS
+  - It handles the required invariants
+  - I couldn't run tests due to terminal=false and forbidden test writes
+
+  I should not claim tests pass since I cannot verify. The instructions say "Make no claims about passing tests unless a later verifier artifact supplies evidence."
+
+  So I'll just state the implementation is complete and describe what it does.
+
+To resume this session: kimi -r session_ef0c1c8e-b94b-4fb9-b1fe-89a6c22e1fb6

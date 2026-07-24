@@ -1,0 +1,164 @@
+```js
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { compareSemver } = require('../src/semver.js');
+
+test('compareSemver returns 0 when comparing identical versions', () => {
+  assert.strictEqual(compareSemver('1.0.0', '1.0.0'), 0);
+  assert.strictEqual(compareSemver('2.5.10', '2.5.10'), 0);
+  assert.strictEqual(compareSemver('0.0.0', '0.0.0'), 0);
+});
+
+test('compareSemver returns 0 when comparing versions with same build metadata', () => {
+  assert.strictEqual(compareSemver('1.0.0+build', '1.0.0+build'), 0);
+  assert.strictEqual(compareSemver('2.0.0+exp.sha.5114f85', '2.0.0+exp.sha.5114f85'), 0);
+});
+
+test('compareSemver returns 0 when comparing versions with different build metadata', () => {
+  assert.strictEqual(compareSemver('1.0.0+build.1', '1.0.0+build.2'), 0);
+  assert.strictEqual(compareSemver('2.0.0+foo', '2.0.0+bar'), 0);
+});
+
+test('compareSemver returns 0 when comparing version with prerelease and build metadata against same version without build metadata', () => {
+  assert.strictEqual(compareSemver('1.0.0-alpha+build', '1.0.0-alpha'), 0);
+  assert.strictEqual(compareSemver('2.0.0-beta.1+exp.sha.5114f85', '2.0.0-beta.1'), 0);
+});
+
+test('compareSemver compares major version numerically', () => {
+  assert.strictEqual(compareSemver('1.0.0', '2.0.0'), -1);
+  assert.strictEqual(compareSemver('2.0.0', '1.0.0'), 1);
+  assert.strictEqual(compareSemver('10.0.0', '2.0.0'), 1);
+  assert.strictEqual(compareSemver('0.0.0', '1.0.0'), -1);
+});
+
+test('compareSemver compares minor version numerically when major is equal', () => {
+  assert.strictEqual(compareSemver('1.2.0', '1.3.0'), -1);
+  assert.strictEqual(compareSemver('1.10.0', '1.2.0'), 1);
+  assert.strictEqual(compareSemver('1.0.0', '1.0.0'), 0);
+});
+
+test('compareSemver compares patch version numerically when major and minor are equal', () => {
+  assert.strictEqual(compareSemver('1.0.1', '1.0.2'), -1);
+  assert.strictEqual(compareSemver('1.0.10', '1.0.2'), 1);
+  assert.strictEqual(compareSemver('1.0.0', '1.0.0'), 0);
+});
+
+test('compareSemver gives lower precedence to version with prerelease than same version without', () => {
+  assert.strictEqual(compareSemver('1.0.0-alpha', '1.0.0'), -1);
+  assert.strictEqual(compareSemver('1.0.0', '1.0.0-alpha'), 1);
+  assert.strictEqual(compareSemver('2.0.0-beta.1', '2.0.0'), -1);
+  assert.strictEqual(compareSemver('1.0.0-rc.1', '1.0.0'), -1);
+});
+
+test('compareSemver compares prerelease identifiers left to right numerically for numeric identifiers', () => {
+  assert.strictEqual(compareSemver('1.0.0-beta.2', '1.0.0-beta.11'), -1);
+  assert.strictEqual(compareSemver('1.0.0-beta.11', '1.0.0-beta.2'), 1);
+  assert.strictEqual(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.2'), -1);
+  assert.strictEqual(compareSemver('1.0.0-alpha.10', '1.0.0-alpha.9'), 1);
+});
+
+test('compareSemver compares prerelease identifiers left to right lexically for alphanumeric identifiers', () => {
+  assert.strictEqual(compareSemver('1.0.0-alpha.beta', '1.0.0-alpha.rc'), -1);
+  assert.strictEqual(compareSemver('1.0.0-alpha.z', '1.0.0-alpha.a'), 1);
+  assert.strictEqual(compareSemver('1.0.0-rc', '1.0.0-release'), -1);
+});
+
+test('compareSemver gives lower precedence to numeric prerelease identifier than alphanumeric one', () => {
+  assert.strictEqual(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.beta'), -1);
+  assert.strictEqual(compareSemver('1.0.0-alpha.beta', '1.0.0-alpha.1'), 1);
+  assert.strictEqual(compareSemver('1.0.0-1', '1.0.0-a'), -1);
+  assert.strictEqual(compareSemver('1.0.0-a', '1.0.0-1'), 1);
+});
+
+test('compareSemver gives lower precedence to prerelease with fewer identifiers', () => {
+  assert.strictEqual(compareSemver('1.0.0-alpha', '1.0.0-alpha.1'), -1);
+  assert.strictEqual(compareSemver('1.0.0-alpha.1', '1.0.0-alpha'), 1);
+  assert.strictEqual(compareSemver('1.0.0-alpha', '1.0.0-alpha.beta'), -1);
+  assert.strictEqual(compareSemver('1.0.0-beta.1', '1.0.0-beta.1.1'), -1);
+});
+
+test('compareSemver compares prerelease identifiers when one is prefix of other', () => {
+  assert.strictEqual(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.1.1'), -1);
+  assert.strictEqual(compareSemver('1.0.0-alpha.1.1', '1.0.0-alpha.1'), 1);
+  assert.strictEqual(compareSemver('1.0.0-alpha.beta', '1.0.0-alpha.beta.1'), -1);
+});
+
+test('compareSemver handles multi-digit numeric identifiers correctly', () => {
+  assert.strictEqual(compareSemver('1.0.0-1', '1.0.0-9'), -1);
+  assert.strictEqual(compareSemver('1.0.0-9', '1.0.0-10'), -1);
+  assert.strictEqual(compareSemver('1.0.0-10', '1.0.0-9'), 1);
+  assert.strictEqual(compareSemver('1.0.0-99', '1.0.0-100'), -1);
+});
+
+test('compareSemver handles multiple prerelease identifiers with mixed types', () => {
+  assert.strictEqual(compareSemver('1.0.0-alpha.1.beta', '1.0.0-alpha.1.rc'), -1);
+  assert.strictEqual(compareSemver('1.0.0-alpha.1.beta', '1.0.0-alpha.2.alpha'), -1);
+  assert.strictEqual(compareSemver('1.0.0-1.alpha', '1.0.0-1.beta'), -1);
+});
+
+test('compareSemver antisymmetry property: compareSemver(a, b) === -compareSemver(b, a)', () => {
+  const versions = [
+    ['1.0.0', '2.0.0'],
+    ['1.0.0', '1.0.1'],
+    ['1.0.0-alpha', '1.0.0'],
+    ['1.0.0-alpha', '1.0.0-beta'],
+    ['1.0.0-alpha.1', '1.0.0-alpha.2'],
+    ['1.0.0-alpha.1', '1.0.0-alpha.beta'],
+    ['1.0.0-beta.2', '1.0.0-beta.11'],
+    ['1.0.0+build.1', '1.0.0+build.2'],
+    ['1.0.0-alpha+build', '1.0.0-beta'],
+    ['2.0.0', '10.0.0'],
+  ];
+  
+  for (const [a, b] of versions) {
+    const result = compareSemver(a, b);
+    const reverseResult = compareSemver(b, a);
+    assert.strictEqual((result + 0), -(reverseResult + 0), `Antisymmetry failed for ${a} vs ${b}`);
+  }
+});
+
+test('compareSemver handles versions with multiple digits in major/minor/patch', () => {
+  assert.strictEqual(compareSemver('10.20.30', '10.20.31'), -1);
+  assert.strictEqual(compareSemver('10.20.30', '10.21.30'), -1);
+  assert.strictEqual(compareSemver('10.20.30', '11.20.30'), -1);
+  assert.strictEqual(compareSemver('100.200.300', '99.199.299'), 1);
+});
+
+test('compareSemver handles complex prerelease chains', () => {
+  assert.strictEqual(compareSemver('1.0.0-alpha.1.2.3', '1.0.0-alpha.1.2.4'), -1);
+  assert.strictEqual(compareSemver('1.0.0-alpha.1.2.3', '1.0.0-alpha.1.3'), -1);
+  assert.strictEqual(compareSemver('1.0.0-alpha.1.2.3', '1.0.0-alpha.2'), -1);
+});
+
+test('compareSemver handles prerelease with same identifiers but different lengths', () => {
+  assert.strictEqual(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.1.0'), -1);
+  assert.strictEqual(compareSemver('1.0.0-alpha.1.0', '1.0.0-alpha.1'), 1);
+  assert.strictEqual(compareSemver('1.0.0-1.2', '1.0.0-1.2.0'), -1);
+});
+
+test('compareSemver handles ASCII lexical ordering for alphanumeric prerelease identifiers', () => {
+  assert.strictEqual(compareSemver('1.0.0-alpha.a', '1.0.0-alpha.b'), -1);
+  assert.strictEqual(compareSemver('1.0.0-alpha.A', '1.0.0-alpha.a'), -1);
+  assert.strictEqual(compareSemver('1.0.0-alpha.z', '1.0.0-alpha.aa'), -1);
+  assert.strictEqual(compareSemver('1.0.0-alpha.aa', '1.0.0-alpha.ab'), -1);
+});
+
+test('compareSemver handles versions with only build metadata difference', () => {
+  assert.strictEqual(compareSemver('1.0.0+20130313144700', '1.0.0'), 0);
+  assert.strictEqual(compareSemver('1.0.0+exp.sha.5114f85', '1.0.0+exp.sha.5114f86'), 0);
+  assert.strictEqual(compareSemver('1.0.0+build.1', '1.0.0'), 0);
+});
+
+test('compareSemver handles versions with prerelease and build metadata', () => {
+  assert.strictEqual(compareSemver('1.0.0-alpha+build.1', '1.0.0-alpha+build.2'), 0);
+  assert.strictEqual(compareSemver('1.0.0-alpha+build.1', '1.0.0-alpha'), 0);
+  assert.strictEqual(compareSemver('1.0.0-alpha+build.1', '1.0.0-beta'), -1);
+});
+
+test('compareSemver handles edge case of zero versions', () => {
+  assert.strictEqual(compareSemver('0.0.0', '0.0.1'), -1);
+  assert.strictEqual(compareSemver('0.0.0', '0.1.0'), -1);
+  assert.strictEqual(compareSemver('0.0.0', '1.0.0'), -1);
+  assert.strictEqual(compareSemver('0.0.0-alpha', '0.0.0'), -1);
+});
+```

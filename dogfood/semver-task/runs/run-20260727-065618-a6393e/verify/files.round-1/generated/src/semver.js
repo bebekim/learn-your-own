@@ -1,0 +1,71 @@
+const compareSemver = (a, b) => {
+  const parseVersion = (version) => {
+    const [versionPart] = version.split('+');
+    const [mainVersion, prerelease] = versionPart.split('-');
+    const [major, minor, patch] = mainVersion.split('.').map(Number);
+    const prereleaseIdentifiers = prerelease ? prerelease.split('.') : [];
+    return { major, minor, patch, prereleaseIdentifiers };
+  };
+
+  const verA = parseVersion(a);
+  const verB = parseVersion(b);
+
+  if (verA.major !== verB.major) {
+    return verA.major < verB.major ? -1 : 1;
+  }
+  if (verA.minor !== verB.minor) {
+    return verA.minor < verB.minor ? -1 : 1;
+  }
+  if (verA.patch !== verB.patch) {
+    return verA.patch < verB.patch ? -1 : 1;
+  }
+
+  const preA = verA.prereleaseIdentifiers;
+  const preB = verB.prereleaseIdentifiers;
+
+  if (preA.length === 0 && preB.length === 0) {
+    return 0;
+  }
+  if (preA.length === 0) {
+    return 1;
+  }
+  if (preB.length === 0) {
+    return -1;
+  }
+
+  const maxLen = Math.max(preA.length, preB.length);
+  for (let i = 0; i < maxLen; i++) {
+    const idA = preA[i];
+    const idB = preB[i];
+
+    if (idA === undefined) {
+      return -1;
+    }
+    if (idB === undefined) {
+      return 1;
+    }
+
+    const isNumericA = /^\d+$/.test(idA);
+    const isNumericB = /^\d+$/.test(idB);
+
+    if (isNumericA && isNumericB) {
+      const numA = parseInt(idA, 10);
+      const numB = parseInt(idB, 10);
+      if (numA !== numB) {
+        return numA < numB ? -1 : 1;
+      }
+    } else if (isNumericA && !isNumericB) {
+      return -1;
+    } else if (!isNumericA && isNumericB) {
+      return 1;
+    } else {
+      if (idA !== idB) {
+        return idA < idB ? -1 : 1;
+      }
+    }
+  }
+
+  return 0;
+};
+
+module.exports = { compareSemver };

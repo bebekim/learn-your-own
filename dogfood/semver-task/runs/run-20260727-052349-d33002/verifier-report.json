@@ -1,0 +1,55 @@
+{
+  "version": "lyo.verifier-report.v1",
+  "specRef": {
+    "path": "spec.json",
+    "sha256": "2002309fe6620f1fe9ab8390e6329365ffa3503585290e59292c96c2b80b1b77"
+  },
+  "codeRef": {
+    "path": "artifacts/code/manifest.json",
+    "sha256": "0edc24699d2adfc5a93baf01276fafa771c1de938c54254da60998bca0c9e151"
+  },
+  "testRef": {
+    "path": "artifacts/tests/manifest.json",
+    "sha256": "ef36be7d2baa6f93b0c1fe68f9bfbb880493525dc0c8088066d8403a5461b1b6"
+  },
+  "counts": {
+    "total": 8,
+    "passed": 8,
+    "failed": 0
+  },
+  "outcome": "pass",
+  "perTest": [
+    {
+      "name": "compareSemver returns 0 for identical versions",
+      "status": "pass"
+    },
+    {
+      "name": "compareSemver respects antisymmetry",
+      "status": "pass"
+    },
+    {
+      "name": "compareSemver compares major, minor, patch numerically",
+      "status": "pass"
+    },
+    {
+      "name": "compareSemver handles prerelease vs release",
+      "status": "pass"
+    },
+    {
+      "name": "compareSemver handles prerelease identifier precedence",
+      "status": "pass"
+    },
+    {
+      "name": "compareSemver ignores build metadata",
+      "status": "pass"
+    },
+    {
+      "name": "compareSemver handles multi-digit major/minor/patch",
+      "status": "pass"
+    },
+    {
+      "name": "compareSemver handles mixed prerelease identifiers",
+      "status": "pass"
+    }
+  ]
+}

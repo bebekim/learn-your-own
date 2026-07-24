@@ -1,0 +1,29 @@
+```js path=generated/tests/example.test.js
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { parseCsvLine } = require('../src/csv-line.js');
+
+test('fields are split on commas not enclosed in double quotes', () => {
+  assert.deepEqual(parseCsvLine('a,b,c'), ['a', 'b', 'c']);
+});
+
+test('quoted field has surrounding quotes removed', () => {
+  assert.deepEqual(parseCsvLine('"hello, world",x'), ['hello, world', 'x']);
+});
+
+test('two double quotes inside a quoted field decode to one literal double quote', () => {
+  assert.deepEqual(parseCsvLine('"she said \"\"hi\"\"\",y'), ['she said "hi"', 'y']);
+});
+
+test('parsing an empty string returns a single empty field', () => {
+  assert.deepEqual(parseCsvLine(''), ['']);
+});
+
+test('empty field between consecutive commas', () => {
+  assert.deepEqual(parseCsvLine('a,,c'), ['a', '', 'c']);
+});
+
+test('quoted empty string', () => {
+  assert.deepEqual(parseCsvLine('"",x'), ['', 'x']);
+});
+```

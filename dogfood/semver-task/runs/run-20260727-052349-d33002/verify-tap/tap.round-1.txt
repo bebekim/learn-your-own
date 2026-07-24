@@ -1,0 +1,58 @@
+TAP version 13
+# Subtest: compareSemver returns 0 for identical versions
+ok 1 - compareSemver returns 0 for identical versions
+  ---
+  duration_ms: 0.444375
+  type: 'test'
+  ...
+# Subtest: compareSemver respects antisymmetry
+ok 2 - compareSemver respects antisymmetry
+  ---
+  duration_ms: 0.092
+  type: 'test'
+  ...
+# Subtest: compareSemver compares major, minor, patch numerically
+ok 3 - compareSemver compares major, minor, patch numerically
+  ---
+  duration_ms: 0.044917
+  type: 'test'
+  ...
+# Subtest: compareSemver handles prerelease vs release
+ok 4 - compareSemver handles prerelease vs release
+  ---
+  duration_ms: 0.040125
+  type: 'test'
+  ...
+# Subtest: compareSemver handles prerelease identifier precedence
+ok 5 - compareSemver handles prerelease identifier precedence
+  ---
+  duration_ms: 0.045083
+  type: 'test'
+  ...
+# Subtest: compareSemver ignores build metadata
+ok 6 - compareSemver ignores build metadata
+  ---
+  duration_ms: 0.036083
+  type: 'test'
+  ...
+# Subtest: compareSemver handles multi-digit major/minor/patch
+ok 7 - compareSemver handles multi-digit major/minor/patch
+  ---
+  duration_ms: 0.59575
+  type: 'test'
+  ...
+# Subtest: compareSemver handles mixed prerelease identifiers
+ok 8 - compareSemver handles mixed prerelease identifiers
+  ---
+  duration_ms: 0.041958
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 47.800708

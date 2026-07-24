@@ -1,0 +1,242 @@
+{
+  "nimble-nebula-63": {
+    "id": "nimble-nebula-63",
+    "config": {
+      "agents": [
+        {
+          "id": "worker",
+          "role": "implementation",
+          "modelLevel": "level1",
+          "triggers": [],
+          "cwd": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood",
+          "outputFormat": "json",
+          "jsonSchema": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "string",
+                "description": "Brief summary of what was done"
+              },
+              "result": {
+                "type": "string",
+                "description": "Detailed result or output"
+              }
+            },
+            "required": [
+              "summary",
+              "result"
+            ]
+          },
+          "strictSchema": true,
+          "timeout": 0
+        }
+      ],
+      "lyo": {
+        "enabled": true
+      }
+    },
+    "state": "stopped",
+    "createdAt": 1784554212652,
+    "pid": null,
+    "failureInfo": null,
+    "autoPr": false,
+    "prOptions": null,
+    "commandProofs": [],
+    "modelOverride": null,
+    "issue": null,
+    "isolation": null,
+    "agentStates": [
+      {
+        "id": "worker",
+        "state": "stopped",
+        "iteration": 0,
+        "currentTask": false,
+        "currentTaskId": null,
+        "processPid": null
+      }
+    ],
+    "setupLogPath": null,
+    "setupStage": null,
+    "provisional": false
+  },
+  "quick-bastion-95": {
+    "id": "quick-bastion-95",
+    "config": {
+      "agents": [
+        {
+          "id": "worker",
+          "role": "implementation",
+          "modelLevel": "level1",
+          "triggers": [],
+          "cwd": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood",
+          "outputFormat": "json",
+          "jsonSchema": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "string",
+                "description": "Brief summary of what was done"
+              },
+              "result": {
+                "type": "string",
+                "description": "Detailed result or output"
+              }
+            },
+            "required": [
+              "summary",
+              "result"
+            ]
+          },
+          "strictSchema": true,
+          "timeout": 0
+        }
+      ],
+      "lyo": {
+        "enabled": true
+      }
+    },
+    "state": "stopped",
+    "createdAt": 1784554315077,
+    "pid": null,
+    "failureInfo": null,
+    "autoPr": false,
+    "prOptions": null,
+    "commandProofs": [],
+    "modelOverride": null,
+    "issue": null,
+    "isolation": null,
+    "agentStates": [
+      {
+        "id": "worker",
+        "state": "stopped",
+        "iteration": 0,
+        "currentTask": false,
+        "currentTaskId": null,
+        "processPid": null
+      }
+    ],
+    "setupLogPath": null,
+    "setupStage": null,
+    "provisional": false
+  },
+  "misty-surge-90": {
+    "id": "misty-surge-90",
+    "config": {
+      "agents": [
+        {
+          "id": "worker",
+          "role": "implementation",
+          "modelLevel": "level1",
+          "triggers": [],
+          "cwd": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood",
+          "outputFormat": "json",
+          "jsonSchema": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "string",
+                "description": "Brief summary of what was done"
+              },
+              "result": {
+                "type": "string",
+                "description": "Detailed result or output"
+              }
+            },
+            "required": [
+              "summary",
+              "result"
+            ]
+          },
+          "strictSchema": true,
+          "timeout": 0
+        }
+      ],
+      "lyo": {
+        "enabled": true
+      }
+    },
+    "state": "stopped",
+    "createdAt": 1784559368861,
+    "pid": null,
+    "failureInfo": null,
+    "autoPr": false,
+    "prOptions": null,
+    "commandProofs": [],
+    "modelOverride": null,
+    "issue": null,
+    "isolation": null,
+    "agentStates": [
+      {
+        "id": "worker",
+        "state": "stopped",
+        "iteration": 0,
+        "currentTask": false,
+        "currentTaskId": null,
+        "processPid": null
+      }
+    ],
+    "setupLogPath": null,
+    "setupStage": null,
+    "provisional": false
+  },
+  "eternal-bastion-0": {
+    "id": "eternal-bastion-0",
+    "config": {
+      "agents": [
+        {
+          "id": "worker",
+          "role": "implementation",
+          "modelLevel": "level1",
+          "triggers": [],
+          "cwd": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood",
+          "outputFormat": "json",
+          "jsonSchema": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "string",
+                "description": "Brief summary of what was done"
+              },
+              "result": {
+                "type": "string",
+                "description": "Detailed result or output"
+              }
+            },
+            "required": [
+              "summary",
+              "result"
+            ]
+          },
+          "strictSchema": true,
+          "timeout": 0
+        }
+      ],
+      "lyo": {
+        "enabled": true
+      }
+    },
+    "state": "stopped",
+    "createdAt": 1784591729948,
+    "pid": null,
+    "failureInfo": null,
+    "autoPr": false,
+    "prOptions": null,
+    "commandProofs": [],
+    "modelOverride": null,
+    "issue": null,
+    "isolation": null,
+    "agentStates": [
+      {
+        "id": "worker",
+        "state": "stopped",
+        "iteration": 0,
+        "currentTask": false,
+        "currentTaskId": null,
+        "processPid": null
+      }
+    ],
+    "setupLogPath": null,
+    "setupStage": null,
+    "provisional": false
+  }
+}

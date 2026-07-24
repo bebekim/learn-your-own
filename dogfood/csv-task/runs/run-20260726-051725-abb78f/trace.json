@@ -1,0 +1,71 @@
+{
+  "version": "lyo.trace.v1",
+  "runId": "run-20260726-051725-abb78f",
+  "planRef": {
+    "path": "plan.json",
+    "sha256": "49c45564dd094d04e14a6751434f57e1a82a4301a18ad59ec565838b425149b7"
+  },
+  "stages": [
+    {
+      "stageId": "stage-code",
+      "inputs": [
+        {
+          "path": "spec.json",
+          "sha256": "35e4234cba55d194d479749663daa7eac7b3eb3a83fb8dfc580fffb497daeab4"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "artifacts/code/manifest.json",
+          "sha256": "e3cc40468d3008b332a216b6f8b6ba295beda12ff46f3d6e7bc33a4174a2d2a4"
+        }
+      ],
+      "model": "kimi-code/kimi-for-coding",
+      "promptSha256": "6e6794fb887b46b20e2b757210d2cc8145211b6b6947bf3d7051d403282d77bd",
+      "startedAt": "2026-07-26T05:17:25.501Z",
+      "finishedAt": "2026-07-26T05:21:22.655Z"
+    },
+    {
+      "stageId": "stage-test",
+      "inputs": [
+        {
+          "path": "spec.json",
+          "sha256": "35e4234cba55d194d479749663daa7eac7b3eb3a83fb8dfc580fffb497daeab4"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "artifacts/tests/manifest.json",
+          "sha256": "07a0a0ea2262e15f415aad529738784afc4b360f100f10d635ce75cbf6be6802"
+        }
+      ],
+      "model": "upstage/solar-pro-3",
+      "promptSha256": "8b0cfce1222a8ccec078a7aec558fc07c9ec466f3a5115fe71661d34847ba11f",
+      "startedAt": "2026-07-26T05:17:25.502Z",
+      "finishedAt": "2026-07-26T05:17:57.945Z"
+    },
+    {
+      "stageId": "stage-verify",
+      "inputs": [
+        {
+          "path": "artifacts/code/manifest.json",
+          "sha256": "e3cc40468d3008b332a216b6f8b6ba295beda12ff46f3d6e7bc33a4174a2d2a4"
+        },
+        {
+          "path": "artifacts/tests/manifest.json",
+          "sha256": "07a0a0ea2262e15f415aad529738784afc4b360f100f10d635ce75cbf6be6802"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "verifier-report.json",
+          "sha256": "963fa3e55bbf95dcda288f4d0dc56772189b812032a8d201274e7034ba91e121"
+        }
+      ],
+      "startedAt": "2026-07-26T05:21:22.673Z",
+      "finishedAt": "2026-07-26T05:21:22.726Z"
+    }
+  ],
+  "startedAt": "2026-07-26T05:17:25.500Z",
+  "finishedAt": "2026-07-26T05:21:22.727Z"
+}

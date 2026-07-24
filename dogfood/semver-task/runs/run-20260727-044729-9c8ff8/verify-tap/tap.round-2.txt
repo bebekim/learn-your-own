@@ -1,0 +1,228 @@
+TAP version 13
+# Subtest: examples from spec: basic numeric patch comparison
+ok 1 - examples from spec: basic numeric patch comparison
+  ---
+  duration_ms: 1.271166
+  type: 'test'
+  ...
+# Subtest: examples from spec: numeric (not lexical) major comparison
+ok 2 - examples from spec: numeric (not lexical) major comparison
+  ---
+  duration_ms: 0.062708
+  type: 'test'
+  ...
+# Subtest: examples from spec: prerelease lower than release
+ok 3 - examples from spec: prerelease lower than release
+  ---
+  duration_ms: 0.0775
+  type: 'test'
+  ...
+# Subtest: examples from spec: fewer prerelease identifiers is lower
+ok 4 - examples from spec: fewer prerelease identifiers is lower
+  ---
+  duration_ms: 0.131125
+  type: 'test'
+  ...
+# Subtest: examples from spec: numeric prerelease identifier lower than alphanumeric
+ok 5 - examples from spec: numeric prerelease identifier lower than alphanumeric
+  ---
+  duration_ms: 0.08
+  type: 'test'
+  ...
+# Subtest: examples from spec: numeric prerelease identifiers compare numerically
+ok 6 - examples from spec: numeric prerelease identifiers compare numerically
+  ---
+  duration_ms: 0.058375
+  type: 'test'
+  ...
+# Subtest: examples from spec: rc prerelease lower than release
+ok 7 - examples from spec: rc prerelease lower than release
+  ---
+  duration_ms: 0.038042
+  type: 'test'
+  ...
+# Subtest: examples from spec: build metadata ignored for precedence
+ok 8 - examples from spec: build metadata ignored for precedence
+  ---
+  duration_ms: 0.06075
+  type: 'test'
+  ...
+# Subtest: major compared numerically
+ok 9 - major compared numerically
+  ---
+  duration_ms: 0.065042
+  type: 'test'
+  ...
+# Subtest: minor compared numerically when major equal
+ok 10 - minor compared numerically when major equal
+  ---
+  duration_ms: 0.08275
+  type: 'test'
+  ...
+# Subtest: patch compared numerically when major and minor equal
+ok 11 - patch compared numerically when major and minor equal
+  ---
+  duration_ms: 0.045125
+  type: 'test'
+  ...
+# Subtest: equal versions return 0
+ok 12 - equal versions return 0
+  ---
+  duration_ms: 0.042
+  type: 'test'
+  ...
+# Subtest: equal versions with prerelease return 0
+ok 13 - equal versions with prerelease return 0
+  ---
+  duration_ms: 0.033041
+  type: 'test'
+  ...
+# Subtest: equal versions with build metadata return 0
+ok 14 - equal versions with build metadata return 0
+  ---
+  duration_ms: 0.037375
+  type: 'test'
+  ...
+# Subtest: build metadata ignored on prerelease versions
+ok 15 - build metadata ignored on prerelease versions
+  ---
+  duration_ms: 0.22325
+  type: 'test'
+  ...
+# Subtest: prerelease lower than same version without prerelease
+ok 16 - prerelease lower than same version without prerelease
+  ---
+  duration_ms: 0.041667
+  type: 'test'
+  ...
+# Subtest: prerelease identifiers compared left to right lexically for alphanumeric
+ok 17 - prerelease identifiers compared left to right lexically for alphanumeric
+  ---
+  duration_ms: 0.031
+  type: 'test'
+  ...
+# Subtest: numeric prerelease identifier lower than alphanumeric
+ok 18 - numeric prerelease identifier lower than alphanumeric
+  ---
+  duration_ms: 0.031666
+  type: 'test'
+  ...
+# Subtest: fewer prerelease identifiers is lower when preceding equal
+ok 19 - fewer prerelease identifiers is lower when preceding equal
+  ---
+  duration_ms: 0.028417
+  type: 'test'
+  ...
+# Subtest: more prerelease identifiers is higher when preceding equal
+ok 20 - more prerelease identifiers is higher when preceding equal
+  ---
+  duration_ms: 0.018625
+  type: 'test'
+  ...
+# Subtest: multi-digit numeric prerelease identifiers compare numerically
+ok 21 - multi-digit numeric prerelease identifiers compare numerically
+  ---
+  duration_ms: 0.612292
+  type: 'test'
+  ...
+# Subtest: mixed numeric and alphanumeric prerelease identifiers
+not ok 22 - mixed numeric and alphanumeric prerelease identifiers
+  ---
+  duration_ms: 0.552125
+  type: 'test'
+  location: '/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-044729-9c8ff8/verify/generated/tests/semver.test.js:115:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    1 !== -1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: -1
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    eq (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-044729-9c8ff8/verify/generated/tests/semver.test.js:7:10)
+    TestContext.<anonymous> (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-044729-9c8ff8/verify/generated/tests/semver.test.js:116:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+  ...
+# Subtest: antisymmetry: compareSemver(a,b) === -compareSemver(b,a)
+not ok 23 - antisymmetry: compareSemver(a,b) === -compareSemver(b,a)
+  ---
+  duration_ms: 0.210666
+  type: 'test'
+  location: '/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-044729-9c8ff8/verify/generated/tests/semver.test.js:120:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 0
+    - -0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: -0
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    eq (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-044729-9c8ff8/verify/generated/tests/semver.test.js:7:10)
+    TestContext.<anonymous> (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-044729-9c8ff8/verify/generated/tests/semver.test.js:135:5)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+  ...
+# Subtest: reflexivity: compareSemver(a, a) === 0
+ok 24 - reflexivity: compareSemver(a, a) === 0
+  ---
+  duration_ms: 0.048292
+  type: 'test'
+  ...
+# Subtest: build metadata does not affect ordering across different versions
+ok 25 - build metadata does not affect ordering across different versions
+  ---
+  duration_ms: 0.021666
+  type: 'test'
+  ...
+# Subtest: multi-digit major/minor/patch compared numerically
+ok 26 - multi-digit major/minor/patch compared numerically
+  ---
+  duration_ms: 0.022625
+  type: 'test'
+  ...
+# Subtest: prerelease chains of different lengths with numeric identifiers
+ok 27 - prerelease chains of different lengths with numeric identifiers
+  ---
+  duration_ms: 0.018292
+  type: 'test'
+  ...
+# Subtest: prerelease with numeric 0 identifier
+ok 28 - prerelease with numeric 0 identifier
+  ---
+  duration_ms: 0.025125
+  type: 'test'
+  ...
+# Subtest: ASCII lexical order for alphanumeric identifiers
+ok 29 - ASCII lexical order for alphanumeric identifiers
+  ---
+  duration_ms: 0.020834
+  type: 'test'
+  ...
+1..29
+# tests 29
+# suites 0
+# pass 27
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 56.603458

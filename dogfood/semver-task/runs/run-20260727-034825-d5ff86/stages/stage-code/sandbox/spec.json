@@ -1,0 +1,38 @@
+{
+  "version": "lyo.spec.v1",
+  "specId": "semver-compare-1",
+  "signatures": ["compareSemver(a: string, b: string): -1 | 0 | 1"],
+  "invariants": [
+    "Precedence is determined first by major, then minor, then patch, compared numerically",
+    "A version with a prerelease has lower precedence than the same version without one",
+    "Prerelease identifiers are compared left to right: numeric identifiers compare numerically, alphanumeric identifiers compare lexically in ASCII order",
+    "A numeric prerelease identifier always has lower precedence than an alphanumeric one",
+    "A prerelease with fewer identifiers has lower precedence than one with more, when all preceding identifiers are equal",
+    "Build metadata (after '+') is ignored for precedence",
+    "compareSemver(a, b) === -compareSemver(b, a) for all valid inputs",
+    "compareSemver(a, a) === 0 for all valid inputs"
+  ],
+  "constraints": [
+    "JavaScript for Node.js, single file named semver.js",
+    "CommonJS module exporting compareSemver as a named property of module.exports",
+    "Pure function, no I/O, no dependencies",
+    "Inputs are always valid semver strings; no validation required"
+  ],
+  "examples": [
+    { "input": "compareSemver('1.2.3', '1.2.4')", "output": "-1" },
+    { "input": "compareSemver('2.0.0', '10.0.0')", "output": "-1", "note": "numeric, not lexical, comparison" },
+    { "input": "compareSemver('1.0.0-alpha', '1.0.0')", "output": "-1" },
+    { "input": "compareSemver('1.0.0-alpha', '1.0.0-alpha.1')", "output": "-1", "note": "fewer identifiers is lower" },
+    { "input": "compareSemver('1.0.0-alpha.1', '1.0.0-alpha.beta')", "output": "-1", "note": "numeric identifier is lower than alphanumeric" },
+    { "input": "compareSemver('1.0.0-beta.2', '1.0.0-beta.11')", "output": "-1", "note": "numeric prerelease identifiers compare numerically, so 2 < 11" },
+    { "input": "compareSemver('1.0.0-rc.1', '1.0.0')", "output": "-1" },
+    { "input": "compareSemver('1.0.0+build.5', '1.0.0')", "output": "0", "note": "build metadata ignored" }
+  ],
+  "edgeCaseHints": [
+    "Multi-digit numeric identifiers in prerelease (beta.2 vs beta.11)",
+    "Mixed numeric and alphanumeric prerelease identifiers",
+    "Prerelease chains of different lengths",
+    "Build metadata on versions with and without prerelease",
+    "Major/minor/patch values with multiple digits"
+  ]
+}

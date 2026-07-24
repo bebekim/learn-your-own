@@ -1,0 +1,96 @@
+TAP version 13
+# Subtest: compareSemver(1.2.3, 1.2.4) === -1
+ok 1 - compareSemver(1.2.3, 1.2.4) === -1
+  ---
+  duration_ms: 0.367959
+  type: 'test'
+  ...
+# Subtest: compareSemver(2.0.0, 10.0.0) === -1
+ok 2 - compareSemver(2.0.0, 10.0.0) === -1
+  ---
+  duration_ms: 0.046209
+  type: 'test'
+  ...
+# Subtest: compareSemver(1.0.0-alpha, 1.0.0) === -1
+ok 3 - compareSemver(1.0.0-alpha, 1.0.0) === -1
+  ---
+  duration_ms: 0.041292
+  type: 'test'
+  ...
+# Subtest: compareSemver(1.0.0-alpha, 1.0.0-alpha.1) === -1
+ok 4 - compareSemver(1.0.0-alpha, 1.0.0-alpha.1) === -1
+  ---
+  duration_ms: 0.070833
+  type: 'test'
+  ...
+# Subtest: compareSemver(1.0.0-alpha.1, 1.0.0-alpha.beta) === -1
+ok 5 - compareSemver(1.0.0-alpha.1, 1.0.0-alpha.beta) === -1
+  ---
+  duration_ms: 0.048625
+  type: 'test'
+  ...
+# Subtest: compareSemver(1.0.0-beta.2, 1.0.0-beta.11) === -1
+ok 6 - compareSemver(1.0.0-beta.2, 1.0.0-beta.11) === -1
+  ---
+  duration_ms: 0.035209
+  type: 'test'
+  ...
+# Subtest: compareSemver(1.0.0-rc.1, 1.0.0) === -1
+ok 7 - compareSemver(1.0.0-rc.1, 1.0.0) === -1
+  ---
+  duration_ms: 0.786917
+  type: 'test'
+  ...
+# Subtest: compareSemver(1.0.0+build.5, 1.0.0) === 0
+ok 8 - compareSemver(1.0.0+build.5, 1.0.0) === 0
+  ---
+  duration_ms: 0.0315
+  type: 'test'
+  ...
+# Subtest: compareSemver is commutative antisymmetry
+not ok 9 - compareSemver is commutative antisymmetry
+  ---
+  duration_ms: 0.251459
+  type: 'test'
+  location: '/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260804-071805-e658de/verify/generated/tests/semver-compare-1.test.js:39:1'
+  failureType: 'testCodeFailure'
+  error: 'a is not defined'
+  code: 'ERR_TEST_FAILURE'
+  name: 'ReferenceError'
+  stack: |-
+    TestContext.<anonymous> (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260804-071805-e658de/verify/generated/tests/semver-compare-1.test.js:40:34)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+  ...
+# Subtest: compareSemver is reflexive
+not ok 10 - compareSemver is reflexive
+  ---
+  duration_ms: 0.121709
+  type: 'test'
+  location: '/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260804-071805-e658de/verify/generated/tests/semver-compare-1.test.js:43:1'
+  failureType: 'testCodeFailure'
+  error: 'a is not defined'
+  code: 'ERR_TEST_FAILURE'
+  name: 'ReferenceError'
+  stack: |-
+    TestContext.<anonymous> (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260804-071805-e658de/verify/generated/tests/semver-compare-1.test.js:44:34)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 8
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 44.483666

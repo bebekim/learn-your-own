@@ -1,0 +1,71 @@
+{
+  "version": "lyo.trace.v1",
+  "runId": "run-20260726-050048-b92847",
+  "planRef": {
+    "path": "plan.json",
+    "sha256": "b898ac3c0c72807f5de506c14e6236728ed69a82877a86ad8d7ce08a869a333c"
+  },
+  "stages": [
+    {
+      "stageId": "stage-code",
+      "inputs": [
+        {
+          "path": "spec.json",
+          "sha256": "791b5520c63df38126bc3e03134d3bb25db453bae86e417337c0987cfca003c4"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "artifacts/code/manifest.json",
+          "sha256": "5ec81ed1d91fe86b41adcd8f1fecd59b712237489ed26deb2b914f9c68a44081"
+        }
+      ],
+      "model": "kimi-code/kimi-for-coding",
+      "promptSha256": "05def74f203b14a838b6e4cac677c2e3715ecc9190414bb52e94a0458deb97f6",
+      "startedAt": "2026-07-26T05:00:48.667Z",
+      "finishedAt": "2026-07-26T05:02:51.534Z"
+    },
+    {
+      "stageId": "stage-test",
+      "inputs": [
+        {
+          "path": "spec.json",
+          "sha256": "791b5520c63df38126bc3e03134d3bb25db453bae86e417337c0987cfca003c4"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "artifacts/tests/manifest.json",
+          "sha256": "d2de23603c555de6b057d0dd077825cd4be6b67c418c6f81000da92f4f74885e"
+        }
+      ],
+      "model": "upstage/solar-pro-3",
+      "promptSha256": "10d148fea485c337e7992fcc7a5ca93c3aa4b36b60e7f62f714a735065a089e9",
+      "startedAt": "2026-07-26T05:00:48.669Z",
+      "finishedAt": "2026-07-26T05:01:07.099Z"
+    },
+    {
+      "stageId": "stage-verify",
+      "inputs": [
+        {
+          "path": "artifacts/code/manifest.json",
+          "sha256": "5ec81ed1d91fe86b41adcd8f1fecd59b712237489ed26deb2b914f9c68a44081"
+        },
+        {
+          "path": "artifacts/tests/manifest.json",
+          "sha256": "d2de23603c555de6b057d0dd077825cd4be6b67c418c6f81000da92f4f74885e"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "verifier-report.json",
+          "sha256": "ecb023dce8660ba6108b6688bcdb1905b06279abca14be816a7ddf5d1630155f"
+        }
+      ],
+      "startedAt": "2026-07-26T05:02:51.561Z",
+      "finishedAt": "2026-07-26T05:02:51.637Z"
+    }
+  ],
+  "startedAt": "2026-07-26T05:00:48.666Z",
+  "finishedAt": "2026-07-26T05:02:51.638Z"
+}

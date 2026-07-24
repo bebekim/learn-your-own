@@ -1,0 +1,14 @@
+{
+  "version": "lyo.code.v1",
+  "specRef": {
+    "path": "spec.json",
+    "sha256": "2002309fe6620f1fe9ab8390e6329365ffa3503585290e59292c96c2b80b1b77"
+  },
+  "files": [
+    {
+      "path": "artifacts/code/generated/src/semver.js",
+      "sha256": "8955c532648cee0e55b59c41480363d8130f09cd0bd99bbb240aa9b784b14391"
+    }
+  ],
+  "language": "javascript"
+}

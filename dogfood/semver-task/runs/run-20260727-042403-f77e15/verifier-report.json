@@ -1,0 +1,103 @@
+{
+  "version": "lyo.verifier-report.v1",
+  "specRef": {
+    "path": "spec.json",
+    "sha256": "2002309fe6620f1fe9ab8390e6329365ffa3503585290e59292c96c2b80b1b77"
+  },
+  "codeRef": {
+    "path": "artifacts/code/manifest.json",
+    "sha256": "5e7574b050631f515eef4cfba8d5906214b16847d952e30fa355890d41a74d53"
+  },
+  "testRef": {
+    "path": "artifacts/tests/manifest.json",
+    "sha256": "b28a38854324d25dfbb3a1bb851bbda121be07b09e96a10010f49dbf08dd3bc2"
+  },
+  "counts": {
+    "total": 20,
+    "passed": 19,
+    "failed": 1
+  },
+  "outcome": "fail",
+  "perTest": [
+    {
+      "name": "major version compared numerically",
+      "status": "pass"
+    },
+    {
+      "name": "minor version compared numerically when major equal",
+      "status": "pass"
+    },
+    {
+      "name": "patch version compared numerically when major and minor equal",
+      "status": "pass"
+    },
+    {
+      "name": "multi-digit major/minor/patch compared numerically not lexically",
+      "status": "pass"
+    },
+    {
+      "name": "prerelease has lower precedence than same version without prerelease",
+      "status": "pass"
+    },
+    {
+      "name": "prerelease identifiers compared left to right",
+      "status": "pass"
+    },
+    {
+      "name": "alphanumeric prerelease identifiers compared lexically in ASCII order",
+      "status": "pass"
+    },
+    {
+      "name": "numeric prerelease identifier has lower precedence than alphanumeric",
+      "status": "pass"
+    },
+    {
+      "name": "numeric prerelease identifiers compared numerically",
+      "status": "pass"
+    },
+    {
+      "name": "prerelease with fewer identifiers has lower precedence when preceding equal",
+      "status": "pass"
+    },
+    {
+      "name": "build metadata is ignored for precedence",
+      "status": "pass"
+    },
+    {
+      "name": "build metadata ignored even when prerelease differs",
+      "status": "pass"
+    },
+    {
+      "name": "reflexivity: compareSemver(a, a) === 0 for all valid inputs",
+      "status": "pass"
+    },
+    {
+      "name": "antisymmetry: compareSemver(a, b) === -compareSemver(b, a)",
+      "status": "fail"
+    },
+    {
+      "name": "mixed numeric and alphanumeric prerelease identifiers in chains",
+      "status": "pass"
+    },
+    {
+      "name": "full semver ordering chain from spec examples",
+      "status": "pass"
+    },
+    {
+      "name": "zero versions compare correctly",
+      "status": "pass"
+    },
+    {
+      "name": "prerelease with numeric identifier compared to alphanumeric at same position",
+      "status": "pass"
+    },
+    {
+      "name": "prerelease chains where first differing identifier determines result",
+      "status": "pass"
+    },
+    {
+      "name": "build metadata with complex prerelease does not affect comparison",
+      "status": "pass"
+    }
+  ]
+}

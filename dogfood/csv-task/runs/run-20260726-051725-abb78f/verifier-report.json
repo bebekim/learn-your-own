@@ -1,0 +1,22 @@
+{
+  "version": "lyo.verifier-report.v1",
+  "specRef": {
+    "path": "spec.json",
+    "sha256": "35e4234cba55d194d479749663daa7eac7b3eb3a83fb8dfc580fffb497daeab4"
+  },
+  "codeRef": {
+    "path": "artifacts/code/manifest.json",
+    "sha256": "e3cc40468d3008b332a216b6f8b6ba295beda12ff46f3d6e7bc33a4174a2d2a4"
+  },
+  "testRef": {
+    "path": "artifacts/tests/manifest.json",
+    "sha256": "07a0a0ea2262e15f415aad529738784afc4b360f100f10d635ce75cbf6be6802"
+  },
+  "counts": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "outcome": "error",
+  "perTest": []
+}

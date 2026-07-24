@@ -1,0 +1,71 @@
+{
+  "version": "lyo.verifier-report.v1",
+  "specRef": {
+    "path": "spec.json",
+    "sha256": "2002309fe6620f1fe9ab8390e6329365ffa3503585290e59292c96c2b80b1b77"
+  },
+  "codeRef": {
+    "path": "artifacts/code/manifest.json",
+    "sha256": "0a64c73ebd18283ee4480944c41c2f77dc524cae7697d2d3115e0eed2188c3a7"
+  },
+  "testRef": {
+    "path": "artifacts/tests/manifest.json",
+    "sha256": "9171fb497d09666b13faad5052d8503dd841ccb7604c5aabbd4dd79f4e274239"
+  },
+  "counts": {
+    "total": 12,
+    "passed": 10,
+    "failed": 2
+  },
+  "outcome": "fail",
+  "perTest": [
+    {
+      "name": "compareSemver(a, b) === -compareSemver(b, a)",
+      "status": "fail"
+    },
+    {
+      "name": "compareSemver(a, a) === 0",
+      "status": "pass"
+    },
+    {
+      "name": "major version precedence (numeric)",
+      "status": "pass"
+    },
+    {
+      "name": "minor version precedence (numeric)",
+      "status": "pass"
+    },
+    {
+      "name": "patch version precedence (numeric)",
+      "status": "pass"
+    },
+    {
+      "name": "prerelease vs no prerelease",
+      "status": "pass"
+    },
+    {
+      "name": "prerelease identifier length comparison",
+      "status": "pass"
+    },
+    {
+      "name": "prerelease identifier numeric vs alphanumeric",
+      "status": "pass"
+    },
+    {
+      "name": "multi-digit numeric identifiers",
+      "status": "pass"
+    },
+    {
+      "name": "build metadata ignored",
+      "status": "pass"
+    },
+    {
+      "name": "mixed numeric and alphanumeric identifiers",
+      "status": "fail"
+    },
+    {
+      "name": "complex version comparisons",
+      "status": "pass"
+    }
+  ]
+}

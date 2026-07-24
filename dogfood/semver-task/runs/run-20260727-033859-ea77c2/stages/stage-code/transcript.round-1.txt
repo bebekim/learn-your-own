@@ -1,0 +1,106 @@
+```js
+path=generated/src/semver.js
+```
+```javascript
+'use strict';
+
+function isNumericId(id) {
+  return /^\d+$/.test(id);
+}
+
+function parseSemver(version) {
+  // Valid semver assumed per spec constraints
+  // Format: MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD]
+  // Build metadata is ignored for precedence, so we capture it only to discard it
+  const match = version.match(/^(\d+)\.(\d+)\.(\d+)(?:-([^+]+))?(?:\+(.*))?$/);
+  if (!match) {
+    // Should not happen based on constraints (inputs are always valid)
+    return null;
+  }
+  return {
+    major: parseInt(match[1], 10),
+    minor: parseInt(match[2], 10),
+    patch: parseInt(match[3], 10),
+    // Prerelease is split into identifiers by '.'
+    prerelease: match[4] ? match[4].split('.') : null
+  };
+}
+
+function comparePrereleaseIds(id1, id2) {
+  const num1 = isNumericId(id1);
+  const num2 = isNumericId(id2);
+
+  if (num1 && num2) {
+    // Both numeric: compare numerically
+    const n1 = parseInt(id1, 10);
+    const n2 = parseInt(id2, 10);
+    if (n1 < n2) return -1;
+    if (n1 > n2) return 1;
+    return 0;
+  } else if (!num1 && !num2) {
+    // Both alphanumeric: compare lexically (ASCII order)
+    if (id1 < id2) return -1;
+    if (id1 > id2) return 1;
+    return 0;
+  } else {
+    // Mixed: numeric identifier always has lower precedence than alphanumeric
+    if (num1) return -1; // id1 is numeric, id2 is alpha -> id1 is lower
+    if (num2) return 1;  // id1 is alpha, id2 is numeric -> id1 is higher
+  }
+  return 0;
+}
+
+function comparePrerelease(pre1, pre2) {
+  // Both null/undefined means no prerelease
+  if (pre1 === null && pre2 === null) return 0;
+  
+  // One has prerelease, the other doesn't
+  // Version WITH prerelease has LOWER precedence than the same version without
+  if (pre1 === null) return 1;  // v1 is release, v2 is pre -> v1 > v2
+  if (pre2 === null) return -1; // v1 is pre, v2 is release -> v1 < v2
+
+  // Both have prerelease
+  const len1 = pre1.length;
+  const len2 = pre2.length;
+  const maxLen = Math.max(len1, len2);
+
+  for (let i = 0; i < maxLen; i++) {
+    // If one list ends, the one with fewer identifiers has lower precedence
+    // (when all preceding identifiers are equal)
+    if (i >= len1) return -1; // v1 ran out, v1 is lower
+    if (i >= len2) return 1;  // v2 ran out, v1 is higher
+
+    const cmp = comparePrereleaseIds(pre1[i], pre2[i]);
+    if (cmp !== 0) return cmp;
+  }
+
+  return 0;
+}
+
+function compareSemver(a, b) {
+  const v1 = parseSemver(a);
+  const v2 = parseSemver(b);
+
+  // Compare Major
+  if (v1.major !== v2.major) {
+    return v1.major < v2.major ? -1 : 1;
+  }
+
+  // Compare Minor
+  if (v1.minor !== v2.minor) {
+    return v1.minor < v2.minor ? -1 : 1;
+  }
+
+  // Compare Patch
+  if (v1.patch !== v2.patch) {
+    return v1.patch < v2.patch ? -1 : 1;
+  }
+
+  // Compare Prerelease (Build metadata is ignored)
+  return comparePrerelease(v1.prerelease, v2.prerelease);
+}
+
+module.exports = {
+  compareSemver: compareSemver
+};
+```

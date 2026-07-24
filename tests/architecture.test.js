@@ -72,10 +72,6 @@ test('domain type declarations are split by architectural boundary', () => {
     assert.equal(existsSync(join(SRC, 'types', fileName)), true, fileName);
   }
 
-  const compatibilityBarrel = readFileSync(join(SRC, 'types.ts'), 'utf8');
-  assert.equal(compatibilityBarrel.includes('export interface'), false);
-  assert.match(compatibilityBarrel, /types\/core\.ts/);
-
   const implementationTypeBarrelImports = sourceFiles(SRC)
     .filter((filePath) => relative(ROOT, filePath) !== 'src/index.ts')
     .filter((filePath) => /from\s+['"](?:\.\.?\/)+types\.ts['"]/.test(readFileSync(filePath, 'utf8')))
@@ -216,8 +212,6 @@ test('compiler frontend tests are split by report family', () => {
     'compiler-tokenizer.test.js',
     'workflow-style.test.js',
     'candidate-at-bat.test.js',
-    'cybernetic-experiment.test.js',
-    'explanation-graph.test.js',
   ]) {
     assert.equal(existsSync(join(ROOT, 'tests', fileName)), true, fileName);
   }

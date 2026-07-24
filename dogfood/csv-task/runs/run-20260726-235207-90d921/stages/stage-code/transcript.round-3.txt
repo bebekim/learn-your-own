@@ -1,0 +1,14 @@
+STAGE FAILED: kimi failed after 2 attempts:
+--- attempt 1 (exit 1) ---
+• Using systematic-debugging to diagnose the failing CSV parser behavior.
+
+
+• The user wants me to implement a CSV line parser in JavaScript. This is round 3 of 3, with 12 of 13 checks passing. I need to re-read the spec and find the behavior my previous implementation gets wrong.
+
+  Let me first check if any skills apply. The task is implementation/fixing a bug. There's a "systematic-debugging" skill that says "Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes". This is exactly that situation - I have a failing test. I should invoke that skill first.
+
+  Also "ponytail" skill might apply as it forces simplest solution. But systematic-debugging is more directly relevant.
+
+  Let me invoke systematic-debugging skill first.
+
+• The systematic debugging skill has been loaded. I need to follow its phases. Since I cannot see the tests, I need to analyze the spec carefully and think about edge cases that my previous implementa

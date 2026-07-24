@@ -32,11 +32,7 @@ import {
   analyzeTelemetrySemantics,
   planSemanticLowering,
   buildWorkflowStyleReport,
-  buildStyleLearningReport,
   buildCandidateAtBatReport,
-  buildCyberneticExperimentReport,
-  buildExplanationGraphReport,
-  computeRivalOutcomeMessage,
   recordModelCall,
 } from '../src/index.ts';
 import { recordPrompt, recordCommand, recordPatch, recordStop } from './helpers/record.js';

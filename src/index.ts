@@ -109,19 +109,10 @@ export { auditEffectLedgers } from './compiler/effect-audit.ts';
 export { buildEffectReport } from './compiler/effect-report.ts';
 export { planSemanticLowering } from './compiler/lowering.ts';
 export { buildWorkflowStyleReport } from './compiler/workflow-style.ts';
-export { buildStyleLearningReport } from './compiler/style-learning.ts';
-export { buildAssociationLearningReport } from './compiler/association-learning.ts';
-export {
-  buildExplanationGraphReport,
-  computeObservedFactorMessage,
-  computeRivalOutcomeMessage,
-  normalizeBinaryBelief,
-} from './compiler/explanation-graph.ts';
 export {
   buildCandidateAtBatReport,
   parseCandidateAtBatTaskContext,
 } from './compiler/candidate-at-bat.ts';
-export { buildCyberneticExperimentReport } from './compiler/cybernetic-experiment.ts';
 export {
   compilePromptArtifact,
   compileSeparatedCodeAndTestPromptArtifacts,
@@ -201,13 +192,9 @@ export {
 } from './corpus/sync.ts';
 export { importGitHistory } from './corpus/git-import.ts';
 export {
-  DEFAULT_POLICY,
   DEFAULT_POLICY_ID,
-  POLICY_REGISTRY,
-  THOMPSON_BETA_POLICY,
-  policyId,
-  resolvePolicy,
   sampleGamma,
+  sampleThompsonBetaSelection,
 } from './lyo/selection-policies.ts';
 export {
   INVERSION_MAP,
@@ -292,8 +279,6 @@ export {
 export type {
   ScoredSelection,
   SelectionCandidate,
-  SelectionPolicy,
-  SelectionPolicyRef,
 } from './lyo/selection-policies.ts';
 export type {
   ApplyVerifierRulesInput,
@@ -336,7 +321,6 @@ export type {
   RecordPreferencePairInput,
   RecordTraceInput,
   ReplayState,
-  SelectLessonsInput,
   SelectWithDecisionInput,
   SelectWithDecisionResult,
   SelectedLesson,
@@ -347,14 +331,9 @@ export { analyzePythonLayer2Delta } from './corpus/git-layer2.ts';
 export type * from './compiler/syntax.ts';
 export type * from './compiler/semantics.ts';
 export type * from './compiler/workflow-style.ts';
-export type * from './compiler/style-learning.ts';
-export type * from './compiler/association-learning.ts';
-export type * from './compiler/explanation-graph.ts';
 export type * from './compiler/candidate-at-bat.ts';
-export type * from './compiler/cybernetic-experiment.ts';
 export type * from './compiler/prompt-artifacts.ts';
 export type * from './corpus/sync.ts';
 export type * from './corpus/git-import.ts';
 export type * from './corpus/pool.ts';
 export type * from './corpus/git-layer2.ts';
-export type * from './types.ts';

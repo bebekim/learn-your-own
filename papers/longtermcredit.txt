@@ -1,0 +1,2969 @@
+Would I have gotten that reward? Long-term credit
+assignment by counterfactual contribution analysis
+AlexanderMeulemans∗1,SimonSchug∗1,SeijinKobayashi∗1
+NathanielDDaw2,3,4,GregoryWayne2
+1DepartmentofComputerScience,ETHZürich
+2GoogleDeepMind
+3PrincetonNeuroscienceInstitute,PrincetonUniversity
+4DepartmentofPsychology,PrincetonUniversity
+{ameulema, sschug, seijink}@ethz.ch
+Abstract
+Tomakereinforcementlearningmoresampleefficient,weneedbettercreditassign-
+mentmethodsthatmeasureanaction’sinfluenceonfuturerewards. Buildingupon
+HindsightCreditAssignment(HCA)[1],weintroduceCounterfactualContribution
+Analysis(COCOA),anewfamilyofmodel-basedcreditassignmentalgorithms.
+Ouralgorithmsachieveprecisecreditassignmentbymeasuringthecontributionof
+actionsuponobtainingsubsequentrewards,byquantifyingacounterfactualquery:
+‘Would the agent still have reached this reward if it had taken another action?’.
+Weshowthatmeasuringcontributionsw.r.t. rewardingstates,asisdoneinHCA,
+resultsinspuriousestimatesofcontributions,causingHCAtodegradetowardsthe
+high-varianceREINFORCEestimatorinmanyrelevantenvironments. Instead,we
+measurecontributionsw.r.t. rewardsorlearnedrepresentationsoftherewarding
+objects,resultingingradientestimateswithlowervariance. Werunexperimentson
+asuiteofproblemsspecificallydesignedtoevaluatelong-termcreditassignment
+capabilities. By using dynamic programming, we measure ground-truth policy
+gradientsandshowthattheimprovedperformanceofournewmodel-basedcredit
+assignment methods is due to lower bias and variance compared to HCA and
+commonbaselines. Ourresultsdemonstratehowmodelingactioncontributions
+towardsrewardingoutcomescanbeleveragedforcreditassignment, openinga
+newpathtowardssample-efficientreinforcementlearning.2
+1 Introduction
+Reinforcementlearning(RL)facestwocentralchallenges: explorationandcreditassignment[2].
+Weneedtoexploretodiscoverrewardsandweneedtoreinforcetheactionsthatareinstrumental
+forobtainingtheserewards. Here,wefocusonthecreditassignmentproblemandtheintimately
+linked problem of estimating policy gradients. For long time horizons, obtaining the latter is
+notoriouslydifficultasitrequiresmeasuringhoweachactioninfluencesexpectedsubsequentrewards.
+Asthenumberofpossibletrajectoriesgrowsexponentiallywithtime,futurerewardscomewitha
+considerablevariancestemmingfromstochasticityintheenvironmentitselfandfromthestochasticity
+ofinterdependentfutureactionsleadingtovastlydifferentreturns[3–5].
+MonteCarloestimatorssuchasREINFORCE[6]thereforesufferfromhighvariance, evenafter
+variancereductiontechniqueslikesubtractingabaseline[6–9]. Similarly,inTemporalDifference
+methodssuchasQ-learning,thishighvarianceinfuturerewardsresultsinahighbiasinthevalue
+estimates,requiringexponentiallymanyupdatestocorrectforit[5]. Thus,acommontechniqueto
+∗Equalcontribution;orderingdeterminedbycoinflip.
+2Codeavailableathttps://github.com/seijin-kobayashi/cocoa
+37thConferenceonNeuralInformationProcessingSystems(NeurIPS2023).
+3202
+tcO
+13
+]GL.sc[
+2v30861.6032:viXra
+
+Figure1: CounterfactualContributionAnalysisenableslong-termcreditassignment. (A)Given
+asampletrajectorythateventuallyresultsinarewardingoutcome,weestimatethepolicygradientby
+consideringthecontributionofactionsalongthetrajectorytowardsarrivingatarewardingoutcome.
+Inthisexample,wemeasurehowmuchmorelikelytherewardingoutcomewithrewardr iswhen
+3
+followingactiona versusthecounterfactualactionsa anda instates . Thisisquantifiedthrough
+1 2 3 2
+thecontributioncoefficientw(s ,a ,r )whichisusedtoupdateallpossibleactionprobabilities
+2 1 3
+ofthepolicyπ(a|s ). (B)Inthelinearkey-to-doorenvironmentincreasingthedistancebetween
+2
+pickingupthekeyandopeningthedoorthatleadstorewardnecessitatescreditassignmentover
+increasingtimespans. COCOAconsistentlyachievesgoodperformance(left)comparedtoHCA
+andbaselineswhichdeterioratewhenincreasingthedistancebetweenanactionandtheresulting
+rewardingoutcome. Thisisreflectedinahighersignal-to-noiseratioofthepolicygradientestimator
+ofCOCOAcomparedtobaselines(right).
+reducevarianceandbiasistodiscountrewardsthatarefarawayintimeresultinginabiasedestimator
+whichignoreslong-termdependencies[10–13]. Impressiveresultshaveneverthelessbeenachieved
+incomplexenvironments[14–16]atthecostofrequiringbillionsofenvironmentinteractions,making
+theseapproachessampleinefficient.
+Especiallyinsettingswhereobtainingsuchlargequantitiesofdataiscostlyorsimplynotpossible,
+model-basedRLthataimstosimulatethedynamicsoftheenvironmentisapromisingalternative.
+Whilelearningsuchaworldmodelisadifficultproblembyitself,whensuccessfulitcanbeused
+togeneratealargequantityofsyntheticenvironmentinteractions. Typically,thissyntheticdatais
+combinedwithmodel-freemethodstoimprovetheactionpolicy[17–19]. Anotableexceptionto
+simplyusingworldmodelstogeneratemoredataaretheStochasticValueGradientmethod[20]
+andthecloselyrelatedDreameralgorithms[21–23]. Thesemethodsperformcreditassignmentby
+backpropagatingpolicygradientsthroughtheworldmodel. Crucially,thisapproachonlyworksfor
+environmentswithacontinuousstate-actionspace,asotherwisesensitivitiesofthevaluewithrespect
+topastactionsareundefined[20,22,24]. Intuitively,wecannotcomputesensitivitiesofdiscrete
+choicessuchasayes/nodecisionastheagentcannotdecide‘yes’alittlebitmoreorless.
+BuildinguponHindsightCreditAssignment(HCA)[1],wedevelopCounterfactualContribution
+Analysis(COCOA),afamilyofalgorithmsthatusemodelsforcreditassignmentcompatiblewith
+discrete actions. We measure the contribution of an action upon subsequent rewards by asking
+a counterfactual question: ‘would the agent still have achieved the rewarding outcome, if it had
+takenanotheraction?’ (c.f. Fig.1A).Weshowthatmeasuringcontributionstowardsachievinga
+futurestate,asisproposedinHCA,leadstospuriouscontributionsthatdonotreflectacontribution
+towardsareward. ThiscausesHCAtodegradetowardsthehigh-varianceREINFORCEmethodin
+mostenvironments. Instead,weproposetomeasurecontributionsdirectlyonrewardingoutcomes
+andwedevelopvariousnewwaysoflearningthesecontributionsfromobservations. Theresulting
+algorithm differs from value-based methods in that it measures the contribution of an action to
+individualrewards,insteadofestimatingthefullexpectedsumofrewards. Thiscrucialdifference
+allowsourcontributionanalysistodisentangledifferenttasksandignoreuncontrollableenvironment
+influences,leadingtoagradientestimatorcapableoflong-termcreditassignment(c.f. Fig.1B).We
+introduceanewmethodforanalyzingpolicygradientestimatorswhichusesdynamicprogramming
+toallowcomparingtoground-truthpolicygradients. Weleveragethistoperformadetailedbias-
+varianceanalysisofallproposedmethodsandbaselinesshowingthatournewmodel-basedcredit
+assignmentalgorithmsachievelowvarianceandbias,translatingintoimprovedperformance(c.f.
+Fig.1C).
+2
+
+2 Backgroundandnotation
+We consider an undiscounted Markov decision process (MDP) defined as the tuple (S,A,p,p ),
+r
+with S the state space, A the action space, p(S | S ,A ) the state-transition distribution and
+t+1 t t
+p (R|S,A)therewarddistributionwithboundedrewardvaluesr. Weusecapitallettersforrandom
+r
+variablesandlowercaselettersforthevaluestheytake. Thepolicyπ(A | S),parameterizedbyθ,
+denotestheprobabilityoftakingactionAatstateS. Weconsideranundiscountedinfinite-horizon
+settingwithazero-rewardabsorbingstates thattheagenteventuallyreaches: lim p(S =
+∞ t→∞ t
+s )=1. BoththediscountedandepisodicRLsettingsarespecialcasesofthissetting. (c.f. App.B),
+∞
+and hence all theoretical results proposed in this work can be readily applied to both (c.f. App
+J).
+WeuseT(s,π)andT(s,a,π)asthedistributionovertrajectoriesT =(S ,A ,R ) startingfrom
+t t t t≥0
+S =sand(S ,A )=(s,a)respectively,anddefinethereturnZ =
+(cid:80)∞
+R . Thevaluefunction
+0 0 0 t t=0 t
+Vπ(s) = E [Z ]andactionvaluefunctionQπ(s,a) = E [Z ]aretheexpected
+T∼T(s,π) t T∼T(s,a,π) t
+returnwhenstartingfromstates,orstatesandactionarespectively. Notethattheseinfinitesums
+havefinitevaluesduetotheabsorbingzero-rewardstate(c.f. App.B).
+TheobjectiveofreinforcementlearningistomaximizetheexpectedreturnVπ(s ),whereweassume
+0
+the agent starts from a fixed state s . Policy gradient algorithms optimize Vπ(s ) by repeatedly
+0 0
+estimatingitsgradient∇ V(s )w.r.t. thepolicyparameters. REINFORCE[6](c.f. Tab.1)isthe
+θ 0
+canonical policy gradient estimator, however, it has a high variance resulting in poor parameter
+updates. Commontechniquestoreducethevarianceare(i)subtractingabaseline,typicallyavalue
+estimate,fromthesumoffuturerewards[2,25](c.f. ‘Advantage’inTab.1);(ii)replacingthesumof
+futurerewardswithalearnedactionvaluefunctionQ[2,3,25,26](c.f. ‘Q-critic’inTab.1);and(iii)
+usingtemporaldiscounting. NotethatinsteadofusingadiscountedformulationofMDPs,wetreat
+thediscountfactorasavariancereductiontechniqueintheundiscountedproblem[10,11,13]asthis
+moreaccuratelyreflectsitspracticaluse[4,27]. RearrangingthesummationsofREINFORCEwith
+discountingletsusinterprettemporaldiscountingasacreditassignmentheuristic,whereforeach
+reward,pastactionsarereinforcedproportionaltotheirproximityintime.
+∇ˆREINFORCE,γVπ(s )= (cid:88) R (cid:88) γt−k∇ logπ(A |S ), γ ∈[0,1]. (1)
+θ 0 t≥0 t k≤t θ k k
+Crucially,long-termdependenciesbetweenactionsandrewardsareexponentiallysuppressed,thereby
+reducingvarianceatthecostofdisablinglong-termcreditassignment[4,28]. Theaimofthiswork
+istoreplacetheheuristicoftimediscountingbyprincipledcontributioncoefficientsquantifyinghow
+muchanactioncontributedtowardsachievingareward,andtherebyintroducingnewpolicygradient
+estimatorswithreducedvariance,withoutjeopardizinglong-termcreditassignment.
+HCA[1]makesanimportantstepinthisdirectionbyintroducinganewgradientestimator:
+∇ˆHCAVπ = (cid:88)(cid:88) ∇ π(a|S ) (cid:16) r(S ,a)+ (cid:88)pπ(A t =a|S t =s,S′ =S t+k ) R (cid:17) (2)
+θ θ t t π(a|S ) t+k
+t
+t≥0a∈A k≥1
+withr(s,a)arewardmodel,andthehindsightratio
+pπ(a|St=s,S′=St+k)
+measuringhowimportant
+π(a|St)
+actionawastoreachthestateS′atsomepointinthefuture. Althoughthehindsightratiodelivers
+precisecreditassignmentw.r.t. reachingfuturestates,ithasafailuremodeofpracticalimportance,
+creatingtheneedforanupdatedtheoryofmodel-basedcreditassignmentwhichwewilldetailinthe
+nextsection.
+3 CounterfactualContributionAnalysis
+Toformalizethe‘contribution’ofanactionuponsubsequentrewards,wegeneralizethetheoryof
+HCA[1]tomeasurecontributionsonrewardingoutcomesinsteadofstates. Weintroduceunbiased
+policygradientestimatorsthatusethesecontributionmeasures,andshowthatHCAsuffersfromhigh
+variance,makingthegeneralizationtowardsrewardingoutcomescrucialforobtaininglow-variance
+estimators. Finally,weshowhowwecanestimatecontributionsusingobservationaldata.
+3.1 Counterfactualcontributioncoefficients
+Toassessthecontributionofactionstowardsrewardingoutcomes,weproposetousecounterfactual
+reasoning: ‘howdoestakingactionainfluencetheprobabilityofobtainingarewardingoutcome,
+comparedtotakingalternativeactionsa′?’.
+3
+
+Table1: Comparisonofpolicygradientestimators.
+Method Policygradientestimator(∇ˆ Vπ(s ))
+θ 0
+(cid:80) (cid:80)
+REINFORCE ∇ logπ(A |S ) R
+t≥0 θ t t k≥0 t+k
+(cid:16) (cid:17)
+(cid:80) (cid:80)
+Advantage ∇ logπ(A |S ) R −V(S )
+t≥0 θ t t k≥0 t+k t
+(cid:80) (cid:80)
+Q-critic ∇ π(a|S )Q(S ,a)
+t≥0 a∈A θ t t
+(cid:16) (cid:17)
+HCA-Return (cid:80) ∇ logπ(A |S ) 1− π(At|St) Z
+(cid:80)
+t≥0 θ t t
+(cid:0)
+pπ(At|St,Zt)
+(cid:80)
+t
+(cid:1)
+TrajCV ∇ logπ(A |S ) Z −Q(A ,S )− (Q(S ,A )−V(S ) +...
+t≥0 θ t t t t t t′>t t′ t′ t′
+(cid:80)
+... ∇ π(a|S )Q(S ,a)
+a∈A θ t t
+(cid:80) (cid:80) (cid:80)
+COCOA ∇ logπ(A |S )R + ∇ π(a|S ) w(S ,a,U )R
+t≥0 θ t t t a∈A θ t k≥1 t t+k t+k
+(cid:80) (cid:80) (cid:80)
+HCA+ ∇ logπ(A |S )R + ∇ π(a|S ) w(S ,a,S )R
+t≥0 θ t t t a∈A θ t k≥1 t t+k t+k
+Definition1(Rewardingoutcome). ArewardingoutcomeU′ ∼p(U′ |s′,a′,r′)isaprobabilistic
+encodingofthestate-action-rewardtriplet.
+Ifactionacontributedtowardsthereward,theprobabilityofobtainingtherewardingoutcomefollow-
+ingactionashouldbehighercomparedtotakingalternativeactions. Wequantifythecontributionof
+actionatakeninstatesuponrewardingoutcomeu′as
+w(s,a,u′)= (cid:80) k≥ (cid:80) 1 pπ(U p t π + ( k U =u′ = |S u′ t | = S s, = A t s) =a) −1= pπ(A t =a π | ( S a t | = s) s,U′ =u′) −1 (3)
+k≥1 t+k t
+Fromagivenstate,wecomparetheprobabilityofreachingtherewardingoutcomeu′ atanysub-
+sequentpointintime,givenwetakeactionaversustakingcounterfactualactionsaccordingtothe
+policyπ,aspπ(U =u′ |S =s)= (cid:80) π(a′ |s)pπ(U =u′ |S =s,A =a′). Subtracting
+t+k t a′ t+k t t
+thisratiobyoneresultsinanintuitiveinterpretationofthecontributioncoefficientw(s,a,u′): ifthe
+coefficientispositive/negative,performingactionaresultsinahigher/lowerprobabilityofobtaining
+rewardingoutcomesu′,comparedtofollowingthepolicyπ. UsingBayes’rule,wecanconvertthe
+counterfactualformulationofthecontributioncoefficientsintoanequivalenthindsightformulation
+(right-handsideofEq.3),wherethehindsightdistributionpπ(A =a|S =s,U′ =u′)reflectsthe
+t t
+probabilityoftakingactionainstates,giventhatweencountertherewardingoutcomeu′atsome
+futurepointintime. WereferthereadertoApp.Cforafullderivation.
+Choiceofrewardingoutcome. Foru′ =s′,werecoverstate-basedHCA[1].3 Inthefollowing,we
+showthatabetterchoiceistouseu′ =r′,oranencodingp(u′ |s′,a′)oftheunderlyingobjectthat
+causesthereward. Bothoptionsleadtogradientestimatorswithlowervariance(c.f. Section3.3),
+whileusingthelatterbecomescrucialwhendifferentunderlyingrewardingobjectshavethesame
+scalarreward(c.f. Section4).
+3.2 Policygradientestimators
+Wenowshowhowthecontributioncoefficientscanbeusedtolearnapolicy. BuildinguponHCA[1],
+weproposetheCounterfactualContributionAnalysis(COCOA)policygradientestimator
+∇ˆUVπ(s )= (cid:88) ∇ logπ(A |S )R + (cid:88) ∇ π(a|S ) (cid:88) w(S ,a,U )R . (4)
+θ 0 θ t t t θ t t t+k t+k
+t≥0 a∈A k≥1
+WhencomparingtothediscountedpolicygradientofEq.1,weseethatthetemporaldiscountfactors
+aresubstitutedbythecontributioncoefficients,replacingthetimeheuristicwithfine-grainedcredit
+assignment. Importantly,thecontributioncoefficientsenableustoevaluateallcounterfactualactions
+insteadofonlytheobservedones,furtherincreasingthequalityofthegradientestimator(c.f.Fig.1A).
+Thecontributioncoefficientsallowforvariousdifferentgradientestimators(c.f.App.C).Forexample,
+independentactionsamplescanreplacethesumoverallactions,makingitapplicabletolargeaction
+spaces.Here,weusethegradientestimatorofEq.4,asourexperimentsconsistofsmallactionspaces
+whereenumeratingallactionsisfeasible. WhenU =S,theaboveestimatorisalmostequivalentto
+3NotethatHarutyunyanetal.[1]alsointroduceanestimatorbasedonthereturn. Here,wefocusonthe
+state-basedvariantasonlythisvariantusescontributioncoefficientstocomputethepolicygradient(Eq.4).The
+return-basedvariantinsteadusesthehindsightdistributionasanaction-dependentbaselineasshowninTab.1.
+Importantly,thereturn-basedestimatorisbiasedinmanyrelevantenvironments(c.f.AppendixL).
+4
+
+thestate-basedHCAestimatorofEq.2,exceptthatitdoesnotneedalearnedrewardmodelr(s,a).
+WeusethenotationHCA+torefertothissimplifiedversionoftheHCAestimator. Theorem1below
+showsthattheCOCOAgradientestimatorisunbiased,aslongastheencodingU isfullypredictiveof
+thereward,therebygeneralizingtheresultsofHarutyunyanetal.[1]toarbitraryrewardingoutcome
+encodings.
+Definition2(Fullypredictive). ArewardingoutcomeU isfullypredictiveoftherewardR,ifthe
+following conditional independence condition holds for all k ≥ 0: pπ(R = r | S = s,A =
+k 0 0
+a,U =u)=pπ(R=r |U =u),wheretheright-handsidedoesnotdependonthetimek.
+k
+Theorem1. AssumingthatU isfullypredictiveofthereward(c.f. Definition2),theCOCOApolicy
+gradientestimator∇ˆUVπ(s )isunbiased,whenusingtheground-truthcontributioncoefficientsof
+θ 0
+Eq.3,thatis
+∇ Vπ(s )=E ∇ˆUVπ(s ).
+θ 0 T∼T(s0,π) θ 0
+3.3 Optimalrewardingoutcomeencodingforlow-variancegradientestimators
+Theorem 1 shows that the COCOA gradient estimators are unbiased for all rewarding outcome
+encodings U that are fully predictive of the reward. The difference between specific rewarding
+outcomeencodingsmanifestsitselfinthevarianceoftheresultinggradientestimator. Proposition2
+showsthatforU′ =S′aschosenbyHCAtherearemanycaseswherethevarianceoftheresulting
+policygradientestimatordegradestothehigh-varianceREINFORCEestimator[6]:
+Proposition2. Inenvironmentswhereeachactionsequenceleadsdeterministicallytoadifferent
+state,wehavethattheHCA+estimatorisequaltotheREINFORCEestimator(c.f. Tab.1).
+Inotherwords,whenallpreviousactionscanbeperfectlydecodedfromagivenstate,theytrivially
+allcontributetoreachingthisstate. TheproofofPropostion2followsimmediatelyfromobserving
+thatpπ(a|s,s′)=1foractionsaalongtheobservedtrajectory,andzerootherwise. Substituting
+thisexpressionintothecontributionanalysisgradientestimator(4)recoversREINFORCE.Amore
+generalissueunderliesthisspecialcase: Staterepresentationsneedtocontaindetailedfeaturesto
+allowforacapablepolicybutthesamelevelofdetailisdetrimentalwhenassigningcredittoactions
+forreachingaparticularstatesinceatsomeresolutionalmosteveryactionwillleadtoaslightly
+differentoutcome. Measuringthecontributiontowardsreachingaspecificstateignoresthatthesame
+rewardingoutcomecouldbereachedinslightlydifferentstates,henceovervaluingtheimportance
+ofpreviousactionsandresultinginspuriouscontributions. Manycommonlyusedenvironments,
+suchaspixel-basedenvironments,continuousenvironments,andpartiallyobservableMDPsexhibit
+thispropertytoalargeextentduetotheirfine-grainedstaterepresentations(c.f. App.G).Hence,
+our generalization of HCA to rewarding outcomes is a crucial step towards obtaining practical
+low-variancegradientestimatorswithmodel-basedcreditassignment.
+Usingrewardsasrewardingoutcomesyieldslowest-varianceestimators. ThefollowingTheo-
+rem3showsinasimplifiedsettingthat(i)thevarianceoftheREINFORCEestimatorisanupper
+bound on the variance of the COCOA estimator, and (ii) the variance of the COCOA estimator
+is smaller for rewarding outcome encodings U that contain less information about prior actions.
+WeformalizethiswiththeconditionalindependencerelationofDefinition2byreplacingRwith
+U′: encodingU containslessorequalinformationthanencodingU′,ifU′isfullypredictiveofU.
+CombinedwithTheorem1thatstatesthatanencodingU needstobefullypredictiveofthereward
+R,wehavethattakingtherewardRasourrewardingoutcomeencodingU resultsinthegradient
+estimatorwiththelowestvarianceoftheCOCOAfamily.
+Theorem3. ConsideranMDPwhereonlythestatesatasingle(final)timestepcontainareward,
+and where we optimize thepolicy only at asingle (initial) timestep. Furthermore, consider two
+rewardingoutcomeencodingsU andU′,whereS isfullypredictiveofU′,U′fullypredictiveofU,
+andU fullypredictiveofR. Then,thefollowingrelationholdsbetweenthepolicygradientestimators:
+V[∇ˆRVπ(s )]≼V[∇ˆUVπ(s )]≼V[∇ˆU′ Vπ(s )]≼V[∇ˆSVπ(s )]≼V[∇ˆREINFVπ(s )]
+θ 0 θ 0 θ 0 θ 0 θ 0
+with ∇ˆXVπ(s ) the COCOA estimator (4) using U = X, V[Y] the covariance matrix of Y and
+θ 0
+A≼BindicatingthatB−Aispositivesemi-definite.
+As Theorem 3 considers a simplified setting, we verify empirically whether the same arguments
+holdmoregenerally. Weconstructatreeenvironmentwherewecontroltheamountofinformationa
+5
+
+Figure 2: HCA suffers from spurious contributions which can be alleviated by using less
+informativerewardingoutcomeencodings. (A)and(C):Schematicofthetreeenvironmentwhere
+we parametrically adjust the amount of overlap between states by varying the amount of shared
+children of two neighboring nodes. We can decrease the information content of the rewarding
+outcomeencodingu=f(s,a)bygroupingstate-actionpairsthatsharethesamerewardvalue. (B)
+NormalizedvarianceindBusingground-truthcoefficientsandarandomuniformpolicy(shaded
+region represents standard error over 10 random environments) comparing REINFORCE, HCA,
+COCOCA-rewardandvariousdegreesofintermediategrouping.
+statecontainsaboutthepreviousactionsbyvaryingtheoverlapofthechildrenoftwoneighbouring
+nodes (c.f. Fig 2), and assign a fixed random reward to each state-action pair. We compute the
+ground-truthcontributioncoefficientsbyleveragingdynamicprogramming(c.f. Section4). Fig.2B
+showsthatthevarianceofHCAisashighasREINFORCEforzerostateoverlap,butimproveswhen
+morestatesoverlap,consistentwithProposition2andTheorem3. Toinvestigatetheinfluenceof
+theinformationcontentofU onthevariance, weconsiderrewardingoutcomeencodingsU with
+increasinginformationcontent,whichwequantifywithhowmanydifferentvaluesofubelongto
+thesamerewardr. Fig.2BshowsthatbyincreasingtheinformationcontentofU,weinterpolate
+betweenthevarianceofCOCOAwithu=randHCA+,consistentwithTheorem3.
+Whydorewardingoutcomeencodingsthatcontainmoreinformationthantherewardleadto
+highervariance? Toprovideabetterintuitiononthisquestionweusethefollowingtheorem:
+Theorem4. ThepolicygradientontheexpectednumberofoccurrencesOπ(u′,s)= (cid:80) pπ(U =
+k≥1 k
+u′ |S =s)isproportionalto
+0
+(cid:88)
+∇ Oπ(u′,s)∝E ∇ π(a|S′′)w(S′′,a,u′)Oπ(u′,S′′)
+θ S′′∼T(π,s) θ
+a∈A
+Recall that the COCOA gradient estimator consists of individual terms that credit past actions a
+atstatesforacurrentrewardrencounteredinuaccordingto (cid:80) ∇ π(a | s)w(s,a,u′)r′ (c.f.
+a∈A θ
+Eq.4). Theorem4indicatesthateachsuchtermaimstoincreasetheaveragenumberoftimeswe
+encounteru′inatrajectorystartingfroms,proportionaltothecorrespondingrewardr′. IfU′ =R′,
+this update will correctly make all underlying states with the same reward r′ more likely while
+decreasingthelikelinessofallstatesforwhichu′ ̸=r′. Nowconsiderthecasewhereourrewarding
+outcomeencodingcontainsabitmoreinformation,i.e. U′ =f(R′,∆S′)where∆S′containsalittle
+bitofinformationaboutthestate. Asaresulttheupdatewilldistinguishsomestateseveniftheyyield
+thesamerewardandincreasethenumberofoccurrencesonlyofstatescontainingtheencountered
+∆S′whiledecreasingthenumberofoccurrencesforunseenones. Asinasingletrajectory,wedo
+notvisiteachpossible∆S′,thisaddsvariance. ThelessinformationanencodingU has,themore
+underlyingstatesitgroupstogether,andhencethelessrewardingoutcomesare‘forgotten’inthe
+gradientestimator,leadingtolowervariance.
+3.4 Learningthecontributioncoefficients
+Inpractice,wedonothaveaccesstotheground-truthcontributioncoefficients,butneedtolearnthem
+fromobservations. FollowingHarutyunyanetal.[1],wecanapproximatethehindsightdistribution
+pπ(A =a|S =s,U′ =u′),nowconditionedonrewardingoutcomeencodingsinsteadofstates,
+t t
+bytrainingamodelh(a | s,u′)onthesuperviseddiscriminativetaskofclassifyingtheobserved
+actiona giventhecurrentstates andsomefuturerewardingoutcomeu′. Notethatifthemodel
+t t
+hdoesnotapproximatethehindsightdistributionperfectly,theCOCOAgradientestimator(4)can
+bebiased(c.f. Section4). Acentraldifficultyinapproximatingthehindsightdistributionisthatit
+ispolicydependent,andhencechangesduringtraining. Proposition5showsthatwecanprovide
+thepolicylogitsasanextrainputtothehindsightnetworkwithoutalteringthelearnedhindsight
+6
+
+Figure3: COCOAenhancespolicygradientestimatesandsampleefficiencywhereasHCAfails
+toimproveoverbaselines. (A)Schematicrepresentationofthelinearkey-to-doorenvironment.
+(B)PerformanceofCOCOAandbaselinesonthemaintaskofpickingupthetreasure,measured
+astheaveragefractionoftreasurerewardscollected. (Left)ground-truthpolicygradientestimators
+computed using dynamic programming, (right) learning the contribution coefficients or (action-
+)valuefunctionusingneuralnetworks. Shadedregionsarethestandarderror(30seeds). (C)Violin
+plotofthesignal-to-noiseratio(SNR)inDecibelsforthevariouspolicygradientestimatorswith
+learnedcoefficientsand(action-)valuefunctions,computedonthesametrajectoriesofasharedbase
+policy. (D)Comparisonofthebias-variancetrade-offincurredbydifferentpolicygradientestimators,
+computedasin(C),normalizedbytheground-truthpolicygradientnorm(scatterplotshowing30
+seedspermethod).
+distribution,tomaketheparametersofthehindsightnetworklesspolicy-dependent. Thisobservation
+justifiesandgeneralizesthestrategyofaddingthepolicylogitstothehindsightmodeloutput,as
+proposedbyAlipovetal.[29].
+Proposition5. pπ(a|s,u′,l)=pπ(a|s,u′),withladeterministicfunctionofs,representingthe
+sufficientstatisticsofπ(a|s).
+Asanalternativetolearningthehindsightdistribution,wecandirectlyestimatetheprobabilityratio
+pπ(A =a|S =s,U′ =u′)/π(a|s)usingacontrastiveloss(c.f.App.D).Yetanotherpathbuilds
+t t
+ontheobservationthatthesums (cid:80) pπ(U =u′ |s,a)areakintoSuccessorRepresentations
+k≥1 t+k
+andcanbelearnedviatemporaldifferenceupdates[30,31](c.f. App.D).Weexperimentedboth
+with the hindsight classification and the contrastive loss and found the former to work best in
+our experiments. We leverage the Successor Representation to obtain ground truth contribution
+coefficientsviadynamicprogrammingforthepurposeofanalyzingouralgorithms.
+4 Experimentalanalysis
+To systematically investigate long-term credit assignment performance of COCOA compared to
+standardbaselines,wedesignanenvironmentwhichpinpointsthecorecreditassignmentproblemand
+leveragedynamicprogrammingtocomputeground-truthpolicygradients,contributioncoefficients,
+and value functions (c.f. App E.2). This enables us to perform detailed bias-variance analyses
+andtodisentanglethetheoreticaloptimalperformanceofthevariousgradientestimatorsfromthe
+approximationqualityoflearnedcontributioncoefficientsand(action-)valuefunctions.
+Weconsiderthelinearkey-to-doorenvironment(c.f. Fig.3A),asimplificationofthekey-to-door
+environment[3,4,32]toaone-dimensionaltrack. Here, theagentneedstopickupakeyinthe
+firsttimestep,afterwhichitengagesinadistractortaskofpickingupappleswithvaryingreward
+values. Finally, it can open a door with the key and collect a treasure. This setting allows us to
+parametrically increase the difficulty of long-term credit assignment by increasing the distance
+between the key and door, making it harder to pick up the learning signal of the treasure reward
+7
+
+amongagrowingnumberofvaryingdistractorrewards[4]. Weusethesignal-to-noiseratio,SNR=
+∥∇ Vπ∥2/E[∥∇ˆ Vπ−∇ Vπ∥2],toquantifythequalityofthedifferentpolicygradientestimators;a
+θ θ θ
+higherSNRindicatesthatweneedfewertrajectoriestoestimateaccuratepolicygradients[33].
+Previously,weshowedthattakingtherewardasrewardingoutcomeencodingresultsinthelowest-
+variancepolicygradientswhenusingground-truthcontributioncoefficients. Inthissection,wewill
+arguethatwhenlearningthecontributioncoefficients,itisbeneficialtouseanencodinguofthe
+underlyingrewardingobjectsincethisallowstodistinguishdifferentrewardingobjectswhenthey
+havethesamescalarrewardvalueandallowsforquickadaptationwhentherewardfunctionbutnot
+theenvironmentdynamicschanges.
+We study two variants of COCOA, COCOA-reward which uses the reward identity for U, and
+COCOA-featurewhichacquiresfeaturesofrewardingobjectsbylearningarewardmodelr(s,a)and
+takingthepenultimatenetworklayerasU. Welearnthecontributioncoefficientsbyapproximating
+thehindsightdistributionwithaneuralnetworkclassifierh(a|s,u′,l)thattakesasinputthecurrent
+states, resultingpolicylogitsl, andrewardingoutcomeu′, andpredictsthecurrentactiona(c.f.
+App.Eforallexperimentaldetails). AsHCA+(c.f. Tab.1)performsequallyorbettercompared
+to HCA [1] in our experiments (c.f. App. F), we compare to HCA+ and several other baselines:
+(i) three classical policy gradient estimators, REINFORCE, Advantage and Q-critic, (ii) TrajCV
+[34],astate-of-the-artcontrolvariatemethodthatuseshindsightinformationinitsbaseline,and(iii)
+HCA-return[1],adifferentHCAvariantthatusesthehindsightdistributionconditionedonthereturn
+asanaction-dependentbaseline(c.f. Tab.1).
+4.1 COCOAimprovessample-efficiencyduetofavorablebias-variancetrade-off.
+ToinvestigatethequalityofthepolicygradientestimatorsofCOCOA,weconsiderthelinearkey-to-
+doorenvironmentwithadistanceof100betweenkeyanddoor. Ourdynamicprogrammingsetup
+allowsustodisentangletheperformanceoftheestimatorsindependentoftheapproximationquality
+oflearnedmodelsbyusinggroundtruthcontributioncoefficientsand(action-)valuefunctions. The
+leftpaneloffigure3Brevealsthatinthisgroundtruthsetting,COCOA-rewardalmostimmediately
+solvesthetaskperformingaswellasthetheoreticallyoptimalQ-criticwithaperfectaction-value
+function. ThisisincontrasttoHCAandHCA-returnwhichperformbarelybetterthanREINFORCE,
+all failing to learn to consistently pick up the key in the given number of episodes. This result
+translatestothesettingoflearningtheunderlyingmodelsusingneuralnetworks. COCOA-reward
+and-featureoutperformcompetingpolicygradientestimatorsintermsofsampleefficiencywhile
+HCAonlyimprovesoverREINFORCE.Notably,havingtolearnthefullaction-valuefunctionleads
+toalesssample-efficientpolicygradientestimatorfortheQ-critic.
+InFigure3CandDweleveragedynamicprogrammingtocomparetothegroundtruthpolicygradient.
+ThisanalysisrevealsthatimprovedperformanceofCOCOAisreflectedinahigherSNRcompared
+to other estimators due to its favorable bias-variance trade-off. Fig 12 in App. F indicates that
+COCOAmaintainsasuperiorSNR,evenwhenusingsignificantlybiasedcontributioncoefficients.As
+predictedbyourtheoryinSection3.3,HCAsignificantlyunderperformscomparedtobaselinesdue
+toitshighvariancecausedbyspuriouscontributions. Inparticular,theMarkovstaterepresentationof
+thelinearkey-to-doorenvironmentcontainstheinformationofwhetherthekeyhasbeenpickedup.
+Asaresult,HCAalwayscreditspickingupthekeyornot,evenfordistractorrewards. Thesespurious
+contributionsburytheusefullearningsignalofthetreasurerewardinnoisydistractorrewards. HCA-
+returnperformspoorlyasitisabiasedgradientestimator,evenwhenusingtheground-truthhindsight
+distribution(c.f. AppendixFandL).Interestingly,thevarianceofCOCOAissignificantlylower
+comparedtoastate-of-the-artcontrolvariatemethod,TrajCV,pointingtoapotentialbenefitofthe
+multiplicativeinteractionsbetweencontributioncoefficientsandrewardsintheCOCOAestimators,
+comparedtotheadditiveinteractionofthecontrolvariates: thevaluefunctionsusedinTrajCVneed
+toapproximatethefullaveragereturns, whereasCOCOAcanignorerewardsfromthedistractor
+subtask,bymultiplyingthemwithacontributioncoefficientofzero.
+4.2 COCOAenableslong-termcreditassignmentbydisentanglingrewarding
+outcomes.
+Thelinearkey-to-doorenvironmentallowsustoparametricallyincreasethedifficultyofthelong-
+termcreditassignmentproblembyincreasingthedistancebetweenthekeyanddoorandthereby
+increasingthevarianceduetothedistractortask[4]. Figure1Brevealsthatasthisdistanceincreases,
+performancemeasuredastheaveragefractionoftreasurecollectedoverafixednumberofepisodes
+8
+
+Figure4: COCOAimprovesperformancebydisentanglingsubtasks. (A)Schematicrepresenta-
+tionofthetaskinterleavingenvironmentwherecoloredbordersindicatethecontextofaroom. (B)
+PerformanceofCOCOAandbaselineswithlearnedcontributioncoefficientsorvaluefunctions,mea-
+suredasthefractionofcorrectchoices. (C)Visualizationofthecontributioncoefficientmagnitudes
+ofeachqueryroomonrewardroomsforCOCOA(top)andHCA(bottom),c.f. App.E.7.
+dropsforallbaselinesincludingHCAbutremainsrelativelystablefortheCOCOAestimators. Hung
+etal.[4]showedthattheSNRofREINFORCEdecreasesinverselyproportionaltogrowingdistance
+betweenkeyanddoor. Figure1BshowsthatHCAandallbaselinesfollowthistrend,whereasthe
+COCOAestimatorsmaintainarobustSNR.
+WecanexplainthequalitativedifferencebetweenCOCOAandothermethodsbyobservingthat
+thekey-to-doortaskconsistsoftwodistinctsubtasks: pickingupthekeytogetthetreasure,and
+collecting apples. COCOA can quickly learn that actions relevant for one task, do not influence
+rewardingoutcomesintheothertask,andhenceoutputacontributioncoefficientequaltozerofor
+thosecombinations. Valuefunctionsincontrastestimatetheexpectedsumoffuturerewards,thereby
+mixingtherewardsofbothtasks. Whenincreasingthevarianceofthereturninthedistractortaskby
+increasingthenumberofstochasticdistractorrewards,estimatingthevaluefunctionsbecomesharder,
+whereasestimatingthecontributioncoefficientsbetweenstate-actionpairsanddistinctrewarding
+objects remains of equal difficulty, showcasing the power of disentangling rewarding outcomes.
+Tofurthershowcasethepowerofdisentanglingsubtasks,we
+considerasimplifiedversionofthetaskinterleavingenviron-
+mentofMesnardetal.[3](c.f. Fig.4A,App.E.7). Here,the
+agentisfacedwithasequenceofcontextualbandittasks,where
+the reward for a correct decision is given at a later point in
+time,togetherwithanobservationoftherelevantcontext. The
+main credit assignment difficulty is to relate the reward and
+contextualobservationtothecorrectpreviouscontextualbandit
+task. Note that the variance in the return is now caused by
+thestochasticpolicy,imperfectlysolvingfuturetasks,andby
+stochasticstatetransitions,incontrasttothelinearkey-to-door
+environment where the variance is caused by stochastic dis-
+tractorrewards. Figure4BshowsthatourCOCOAalgorithms
+Figure5: COCOA-featuresisro-
+outperformallbaselines. Thelearnedcontributioncoefficients
+busttorewardaliasing. Onaver-
+ofCOCOArewardaccuratelycapturethatactionsinonecon-
+sion of the linear key-to-door en-
+textonlycontributetorewardsinthesamecontextasopposed
+vironment where one of the dis-
+to HCA that fails to disentangle the contributions (c.f. Fig-
+tractorrewardvalueshasthesame
+ure4C).
+magnitude as the treasure reward,
+COCOA-rewardcannolongerdis-
+4.3 Learnedcreditassignment
+tinguishbetweenthedistractorand
+featuresallowtodisentanglealiasedrewards
+treasure reward and as a result its
+ForCOCOA-rewardweusethescalarrewardvaluetoidentify
+performance decreases. COCOA-
+rewardingoutcomesinthehindsightdistribution,i.e. U =R.
+feature is robust to this manipula-
+Incaseswheremultiplerewardingoutcomesyieldanidentical
+tion since it relies on learned fea-
+scalar reward value, the hindsight distribution cannot distin-
+tures to distinguish rewarding ob-
+guishbetweenthemandhastoestimateacommonhindsight
+jects.
+9
+
+probability,makingitimpossibletodisentanglethetasksandhencerenderinglearningofthecontri-
+butioncoefficientspotentiallymoredifficult. Incontrast,COCOA-featurelearnshindsightfeatures
+of rewarding objects that are predictive of the reward. Even when multiple rewarding objects
+leadtoanidenticalscalarrewardvaluetheircorrespondingfeaturesarelikelydifferent,allowing
+COCOA-featuretodisentangletherewardingoutcomes.
+InFig.5,wetestthisrewardaliasingsettingexperimentallyandslightlymodifythelinearkey-to-door
+environmentbygivingthetreasurerewardthesamevalueasoneofthetwopossiblevaluesofthe
+stochasticdistractorrewards. Asexpected,COCOA-featureisrobusttorewardaliasing,continuingto
+performwellonthetaskofpickingupthetreasurewhileperformanceofCOCOA-rewardnoticeably
+suffers. NotethattheperformanceofallmethodshasslightlydecreasedcomparedtoFig.3,asthe
+magnitudeofthetreasurerewardisnowsmallerrelativetothevarianceofthedistractorrewards,
+resultinginaworseSNRforallmethods.
+5 Discussion
+Wepresentatheoryformodel-basedcreditassignmentcompatiblewithdiscreteactionsandshow
+inacomprehensivetheoreticalandexperimentalanalysisthatthisyieldsapowerfulpolicygradient
+estimator,enablinglong-termcreditassignmentbydisentanglingrewardingoutcomes.
+BuildinguponHCA[1],wefocusonamortizingtheestimationofthecontributioncoefficientsinan
+inversedynamicsmodel,pπ(a | s,u′). Thequalityofthismodeliscrucialforobtaininglow-bias
+gradientestimates,butitisrestrictedtolearnfromon-policydata,andrewardingobservationsin
+caseofu = r. Scalingtheseinversemodelstocomplexenvironmentswillpotentiallyexacerbate
+thistension,especiallyinsparserewardsettings. Apromisingavenueforfutureworkistoleverage
+forwarddynamicsmodelsanddirectlyestimatecontributioncoefficientsfromsynthetictrajectories.
+Whilelearningaforwardmodelisadifficultprobleminitsown,itspolicyindependenceincreases
+the data available for learning it. This would result in an algorithm close in spirit to Stochastic
+Value Gradients [20] and Dreamer [21–23] with the crucial advance that it enables model-based
+creditassignmentondiscreteactions. Anotherpossibilitytoenablelearningfromnon-rewarding
+observations is to learn a generative model that can recombine inverse models based on state
+representationsintorewardcontributions(c.f. App.H).
+Relatedworkhasexploredthecreditassignmentproblemthroughthelensoftransportingrewards
+orvalueestimatestowardspreviousstatestobridgelong-termdependencies[4,5,32,35–41]. This
+approachiscompatiblewithexistingandwell-establishedpolicygradientestimatorsbutdetermining
+how to redistribute rewards has relied on heuristic contribution analyses, such as via the access
+of memory states [4], linear decompositions of rewards [32, 35–39] or learned sequence models
+[5,40,41]. Leveragingourunbiasedcontributionanalysisframeworktoreachmoreoptimalreward
+transportisapromisingdirectionforfutureresearch.
+While we have demonstrated that contribution coefficients with respect to states as employed by
+HCAsufferfromspuriouscontributions,anyrewardfeatureencodingthatisfullypredictiveofthe
+rewardcaninprinciplesufferfromasimilarprobleminthecasewhereeachenvironmentstatehasa
+uniquerewardvalue. Inpractice,thisissuemightoccurinenvironmentswithcontinuousrewards. A
+potentialremedyinthissituationistoassumethattheunderlyingrewarddistributionisstochastic,
+smoothingthecontributioncoefficientsasnowmultiplestatescouldhaveledtothesamereward.
+ThislowersthevarianceofthegradientestimatorasweelaborateinApp.G.
+Finally, we note that our contribution coefficients are closely connected to causality theory [42]
+wherethecontributioncoefficientscorrespondtoperformingDo-interventionsonthecausalgraph
+to estimate their effect on future rewards (c.f. App I). Within causality theory, counterfactual
+reasoninggoesastepfurtherbyinferringtheexternal,uncontrollableenvironmentinfluencesand
+considering the consequences of counterfactual actions given that all external influences remain
+thesame[3,20,42–44]. ExtendingCOCOAtowardsthismoreadvancedcounterfactualsettingby
+buildinguponrecentwork[3,43]isanexcitingdirectionforfutureresearch(c.f. App.I).
+Concludingremarks. ByovercomingthefailuremodeofspuriouscontributionsinHCA,wehave
+presentedhereacomprehensivetheoryonhowtoleveragemodelinformationforcreditassignment,
+compatiblewithdiscreteactionspaces. COCOA-rewardandCOCOA-featurearepromisingfirst
+algorithmsinthisframework,openingthewaytowardssample-efficientreinforcementlearningby
+model-basedcreditassignment.
+10
+
+6 Acknowledgements
+WethankAngelikaSteger,YassirAkram,IdaMomennejad,BlakeRichards,MattBotvinickandJoel
+Venessfordiscussionsandfeedback. SimonSchugissupportedbytheSwissNationalScienceFoun-
+dation(PZ00P3_186027). SeijinKobayashiissupportedbytheSwissNationalScienceFoundation
+(CRSII5_173721). SimonSchugwouldliketokindlythanktheTPUResearchCloud(TRC)program
+forprovidingaccesstoCloudTPUsfromGoogle.
+References
+[1] AnnaHarutyunyan,WillDabney,ThomasMesnard,MohammadGheshlaghiAzar,BilalPiot,
+NicolasHeess,HadoPvanHasselt,GregoryWayne,SatinderSingh,DoinaPrecup,andRemi
+Munos. HindsightCreditAssignment. InH.Wallach,H.Larochelle,A.Beygelzimer,FAlché-
+Buc,E.Fox,andR.Garnett,editors,AdvancesinNeuralInformationProcessingSystems32,
+pages12488–12497.CurranAssociates,Inc.,2019.
+[2] RichardS.SuttonandAndrewG.Barto. ReinforcementLearning,secondedition: AnIntroduc-
+tion. MITPress,November2018.
+[3] Thomas Mesnard, Théophane Weber, Fabio Viola, Shantanu Thakoor, Alaa Saade, Anna
+Harutyunyan,WillDabney,TomStepleton,NicolasHeess,ArthurGuez,MarcusHutter,Lars
+Buesing,andRémiMunos. CounterfactualCreditAssignmentinModel-FreeReinforcement
+Learning. InProceedingsofthe38thInternationalConferenceonMachineLearning,PMLR
+139,2021.
+[4] Chia-Chun Hung, Timothy Lillicrap, Josh Abramson, Yan Wu, Mehdi Mirza, Federico
+Carnevale,ArunAhuja,andGregWayne. Optimizingagentbehavioroverlongtimescalesby
+transportingvalue.NatureCommunications,10(1):5223,November2019.Number:1Publisher:
+NaturePublishingGroup.
+[5] JoseA.Arjona-Medina,MichaelGillhofer,MichaelWidrich,ThomasUnterthiner,Johannes
+Brandstetter,andSeppHochreiter. RUDDER:ReturnDecompositionforDelayedRewards.
+InH.Wallach, H.Larochelle, A.Beygelzimer, F.d\textquotesingleAlché-Buc, E.Fox, and
+R.Garnett,editors,AdvancesinNeuralInformationProcessingSystems32,pages13566–13577.
+CurranAssociates,Inc.,2019.
+[6] RonaldJ.Williams. Simplestatisticalgradient-followingalgorithmsforconnectionistreinforce-
+mentlearning. MachineLearning,8(3):229–256,May1992.
+[7] EvanGreensmith,PeterL.Bartlett,andJonathanBaxter. VarianceReductionTechniquesfor
+GradientEstimatesinReinforcementLearning. JournalofMachineLearningResearch,5(Nov):
+1471–1530,2004.
+[8] ThéophaneWeber,NicolasHeess,LarsBuesing,andDavidSilver. CreditAssignmentTech-
+niquesinStochasticComputationGraphs. InProceedingsoftheTwenty-SecondInternational
+ConferenceonArtificialIntelligenceandStatistics,pages2650–2660.PMLR,April2019.ISSN:
+2640-3498.
+[9] JonathanBaxterandPeterL.Bartlett. Infinite-HorizonPolicy-GradientEstimation. Journalof
+ArtificialIntelligenceResearch,15:319–350,November2001.
+[10] PhilipThomas.BiasinNaturalActor-CriticAlgorithms.InProceedingsofthe31stInternational
+ConferenceonMachineLearning,pages441–448.PMLR,January2014. ISSN:1938-7228.
+[11] ShamKakade. OptimizingAverageRewardUsingDiscountedRewards. InDavidHelmbold
+andBobWilliamson, editors, ComputationalLearningTheory, LectureNotesinComputer
+Science,pages605–615,Berlin,Heidelberg,2001.Springer.
+[12] John Schulman, Philipp Moritz, Sergey Levine, Michael Jordan, and Pieter Abbeel. High-
+DimensionalContinuousControlUsingGeneralizedAdvantageEstimation. InInternational
+ConferenceonLearningRepresentations.arXiv,2016. arXiv:1506.02438[cs].
+[13] PeterMarbachandJohnTsitsiklis. ApproximateGradientMethodsinPolicy-SpaceOptimiza-
+tionofMarkovRewardProcesses. DiscreteEventDynamicSystems,page38,2003.
+11
+
+[14] OpenAI,ChristopherBerner,GregBrockman,BrookeChan,VickiCheung,PrzemysławDe˛biak,
+ChristyDennison,DavidFarhi,QuirinFischer,ShariqHashme,ChrisHesse,RafalJózefowicz,
+ScottGray,CatherineOlsson,JakubPachocki,MichaelPetrov,HenriqueP.dO.Pinto,Jonathan
+Raiman,TimSalimans,JeremySchlatter,JonasSchneider,SzymonSidor,IlyaSutskever,Jie
+Tang,FilipWolski,andSusanZhang. Dota2withLargeScaleDeepReinforcementLearning,
+December2019. arXiv:1912.06680[cs,stat].
+[15] OpenAI,IlgeAkkaya,MarcinAndrychowicz,MaciekChociej,MateuszLitwin,BobMcGrew,
+ArthurPetron,AlexPaino,MatthiasPlappert,GlennPowell,RaphaelRibas,JonasSchneider,
+NikolasTezak,JerryTworek,PeterWelinder,LilianWeng,QimingYuan,WojciechZaremba,
+andLeiZhang. SolvingRubik’sCubewithaRobotHand,October2019. arXiv:1910.07113
+[cs,stat].
+[16] OriolVinyals,IgorBabuschkin,WojciechM.Czarnecki,MichaëlMathieu,AndrewDudzik,
+JunyoungChung,DavidH.Choi,RichardPowell,TimoEwalds,PetkoGeorgiev,JunhyukOh,
+Dan Horgan, Manuel Kroiss, Ivo Danihelka, Aja Huang, Laurent Sifre, Trevor Cai, John P.
+Agapiou,MaxJaderberg,AlexanderS.Vezhnevets,RémiLeblond,TobiasPohlen,Valentin
+Dalibard,DavidBudden,YurySulsky,JamesMolloy,TomL.Paine,CaglarGulcehre,Ziyu
+Wang,TobiasPfaff,YuhuaiWu,RomanRing,DaniYogatama,DarioWünsch,KatrinaMcKin-
+ney,OliverSmith,TomSchaul,TimothyLillicrap,KorayKavukcuoglu,DemisHassabis,Chris
+Apps, and David Silver. Grandmaster level in StarCraft II using multi-agent reinforcement
+learning. Nature, 575(7782):350–354, November 2019. Number: 7782 Publisher: Nature
+PublishingGroup.
+[17] RichardS.Sutton. Dyna,anintegratedarchitectureforlearning,planning,andreacting. ACM
+SIGARTBulletin,2(4):160–163,July1991.
+[18] JacobBuckman,DanijarHafner,GeorgeTucker,EugeneBrevdo,andHonglakLee. Sample-
+EfficientReinforcementLearningwithStochasticEnsembleValueExpansion. In32ndConfer-
+enceonNeuralInformationProcessingSystems.arXiv,2018. arXiv:1807.01675[cs,stat].
+[19] ThanardKurutach,IgnasiClavera,YanDuan,AvivTamar,andPieterAbbeel. Model-Ensemble
+Trust-RegionPolicyOptimization. 2018.
+[20] NicolasHeess,GregoryWayne,DavidSilver,TimothyLillicrap,TomErez,andYuvalTassa.
+LearningContinuousControlPoliciesbyStochasticValueGradients. InAdvancesinNeural
+InformationProcessingSystems,volume28.CurranAssociates,Inc.,2015.
+[21] DanijarHafner,TimothyLillicrap,JimmyBa,andMohammadNorouzi. DreamtoControl:
+LearningBehaviorsbyLatentImagination. InInternationalConferenceonLearningRepresen-
+tations,March2020. Number: arXiv:1912.01603arXiv:1912.01603[cs].
+[22] Danijar Hafner, Timothy Lillicrap, Mohammad Norouzi, and Jimmy Ba. Mastering Atari
+withDiscreteWorldModels. InInternationalConferenceonLearningRepresentations,2021.
+Number: arXiv:2010.02193arXiv:2010.02193[cs,stat].
+[23] DanijarHafner,JurgisPasukonis,JimmyBa,andTimothyLillicrap.MasteringDiverseDomains
+throughWorldModels,January2023. arXiv:2301.04104[cs,stat].
+[24] MikaelHenaff,WilliamF.Whitney,andYannLeCun. Model-BasedPlanningwithDiscrete
+andContinuousActions,April2018. arXiv:1705.07177[cs].
+[25] VolodymyrMnih,AdriaPuigdomenechBadia,MehdiMirza,AlexGraves,TimothyLillicrap,
+TimHarley,DavidSilver,andKorayKavukcuoglu. AsynchronousMethodsforDeepReinforce-
+mentLearning. InProceedingsofThe33rdInternationalConferenceonMachineLearning,
+pages1928–1937.PMLR,June2016. ISSN:1938-7228.
+[26] RichardSSutton,DavidAMcAllester,SatinderPSingh,andYishayMansour. PolicyGradient
+MethodsforReinforcementLearningwithFunctionApproximation. InAdvancesinNeural
+InformationProcessingSystems12,1999.
+[27] Chris Nota and Philip S Thomas. Is the Policy Gradient a Gradient? In Proc. of the 19th
+International Conference on Autonomous Agents and Multiagent Systems (AAMAS 2020),
+page9,2020.
+12
+
+[28] John Schulman, Philipp Moritz, Sergey Levine, Michael Jordan, and Pieter Abbeel. High-
+Dimensional Continuous Control Using Generalized Advantage Estimation, October 2018.
+arXiv:1506.02438[cs].
+[29] VyacheslavAlipov,RileySimmons-Edler,NikitaPutintsev,PavelKalinin,andDmitryVetrov.
+Towards Practical Credit Assignment for Deep Reinforcement Learning, February 2022.
+arXiv:2106.04499[cs].
+[30] Peter Dayan. Improving Generalization for Temporal Difference Learning: The Successor
+Representation. NeuralComputation,5(4):613–624,July1993. ConferenceName: Neural
+Computation.
+[31] TejasD.Kulkarni,ArdavanSaeedi,SimantaGautam,andSamuelJ.Gershman. DeepSuccessor
+ReinforcementLearning,June2016. Number: arXiv:1606.02396arXiv:1606.02396[cs,stat].
+[32] DavidRaposo,SamRitter,AdamSantoro,GregWayne,TheophaneWeber,MattBotvinick,
+HadovanHasselt, andFrancisSong. SyntheticReturnsforLong-TermCreditAssignment.
+arXiv:2102.12425[cs],February2021. arXiv: 2102.12425.
+[33] JohnW.RobertsandRussTedrake. Signal-to-NoiseRatioAnalysisofPolicyGradientAlgo-
+rithms. InD.Koller,D.Schuurmans,Y.Bengio,andL.Bottou,editors,AdvancesinNeural
+InformationProcessingSystems21,pages1361–1368.CurranAssociates,Inc.,2009.
+[34] Ching-AnCheng,XinyanYan,andByronBoots. Trajectory-wiseControlVariatesforVariance
+ReductioninPolicyGradientMethods. InProceedingsoftheConferenceonRobotLearning,
+pages1379–1394.PMLR,May2020. ISSN:2640-3498.
+[35] ZhizhouRen,RuihanGuo,YuanZhou,andJianPeng. LearningLong-TermRewardRedistri-
+butionviaRandomizedReturnDecomposition. January2022.
+[36] YonathanEfroni,NadavMerlis,andShieMannor. ReinforcementLearningwithTrajectory
+Feedback. InTheThirty-FifthAAAIConferenceonArtificialIntelligenc.arXiv,March2021.
+[37] MinahSeo, LuizFelipeVecchietti, SangkeumLee, andDongsooHar. RewardsPrediction-
+Based CreditAssignment forReinforcement Learning With Sparse BinaryRewards. IEEE
+ACCESS,7:118776–118791,2019. Accepted: 2019-09-24T11:21:52ZPublisher: IEEE-INST
+ELECTRICALELECTRONICSENGINEERSINC.
+[38] MarkelSanzAusin,HamoonAzizsoltani,SongJu,YeoJinKim,andMinChi. InferNetfor
+DelayedReinforcementTasks: AddressingtheTemporalCreditAssignmentProblem. In2021
+IEEEInternationalConferenceonBigData(BigData),pages1337–1348,December2021.
+[39] HamoonAzizsoltani,YeoJinKim,MarkelSanzAusin,TiffanyBarnes,andMinChi. Unob-
+servedIsNotEqualtoNon-existent: UsingGaussianProcessestoInferImmediateRewards
+Across Contexts. In Proceedings of the Twenty-Eighth International Joint Conference on
+ArtificialIntelligence,pages1974–1980,2019.
+[40] Vihang P. Patil, Markus Hofmarcher, Marius-Constantin Dinu, Matthias Dorfer, Patrick M.
+Blies,JohannesBrandstetter,JoseA.Arjona-Medina,andSeppHochreiter. Align-RUDDER:
+Learning From Few Demonstrations by Reward Redistribution. Proceedings of Machine
+LearningResearch,162,2022. arXiv: 2009.14108.
+[41] Johan Ferret, Raphaël Marinier, Matthieu Geist, and Olivier Pietquin. Self-Attentional
+Credit Assignment for Transfer in Reinforcement Learning. In Proceedings of the Twenty-
+NinthInternationalJointConferenceonArtificialIntelligence,pages2655–2661,July2020.
+arXiv:1907.08027[cs].
+[42] JonasPeters,DominikJanzing,andBernhardSchölkopf. Elementsofcausalinference: foun-
+dationsandlearningalgorithms. AdaptiveComputationandMachineLearning.November
+2018.
+[43] LarsBuesing,TheophaneWeber,YoriZwols,SebastienRacaniere,ArthurGuez,Jean-Baptiste
+Lespiau,andNicolasHeess. Woulda,Coulda,Shoulda: Counterfactually-GuidedPolicySearch.
+InInternationalConferenceonLearningRepresentations,2019. arXiv: 1811.06272.
+13
+
+[44] IoanaBica,AhmedM.Alaa,JamesJordon,andMihaelavanderSchaar. EstimatingCounter-
+factualTreatmentOutcomesoverTimeThroughAdversariallyBalancedRepresentations. In
+InternationalConferenceonLearningRepresentations.arXiv,February2020.arXiv:2002.04083
+[cs,stat].
+[45] Pushi Zhang, Li Zhao, Guoqing Liu, Jiang Bian, Minlie Huang, Tao Qin, and Tie-Yan Liu.
+Independence-aware Advantage Estimation. In Proceedings of the Thirtieth International
+JointConferenceonArtificialIntelligence,pages3349–3355,Montreal,Canada,August2021.
+InternationalJointConferencesonArtificialIntelligenceOrganization.
+[46] KennyYoung. VarianceReducedAdvantageEstimationwith$\delta$HindsightCreditAssign-
+ment. arXiv:1911.08362[cs],September2020. arXiv: 1911.08362.
+[47] MichelMaandBaconPierre-Luc. CounterfactualPolicyEvaluationandtheConditionalMonte
+CarloMethod. InOfflineReinforcementLearningWorkshop,NeurIPS,2020.
+[48] PaulBratley,BennettL.Fox,andLinusE.Schrage. AGuidetoSimulation. Springer,New
+York,NY,1987.
+[49] J.M.Hammersley. ConditionalMonteCarlo. JournaloftheACM,3(2):73–76,April1956.
+[50] DilipArumugam,PeterHenderson,andPierre-LucBacon. AnInformation-TheoreticPerspec-
+tiveonCreditAssignmentinReinforcementLearning. arXiv:2103.06224[cs,math],March
+2021. arXiv: 2103.06224.
+[51] KennyYoung. HindsightNetworkCreditAssignment:EfficientCreditAssignmentinNetworks
+ofDiscreteStochasticUnits. ProceedingsoftheAAAIConferenceonArtificialIntelligence,36
+(8):8919–8926,June2022. Number: 8.
+[52] ShixiangGu,TimothyLillicrap,ZoubinGhahramani,RichardE.Turner,andSergeyLevine.
+Q-Prop: Sample-EfficientPolicyGradientwithAnOff-PolicyCritic. 2017.
+[53] PhilipS.ThomasandEmmaBrunskill. PolicyGradientMethodsforReinforcementLearning
+withFunctionApproximationandAction-DependentBaselines,June2017. arXiv:1706.06643
+[cs].
+[54] HaoLiu*,YihaoFeng*,YiMao,DengyongZhou,JianPeng,andQiangLiu. Action-dependent
+ControlVariatesforPolicyOptimizationviaSteinIdentity. February2022.
+[55] CathyWu,AravindRajeswaran,YanDuan,VikashKumar,AlexandreM.Bayen,ShamKakade,
+Igor Mordatch, and Pieter Abbeel. Variance Reduction for Policy Gradient with Action-
+DependentFactorizedBaselines. February2022.
+[56] George Tucker, Surya Bhupatiraju, ShixiangGu, Richard Turner, Zoubin Ghahramani, and
+SergeyLevine. TheMirageofAction-DependentBaselinesinReinforcementLearning. In
+Proceedings of the 35th International Conference on Machine Learning, pages 5015–5024.
+PMLR,July2018. ISSN:2640-3498.
+[57] Chris Nota, Philip Thomas, and Bruno C. Da Silva. Posterior Value Functions: Hindsight
+BaselinesforPolicyGradientMethods. InProceedingsofthe38thInternationalConferenceon
+MachineLearning,pages8238–8247.PMLR,July2021. ISSN:2640-3498.
+[58] ArthurGuez,FabioViola,TheophaneWeber,LarsBuesing,StevenKapturowski,DoinaPrecup,
+David Silver, and Nicolas Heess. Value-driven Hindsight Modelling. Advances in Neural
+InformationProcessingSystems,33,2020.
+[59] DavidVenuto,ElaineLau,DoinaPrecup,andOfirNachum. PolicyGradientsIncorporatingthe
+Future. January2022.
+[60] JiaweiHuangandNanJiang. FromImportanceSamplingtoDoublyRobustPolicyGradient.
+InProceedingsofthe37thInternationalConferenceonMachineLearning,pages4434–4443.
+PMLR,November2020. ISSN:2640-3498.
+[61] AndrewY.Ng,DaishiHarada,andStuartJ.Russell. PolicyInvarianceUnderRewardTrans-
+formations: Theory and Application to Reward Shaping. In Proceedings of the Sixteenth
+InternationalConferenceonMachineLearning,ICML’99,pages278–287,SanFrancisco,CA,
+USA,June1999.MorganKaufmannPublishersInc.
+14
+
+[62] JürgenSchmidhuber. FormalTheoryofCreativity,Fun,andIntrinsicMotivation(1990–2010).
+IEEETransactionsonAutonomousMentalDevelopment,2(3):230–247,September2010.
+[63] MarcBellemare,SriramSrinivasan,GeorgOstrovski,TomSchaul,DavidSaxton,andRemi
+Munos. UnifyingCount-BasedExplorationandIntrinsicMotivation. InAdvancesinNeural
+InformationProcessingSystems,volume29.CurranAssociates,Inc.,2016.
+[64] Yuri Burda, Harrison Edwards, Amos Storkey, and Oleg Klimov. Exploration by random
+networkdistillation. December2018.
+[65] Ofir Marom and Benjamin Rosman. Belief Reward Shaping in Reinforcement Learning.
+ProceedingsoftheAAAIConferenceonArtificialIntelligence,32(1),April2018. Number: 1.
+[66] Farzan Memarian, Wonjoon Goo, Rudolf Lioutikov, Scott Niekum, and Ufuk Topcu.
+Self-Supervised Online Reward Shaping in Sparse-Reward Environments, July 2021.
+arXiv:2103.04529[cs].
+[67] HalitBenerSuay,TimBrys,MatthewE.Taylor,andSoniaChernova. LearningfromDemon-
+stration for Shaping through Inverse Reinforcement Learning. In Proceedings of the 2016
+InternationalConferenceonAutonomousAgents&MultiagentSystems,AAMAS’16,pages
+429–437, Richland, SC, May 2016. International Foundation for Autonomous Agents and
+MultiagentSystems.
+[68] Yuchen Wu, Melissa Mozifian, and Florian Shkurti. Shaping Rewards for Reinforce-
+ment Learning with Imperfect Demonstrations using Generative Models, November 2020.
+arXiv:2011.01298[cs].
+[69] JohnSchulman,NicolasHeess,TheophaneWeber,andPieterAbbeel. GradientEstimation
+UsingStochasticComputationGraphs. InAdvancesinNeuralInformationProcessingSystems,
+volume28.CurranAssociates,Inc.,2015.
+[70] MichelMa,PierlucaD’Oro,YoshuaBengio,andPierre-LucBacon. Long-TermCreditAs-
+signment via Model-based Temporal Shortcuts. In Deep RL Workshop NeurIPS, October
+2021.
+[71] NanRosemaryKe,AnirudhGoyalALIASPARTHGOYAL,OlexaBilaniuk,JonathanBinas,
+MichaelCMozer,ChrisPal,andYoshuaBengio. SparseAttentiveBacktracking: Temporal
+CreditAssignmentThroughReminding. InS.Bengio,H.Wallach,H.Larochelle,K.Grauman,
+N.Cesa-Bianchi,andR.Garnett,editors,AdvancesinNeuralInformationProcessingSystems
+31,pages7640–7651.CurranAssociates,Inc.,2018.
+[72] Tom Schaul, Daniel Horgan, Karol Gregor, and David Silver. Universal Value Function
+Approximators. InProceedingsofthe32ndInternationalConferenceonMachineLearning,
+pages1312–1320.PMLR,June2015. ISSN:1938-7228.
+[73] MarcinAndrychowicz,FilipWolski,AlexRay,JonasSchneider,RachelFong,PeterWelinder,
+BobMcGrew,JoshTobin,OpenAIPieterAbbeel,andWojciechZaremba.HindsightExperience
+Replay. InAdvancesinNeuralInformationProcessingSystems,volume30.CurranAssociates,
+Inc.,2017.
+[74] PauloRauber,AvinashUmmadisingu,FilipeMutz,andJürgenSchmidhuber. Hindsightpolicy
+gradients. December2018.
+[75] AnirudhGoyal,PhilemonBrakel,WilliamFedus,SoumyeSinghal,TimothyLillicrap,Sergey
+Levine,HugoLarochelle,andYoshuaBengio. RecallTraces:BacktrackingModelsforEfficient
+Reinforcement Learning. In International Conference on Learning Representations. arXiv,
+January2019. arXiv:1804.00379[cs,stat].
+[76] JuergenSchmidhuber. ReinforcementLearningUpsideDown: Don’tPredictRewards–Just
+MapThemtoActions,June2020. arXiv:1912.02875[cs].
+[77] Rupesh Kumar Srivastava, Pranav Shyam, Filipe Mutz, Wojciech Jas´kowski, and Jürgen
+Schmidhuber. TrainingAgentsusingUpside-DownReinforcementLearning,September2021.
+arXiv:1912.02877[cs].
+15
+
+[78] LiliChen,KevinLu,AravindRajeswaran,KiminLee,AdityaGrover,MishaLaskin,Pieter
+Abbeel,AravindSrinivas,andIgorMordatch. DecisionTransformer: ReinforcementLearning
+viaSequenceModeling. InAdvancesinNeuralInformationProcessingSystems,volume34,
+pages15084–15097.CurranAssociates,Inc.,2021.
+[79] Michael Janner, Qiyang Li, and Sergey Levine. Offline Reinforcement Learning as One
+Big Sequence Modeling Problem. In Advances in Neural Information Processing Systems,
+volume34,pages1273–1286.CurranAssociates,Inc.,2021.
+[80] Richard S. Sutton. Learning to predict by the methods of temporal differences. Machine
+Learning,3(1):9–44,August1988.
+[81] HadovanHasselt, SephoraMadjiheurem, MatteoHessel, DavidSilver, AndréBarreto, and
+DianaBorsa. ExpectedEligibilityTraces. InAssociationfortheAdvancementofArtificial
+Intelligence.arXiv,February2021. arXiv:2007.01839[cs,stat].
+[82] IgorBabuschkin,KateBaumli,AlisonBell,SuryaBhupatiraju,JakeBruce,PeterBuchlovsky,
+DavidBudden,TrevorCai,AidanClark,IvoDanihelka,AntoineDedieu,ClaudioFantacci,
+JonathanGodwin,ChrisJones,RossHemsley,TomHennigan,MatteoHessel,ShaoboHou,
+Steven Kapturowski, Thomas Keck, Iurii Kemaev, Michael King, Markus Kunesch, Lena
+Martens, Hamza Merzic, Vladimir Mikulik, Tamara Norman, George Papamakarios, John
+Quan,RomanRing,FranciscoRuiz,AlvaroSanchez,RosaliaSchneider,ErenSezener,Stephen
+Spencer,SrivatsanSrinivasan,WojciechStokowiec,LuyuWang,GuangyaoZhou,andFabio
+Viola. TheDeepMindJAXEcosystem,2020.
+[83] Alexander A. Alemi, Ian Fischer, Joshua V. Dillon, and Kevin Murphy. Deep Variational
+InformationBottleneck. 2017.
+[84] NaftaliTishby,FernandoC.Pereira,andWilliamBialek. Theinformationbottleneckmethod,
+April2000. arXiv:physics/0004057.
+[85] Matthew Hausknecht and Peter Stone. Deep Recurrent Q-Learning for Partially Observ-
+able MDPs. In Association for the Advancement of Artificial Intelligence. arXiv, 2015.
+arXiv:1507.06527[cs].
+[86] DanijarHafner,TimothyLillicrap,IanFischer,RubenVillegas,DavidHa,HonglakLee,and
+JamesDavidson. LearningLatentDynamicsforPlanningfromPixels. InProceedingsofthe
+36thInternationalConferenceonMachineLearning, pages2555–2565.PMLR,May2019.
+ISSN:2640-3498.
+[87] KarolGregor,DaniloJimenezRezende,FredericBesse,YanWu,HamzaMerzic,andAaron
+vandenOord. ShapingBeliefStateswithGenerativeEnvironmentModelsforRL. In33rd
+Conference on Neural Information Processing Systems (NeurIPS 2019). arXiv, June 2019.
+Number: arXiv:1906.09237arXiv:1906.09237[cs,stat].
+[88] Karol Gregor, George Papamakarios, Frederic Besse, Lars Buesing, and Theophane Weber.
+TemporalDifferenceVariationalAuto-Encoder. 2019.
+[89] MatthijsTJSpaan. PartiallyObservableMarkovDecisionProcesses. ReinforcementLearning,
+page27.
+[90] K.J.Astrom. OptimalControlofMarkovdecisionprocesseswithincompletestateestimation.
+J.Math.Anal.Applic.,10:174–205,1965.
+[91] EdwardC.Tolman. Cognitivemapsinratsandmen. PsychologicalReview,55:189–208,1948.
+Place: USPublisher: AmericanPsychologicalAssociation.
+[92] Alexander A. Alemi, Ben Poole, Ian Fischer, Joshua V. Dillon, Rif A. Saurous, and Kevin
+Murphy. FixingaBrokenELBO. InProceedingsofthe35thInternationalConferenceon
+MachineLearning,.arXiv,February2018. arXiv:1711.00464[cs,stat].
+[93] IrinaHiggins,LoicMatthey,ArkaPal,ChristopherBurgess,XavierGlorot,MatthewBotvinick,
+ShakirMohamed,andAlexanderLerchner. beta-VAE:LearningBasicVisualConceptswitha
+ConstrainedVariationalFramework. July2022.
+16
+
+[94] DiederikP.KingmaandMaxWelling. Auto-EncodingVariationalBayes. arXiv,May2014.
+Number: arXiv:1312.6114arXiv:1312.6114[cs,stat].
+[95] JamesBradbury,RoyFrostig,PeterHawkins,MatthewJamesJohnson,ChrisLeary,Dougal
+Maclaurin,GeorgeNecula,AdamPaszke,JakeVanderPlas,SkyeWanderman-Milne,andQiao
+Zhang. JAX:composabletransformationsofPython+NumPyprograms,2018.
+[96] LukasBiewald. ExperimentTrackingwithWeightsandBiases,2020.
+[97] PlotlyTechnologiesInc. Collaborativedatascience, 2015. Place: Montreal, QCPublisher:
+PlotlyTechnologiesInc.
+17
+
+Supplementary Materials
+Table of Contents
+A Relatedwork 2
+B Undiscountedinfinite-horizonMDPs 3
+C Theorems,proofsandadditionalinformationforSection3 4
+C.1 Contributioncoefficients,hindsightdistributionandgraphicalmodels . . . . . . 4
+C.2 ProofTheorem1. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 4
+C.3 Differentpolicygradientestimatorsleveragingcontributioncoefficients. . . . . . 6
+C.4 ProofofProposition2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+C.5 ProofTheorem3. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+C.6 ProofofTheorem4 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+D Learningthecontributioncoefficients 9
+D.1 ProofProposition5 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+D.2 Learningcontributioncoefficientsviacontrastiveclassification. . . . . . . . . . 10
+D.3 Successorrepresentations. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+E Experimentaldetailsandadditionalresults 11
+E.1 Algorithms . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+E.2 Dynamicprogrammingsetup . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+E.3 Bias,varianceandSNRmetrics . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+E.4 Linearkey-to-doorenvironmentsetup . . . . . . . . . . . . . . . . . . . . . . . 14
+E.5 Rewardswitchingsetup . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+E.6 Treeenvironmentsetup . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+E.7 Taskinterleavingenvironmentsetup. . . . . . . . . . . . . . . . . . . . . . . . 15
+E.8 Trainingdetails . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16
+F Additionalresults 19
+F.1 HCAvsHCA+ . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 19
+F.2 Learnedcreditassignmentfeaturesallowforquickadaptationtoachangeofthe
+rewardfunction. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 19
+F.3 Usingreturnsinsteadofrewardsashindsightinformation . . . . . . . . . . . . 20
+F.4 Investigationintotherequiredaccuracyofthehindsightmodels . . . . . . . . . 21
+G ContributionanalysisincontinuousspacesandPOMDPs 21
+G.1 Spuriouscontributionsincontinuousstatespaces . . . . . . . . . . . . . . . . . 22
+G.2 Deterministiccontinuousrewardfunctionscanleadtoexcessivevariance . . . . 22
+G.3 Smoothingcanalleviateexcessvariancebytradingvarianceforbias . . . . . . . 23
+G.4 Continuousactionspaces . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 24
+G.5 PartiallyObservableMDPs . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25
+H Learningcontributioncoefficientsfromnon-rewardingobservations 26
+H.1 Latentlearning. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 26
+H.2 Optimalrewardingoutcomeencodingsforcreditassignment. . . . . . . . . . . 26
+H.3 Counterfactualreasoningonrewardingstates . . . . . . . . . . . . . . . . . . . 26
+H.4 Learningcreditassignmentrepresentationswithaninformationbottleneck. . . . 27
+I Contributionanalysisandcausality 28
+I.1 CausalinterpretationofCOCOA . . . . . . . . . . . . . . . . . . . . . . . . . 28
+1
+
+I.2 ExtendingCOCOAtocounterfactualinterventions . . . . . . . . . . . . . . . . 29
+J Contributionanalysiswithtemporaldiscounting 30
+K BootstrappingwithCOCOA 30
+L HCA-returnisabiasedestimatorinmanyrelevantenvironments 33
+L.1 HCA-return . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33
+L.2 HCA-returncanbebiased . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33
+M Additionaldetails 34
+M.1 Authorcontributions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 34
+M.2 Computeresources . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 34
+M.3 Softwareandlibraries . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 34
+A Relatedwork
+Our work builds upon Hindsight Credit Assignment (HCA) [1] which has sparked a number of
+follow-upstudies. WegeneralizethetheoryofHCAtowardsestimatingcontributionsuponrewarding
+outcomesinsteadofrewardingstatesandshowthroughadetailedvarianceanalysisthatHCAsuffers
+fromspuriouscontributionsleadingtohighvariance,whileusingrewardsorrewardingobjectsas
+rewardingoutcomeencodingsleadstolow-variancegradientestimators. Follow-upworkonHCA
+discussesitspotentialhighvarianceinconstructedtoysettings,andreducesthevarianceoftheHCA
+advantageestimatesbycombiningitwithMonteCarloestimates[45]orusingtemporaldifference
+errors instead of rewards [46]. Alipov et al. [29] leverages the latter approach to scale up HCA
+towardsmorecomplexenvironments. However,alloftheaboveapproachesstillsufferfromspurious
+contributions, asignificantsourceofvarianceintheHCAgradientestimator. Inaddition, recent
+studieshavetheoreticallyreinterpretedtheoriginalHCAformulationfromdifferentangles: Maand
+Pierre-Luc[47]createthelinktoConditionalMonteCarlomethods[48,49]andArumugametal.
+[50]provideaninformationtheoreticperspectiveoncreditassignment. Moreover,Young[51]applies
+HCAtotheproblemofestimatinggradientsinneuralnetworkswithstochastic,discreteunits.
+Long-termcreditassignmentinRLishardduetothehighvarianceofthesumoffuturerewardsfor
+longtrajectories. Acommontechniquetoreducetheresultingvarianceinthepolicygradientsis
+tosubtractabaselinefromthesumoffuturerewards[6–9]. Tofurtherreducethevariance,aline
+ofworkintroducedstate-action-dependentbaselines[52–55]. However,Tuckeretal.[56]argues
+that these methods offer only a small benefit over the conventional state-dependent baselines, as
+thecurrentactionoftenonlyaccountsforaminorfractionofthetotalvariance. Morerecentwork
+proposesimprovedbaselinesbyincorporatinghindsightinformationaboutthefuturetrajectoryinto
+the baseline, accounting for a larger portion of the variance [1, 3, 34, 57–60].Cheng et al. [34]
+includesQ-valueestimatesoffuturestate-actionpairsintothebaseline,andHuangandJiang[60]
+goes one step further by also including cheap estimates of the future Q-value gradients.Mesnard
+etal.[3]learnasummarymetricoftheuncontrollable,externalenvironmentinfluencesinthefuture
+trajectory, and provide this hindsight information as an extra input to the value baseline. Nota
+etal.[57]considerpartiallyobservableMDPs,andleveragethefuturetrajectorytomoreaccurately
+inferthecurrentunderlyingMarkovstate,therebyprovidingabettervaluebaseline. Harutyunyan
+etal.[1]proposereturn-HCA,adifferentvariantofHCAthatusesareturn-conditionedhindsight
+distributiontoconstructabaseline,insteadofusingstate-basedhindsightdistributionsforestimating
+contributions. Finally,Guezetal.[58]andVenutoetal.[59]learnasummaryrepresentationofthe
+fullfuturetrajectoryandprovideitasinputtothevaluefunction,whileimposinganinformation
+bottlenecktopreventthevaluefunctionfromoverlyrelyingonthishindsightinformation.
+Environmentswithsparserewardsandlongdelaysbetweenactionsandcorrespondingrewardsput
+a high importance on long-term credit assignment. A popular strategy to circumvent the sparse
+anddelayedrewardsettingistointroducerewardshaping[61–68]. Theseapproachesaddauxiliary
+rewardstothesparserewardfunction,aimingtoguidethelearningofthepolicywithdenserewards.
+Arecentlineofworkintroducesareward-shapingstrategyspecificallydesignedforlong-termcredit
+assignment,whererewardsaredecomposedanddistributedoverpreviousstate-actionpairsthatwere
+instrumentalinachievingthatreward[4,5,32,35–41]. Todeterminehowtoredistributerewards,
+2
+
+theseapproachesrelyonheuristiccontributionanalyses,suchasviatheaccessofmemorystates[4],
+lineardecompositionsofrewards[32,35–39]orlearnedsequencemodels[5,40,41]. Leveraging
+ourunbiasedcontributionanalysisframeworktoreachmoreoptimalrewardtransportisapromising
+directionforfutureresearch.
+Whenwehaveaccesstoa(learned)differentiableworldmodeloftheenvironment,wecanachieve
+precisecreditassignmentbyleveragingpath-wisederivatives,i.e. backpropagatingvaluegradients
+through the world model [20–24, 69]. For stochastic world models, we need access to the noise
+variablestocomputethepath-wisederivatives. TheDreameralgorithms[21–23]approachthisby
+computingthevaluegradientsonsimulatedtrajectories,wherethenoiseisknown. TheStochastic
+ValueGradient(SVG)method[20]insteadinfersthenoisevariablesonrealobservedtrajectories. To
+enablebackpropagatinggradientsoverlongtimespans,Maetal.[70]equipthelearnedrecurrent
+worldmodelsofSVGwithanattentionmechanism,allowingtheauthorstoleverageSparseAttentive
+Backtracking [71] to transmit gradients through skip connections. Buesing et al. [43] leverages
+theinsightsfromSVGinpartiallyobservableMDPs,usingtheinferrednoisevariablestoestimate
+theeffectofcounterfactualpoliciesontheexpectedreturn. Importantly,thepath-wisederivatives
+leveragedbytheabovemodel-basedcreditassignmentmethodsarenotcompatiblewithdiscrete
+actionspaces,assensitivitiesw.r.t. discreteactionsareundefined. Incontrast,COCOAcanleverage
+model-basedinformationforcreditassignment,whilebeingcompatiblewithdiscreteactions.
+Incorporating hindsight information has a wide variety of applications in RL. Goal-conditioned
+policies[72]useagoalstateasadditionalinputtothepolicynetworkorvaluefunction, thereby
+generalizingittoarbitrarygoals. HindsightExperienceReplay[73]leverageshindsightreasoningto
+learnalmostasmuchfromundesiredoutcomesasfromdesiredones,asathindsight,wecanconsider
+everyfinal,possiblyundesiredstateasa‘goal’stateandupdatethevaluefunctionsorpolicynetwork
+[74]accordingly. Goyaletal.[75]trainaninverseenvironmentmodeltosimulatealternativepast
+trajectoriesleadingtothesamerewardingstate,henceleveraginghindsightreasoningtocreatea
+varietyofhighlyrewardingtrajectories. ArecentlineofworkframesRLasasupervisedsequence
+predictionproblem,learningapolicyconditionedongoalstatesorfuturereturns[76–79]. These
+modelsaretrainedonpasttrajectoriesorofflinedata,wherewehaveinhindsightaccesstostatesand
+returns,consideringthemastargetsforthelearnedpolicy.
+Finally,TemporalDifference(TD)learning[80]hasarichhistoryofleveragingproximityintime
+asaproxyforcreditassignment[2]. TD(λ)[80]considerseligibilitytracestotradeoffbiasand
+variance,creditingpaststate-actionpairsinthetrajectoryforthecurrentrewardproportionaltohow
+closetheyareintime. vanHasseltetal.[81]estimateexpectedeligibilitytraces,takingintoaccount
+thatthesamerewardingstatecanbereachedfromvariouspreviousstates. Hence,notonlythepast
+state-actionsonthetrajectoryarecreditedandupdated,butalsocounterfactualonesthatleadtothe
+samerewardingstate. ExtendingtheinsightsfromCOCOAtowardstemporaldifferencemethodsis
+anexcitingdirectionforfutureresearch.
+B Undiscountedinfinite-horizonMDPs
+Inthiswork,weconsideranundiscountedMDPwithafinitestatespaceS,boundedrewardsand
+aninfinitehorizon. Toensurethattheexpectedreturnandvaluefunctionsremainfinite,werequire
+somestandardregularityconditions[2]. WeassumetheMDPcontainsanabsorbingstates that
+∞
+transitions only to itself and has zero reward. Moreover, we assume proper transition dynamics,
+meaningthatanagentfollowinganypolicywilleventuallyendupintheabsorbingstates with
+∞
+probabilityoneastimegoestoinfinity.
+ThediscountedinfinitehorizonMDPformulationisaspecialcaseofthissetting,withaspecific
+classoftransitiondynamics. Anexplicitdiscountingoffuturerewards (cid:80) γkR withdiscount
+k≥o k
+factorγ ∈[0,1],isequivalenttoconsideringtheaboveundiscountedMDPsetting,butmodifying
+thestatetransitionprobabilityfunctionp(S |S ,A )suchthateachstate-actionpairhasafixed
+t+1 t t
+probability(1−γ)oftransitioningtotheabsorbingstate[2]. Hence,alltheresultsconsideredinthis
+workcanbereadilyappliedtothediscountedMDPsetting,bymodifyingtheenvironmenttransitions
+asoutlinedabove. Wecanalsoexplicitlyincorporatetemporaldiscountinginthepolicygradients
+andcontributioncoefficients,whichweoutlineinApp.J.
+Theundiscountedinfinite-horizonMDPwithanabsorbingstatecanalsomodelepisodicRLwitha
+fixedtimehorizon. WecanincludetimeasanextrafeatureinthestatesS,andthenhaveaprobability
+of1totransitiontotheabsorbingstatewhentheagentreachesthefinaltimestep.
+3
+
+(a) (b)
+Figure6: (a)GraphicalmodeloftheMDP.(b)GraphicalmodeloftheMDP,whereweabstracted
+time.
+C Theorems,proofsandadditionalinformationforSection3
+C.1 Contributioncoefficients,hindsightdistributionandgraphicalmodels
+Here,weprovidemoreinformationonthederivationofthecontributioncoefficientsofEq.3.
+Abstractingtime. Inanundiscountedenvironment,itdoesnotmatteratwhichpointintimethe
+agent achieves the rewarding outcome u′. Hence, the contribution coefficients (3) sum over all
+futuretimesteps, toreflectthattherewardingoutcomeu′ canbeencounteredatanyfuturetime,
+andtoincorporatethepossibilityofencounteringu′multipletimes. Notethatwhenusingtemporal
+discounting,wecanadjustthecontributioncoefficientsaccordingly(c.f. AppJ).
+Hindsight distribution. To obtain the hindsight distribution p(A = a | S = s,U′ = u′), we
+t t
+converttheclassicalgraphicalmodelofanMDP(c.f.Fig.6a)intoagraphicalmodelthatincorporates
+thetimek intoaseparatenode(c.f. Fig. 6b). Here,werewritep(U = u′ | S = s,A = a),the
+k
+probabilitydistributionofarewardingoutcomeU k timestepslater,asp(U′ = u′ | S = s,A =
+k
+a,K =k). BygivingK thegeometricdistributionp(K =k)=(1−β)βk−1 forsomeβ,wecan
+rewritetheinfinitesumsusedinthetime-independentcontributioncoefficientsasamarginalization
+overK:
+(cid:88) (cid:88)
+p(U =u′ |S =s,A=a)= lim p(U =u′ |S =s,A=a)βk−1 (5)
+k k
+β→1
+k≥1 k≥1
+1 (cid:88)
+= lim p(U′ =u′ |S =s,A=a,K =k)p(K =k)
+β→11−β
+k≥1
+(6)
+1
+= lim p(U′ =u′ |S =s,A=a) (7)
+β→11−β
+Notethatthislimitisfinite,asfork → ∞,theprobabilityofreachinganabsorbingstates and
+∞
+correspondingrewardingoutcomeu goesto1(andwetakeu′ ̸= u ). ViaBayesrule,wethen
+∞ ∞
+havethat
+(cid:80) p(U =u′ |S =s,A=a)
+w(s,a,u′)= k≥1 k −1 (8)
+(cid:80) p(U =u′ |S =s)
+k≥1 k
+p(U′ =u′ |S =s,A=a) p(A=a|S =s,U′ =u′)
+= −1= −1 (9)
+p(U′ =u|S =s) π(a|s)
+whereweassumeπ(a|s)>0andwherewedroppedthelimitofβ →1inthenotation,aswewill
+alwaystakethislimithenceforth.Notethatwhenπ(a|s)=0,thehindsightdistributionpπ(a|s,u′)
+isalsoequaltozero,andhencetheright-hand-sideoftheaboveequationisundefined. However,
+themiddletermusingpπ(U = u′ | S = s,A = a)isstillwell-defined,andhencewecanusethe
+contributioncoefficientsevenforactionswhereπ(a|s)=0.
+C.2 ProofTheorem1
+Westartwithalemmashowingthatthecontributioncoefficientscanbeusedtoestimatetheadvantage
+Aπ(s,a)=Qπ(s,a)−Vπ(s),bygeneralizingTheorem1ofHarutyunyanetal.[1]towardsrewarding
+outcomes.
+Definition3(Fullypredictive,repeatedfrommaintext). ArewardingoutcomeencodingU isfully
+predictiveoftherewardR,ifthefollowingconditionalindependenceconditionholds: pπ(R =r |
+k
+4
+
+S =s,A =a,U =u)=pπ(R=r |U =u),wheretheright-handsidedoesnotdependonthe
+0 0 k
+timek.
+Lemma6. Foreachstate-actionpair(s,a)withπ(a|s)>0,andassumingthatu=f(s,a,r)is
+fullypredictiveofthereward(c.f. Definition3),wehavethat
+ 
+(cid:88) (cid:88)
+Aπ(s,a)=r(s,a)− π(a|s)r(s,a)+E T∼T(s,π) w(s,a,U k )R k (10)
+a′∈A k≥1
+withtheadvantagefunctionAπ,andtherewardfunctionr(s,a)≜E[R|s,a].
+Proof. Werewritetheundiscountedstate-actionvaluefunctioninthelimitofadiscountingfactor
+β →1 (theminussignindicatingthatweapproach1fromtheleft):
+−
+ 
+(cid:88)
+Q(s,a)= lim E T∼T(s,a,π) βkR k (11)
+β→1−
+k≥1
+(cid:88)(cid:88)
+=r(s,a)+ lim βkpπ(R =r |s,a)r (12)
+k
+β→1−r∈Rk≥1
+(cid:88) (cid:88)(cid:88)
+=r(s,a)+ lim βkpπ(R =r,U =u|s,a)r (13)
+k k
+β→1−r∈Ru∈Uk≥1
+(cid:88) (cid:88)(cid:88)
+=r(s,a)+ lim βkpπ(R=r |U =u)rpπ(U =u|s,a) (14)
+k
+β→1−r∈Ru∈Uk≥1
+(cid:88) (cid:88)
+=r(s,a)+ lim r(u) βkpπ(U =u|s,a) (15)
+k
+β→1−u∈U
+k≥1
+=r(s,a)+ lim (cid:88) r(u) (cid:88) βkpπ(U =u|s) (cid:80) k′≥1 βk′pπ(U k′ =u|s,a) (16)
+β→1−u∈U k≥1 k (cid:80) k′≥1 βk′pπ(U k′ =u|s)
+whereweusethepropertythatuisfullypredictiveofthereward(c.f. Definition2),andwherewe
+definer(s,a) ≜ E[R | s,a]andr(u) ≜ E[R | u]UsingthegraphicalmodelofFig.6bwherewe
+abstracttimek(c.f. App.C.1),wehavethat 1 pπ(R = r′ | s,a) = (cid:80) βkpπ(R = r | s,a).
+1−β β k=0 k
+LeveragingBayesrule,weget
+pπ(U′ =u|s,a)π(a|s) (cid:80) βkpπ(U =u|s,a)
+pπ(a|s,U′ =u)= lim β = lim k≥1 k π(a|s)
+β→1− pπ β (U′ =u|s) β→1− (cid:80) k≥1 βkpπ(U k =u|s)
+(17)
+Wherewedroppedthelimitofβ →1 inthenotationofpπ(a|s,R=r),aswehenceforthalways
+−
+considerthislimit. Takingeverythingtogether,wehavethat
+(cid:88)(cid:88) pπ(a|s,U′ =u)
+Qπ(s,a)=r(s,a)+ pπ(U =u|s) r(u) (18)
+k π(a|s)
+u∈Uk≥1
+(cid:88)(cid:88)
+=r(s,a)+ pπ(U =u|s)(w(s,a,u)+1)r(u) (19)
+k
+u∈Uk≥1
+(cid:88)(cid:88) (cid:88)
+=r(s,a)+ pπ(U =u|s)(w(s,a,u)+1) p(R =r |U =u)r (20)
+k k k
+u∈Uk≥1 r∈R
+ 
+(cid:88)
+=r(s,a)+E T∼T(s,π) (w(s,a,U k )+1)R k (21)
+k≥1
+Subtractingthevaluefunction,weget
+ 
+(cid:88) (cid:88)
+Aπ(s,a)=r(s,a)− π(a′ |s)r(s,a′)+E T∼T(s,π) w(s,a,U k )R k (22)
+a′∈A k≥1
+5
+
+NowwearereadytoproveTheorem1.
+Proof. Usingthepolicygradienttheorem[26],wehave
+ 
+(cid:88)(cid:88)
+∇ θ Vπ(s 0 )=E T∼T(s0,π) ∇ θ π(a|S t )Aπ(S t ,a) (23)
+t≥0a∈A
+  
+(cid:88)(cid:88) (cid:88)
+=E T∼T(s0,π) ∇ θ π(a|S t )r(S t ,a)+ w(S t ,a,U t+k )R t+k (24)
+t≥0a∈A k≥1
+ 
+(cid:88) (cid:88) (cid:88)
+=E T∼T(s0,π) ∇ θ logπ(A t |S t )R t + ∇ θ π(a|S t ) w(S t ,a,U t+k )R t+k
+t≥0 a∈A k≥1
+(25)
+where we used that removing a baseline (cid:80) π(a′ | s)r(s,a′) independent from the actions
+a′∈A
+(cid:80)
+doesnotchangethepolicygradient, andreplacedE [ ∇ π(a | S )r(S ,a)]byits
+T∼T(s0,π) a∈A θ t t
+sampledversionE [∇ logπ(A |S )R ]. HencethepolicygradientestimatorofEq.4is
+T∼T(s0,π) θ t t t
+unbiased.
+C.3 Differentpolicygradientestimatorsleveragingcontributioncoefficients.
+In this work, we use the COCOA estimator of Eq. 4 to estimate policy gradients leveraging the
+contributioncoefficientsofEq.3,asthisestimatordoesnotneedaseparaterewardmodel,andit
+workswellforthesmallactionspacesweconsideredinourexperiments. However,onecandesign
+otherunbiasedpolicygradientestimatorscompatiblewiththesamecontributioncoefficients.
+Harutyunyanetal.[1]introducedtheHCAgradientestimatorofEq.2,whichcanreadilybeextended
+torewardingoutcomesU:
+∇ˆ Vπ = (cid:88)(cid:88) ∇ π(a|S ) (cid:16) r(S ,a)+ (cid:88) w(S ,a,U )R (cid:17) (26)
+θ θ t t t t+k t+k
+t≥0a∈A k≥1
+Thisgradientestimatorusesarewardmodelr(s,a)toobtaintherewardscorrespondingtocounter-
+factualactions,whereastheCOCOAestimator(4)onlyusestheobservedrewardsR .
+k
+Forlargeactionspaces,itmightbecomecomputationallyintractabletosumoverallpossibleactions.
+Inthiscase,wecansampleindependentactionsfromthepolicy,insteadofsummingoverallactions,
+leadingtothefollowingpolicygradient.
+∞
+∇ˆ Vπ = (cid:88) ∇ logπ(A |S )R + 1 (cid:88) ∇ logπ(am |S ) (cid:88) w(S ,am,U )R (27)
+θ θ t t t M θ t t t+k t+k
+t≥0 m k=1
+wherewesampleM actionsfromam ∼ π(· | S ). Importantly,forobtaininganunbiasedpolicy
+t
+gradient estimate, the actions am should be sampled independently from the actions used in the
+trajectoryoftheobservedrewardsR . Hence,wecannottaketheobservedA asasampleam,but
+t+k t
+needtoinsteadsampleindependentlyfromthepolicy. Thispolicygradientestimatorcanbeused
+forcontinuousactionspaces(c.f. App.G,andcanalsobecombinedwiththerewardmodelasin
+Eq.26.
+Onecanshowthattheabovepolicygradientestimatorsareunbiasedwithaproofakintotheoneof
+Theorem1.
+ComparisonofCOCOAtousingtimeasacreditassignmentheuristic. InSection2wediscussed
+brieflythefollowingdiscountedpolicygradient:
+∇ˆREINFORCE,γVπ(s )= (cid:88) ∇ logπ(A |S ) (cid:88) γk−tR (28)
+θ 0 t≥0 θ t t k≥t k
+with discount factor γ ∈ [0,1]. Note that we specifically put no discounting γt in front of
+∇ logπ(A | S ), which would be required for being an unbiased gradient estimate of the dis-
+θ t t
+countedexpectedtotalreturn,astheaboveformulationismostusedinpractice[12,27]. Rewriting
+6
+
+thesummationsrevealsthatthispolicygradientusestimeasaheuristicforcreditassignment:
+∇ˆREINFORCE,γVπ(s )= (cid:88) R (cid:88) γt−k∇ logπ(A |S ). (29)
+θ 0 t≥0 t k≤t θ k k
+WecanrewritetheCOCOAgradientestimator(4)withthesamereorderingofsummation,showcasing
+thatitleveragesthecontributioncoefficientforprovidingprecisecredittopastactions,insteadof
+usingthetimediscountingheuristic:
+(cid:34) (cid:35)
+∇ˆUVπ(s )= (cid:88) R ∇ logπ(A |S )+ (cid:88)(cid:88) w(S ,a,U )∇ π(a|S ) (30)
+θ 0 t θ t t k t θ k
+t≥0 k<ta∈A
+C.4 ProofofProposition2
+Proof. Proposition2assumesthateachactionsequence{A }t+k leadstoauniquestates′. Hence,
+m m=t
+allpreviousactionscanbedecoded perfectlyfromthestate s′, leadingtopπ(A = a | S ,S′ =
+t t
+s′)=δ(a=a ),withδtheindicatorfunctionanda theactiontakeninthetrajectorythatledtos′.
+t t
+FillingthisintotheCOCOAgradientestimatorleadsto
+(cid:18) (cid:19)
+∇ˆSVπ(s )= (cid:88) ∇ logπ(A |S )R + (cid:88) ∇ π(a|S ) (cid:88) δ(a=A t ) −1 R (31)
+θ 0 θ t t t θ t π(a|S ) t+k
+t
+t≥0 a∈A k≥1
+=
+(cid:88)∇
+θ
+π(A
+t
+|S
+t
+)(cid:88)
+R (32)
+π(A |S ) t+k
+t t
+t≥0 k≥0
+(cid:88) (cid:88)
+= ∇ logπ(A |S ) R (33)
+θ t t t+k
+t≥0 k≥0
+(cid:80)
+whereweusedthat ∇ π(a|s)=0.
+a θ
+C.5 ProofTheorem3
+Proof. Theorem3considersthecasewheretheenvironmentonlycontainsarewardatthefinaltime
+stept=T,andwhereweoptimizethepolicyonlyonasingle(initial)timestept=0. Then,the
+policygradientsaregivenby
+∇ˆUVπ(U ,R )= (cid:88) ∇ π(a|s)w(s,a,U )R (34)
+θ T T θ T T
+a
+∇ˆREINFORCEVπ(A ,R )=∇ logπ(A |s)R (35)
+θ 0 T θ 0 T
+With U either S, R or Z, and s the state at t = 0. As only the last time step can have a reward
+by assumption, and the encoding U needs to retain the predictive information of the reward, the
+contributioncoefficientsforucorrespondingtoanonzerorewardareequalto
+pπ(A =a|S =s,U =u)
+w(s,a,u)= 0 0 T −1 (36)
+π(a|s)
+The coefficients corresponding to zero-reward outcomes are multiplied with zero in the
+gradient estimator, and can hence be ignored. Now, we proceed by showing that
+E[∇ˆREINFORCEVπ(A ,R ) | S ,R ] = ∇ˆSVπ(S ,R ), E[∇ˆSVπ(S ,R ) | U′,R ] =
+θ 0 T T T θ T T θ T T T T
+∇ˆU′Vπ(U′,R ), E[∇ˆU′Vπ(U′,R ) | U ,R ] = ∇ˆUVπ(U ,R ) , and E[∇ˆUVπ(U ,R ) |
+θ T T θ T T T T θ T T θ T T
+R ]=∇ˆRVπ(R ),afterwhichwecanusethelawoftotalvariancetoproveourtheorem.
+T θ T
+As S is fully predictive of R , the following conditional independence holds pπ(A | S =
+T T 0 0
+s,S ,R )=pπ(A |S =s,S )(c.f. Definition2). Hence,wehavethat
+T T 0 0 T
+E[∇ˆREINFORCEVπ(A ,R )|S ,R ] (37)
+θ 0 T T T
+= (cid:88) p(A =a|S =s,S ) ∇ θ π(a|s) R =∇ˆSVπ(S ,R ) (38)
+0 0 T π(a|s) T θ T T
+a∈A
+(cid:80) (cid:80)
+whereweusedthat ∇ π(a|s)=∇ π(a|s)=0.
+a θ θ a
+7
+
+Similarly,asS isfullypredictiveofU′ (c.f. Definition2),wehavethat
+T T
+(cid:88)
+p(A|S,U′)= p(S =s |S,U′)p(A|S,S =s ,U′) (39)
+T T T T T T T
+sT∈S
+(cid:88)
+= p(S =s |S,U′)p(A|S,S =s ) (40)
+T T T T T
+sT∈S
+Usingtheconditionalindependencerelationpπ(S | S ,U′,R ) = pπ(S | S ,U′),following
+T 0 T T T 0 T
+fromd-separationinFig.6b,thisleadsusto
+E[∇ˆSVπ(S ,R )|U′,R ] (41)
+θ T T T T
+= (cid:88) (cid:88) p(S =s |S =s,U′)p(A =a|S =s,S =s ) ∇ θ π(a|s) R (42)
+T T 0 T 0 T T π(a|s) T
+a∈AsT∈S
+= (cid:88) p(A =a|S =s,U′) ∇ θ π(a|s) R (43)
+0 T π(a|s) T
+a∈A
+=∇ˆU′ Vπ(U′,R ) (44)
+θ T T
+Usingthesamederivationleveragingthefullypredictiveproperties(c.f. Definition2),weget
+E[∇ˆU′ Vπ(U′,R )|U ,R ]=∇ˆUVπ(U ,R ) (45)
+θ T T T T θ T T
+E[∇ˆUVπ(U ,R )|R ]=∇ˆRVπ(R ) (46)
+θ T T T θ T
+Nowwecanusethelawoftotalvariance,whichstatesthatV[X] = E[V[X | Y]]+V[E[X | Y]].
+Hence,wehavethat
+V[∇ˆREINFORCEVπ]=V[E[∇ˆREINFORCEVπ |S ]]+E[V[∇ˆREINFORCEVπ |S ]] (47)
+θ θ T θ T
+=V[∇ˆSVπ]+E[V[∇ˆREINFORCEVπ |S ]]≽V[∇ˆSVπ] (48)
+θ θ T θ
+asE[V[∇ˆREINFORCEVπ | S ]]ispositivesemidefinite. Usingthesameconstructionfortheother
+θ T
+pairs,wearriveat
+V[∇ˆRVπ(s )]≼V[∇ˆUVπ(s )]≼V[∇ˆU′ Vπ(s )]≼V[∇ˆSVπ(s )]≼V[∇ˆREINFORCEVπ(s )]
+θ 0 θ 0 θ 0 θ 0 θ 0
+(49)
+therebyconcludingtheproof.
+Additionalempiricalverification. Togetmoreinsightintohowtheinformationcontentofthe
+rewarding-outcomeencodingU relatestothevarianceoftheCOCOAgradientestimator,werepeat
+theexperimentofFig.2,butnowplotthevarianceasafunctionoftheamountofinformationinthe
+rewardingoutcomeencodings,forafixedstateoverlapof3. Fig.7showsthatthevarianceofthe
+resultingCOCOAgradientestimatorsinterpolatebetweenCOCOA-rewardandHCA+,withmore
+informativeencodingsleadingtoahighervariance. Theseempiricalresultsshowthattheinsights
+ofTheorem3holdinthismoregeneralsettingofestimatingfullpolicygradientsinanMDPwith
+randomrewards.
+C.6 ProofofTheorem4
+Proof. Thisprooffollowsasimilartechniquetothepolicygradienttheorem[26]. Letusfirstdefine
+theexpectednumberofoccurrencesofustartingfromstatesasOπ(u,s) = (cid:80) pπ(U = u |
+k≥1 k
+S =s),anditsactionequivalentOπ(u,s,a)= (cid:80) pπ(U =u|S =s,A =a). Expanding
+0 k≥1 k 0 0
+Oπ(u,s)leadsto
+(cid:34) (cid:35)
+∇ Oπ(u,s)=∇ (cid:88) π(a|s) (cid:88) p(s′ |s,a) (cid:0) δ(s′ =s)+Oπ(u,s′) (cid:1) (50)
+θ θ
+a∈A s′∈S
+(cid:88) (cid:88)
+= ∇ π(a|s)Oπ(u,s,a)+ p(s′ |s)∇ Oπ(u,s′) (51)
+θ θ
+a∈A s′∈S
+8
+
+COCOA-u-group HCA+
+COCOA-reward REINFORCE
+15
+14
+B
+d
+ar 13
+V
+12
+1 2 5 10 2 5 100
+Number of groups per reward value
+Figure7: Lessinformativerewardingoutcomeencodingsleadtogradientestimatorswithlower
+variance. NormalizedvarianceindBusingground-truthcoefficientsandarandomuniformpolicy,
+forvariousgradientestimatorsonthetreeenvrionment(shadedregionrepresentsstandarderrorover
+10 random environments). To increase the information content of U, we increase the number of
+differentencodingsucorrespondingtothesamerewardvalue(c.f. n inSectionE.6),indicatedby
+g
+thex-axis. COCOA-u-groupindicatestheCOCOAestimatorwithrewardingoutcomeencodingsof
+increasinginformationcontent,whereasCOCOA-rewardandHCA+havefixedrewardingoutcome
+encodingsofU =RandU =S respectively.
+Nowdefineϕ(u,s)= (cid:80) ∇ π(a|s)Oπ(u,s,a),andpπ(S =s′ |S =s)astheprobabilityof
+a∈A θ l 0
+reachings′startingfromsinlsteps. Wehavethat (cid:80) pπ(S =s′′ |S =s)pπ(S =s′ |S =
+s′′∈S l 0 1 0
+s′′)=pπ(S =s′ |S =s). Leveragingthisrelationandrecursivelyapplyingtheaboveequation
+l+1 0
+leadsto
+∞
+(cid:88) (cid:88)
+∇ Oπ(u,s)= pπ(S =s′ |S =s)ϕ(u,s′) (52)
+θ l 0
+s′∈S l=0
+∞
+(cid:88) (cid:88) (cid:88)
+= pπ(S =s′ |S =s) ∇ π(a|s′)Oπ(u,s′,a) (53)
+l 0 θ
+s′∈S l=0 a∈A
+(cid:88)
+∝E ∇ π(a|S)Oπ(u,S,a) (54)
+S∼T(s,π) θ
+a∈A
+whereinthelaststepwenormalized (cid:80)∞ pπ(S = s′ | S = s)with (cid:80) (cid:80)∞ pπ(S = s′ |
+l=0 l 0 s′∈S l=0 l
+S =s),resultinginthestatedistributionS ∼T(s,π)whereS issampledfromtrajectoriesstarting
+0
+fromsandfollowingpolicyπ.
+Finally,wecanrewritethecontributioncoefficientsas
+Oπ(u,s,a)
+w(s,a,u)= −1 (55)
+Oπ(u,s)
+whichleadsto
+(cid:88)
+∇ Oπ(u,s)∝E ∇ π(a|S)w(S,a,u)Oπ(u,S) (56)
+θ S∼T(s,π) θ
+a∈A
+(cid:80)
+whereweusedthat ∇ π(a|s)=0,therebyconcludingtheproof.
+a∈A θ
+D Learningthecontributioncoefficients
+D.1 ProofProposition5
+Proof. Inshort,asthelogitsl areadeterministicfunctionofthestates,theydonotprovideany
+furtherinformationonthehindsightdistributionandwehavethatpπ(A =a|S =s,L =l,U′ =
+0 0 0
+u′)=pπ(A =a|S =s,U′ =u′).
+0 0
+9
+
+Wecanarriveatthisresultbyobservingthatp(A =a|S =s,L =l)=p(A =a|S =s)=
+0 0 0 0 0
+π(a|s),asthepolicylogitsencodethepolicydistribution. Usingthis,wehavethat
+pπ(A =a|S =s,L =l,U′ =u′) (57)
+0 0 0
+pπ(A =a,U′ =u′ |S =s,L =l)
+= 0 0 0 (58)
+pπ(U′ =u′ |S =s,L =l)
+0 0
+pπ(U′ =u′ |S =s,A =a,L =l)p(A =a|S =s,L =l)
+= 0 0 0 0 0 0 (59)
+(cid:80) pπ(A =a′,U′ =u′ |S =s,L =l)
+a′∈A 0 0 0
+pπ(U′ =u′ |S =s,A =a)p(A =a|S =s)
+= 0 0 0 0 (60)
+(cid:80) pπ(U′ =u′ |S =s,A =a′,)p(A =a′ |S =s)
+a′∈A 0 0 0 0
+pπ(A =a,U′ =u′ |S =s)
+= 0 0 (61)
+pπ(U′ =u′ |S =s)
+0
+=pπ(A =a|S =s,U′ =u′) (62)
+0 0
+D.2 Learningcontributioncoefficientsviacontrastiveclassification.
+Insteadoflearningthehindsightdistribution,wecanestimatetheprobabilityratiopπ(A =a|S =
+t t
+s,U′ =u′)/π(a|s)directly,byleveragingcontrastiveclassification. Proposition7showsthatby
+trainingabinaryclassifierD(a,s,u′)todistinguishactionssampledfrompπ(A =a|S =s,R′ =
+t t
+r′)versusπ(a|s),wecandirectlyestimatetheprobabilityratio.
+Proposition7. Considerthecontrastiveloss
+L=E (cid:2) E [logD(a,s,u′)]+E (cid:2) log (cid:0) 1−D(a,s,u′) (cid:1)(cid:3)(cid:3) , (63)
+s,u′∼T(s0,π) a∼pπ(a|s,u′) a∼π(a|s)
+andD∗(s,a,u′)itsminimizer. Thenthefollowingholds
+D∗(a,s,u′)
+w(s,a,u′)= −1. (64)
+1−D∗(a,s,u′)
+Proof. Consider a fixed pair s,u′. We can obtain the discriminator D∗(a,s,u′) that maximizes
+E [logD(a,s,u′)]+E (cid:2) log (cid:0) 1−D(a,s,u′) (cid:1)(cid:3) bytakingthepoint-wisederivative
+a∼pπ(a|s,u′) a∼π(a|s)
+ofthisobjectiveandequatingittozero:
+1 1
+pπ(a|s,u′) −π(a|s) =0 (65)
+D∗(a,s,u′) 1−D∗(a,s,u′)
+pπ(a|s,u′) D∗(a,s,u′)
+⇒ = (66)
+π(a|s) 1−D∗(a,s,u′)
+Asforany(a,b)∈R2 ,thefunctionf(x)=alogx+blog(1−x)achievesitsglobalmaximumon
+/0
+supportx∈[0,1]at a ,theabovemaximumisaglobalmaximum. Repeatingthisargumentforall
+a+b
+(s,u′)pairsconcludestheproof.
+WecanapproximatethetrainingobjectiveofDbysamplinga(m),s(m),u′(m) alongtheobserved
+trajectories,whileleveragingthatwehaveaccesstothepolicyπ,leadingtothefollowingloss
+M (cid:34) (cid:35)
+L= (cid:88) −logD(a(m),s(m),u′(m))− (cid:88) π(a′ |s(m))log (cid:0) 1−D(a′,s(m),u′(m)) (cid:1) (67)
+m=1 a′∈A
+Numericalstability. AssumingDusesthesigmoidnonlinearityonitsoutputs,wecanimprovethe
+numericalstabilitybycomputingthelogarithmandsigmoidjointly. Thisresultsin
+logσ(x)=−log(1+exp(−x)) (68)
+log(1−σ(x))=−x−log(1+exp(−x)) (69)
+TheprobabilityratioD/(1−D)canthenbecomputedwith
+σ(x) (cid:2) (cid:3)
+=exp −log(1+exp(−x))+x+log(1+exp(−x)) =exp(x) (70)
+1−σ(x)
+10
+
+D.3 Successorrepresentations.
+Ifwetakeu′ equaltothestates′,wecanobservethatthesum (cid:80) pπ(S =s′ |s,a)usedin
+k≥1 t+k
+thecontributioncoefficients(3)isequaltothesuccessorrepresentationM(s,a,s′)introducedby
+Dayan[30]. Hence,wecanleveragetemporaldifferencestolearnM(s,a,s′),eitherinatabular
+setting [30], or in a deep feature learning setting [31]. Using the successor representations, we
+can construct the state-based contribution coefficients as w(s,a,s′) = M(s,a,s′)/[ (cid:80) π(a˜ |
+a˜∈A
+s)M(s,a˜,s′)]−1.
+ForarewardingoutcomeencodingU differentfromS,wecanrecombinethestate-basedsuccessor
+representationstoobtaintherequiredcontributioncoefficientsusingthefollowingderivation.
+(cid:88) (cid:88) (cid:88)
+pπ(U =u′ |S =s,A =a)= pπ(U =u′,S =s′ |S =s,A =a) (71)
+k 0 0 k k 0 0
+k≥0 k≥0s′∈S
+(cid:88) (cid:88)
+= p(U′ =u′ |S′ =s′)pπ(S =s′ |S =s,A =a)
+k 0 0
+k≥0s′∈S
+(72)
+(cid:88) (cid:88)
+= p(U′ =u′ |S′ =s′) pπ(S =s′ |S =s,A =a)
+k 0 0
+s′∈S k≥0
+(73)
+(cid:88)
+= p(U′ =u′ |S′ =s′)M(s,a,s′) (74)
+s′∈S
+where in the second line we used that S is fully predictive of U (c.f. Definition 2). Note that
+p(U′ |S′)ispolicyindependent,andcanhencebeapproximatedefficientlyusingofflinedata. We
+usethisrecombinationofsuccessorrepresentationsinourdynamicprogrammingsetuptocompute
+theground-truthcontributioncoefficients(c.f. App.E).
+E Experimentaldetailsandadditionalresults
+Here, we provide additional details to all experiments performed in the manuscript and present
+additionalresults.
+E.1 Algorithms
+Algorithm1showspseudocodefortheCOCOAfamilyofalgorithms.
+E.2 Dynamicprogrammingsetup
+In order to delineate the different policy gradient methods considered in this work, we develop
+a framework to compute ground-truth policy gradients and advantages as well as ground-truth
+contribution coefficients. We will first show how we can recursively compute a quantity closely
+relatedtothesuccessorrepresentationusingdynamicprogrammingwhichthenallowsustoobtain
+expectedadvantagesandfinallyexpectedpolicygradients.
+E.2.1 Computinggroundtruthquantities
+Tocomputegroundtruthquantities,weassumethattheenvironmentreachesanabsorbing,terminal
+states afterT stepsforallstatess,i.e. pπ(S = s |s = s) = 1. Thisassumptionissatisfied
+∞ T ∞ 0
+by the linear key-to-door and tree environment we consider. As a helper quantity, we define the
+successorrepresentation:
+T
+(cid:88)
+M(s,a,s′,T)= pπ(S =s′|S =s,A =a) (75)
+k 0 0
+k=1
+whichcapturesthecumulativeprobabilityoveralltimestepsofreachingstates′whenstartingfrom
+stateS =s,choosinginitialactionA =aandfollowingthepolicyπthereafter. Wecancompute
+0 0
+M(s,a,s′,T)recursivelyas
+(cid:88) (cid:88)
+M(s,a,s′,t)= p(S =s′′|S =s,A =a) π(a′′|s′′)(1 +M(s′′,a′′,s′,t−1))
+1 0 0 s′′=s′
+s′′∈S a′′∈A
+(76)
+where1istheindicatorfunctionandM(s,a,s′,0)isinitializedto0everywhere. Then,thevarious
+quantitiescanbecomputedexactlyasfollows.
+11
+
+Algorithm1COCOA
+Require: Initialπ,h,episodelengthT,numberofepisodesN,numberofpretrainingepisodesM,
+batchsizeL,K numberofpretrainingupdatesteps.
+1: fori=1toM do ▷Collectrandomtrajectories
+2: SampleLtrajectoriesτ ={{S t ,A t ,R t }T t=0 }L l=1 fromarandompolicy
+3: Addtrajectoriestothebuffer
+4: endfor
+5: forj =1toK do ▷Pretrainrewardfeatures
+6: Samplebatchfrombuffer
+7: TrainrewardfeaturesU =f(S,A)topredictrewardsRviameansquarederror
+8: endfor
+9: fori=1toN −M do
+10: SampleLtrajectoriesτ ={{S t ,A t ,R t }T t=0 }L l=1 fromπ
+11: fort=1toT do ▷Updatethecontributionmodule
+12: fork >tdo
+13: Trainh(A t |S t ,U k ,π t )viacross-entropylossonalltrajectoriesτ
+14: endfor
+15: endfor
+16: fort=1toT do ▷Updatethepolicy
+17: fora∈Ado
+(cid:80)
+18: X a =∇ θ π(a|S t ) k≥1 w(S t ,a,U t+k )R t+k
+19: endfor
+20: ∇ˆU θ Vπ(s 0 )= (cid:80) t≥0 ∇ θ logπ(A t |S t )R t + (cid:80) a∈A X a
+21: endfor
+22: endfor
+Contributioncoefficients
+M(s,a,u′,T)
+w(s,a,u′)= −1 (77)
+(cid:80) π(a′ |s)M(s,a′,u′,T)
+a′∈A
+where
+(cid:88) (cid:88) (cid:88)
+M(s,a,u′,T)= M(s,a,s′,T) π(a′ |s′) p(r′ |s′,a′)1 , (78)
+f(s′,a′,r′)=u′
+s′∈S a′∈A r′
+similartothesuccessorrepresentationsdetailedinSectionD.TodiscoverthefullstatespaceS for
+anarbitraryenvironment,weperformadepth-firstsearchthroughtheenvironmenttransitions(which
+aredeterministicinoursetting),andrecordtheencounteredstates.
+Valuefunction
+T
+(cid:88) (cid:88) (cid:88) (cid:88)
+V(s)= π(a′|s)r(s,a′)+ pπ(S =s′|S =s,π) π(a′|s′)r(s′,a′) (79)
+k 0
+a′∈A k=1s′∈S a′∈A
+(cid:88) (cid:88) (cid:88) (cid:88)
+= π(a′|s)r(s,a′)+ π(a|s)M(s,a,s′,T) π(a′|s′)r(s′,a′) (80)
+a′∈A s′∈Sa∈A a′∈A
+wherer(s′,a′)= (cid:80) r′p(r′ |s′,a′)
+r′
+Action-valuefunction
+T
+(cid:88) (cid:88) (cid:88)
+Q(s,a)=r(s,a)+ pπ(S =s′|S =s,A =a) π(a′|s′)r(s′,a′) (81)
+k 0 0
+k=1s′∈S a′∈A
+(cid:88) (cid:88)
+=r(s,a)+ M(s,a,s′,T) π(a′|s′)r(s′,a′) (82)
+s′∈S a′∈A
+wherer(s′,a′)= (cid:80) r′p(r′ |s′,a′)
+r′
+12
+
+E.2.2 Computingexpectedadvantages
+Asanextstepwedetailhowtocomputethetrueexpectedadvantagegivenapotentiallyimperfect
+estimatorofthecontributioncoefficientwˆ,thevaluefunctionVˆ ortheaction-valuefunctionQˆ.
+COCOA
+(cid:34) T (cid:35)
+E (cid:2) Aˆπ(s,a) (cid:3) =r(s,a)− (cid:88) π(a′ |s)r(s,a′)+E (cid:88) wˆ(s,a,U )R (83)
+π T∼T(s,π) k k
+a′∈A k=1
+T
+(cid:88) (cid:88) (cid:88)
+=r(s,a)− π(a′ |s)r(s,a′)+ pπ(U =u′ |S =s)wˆ(s,a,u′)r(u′)
+k 0
+a′∈A u′∈Uk=1
+(84)
+(cid:88) (cid:88) (cid:88)
+=r(s,a)− π(a′ |s)r(s,a′)+ wˆ(s,a,u′)r(u′) π(a′ |s)M(s,a′,u′,T)
+a′∈A u′∈U a′∈A
+(85)
+wherer(u′)= (cid:80) r′p(r′ |u′)andM(s,a′,u′,T)isdefinedasinE.2.1.
+r′
+Advantage
+E (cid:2) Aˆπ(s,a) (cid:3) =Q(s,a)−Vˆ(s) (86)
+π
+whereQisthegroundtruthaction-valuefunctionobtainedfollowingE.2.1.
+Q-critic
+E (cid:2) Aˆπ(s,a) (cid:3) =Qˆ(s,a)− (cid:88) π(a′ |s)Qˆ(s,a′) (87)
+π
+a′∈A
+E.2.3 Computingexpectedpolicygradients
+Finally, we show how we can compute the expected policy gradient, E
+(cid:2) ∇ˆ·Vπ(cid:3)
+of a potentially
+π θ
+biasedgradientestimator,giventheexpectedadvantageE (cid:2) Aˆπ(s,a) (cid:3) .
+π
+T
+E (cid:2) ∇ˆ·Vπ(cid:3) = (cid:88) E (cid:88) ∇ π(a|s)E (cid:2) Aˆπ(S ,a) (cid:3) (88)
+π θ Sk∼T(s0,π) θ π k
+k=0 a∈A
+T
+= (cid:88)(cid:88) pπ(S =s|s ) (cid:88) ∇ π(a|s)E (cid:2) Aˆπ(s,a) (cid:3) (89)
+k 0 θ π
+k=0s∈S a∈A
+Using automatic differentiation to obtain ∇ π(a|s ), and the quantity M(s,a,s′,T) we defined
+θ 0
+above,wecanthencomputetheexpectedpolicygradient.
+E (cid:2) ∇ˆ·Vπ(cid:3) = (cid:88) ∇ π(a|s )E (cid:2) Aˆπ(s ,a) (cid:3) + (90)
+π θ θ 0 π 0
+a∈A
+(cid:88) (cid:88) π(a |s )M(s ,a ,s,T) (cid:88) ∇ π(a|s)E (cid:2) Aˆπ(s,a) (cid:3) (91)
+0 0 0 0 θ π
+s∈Sa0∈A a∈A
+Computingtheground-truthpolicygradient. Tocomputetheground-truthpolicygradient,we
+can apply the same strategy as for Eq. 90 and replace the expected (possibly biased) advantage
+E (cid:2) Aˆπ(s ,a) (cid:3) bytheground-truthadvantagefunction,computedwiththeground-truthaction-value
+π 0
+function(c.f. SectionE.2.1).
+E.3 Bias,varianceandSNRmetrics
+Toanalyzethequalityofthepolicygradientestimators,weusethesignal-to-noiseratio(SNR),which
+wefurthersubdivideintovarianceandbias. AhigherSNRindicatesthatweneedfewertrajectories
+toestimateaccuratepolicygradients,hencereflectingbettercreditassignment. Toobtainmeaningful
+13
+
+scales,wenormalizethebiasandvariancebythenormoftheground-truthpolicygradient.
+∥∇ Vπ∥2
+SNR= θ (92)
+(cid:104) (cid:105)
+E ∥∇ˆ·Vπ−∇ Vπ∥2
+π θ θ
+(cid:104) (cid:105)
+E ∥∇ˆ·Vπ−E [∇ˆ·Vπ]∥2
+π θ π θ
+Variance= (93)
+∥∇ Vπ∥2
+θ
+∥E [∇ˆ·Vπ]−∇ Vπ∥2
+Bias= π θ θ (94)
+∥∇ Vπ∥2
+θ
+We compute the full expectations E [∇ˆ·Vπ] and ground-truth policy gradient ∇ Vπ by lever-
+π θ θ
+aging our dynamic programming setup, while for the expectation of the squared differences
+(cid:104) (cid:105)
+E ∥∇ˆ·Vπ−∇ Vπ∥2 we use Monte Carlo sampling with a sample size of 512. We report
+π θ θ
+themetricsinDecibelsinallfigures.
+Focusingonlong-termcreditassignment. Asweareprimarilyinterestedinassessingthelong-
+termcreditassignmentcapabilitiesofthegradientestimators,wereportthestatisticsofthepolicy
+gradientestimatorcorrespondingtolearningtopickupthekeyornot. Hence,wecomparetheSNR,
+variance and bias of a partial policy gradient estimator considering only t = 0 in the outer sum
+(correspondingtothestatewiththekey)forallconsideredestimators(c.f. Table1).
+Shadow training. Policy gradients evaluated during training depend on the specific learning
+trajectoryoftheagent. Sinceallmethods’policygradientestimatorscontainnoise,thesetrajectories
+arelikelydifferentforthedifferentmethods. Asaresult,itisdifficulttodirectlycomparethequality
+ofthepolicygradientestimators, sinceitdependsonthespecificdatageneratedbyintermediate
+policiesduringtraining. Inordertoallowforacontrolledcomparisonbetweenmethodsindependent
+ofthenoiseintroducedbydifferenttrajectories,weconsiderashadowtrainingsetupinwhichthe
+policyistrainedwiththeQ-criticmethodusingground-truthaction-valuefunctions. Wecanthen
+computethepolicygradientsforthevariousestimatorsonthesameshareddataalongthislearning
+trajectorywithoutusingittoactuallytrainthepolicy. Weusethisstrategytogeneratetheresults
+showninFig.1B(right),Fig.2BandFig.3C-D.
+E.4 Linearkey-to-doorenvironmentsetup
+Wesimplifythekey-to-doorenvironmentpreviouslyconsideredbyvariouspapers[e.g.3,4,32],toa
+one-dimensional,lineartrackinsteadoftheoriginaltwo-dimensionalgridworld. Thisversionstill
+capturesthedifficultyoflong-termcreditassignmentbutreducesthecomputationalburdenallowing
+us to thoroughly analyze different policy gradient estimators with the aforementioned dynamic
+programmingbasedsetup. TheenvironmentisdepictedinFig.3A.Here,theagentneedstopick
+upakeyinthefirsttimestep,afterwhichitengagesinadistractortaskofpickingupappleswhich
+caneitherbetotheleftortherightoftheagentandwhichcanstochasticallyassumetwodifferent
+rewardvalues. Finally,theagentreachesadoorwhichitcanopenwiththekeytocollectatreasure
+reward.
+Inoursimulationswerepresentstatesusinganine-dimensionalvector,encodingtherelativeposition
+onthetrackasafloatingnumber,abooleanforeachitemthatcouldbepresentatthecurrentlocation
+(empty,appleleft,appleright,door,key,treasure)aswellasbooleanindicatingwhethertheagent
+hasthekeyandabooleanforwhethertheagentdoesnothavethekey.
+Therearefourdiscreteactionstheagentcanpickateverytimestep: pickthekey,picktotheleft,
+picktotherightandopenthedoor. Regardlessofthechosenaction,theagentwilladvancetothe
+nextpositioninthenexttimestep. Ifithascorrectlypickedupthekeyinthefirsttimestepand
+openedthedoorinthepenultimatetimestep,itwillautomaticallypickupthetreasure,notrequiring
+anadditionalaction.
+Hungetal.[4]showedthatthesignal-to-noiseratio(SNR)oftheREINFORCEpolicygradient[6]
+forsolvingthemaintaskofpickingupthekeycanbeapproximatedby
+∥E[∇ˆREINFVπ]∥2
+SNRREINF ≈ θ . (95)
+(cid:104) (cid:105)
+C(θ)V[ (cid:80) R ]+Tr V[∇ˆREINFVπ |noT2]
+t∈T2 t θ
+14
+
+with∇ˆREINFVπ theREINFORCEestimator(c.f. Table1),C(θ)areward-independentconstant,T2
+θ
+(cid:104) (cid:105)
+thesetoftimestepscorrespondingtothedistractortask,andTr V[∇ˆREINFVπ |noT2] thetraceof
+θ
+thecovariancematrixoftheREINFORCEestimatorinanequivalenttasksetupwithoutdistractor
+rewards. Hence,wecanadjustthedifficultyofthetaskbyincreasingthenumberofdistractorrewards
+andtheirvariance. WeperformexperimentswithenvironmentsoflengthL ∈ {20,40,...,100}
+choosing the reward values such that the total distractor reward remains approximately constant.
+Concretely, distractor rewards are sampled as r ∼ U({2,18}) and the treasure leads to a
+distractor L L
+deterministicrewardofr = 4.
+treasure L
+E.5 Rewardswitchingsetup
+Whilelearningtogetthetreasureinthekey-to-doorenvironmentrequireslongtermcreditassignment
+astheagentneedstolearnto1)pickupthekeyand2)openthedoor,learningtostoppickingup
+thetreasuredoesnotrequirelongtermcreditassignment,sincetheagentcansimplylearntostop
+openingthedoor.
+Wethereforereusethelinearkey-to-doorenvironmentoflengthL=40,withthesingledifference
+thatweremovetherequirementtoopenthedoorinordertogetthetreasurereward. Theagentthus
+needs to perform similar credit assignment to both get the treasure and stop getting the treasure.
+Whenapplyingrewardswitching,wesimplyflipthesignofthetreasurerewardwhilekeepingthe
+distractorrewardunchanged.
+E.6 Treeenvironmentsetup
+We parameterize the tree environment by its depth d, the number of actions n determining the
+a
+branchingfactor,andthestateoverlapo ,definedasthenumberofoverlappingchildrenfromtwo
+s
+neighbouringnodes. Thestatesarerepresentedbytwointegers: i<drepresentingthecurrentlevel
+inthetree,andj thepositionofthestatewithinthatlevel. Therootnodehasstate(i,j) = (0,0),
+andthestatetransitionsaredeterministicandgivenbyi←i+1andj ←j(n −o )+a,where
+a s
+we represent the action by an integer 0 ≤ a < n . We assign each state-action pair a reward
+a
+r ∈{−2,−1,0,1,2},computedas
+(cid:0) (cid:1)
+r(s,a)= (idx(s)+ap+seed)modn −n //2 (96)
+r r
+withthemodulooperator mod,thenumberofrewardvaluesn =5,idx(s)auniqueintegerindex
+r
+forthestates=(i,j),alargeprimenumberp,andanenvironmentseed.
+Tointroducerewardingoutcomeencodingswithvaryinginformationcontent,wegroupstate-action
+pairscorrespondingtothesamerewardvalueinn groups:
+g
+u=(idx(s)+ap+seed)mod(n n )−n //2 (97)
+r g r
+EnvironmentparametersforFigure2. FortheexperimentofFig.2,weuse6actionsandadepth
+of4. WeplottedthevarianceoftheCOCOAestimatorforencodingsU correspondington =4and
+g
+n =32.
+g
+E.7 Taskinterleavingenvironmentsetup
+We simplify the task interleaving environment of Mesnard et al. [3] in the following way: the
+environmentisparameterizedbythenumberofcontextsC,thenumberofobjectspercontextO,the
+maximumnumberofopencontextsB,andfinallythedyingprobability1−γ. Ineachcontext,aset
+of2Oobjectsisgiven,andasubsetofOobjectsisrandomlychosenastherewardingobjectsfor
+thatcontext. Thetaskconsistsinlearning,forallcontexts,tochosetherightobjectswhenpresented
+apairofobjects,onerewardingandonenonrewarding. Whilethisisreminiscentofacontextual
+banditsetting,crucially,theagentreceivestherewardassociatedtoitschoiceonlyatalatertime,
+afterpotentiallymakingnewchoicesforothercontexts,andreceivingrewardsfromothercontexts,
+resulting in an interleaved bandit problem. The agent must thus learn to disentangle the reward
+associatedtoeachcontextinordertoperformpropercreditassignment.
+Stateandaction Ateverytimestep,thereare2actionstheagentcantake: chooseright,orchoose
+left.
+Thestateisdefinedbythefollowingvariables:
+15
+
+Figure8: Schematicoftheneuralnetworkarchitectureofthehindsightmodels
+• Asetofopencontexts,i.e.contextswherechoiceshavebeenmadebutnorewardassociated
+tothosechoiceshasbeenreceived
+• Foreachopencontext,abit(orkey)indicatingwhetherthecorrectchoicehasbeenmadeor
+not
+• Thecontextofthecurrenttask
+• Apairofobjectscurrentlybeingpresentedtotheagent,ifthecurrentcontextisaquery
+room. Eachelementofthepairisassignedtoeithertheleftsideortherightside.
+Transition and reward The transition dynamics work as follows. If the agent is in an answer
+room,thenregardlessoftheaction,itreceivesacontext-dependentrewardifitalsohasthekeyof
+thecorrespondingcontext(i.e. ithasmadethecorrectchoicewhenlastencounteringqueryroom
+correspondingtothecontext). Otherwise,itreceives0reward. Then,thecurrentcontextisremoved
+fromthesetofopencontexts.
+Iftheagentisinaqueryroom,thentheagentispresentedwith2objects,onerewardingandone
+not,andmustchoosethesideoftherewardingobject. Regardless,theagentreceives0rewardatthis
+timestep,andthecurrentcontextisaddedtothesetofopencontexts. Furthermore,ifitdidmakethe
+correctchoice,akeyassociatedtothecurrentcontextisgiven.
+Finally,thenextcontextissampled. Withaprobability C B o (whereC o isthenumberofopencontext),
+theagentsamplesuniformlyoneoftheopencontexts. Otherwise,theagentsamplesuniformlyone
+ofthenon-opencontexts. The2objectsarethenalsosampleduniformlyoutoftheO rewarding
+objectsandOunrewardingobjects. Therewardingobjectisplacedeitherontherightorleftside
+withuniformprobability,andtheunrewardingobjectplacedontheotherside.
+Crucially,thereisaprobability1−γ ofdying,inwhichcasetheagentreceivestherewardbutisput
+intoaterminalstateatthenexttimestep.
+Environment parameters For all our experiments, we choose C = 5,B = 3,O = 2 and
+γ =0.95.
+Visualizationofcontributioncoefficientmagnitudes. FortheheatmapsshowninFig4C,we
+(cid:80)
+computedeachentryas π(a|s )·|w(s ,a,r )|wherestatess andrewardsr aregrouped
+a∈A t t t+k t t+k
+by the context of their corresponding room. We average over all query-answer pairs grouped by
+contextsexcludingquery-queryoranswer-answerpairsandonlyconsideranswerroomswithnon-zero
+rewards.
+E.8 Trainingdetails
+E.8.1 Architecture
+We use separate fully-connected ReLU networks to parameterize the policy, value function, and
+action-valuefunction. Forthepolicyweusetwohiddenlayersofsize64, forthevaluefunction
+andaction-valuefunctionrespectivelyweuseasinglehiddenlayerofsize256. Forthehindsight
+model of both HCA and COCOA we found a simple multilayer perceptron with the state s and
+rewarding outcome encoding u′ as inputs to perform poorly. We hypothesize that this is due to
+thepolicydependenceofthehindsightdistributioncreatingamovingtargetduringlearningasthe
+16
+
+policychanges. LeveragingProposition5,wethereforeaddthepolicylogitsasanextrainputto
+thehindsightnetworktoeasetrackingthechangingpolicy. Wefoundgoodperformanceusinga
+simplehypernetwork,depictedinFig.8thatcombinesthepolicylogitswiththestateandhindsight
+objectinputsthroughamultiplicativeinteraction,outputtingalogitforeachpossibleaction. The
+multiplicativeinteractiondenotedby⊗consistsofamatrixmultiplicationofamatrixoutputbythe
+networkwiththepolicylogits,andcanbeinterpretedasselectingacombinationofpolicylogitsto
+addtotheoutputchannel. Inordertoallowgatingwithbothpositiveandnegativevalues,weusea
+gatedversionoftheReLUnonlinearityinthesecondlayerwhichcomputesthedifferencebetween
+thesplit,rectifiedinputeffectivelyhalvingtheoutputdimension:
+ReLU-g(x)=ReLU(x )−ReLU(x ) (98)
+0:n/2 n/2:n
+with n the dimension of x. Gating in combination with the multiplicative interaction is a useful
+inductivebiasforthehindsightmodel,sinceforactionswhichhavezerocontributiontowardsthe
+rewardingoutcomeuthehindsightdistributionisequaltothepolicy. Toincreasetheperformance
+of our HCA+ baseline, we provide both the policy logits and one minus the policy logits to the
+multiplicativeinteraction.
+E.8.2 Optimization
+FortrainingofallmodelsweusetheAdamWoptimizerwithdefaultparametersonlyadjustingthe
+learningratesandclippingtheglobalnormofthepolicygradient. Weuseentropyregularization
+incombinationwithepsilongreedytoensuresufficientexplorationtodiscovertheoptimalpolicy.
+To estimate (action-) value functions we use TD(λ) treating each λ as a hyperparemeter. For all
+linearlayersweusethedefaultinitializationofHaiku[82]wherebiasesareinitializedaszeroand
+weightsaresamplefromatruncatedGaussianwithstandarddeviation √ n 1 input wheren input istheinput
+dimensionoftherespectivelayerand.
+E.8.3 Rewardfeatures
+Learnedrewardfeaturesshouldbothbefullypredictiveofthereward(c.f. Theorem1),andcontain
+aslittleadditionalinformationabouttheunderlyingstate-actionpairaspossible(c.f. Theorem3).
+Wecanachievetheformerbytraininganetworktopredicttherewardsgivenastate-actionpair,and
+takethepenultimatelayerasthefeatureu=f(s,a). Forthelatter,thereexistmultipleapproaches.
+Whenusingadeterministicencodingu=f(s,a),wecanbinthefeaturessuchthatsimilarfeatures
+predictingthesamerewardaregroupedtogether. Whenusingastochasticencodingp(U |S,A)we
+canimposeaninformationbottleneckontherewardfeaturesU,enforcingtheencodingtodiscardas
+muchinformationaboutU aspossible[83,84]. Wechoosethedeterministicencodingapproach,as
+ourDynamicProgrammingroutinesrequireadeterministicencoding.4 Wegroupthedeterministic
+rewardingoutcomeencodingsbydiscretizingtherewardpredictionnetworkuptothepenultimate
+layer.
+Architecture. For the neural architecture of the reward prediction network we choose a linear
+model parameterized in the following way. The input is first multiplicatively transformed by an
+action-specific mask. The mask is parameterized by a vector of the same dimensionality as the
+input,andwhichissquaredinordertoensurepositivity. AReLUnonlinearitywithstraightthrough
+gradientestimatoristhenappliedtothetransformation.Finally,anaction-independentreadoutweight
+transformstheactivationstothepredictionofthereward. Themaskparametersareinitializedto1.
+WeightsofthereadoutlayerareinitializedwithaGaussiandistributionofmean0andstd √1 where
+d
+disthedimensionoftheinput.
+Lossfunction. Wetraintherewardnetworkonthemeansquarederrorlossagainstthereward.
+Toavoidspuriouscontributions(c.f.3.3),weencouragethenetworktolearnsparsefeaturesthat
+discardinformationirrelevanttothepredictionofthereward,byaddingaL1regularizationterm
+to all weights up to the penultimate layer with a strength of η = 0.001. The readout weights
+L1
+aretrainedwithstandardL2regularizationwithstrengthη = 0.03. Forthelinearkey-to-door
+L2
+experiments, we choose (η ,η ) = (0.001,0.03). For the task interleaving environment, we
+L1 L2
+choose(η ,η )=(0.05,0.0003).
+L1 L2
+All weights regularization are treated as weight decay, with the decay applied after the gradient
+update.
+4In principle, our dynamic programming routines can be extended to allow for probabilistic rewarding
+outcomeencodingsandprobabilisticenvironmenttransitions,whichweleavetofuturework.
+17
+
+Table 2: The range of values swept over for each hyperparameter in a grid search for the linear
+key-to-doorenvironmentandtaskinterleavingenvironment.
+Hyperparameter Range
+lr_agent {0.003,0.001,0.0003,0.0001}
+lr_hindsight {0.01,0.003,0.001}
+lr_value {0.01,0.003,0.001}
+lr_qvalue {0.01,0.003,0.001}
+lr_features {0.01,0.003,0.001}
+td_lambda_value {0.,0.5,0.9,1.}
+td_lambda_qvalue {0.,0.5,0.9,1.}
+entropy_reg {0.3,0.1,0.03,0.01}
+Table 3: Hyperparameter values on the linear key-to-door environment. The best performing
+hyperparameterswereidenticalaccrossallenvironmentlengths.COCOA-rstandsforCOCOA-return,
+COCOA-fforCOCOA-feature.
+Hyperparameter COCOA-r COCOA-f HCA+ Q-critic Advantage REINFORCE TrajCV HCA-return
+lr_agent 0.0003 0.0003 0.0003 0.0003 0.001 0.0003 0.003 0.0001
+lr_hindsight 0.003 0.003 0.003 - - - - 0.001
+lr_value - - - - 0.001 - - -
+lr_qvalue - - - 0.003 - - 0.01 -
+lr_features - 0.003 - - - - - -
+td_lambda_value - - - - 1. - - -
+td_lambda_qvalue - - - 0.9 - - 0.9 -
+Pretraining. Tolearntherewardfeatures,wecollectthefirstB mini-batchesofepisodesina
+feature
+bufferusingafrozenrandompolicy. Wethensampletriplets(s,a,r)fromthebufferandtrainwith
+full-batchgradientdescentusingtheAdamoptimizeroverN steps. Oncetrained,thereward
+feature
+networkisfrozen,andthemaskedinputs,whicharediscretizedusingtheelement-wisethreshold
+function1 ,areusedtotrainthecontributioncoefficientasinotherCOCOAmethods.Toensure
+x>0.05
+afaircomparison,othermethodsarealreadyallowedtotrainthepolicyonthefirstB batchesof
+feature
+episodes. Forthelinearkey-to-doorexperiments,wechose(B ,N )=(30,20000). Forthe
+feature feature
+taskinterleavingenvironment,wechose(B ,N )=(90,30000).
+feature feature
+E.8.4 Hyperparameters
+Linearkey-to-doorsetup(performance) Forallourexperimentsonthelinearkey-to-dooren-
+vironment, we chose a batch size of 8, while using a batch size of 512 to compute the average
+performance,SNR,biasandvariancemetrics. Wefolloweda2-stepselectionprocedureforselecting
+thehyperparameters: first,weretainthesetofhyperparametersforwhichtheenvironmentcanbe
+solvedforatleast90%ofallseeds, givenalargeamountoftrainingbudget. Anenvironmentis
+consideredtobesolvedforagivenseedwhentheprobabilityofpickingupthetreasureisabove90%.
+Then,outofallthosehyperparameters,weselecttheonewhichmaximizesthecumulativeamountof
+treasurespickedover10000trainingbatches. Weused30seedsforeachsetofhyperparametersto
+identifythebestperformingones,thendrew30freshseedsforourevaluation. Therangeconsidered
+Table4: Hyperparametervaluesonthetaskinterleavingenvironment.
+Hyperparameter COCOA-reward COCOA-feature HCA+ Q-critic Advantage REINFORCE TrajCV
+lr_agent 0.0003 0.0003 0.0001 0.0003 0.001 0.001 0.001
+lr_hindsight 0.001 0.001 0.001 - - - -
+lr_value - - - - 0.001 - -
+lr_qvalue - - - 0.003 - - 0.001
+lr_features - 0.001 - - - - -
+entropy_reg 0.01 0.01 0.01 0.01 0.01 0.01 0.01
+td_lambda_value - - - - 1. - -
+td_lambda_qvalue - - - 0.9 - - 0.9
+18
+
+Table5: Theentropyregularizationvalueselectedforeachenvironmentlengthofthelinearkey-to-
+doorenvironment. Thevalueswereobtainedbylinearlyinterpolatinginlog-logspacebetweenthe
+bestperformingentropyregularizationstrengthbetweenenvironmentlength20and100.
+Environmentlength 20 40 60 80 100 100(reward-aliasing)
+entropy_reg 0.03 0.0187 0.0142 0.0116 0.01 0.0062
+forourhyperparametersearchcanbefoundinTable2,andtheselectedhyperparametersinTable3.
+Surprisingly,wefoundthatfortheenvironmentlengthconsidered,thesamehyperparameterswere
+performingbest,withtheexceptionofentropy_reg. Forthefinalvaluesofentropy_regforeach
+environmentlength,welinearlyinterpolatedinlog-logspacebetweenthebestperformingvalues,
+0.03forlength20and0.01for100. ThevaluescanbefoundinTable5.
+Linearkey-to-doorsetup(shadowtraining) Formeasuringthebiasandvariancesofdifferent
+methodsintheshadowtrainingsetting,weusedthebestperforminghyperparametersfoundinthe
+performancesetting. Wekeptabatchsizeof8forthebehaviorpolicyandshadowtraining,while
+usingabatchsizeof512duringevaluation.
+Rewardswitchingsetup Fortherewardswitchingexperiment,wechosehyperparametersfollow-
+ingasimilarselectionprocedureasinthelinearkey-to-doorsetup,butinthesimplifieddoor-less
+environmentoflength40,withoutanyrewardswitching. Wefoundverysimilarhyperparametersto
+workwelldespitetheabsenceofadoorcomparedtothelinearkey-to-doorsetup. However,inorder
+toensurethatnoisymethodssuchasREINFORCEfullyconvergedbeforethemomentofswitching
+thereward,weneededtotrainthemodelsfor60000trainingbatchesbeforetheswitch. Tostabilize
+thehindsightmodelduringthislongtrainingperiod,weaddedcoarsegradientnormclippingby1..
+Furthermore,wefoundthataslightlydecreasedlearningrateof0.001fortheQ-criticperformedbest.
+Oncethebesthyperparameterswerefound,weappliedtherewardswitchingtorecordthespeedof
+adaptationforeachalgorithm. Wekeptabatchsizeof8forthebehaviorpolicyandshadowtraining,
+whileusingabatchsizeof512duringevaluation.
+Task interleaving experiment We choose a batch size of 8 and train on 10000 batches, while
+using a batch size of 512 to compute the average performance. We used 5 seeds for each set of
+hyperparameterstoidentifythebestperformingones,thendrew5freshseedsforourevaluation. The
+selectedhyperparameterscanbefoundinTable4.
+F Additionalresults
+Weperformadditionalexperimentstocorroboratethefindingsofthemaintext. Specifically, we
+investigatehowrewardaliasingaffectsCOCOA-rewardandCOCOA-featureandshowthatthereis
+nosignificantdifferenceinperformancebetweenHCAandoursimplifiedversion,HCA+.
+F.1 HCAvsHCA+
+OurpolicygradientestimatorforU =S presentedinEq.4differsslightlyfromEq.2,theversion
+originallyintroducedbyHarutyunyanetal.[1],asweremovetheneedforalearnedrewardmodel
+r(s,a). Weempiricallyverifythatthissimplificationdoesnotleadtoadecreaseinperformancein
+Fig.9. Werunthelongestandhencemostdifficultversionofthelinearkey-to-doorenvironment
+consideredinourexperimentsandfindnosignificantdifferenceinperformancebetweenoursimplified
+version(HCA+)andtheoriginalvariant(HCA).
+F.2 Learnedcreditassignmentfeaturesallowforquickadaptationtoachangeofthereward
+function.
+Disentanglingrewardingoutcomescomeswithanotherbenefit:Whentherewardvaluecorresponding
+toarewardingoutcomechanges,e.g. thetreasurethatwasonceconsideredarewardturnsoutto
+bepoisonous,weonlyhavetorelearnthecontributioncoefficientscorrespondingtothisrewarding
+outcome. Thisisincontrasttovalue-basedmethodsforwhichpotentiallymanystatevaluesare
+altered. Moreover, once we have access to credit assignment features u that encode rewarding
+outcomes which generalize to the new setting, the contribution coefficients remain invariant to
+changesinrewardcontingencies. Forexample,ifwerememberthatweneedtoopenthedoorwith
+19
+
+1
+HCA+ HCA
+d
+e
+ct 0.8
+e
+oll
+c
+d 0.6
+ar
+w
+e
+e
+r 0.4
+ur
+s
+a 0.2
+e
+Tr
+0
+2k 4k 6k 8k 10k
+Episode
+Figure 9: No performance difference between the original HCA method and our modified
+variantHCA+. Inthelinearkey-to-doorenvironmentoflength103boththeoriginalHCAmethod
+withanadditionallearnedrewardmodelandoursimplifiedversionHCA+performsimilarlyinterms
+ofperformancemeasuredasthepercentageoftreasurerewardcollected.
+Figure 10: COCOA-feature quickly adapts the policy to a change of the reward function .
+Percentageoftreasurerewardcollectedbeforeandafterthechangeinrewardcontingencies.COCOA-
+feature quickly adapts to the new setting, as its credit assignment mechanisms generalize to the
+newsetting,whereasCOCOA-reward,Q-criticandAdvantageneedtoadjusttheirmodelsbefore
+appropriatecreditassignmentcantakeplace.
+thekeytogettothetreasure,wecanusethisknowledgetoavoidpickingupthekeyandopeningthe
+doorwhenthetreasurebecomespoisonous.
+Toillustratethesebenefits,weconsideravariantofthelinearkey-to-doorenvironment,wherepicking
+upthekeyalwaysleadstoobtainingthetreasurereward,andwherethetreasurerewardabruptly
+changestobenegativeafter60kepisodes. Inthiscase,COCOA-featurelearnstoencodethetreasure
+asthesameunderlyingrewardingobjectbeforeandaftertheswitch,andhencecanreadilyreuse
+the learned contribution coefficients adapting almost instantly (c.f. Fig. 10). COCOA-reward in
+contrastneedstoencodethepoisonoustreasureasanew,previouslyunknownrewardingoutcome.
+Sinceitonlyneedstorelearnthecontributioncoefficientsforthedisentangledsubtaskofavoiding
+poison it nevertheless adapts quickly (c.f. Fig. 10). Advantage and Q-critic are both faced with
+relearningtheirvaluefunctionsfollowingtherewardswitch. Inparticular,theylackthepropertyof
+disentanglingdifferentrewardingoutcomesandallstatesthateventuallyleadtothetreasureneedto
+beupdated.
+F.3 Usingreturnsinsteadofrewardsashindsightinformation
+InAppendixL,wediscussedthatHCA-returnisabiasedestimatorinmanyrelevantenvironments,
+includingourkey-to-doorandtask-interleavingenvironments. Thisexplainsitsworseperformance
+comparedtoourCOCOAalgorithms. Toisolatethedifferenceofusingreturnsinsteadofrewardsas
+20
+
+Figure 11: Performance of COCOA and baselines on the main task of picking up the treasure,
+measuredastheaveragefractionoftreasurerewardscollectedincludingtheCounterfactualreturn
+method.
+hindsightinformationforconstructingthecontributioncoefficients,weintroducethefollowingnew
+baseline:
+(cid:88)(cid:88) ∇ π(a|S ) (cid:16)pπ(a|S t ,Z t ) −1 (cid:17) Z (99)
+θ t π(a|S ) t
+t
+t≥0 a
+SimilartoHCA-return,thisCounterfactualReturnvariantleveragesahindsightdistributioncon-
+ditionedonthereturn. DifferentfromHCA-return,weusethishindsightdistributiontocompute
+contributioncoefficientsthatcanevaluateallcounterfactualactions. Weprovethatthisestimatoris
+unbiased.
+Figure11showsthattheperformanceofHCA-returnandCounterfactualreturnlagsfarbehindthe
+performanceofCOCOA-rewardonthekey-to-doorenvironment. Thisisduetothehighvarianceof
+HCA-returnandCounterfactualReturn,andthebiasednessoftheformer. Asthereturnisacombina-
+tionofalltherewardsofatrajectory,itcannotbeusedtodisentanglerewardingoutcomes,causing
+thevarianceofthedistractorsubtasktospillovertothesubtaskofpickingupthetreasure.
+F.4 Investigationintotherequiredaccuracyofthehindsightmodels
+Toquantifytherelationbetweentheapproximationqualityofthehindsightmodelsandvaluefunctions
+upontheSNRoftheresultingpolicygradientestimate,weintroducethefollowingexperiment. We
+start from the ground-truth hindsight models and value functions computed with our dynamic
+programming setup (c.f. E.2), and introduce a persistent bias into the output of the model by
+elementwisemultiplyingtheoutputwith(1+σϵ),withϵzero-meanunivariateGaussiannoiseandσ ∈
+{0.001,0.003,0.01,0.03,0.1,0.3}ascalarofwhichwevarythemagnitudeintheexperiment.
+Figure12showstheSNRoftheCOCOA-rewardestimatorandthebaselines,asafunctionofthe
+perturbance magnitude logσ, where we average the results over 30 random seeds. We see that
+the sensitivity of the COCOA-reward estimator to its model quality is similar to that of Q-critic.
+Furthermore, the SNR of COCOA-reward remains of better quality compared to Advantage and
+HCA-stateforawiderangeofperturbations.
+G ContributionanalysisincontinuousspacesandPOMDPs
+InSection3.3weshowedthatHCAcansufferfromspuriouscontributions,asstaterepresentations
+needtocontaindetailedfeaturestoallowforacapablepolicy. Thesamelevelofdetailhoweveris
+detrimentalwhenassigningcredittoactionsforreachingaparticularstate,sinceatsomeresolution
+almosteveryactionwillleadtoaslightlydifferentoutcome. Measuringthecontributiontowardsa
+specificstateignoresthatoftenthesamerewardcouldbeobtainedinaslightlydifferentstate,hence
+overvaluingtheimportanceofpastactions. Manycommonlyusedenvironments,suchaspixel-based
+environments,continuousenvironments,andpartiallyobservableMDPsexhibitthispropertytoa
+largeextentduetotheirfine-grainedstaterepresentations.Here,wetakeacloserlookathowspurious
+contributionsariseincontinuousenvironmentsandPartiallyObservableMDPs(POMDPs).
+21
+
+Q-critic HCA+
+20
+COCOA-reward Advantage
+B) 0
+d
+R
+(
+N
+S −20
+−40
+0.001 2 5 0.01 2 5 0.1 2
+Model Perturbation
+Figure12: TheimprovedSNRoftheCOCOAestimatorisrobusttoimperfectcontribution
+coefficients. The SNR of the COCOA-reward estimator and the baselines, as a function of the
+perturbancemagnitudelogσ,whereweaveragetheresultsover30randomseeds.
+G.1 Spuriouscontributionsincontinuousstatespaces
+Whenusingcontinuousstatespaces,pπ(S = s′ | s,a)representsaprobabilitydensityfunction
+k
+(PDF) instead of a probability. A ratio of PDFs p(X = x)/p(X = x′) can be interpreted as a
+likelihoodratioofhowlikelyasampleX willbeclosetoxversusx′. UsingPDFs,thecontribution
+coefficientswithU =S usedbyHCAresultin
+w(s,a,s′)= (cid:80) k≥1 pπ(S t+k =s′ |S t =s,A t =a) −1= pπ(A t =a|S t =s,S′ =s′) −1
+(cid:80) pπ(S =s′ |S =s) π(a|s)
+k≥1 t+k t
+(100)
+and can be interpreted as a likelihood ratio of encountering a state ‘close’ to s′, starting from
+(s,a)versusstartingfromsandfollowingthepolicy. Thecontributioncoefficientwillbehighif
+pπ(S′ =s′ |s,a)hasahighprobabilitydensityats′conditionedonactiona,comparedtotheother
+actionsa′ ̸= a. Hence,thelesspπ(S = s′ | s,a)andpπ(S = s′ | s,a′)overlaparounds′,the
+k k
+higherthecontributioncoefficientforactiona. Thevarianceofthedistributionpπ(S =s′ |s,a),
+k
+andhenceitsroomforoverlap,isdeterminedbyhowdiffusetheenvironmenttransitionsandpolicy
+are. Forexample,averypeakedpolicyandnearlydeterministicenvironmenttransitionsleadstoa
+sharpdistributionpπ(S =s′ |s,a).
+k
+Therandomnessofthepolicyandenvironmentisapoormeasureforthecontributionofanaction
+inobtainingareward. Forexample,considerthemusician’smotorsystem,thatlearnstoboth: (i)
+playtheviolinand(ii)playthekeyboard. Weassumeaprecisecontrolpolicyandneardeterministic
+environmentdynamics,resultinginpeakeddistributionspπ(S =s′ |s,a). Forplayingtheviolin,a
+k
+slightchangeinfingerpositionsignificantlyinfluencesthepitch,hencetherewardfunctionsharply
+declines around the target state with perfect pitch. For playing the keyboard, the specific finger
+positionmatterstoalesserextent,aslongasthecorrectkeyispressed,resultinginarelativelyflat
+rewardfunctionw.r.t. theprecisefingerpositioning. Thestate-basedcontributioncoefficientsof
+Eq.100resultinahighcontributionfortheactiontakeninthetrajectoryforbothtasks. Forplaying
+violin,thiscouldbeagoodapproximationofwhatweintuitivelythinkofasa‘highcontribution’,
+whereasforthekeyboard,thisovervaluestheimportanceofthepastactioninmanycases. Fromthis
+example,itisclearthatmeasuringcontributionstowardsrewardingstatesincontinuousstatespaces
+canleadtospuriouscontributions,asthecontributionsmainlydependonhowdiffusethepolicyand
+environmentdynamicsare,andignorethatdifferentrewardstructurescanrequirevastlydifferent
+contributionmeasures.
+G.2 Deterministiccontinuousrewardfunctionscanleadtoexcessivevariance
+Proposition2showsthatHCAdegradestoREINFORCEinenvironmentswhereeachactionsequence
+leadstodistinctstates. InSectionG.1,wediscussedthatcontinuousstatespacesexhibitthisproperty
+toalargeextendduetotheirfine-grainedstaterepresentation. Ifeachenvironmentstatehasaunique
+rewardvalue,COCOAcansufferfromasimilardegradationtoHCA.Astherewardingoutcome
+encodingU needstobefullypredictiveofthereward(c.f. Theorem1),itneedstohaveadistinct
+encodingforeachuniquereward,andhenceforeachstate.
+22
+
+With a continuous reward function this can become a significant issue, if the reward function is
+deterministic. Duetothefine-grainedstaterepresentationincontinuousstatespaces,almostevery
+action will lead to a (slightly) different state. When we have a deterministic, continuous reward
+function,twonearbybutdistinctstateswilloftenleadtonearbybutdistinctrewards. Hence,toalarge
+extent,therewardcontainstheinformationoftheunderlyingstate,encodedinitsinfiniteprecisionof
+arealvalue,resultinginCOCOAdegradingtowardsthehigh-varianceHCAestimator.
+Theaboveproblemdoesnotoccurwhentherewardfunctionp(R|S,A)isprobabilistic,evenfor
+continuousrewards. Ifthevarianceofp(R|S,A)isbiggerthanzero,thevarianceofp(S,A|R)is
+alsobiggerthanzeroundermildassumptions. Thismeansthatitisnotpossibletoperfectlydecode
+theunderlyingstateusingaspecificrewardvaluer,andhenceCOCOAdoesnotdegradetowards
+HCAinthiscase. Intuitively,differentnearbystatescanleadtothesamesampledreward,removing
+thespuriouscontributions. Inthefollowingsection,wewillusethisinsighttoalleviatespurious
+contributions,evenfordeterministicrewardfunctions.
+G.3 Smoothingcanalleviateexcessvariancebytradingvarianceforbias
+Wheneachstatehasauniquereward,anunbiasedCOCOAestimatordegradestothehigh-variance
+HCAestimator, sinceU needstobefullypredictiveofthereward, andhenceeachstateneedsa
+uniquerewardingoutcomeencoding. Here,weproposetwowaysforwardtoovercometheexcess
+varianceoftheCOCOAestimatorinthisextremesettingthattradevarianceforbias.
+Rewardingoutcomebinning. Oneintuitivestrategytoavoidthateachstatehasauniquerewarding
+outcomeencodingU,istogrouprewardingoutcomeencodingscorrespondingtonearbyrewards
+together,resultingindiscretebins. Astherewardingoutcomeencodingsnowcontainlessdetails,
+theresultingCOCOAestimatorwillhavelowervariance. However,asnowtherewardingoutcome
+encodingisnotanymorefullypredictiveofthereward,theCOCOAestimatorwillbebiased. An
+intimatelyconnectedstrategyistochangetherewardfunctionintheenvironmenttoadiscretized
+rewardfunctionwithseveralbins. Policygradientsinthenewdiscretizedenvironmentswillnotbe
+exactlyequaltothepolicygradientsintheoriginalenvironment,howeverforfinediscretizations,we
+wouldnotexpectmuchbias. Similarlyforbinningtherewardingoutcomeencodings,whenwegroup
+fewnearbyrewardingoutcomeencodingstogether,weexpectalowbias,butalsoalowvariance
+reduction. Increasingtheamountofrewardingoutcomeswegrouptogetherwefurtherlowerthebias,
+atacostofanincreasingbias,hencecreatingabias-variancetrade-off.
+Stochasticrewardingoutcomes. Wecangeneralizetheabovebinningtechniquetowardsrewarding
+outcomeencodingsthatbinrewardsstochastically. InSectionG.2,wediscussedthatwhenthereward
+functionisprobabilistic,theexcessivevarianceproblemislesspronounced,asdifferentstatescanlead
+tothesamereward.Whendealingwithadeterministicrewardfunction,wecanintroducestochasticity
+intherewardingoutcomeencodingtoleveragethesameprincipleandreducevarianceatthecost
+ofincreasingbias. Forexample,wecanintroducetherewardingoutcomeencodingU ∼N(R,σ),
+withN correspondingtoaGaussiandistribution. Asthisrewardingoutcomeencodingisnotfully
+predictiveofthereward,itwillintroducebias. Wecancontrolthisbias-variancetrade-offwiththe
+varianceσ:asmallsigmacorrespondstoasharpdistribution,akintoafinediscretizationintheabove
+binningstrategy,andhencealowbias. Increasingσleadstomorestatesthatcouldleadtothesame
+rewardingoutcomeencoding,henceloweringthevarianceatthecostofincreasingthebias.
+Implicit smoothing by noise perturbations or limited capacity networks. Interestingly, the
+above strategy of defining stochastic rewarding outcomes is equivalent to adjusting the training
+schemeofthehindsightmodelh(a|s,u′)byaddingnoisetotheinputu′. Here,wetakeU equalto
+the(deterministic)rewardR,butaddnoisetoitwhiletrainingthehindsightmodel. Duetothenoise,
+thehindsightmodelcannotperfectlydecodetheactionafromitsinput,resultinginthesameeffects
+asexplicitlyusingstochasticrewardingoutcomes. Addingnoisetotheinputofaneuralnetwork
+isafrequentlyusedregularizationtechnique. Hence,aninterestingroutetoinvestigateiswhether
+otherregularizationtechniquesonthehindsightmodel,suchaslimitingitscapacity,canresultina
+bias-variancetrade-offforHCAandCOCOA.
+SmoothinghindsightstatesforHCA. Wecanapplythesame(stochastic)binningtechniqueto
+hindsightstatesforHCA,creatingamorecoarse-grainedstaterepresentationforbackwardcredit
+assignment. However,thebias-variancetrade-offismoredifficulttocontrolforstatescomparedto
+rewards. Thesensitivityoftherewardfunctiontotheunderlyingstatecanbebiginsomeregions
+ofstate-space, whereassmallinothers. Hence, auniform(stochastic)binningofthestate-space
+23
+
+willlikelyresultinsub-optimalbias-variancetrade-offs, asitwillbetoocoarse-grainedinsome
+regionscausinglargebias,whereastoofine-grainedinotherregionscausingalowvariance-reduction.
+Binningrewardsincontrastdoesnotsufferfromthisissue, asbinningisdirectlyperformedina
+spacerelevanttothetask.
+Proposition 8 provides further insight on what the optimal smoothing or binning for HCA looks
+like. Consider the case where we have a discrete reward function with not too many distinct
+valuescomparedtothestatespace,suchthatCOCOA-rewardisalow-variancegradientestimator.
+Proposition 8 shows that we can recombine the state-based hindsight distribution pπ(A = a |
+0
+S = s,S′ = s′)intothereward-basedhindsightdistributionpπ(A = a | S = s,R′ = r′),by
+0 0 0
+leveragingasmoothingdistribution (cid:80) pπ(S′ = s′ | S = s,R′ = r′). Whenweconsidera
+s′∈S 0
+specifichindsightstates′′,thismeansthatwecanobtainthelow-varianceCOCOA-rewardestimator,
+by considering all states S′ that could have lead to the same reward r(s′′), instead of only s′′.
+Hence, instead of using a uniform stochastic binning strategy with e.g. S′ ∼ N(s′′,σ), a more
+optimalbinningstrategyistotaketherewardstructureintoaccountthroughpπ(S′ |S =s,R′ =
+0
+r(s′′))
+Proposition8.
+(cid:88)
+pπ(A =a|S =s,R′ =r′)= pπ(S′ =s′ |S =s,R′ =r′)pπ(A =a|S =s,S′ =s′)
+0 0 0 0 0
+s′∈S
+(101)
+Proof. AsA isd-separatedfromR′conditionedonS′andS (c.f. Fig.6b)wecanusetheimplied
+0 0
+conditionalindependencetoprovetheproposition:
+pπ(A =a|S =s,R′ =r′) (102)
+0 0
+(cid:88)
+= pπ(S′ =s′,A =a|S =s,R′ =r′) (103)
+0 0
+s′∈S
+(cid:88)
+= pπ(S′ =s′ |S =s,R′ =r′)pπ(A =a|S =s,S′ =s′,R′ =r′) (104)
+0 0 0
+s′∈S
+(cid:88)
+= pπ(S′ =s′ |S =s,R′ =r′)pπ(A =a|S =s,S′ =s′) (105)
+0 0 0
+s′∈S
+G.4 Continuousactionspaces
+Intheprevioussection,wediscussedhowcontinuousstatespacescanleadtospuriouscontributions
+resultinghighvariancefortheHCAestimator. Here,webrieflydiscusshowCOCOAcanbeapplied
+tocontinuousactionspaces,andhowProposition2translatestothissetting.
+Gradientestimator. WecanadjusttheCOCOAgradientestimatorofEq.4towardscontinuous
+actionspacesbyreplacingthesumovera′AbyanintegralovertheactionspaceA′.
+(cid:90)
+∇ˆUVπ(s )= (cid:88) ∇ logπ(A |S )R + da∇ π(a|S ) (cid:88) w(S ,a,U )R (106)
+θ 0 θ t t t θ t t t+k t+k
+t≥0 A k≥1
+In general, computing this integral is intractable. We can approximate the integral by standard
+numerical integration methods, introducing a bias due to the approximation. Alternatively, we
+introducedinApp.C.3anothervariantoftheCOCOAgradientestimatorthatsamplesindependent
+actionsA′fromthepolicyinsteadofsummingoverthewholeactionspace. Thisvariantcanreadily
+beappliedtocontinuousactionspaces,resultingin
+∞
+∇ˆ Vπ = (cid:88) ∇ logπ(A |S )R + 1 (cid:88) ∇ logπ(am |S ) (cid:88) w(S ,am,U )R (107)
+θ θ t t t M θ t t t+k t+k
+t≥0 m k=1
+wherewesampleM actionsindependentlyfromam ∼π(·|S ). Thisgradientestimatorisunbiased,
+t
+butintroducesextravariancethroughthesamplingofactions.
+24
+
+Spurious contributions. Akin to discrete action spaces, HCA in continuous action spaces can
+sufferfromspuriouscontributionswhendistinctactionsequencesleadtouniquestates. Inthiscase,
+previousactionscanbeperfectlydecodedfromthehindsightstate,andwehavethattheprobability
+densityfunctionpπ(A =a|S =s,S′ =s′)isequaltotheDiracdeltafunctionδ(a=a ),with
+0 0 0
+a the action taken in the trajectory that led to s′. Substituting this Dirac delta function into the
+0
+policygradientestimatorofEq.106resultsinthehigh-varianceREINFORCEestimator. Whenwe
+usetheCOCOAestimatorofEq.107usingactionsampling,HCAwillevenhaveahighervariance
+comparedtoREINFORCE.
+G.5 PartiallyObservableMDPs
+Inmanyenvironments,agentsdonothaveaccesstothecompletestateinformations,butinstead
+get observations with incomplete information. Partially observable Markov decision processes
+(POMDPs)formalizethiscasebyaugmentingMDPswithanobservationspaceO. Insteadofdirectly
+observingMarkovstates,theagentnowacquiresanobservationo ateachtimestep. Theprobability
+t
+ofobservingoinstatesafterperformingactionaisgivenbyp (o|s,a).
+o
+ApopularstrategyindeepRLmethodstohandlepartialobservabilityislearninganinternalstatex
+t
+thatsummarizestheobservationhistoryh ={o ,a ,r }t−1 ,typicallybyleveragingrecurrent
+t t′+1 t′ t′ t′=0
+neuralnetworks[85–88]. Thisinternalstateisthenusedasinputtoapolicyorvaluefunction. This
+strategyisintimatelyconnectedtoestimatingbeliefstates[89]. Theobservationhistoryh provides
+t
+uswithinformationonwhatthecurrentunderlyingMarkovstates is. Wecanformalizethisby
+t
+introducingthebeliefstateb ,whichcapturesthesufficientstatisticsfortheprobabilitydistribution
+t
+overtheMarkovstatessconditionedontheobservationhistoryh . Theoretically,suchbeliefstates
+t
+canbecomputedbydoingBayesianprobabilitycalculususingtheenvironmenttransitionmodel,
+rewardmodelandobservationmodel:
+p (s|b )=p(S =s|H =h ) (108)
+B t t t t
+SeminalworkhasshownthataPOMDPcanbeconvertedtoanMDP,usingthebeliefstatesbasnew
+MarkovstatesinsteadoftheoriginalMarkovstatess[90]. Nowtheconventionaloptimalcontrol
+techniquescanbeusedtosolvethebelief-stateMDP,motivatingtheuseofstandardRLmethods
+designedforMDPs,combinedwithlearninganinternalstatex.
+HCA suffers from spurious contributions in POMDPs. As the internal state x summarizes
+the complete observation history h, past actions can be accurately decoded based on h, causing
+HCAtodegradetothehigh-varianceREINFORCEestimator(c.f. Proposition2). Here,thetension
+betweenforminggoodstaterepresentationsforenablingcapablepoliciesandgoodrepresentationsfor
+backwardcreditassignmentispronouncedclearly.Toenableoptimaldecision-making,agoodinternal
+statexneedstoencodewhichunderlyingMarkovstatestheagentmostlikelyoccupies,aswellasthe
+correspondinguncertainty. Tothisend,theinternalstateneedstoincorporateinformationaboutthe
+fullhistory. However,whenusingthesameinternalstateforbackwardcreditassignment,thisleads
+tospuriouscontributions,aspreviousactionsareencodeddirectlyintotheinternalstate.
+To make the spurious contributions more tangible, let us consider a toy example where the state
+spaceS consistsofthreestatesx, y andz. Weassumetheinternalstaterepresentsabeliefstate
+b={b1,b2},whichisasufficientstatisticforthebeliefdistribution:
+p(S =x|b)=b1, p(S =y |b)=b2, p(S =z |b)=1−b1−b2 (109)
+Weassumethatb isdeterministicallycomputedfromthehistoryh ,e.g. byanRNN.Nowconsider
+t t
+thatattimestepk,ourbeliefstateisb = {0.5,0.25}andwegetarewardthatresultedfromthe
+k
+Markovstatex.Asthebeliefstatesaredeterministicallycomputed,thedistributionpπ(B′ =b′ |b,a)
+isaDiracdeltadistribution. Nowconsiderthattheactionadoesnotinfluencethebeliefdistribution
+overtherewardingstatex,butonlychangesthebeliefdistributionoverthenon-rewardingstates
+(e.g. B = {0.5,0.23} instead of B = {0.5,0.25} when taking action a′ instead of a). As the
+k k
+Diracdeltadistributionspπ(B′ =b′ |b,a)fordifferentadonotoverlap,wegetahighcontribution
+coefficientfortheactiona thatwastakenintheactualtrajectorythatledtothebeliefstateb′,and
+0
+a low contribution coefficient for all other actions, even though the actions did not influence the
+distributionovertherewardingstate.
+Thespuriouscontributionsoriginatefrommeasuringcontributionstowardsreachingacertaininternal
+beliefstate,whileignoringthatthesamerewardcouldbeobtainedindifferentbeliefstatesaswell.
+25
+
+AdaptingProposition8towardstheseinternalbeliefstatesprovidesfurtherinsightonthedifference
+betweenHCAandCOCOA-reward:
+(cid:88)
+pπ(A =a|X =x,R′ =r′)= pπ(X′ =x′ |X =x,R′ =r′)pπ(A =a|X =x,X′ =x′)
+0 0 0 0 0
+X′∈X
+(110)
+Here,weseethatthecontributioncoefficientsofCOCOA-rewardtakeintoaccountthatthesame
+rewardcanbeobtainedwhilebeingindifferentinternalbeliefstatesx′byaveragingoverthem,while
+HCAonlyconsidersasingleinternalstate.
+H Learningcontributioncoefficientsfromnon-rewardingobservations
+H.1 Latentlearning
+BuildinguponHCA[1],welearnthecontributioncoefficients(3)byapproximatingthehindsight
+distribution pπ(a | s,u′). The quality of this model is crucial for obtaining low-bias gradient
+estimates. However,itstrainingdataisscarce,asitisrestrictedtolearnfromon-policydata,and
+rewardingobservationsincasetherewardorrewardingobjectisusedasencodingU. Wecanmake
+themodelthatapproximatesthehindsightdistributionlessdependentonthepolicybyproviding
+the policy logits as input (c.f. Proposition 5). Enabling COCOA-reward or COCOA-feature to
+learnfromnon-rewardingstatesisamorefundamentalissue,asingeneral,therewardingoutcome
+encodings corresponding to zero rewards do not share any features with those corresponding to
+non-zerorewards.
+EmpoweringCOCOAwithlatentlearningisaninterestingdirectiontomakethelearningofcontribu-
+tioncoefficientsmoresampleefficient. Werefertolatentlearningaslearningusefulrepresentations
+of the environment structure without requiring task information, which we can then leverage for
+learningnewtasksmorequickly[91]. Inoursetting,thisimplieslearningusefulrepresentations
+inthehindsightmodelwithoutrequiringrewardingobservations,suchthatwhennewrewardsare
+encountered,wecanquicklylearnthecorrespondingcontributioncoefficients,leveragingtheexisting
+representations.
+H.2 Optimalrewardingoutcomeencodingsforcreditassignment.
+Theorem3showsthatthelessinformationarewardingoutcomeencodingU contains,thelowerthe
+varianceofthecorrespondingCOCOAgradientestimator(4). Latentlearningontheotherhand
+considersthesample-efficiencyandcorrespondingbiasofthelearnedcontributioncoefficients: when
+thehindsightmodelcanlearnusefulrepresentationswithencodingsU correspondingtozerorewards,
+it can leverage those representations to quickly learn the contribution coefficients for rewarding
+outcomeencodingswithnon-zerorewards,requiringlesstrainingdatatoachievealowbias.
+ThesetworequirementsontherewardingoutcomeencodingU areofteninconflict. Toobtaina
+low-variancegradientestimator,U shouldretainaslittleinformationaspossiblewhilestillbeing
+predictiveofthereward. Toenablelatentlearningforsample-efficientlearningofthecontribution
+coefficients,thehindsightmodelneedstopickuponrecurringstructureintheenvironment,requiring
+keeping as much information as possible in U to uncover the structural regularities. Using the
+stateasrewardingoutcomeencodingisbeneficialforenablinglatentlearning,asitcontainsrich
+informationontheenvironmentstructure,butresultsinspuriouscontributionsandaresultinghigh
+variance. Usingtherewardsorrewardingobjectasrewardingoutcomeencodingremovesspurious
+contributionsresultinginlowvariance,butrenderslatentlearningdifficult.
+A way out of these conflicting pressures for an optimal rewarding outcome encoding is to use
+rewardsorrewardingobjectsastheoptimalencodingforlowvariance,butextractthesecontribution
+coefficientsfrommodelsthatallowforsample-efficient,latentlearning. Onepossiblestrategyis
+tolearnprobabilisticworldmodels[20,21,88]whichcanbedoneusingbothnon-rewardingand
+rewardingobservations,andusethosetoapproximatethecontributioncoefficientsofEq.3. Another
+strategythatwewillexploreinmoredepthistolearnhindsightmodelsbasedonthestateasrewarding
+outcomeencodingtoenablelatentlearning,butthenrecombinethoselearnedhindsightmodelsto
+obtaincontributioncoefficientsusingtherewardorrewardingobjectasU.
+H.3 Counterfactualreasoningonrewardingstates
+HCAresultsinspuriouscontributionsbecauseitcomputescontributionstowardsreachingaprecise
+rewarding state, while ignoring that the same reward could be obtained in other (nearby) states.
+26
+
+Figure13: Schematicofthegraphicalmodelusedinourvariationalinformationbottleneckapproach.
+Proposition9(ageneralizationofProposition8),showsthatwecanreducethespuriouscontributions
+of the state-based contribution coefficients by leveraging counterfactual reasoning on rewarding
+states. Here,weobtaincontributioncoefficientsforacertainrewardingoutcomeencoding(e.g. the
+rewardingobject)byconsideringwhichotherstatess′ couldleadtothesamerewardingoutcome,
+andaveragingoverthecorrespondingcoefficientsw(s,a,s′).
+Proposition9. AssumingS′isfullypredictiveofU′,wehavethat
+(cid:88)
+w(s,a,u′)= pπ(S′ =s′ |S =s,U′ =u′)w(s,a,s′) (111)
+0
+s′∈S
+TheprooffollowsthesametechniqueasthatofProposition8. Proposition8)showsthatitispossible
+to learn state-based contribution coefficients, enabling latent learning, and obtain a low-variance
+COCOAestimatorbyrecombiningthestate-basedcontributioncoefficientsintocoefficientswith
+lessspuriouscontributions,ifwehaveaccesstothegenerativemodelpπ(S′ =s′ |S =s,U′ =u′).
+0
+Thismodelembodiesthecounterfactualreasoningonrewardingstates: ‘whichotherstatess′ are
+likelyconsideringIamcurrentlyinu′andvisitedstatessomewhereinthepast’.
+Ingeneral, learningthis generative modelisas difficultormoredifficult thanapproximatingthe
+hindsightdistributionpπ(a|s,u′),asitrequiresrewardingobservationsastrainingdata. Hence,itis
+notpossibletodirectlyuseProposition9tocombinelatentlearningwithlow-varianceestimators. In
+thefollowingsection,weproposeapossiblewayforwardtocircumventthisissue.
+H.4 Learningcreditassignmentrepresentationswithaninformationbottleneck
+Here,weoutlineastrategywherewelearnalatentrepresentationZ thatretainsusefulinformationon
+theunderlyingstatesS,andcruciallyhasalatentspacestructuresuchthatpπ(Z′ =z′ |S =s,U′ =
+u′)iseasytoapproximate. Then,leveragingProposition9(andreplacingS′ byZ′)allowsusto
+learnahindsightrepresentationbasedonZ,enablinglatentlearning,whilereducingthespurious
+contributionsbycounterfactualreasoningwithpπ(z′ |s,u′).
+Toachievethis,weusetheVariationalInformationBottleneckapproach[83,92],closelyrelatedto
+theβVariationalAutoencoder[93]. Fig.13showsthegraphicalmodelwiththerelationsbetweenthe
+variousvariablesandencoding: welearnaprobabilisticencodingp(Z |S,A;θ)parameterizedbyθ,
+andweassumethatthelatentvariableZ isfullypredictiveoftherewardingoutcomeencodingU and
+rewardR. WeaimtomaximizethemutualinformationI(Z′;S′,A′ |S,U′)undersomeinformation
+bottleneck. WeconditiononS andU′,toenduplaterwithadecoderandpriorvariationalmodelthat
+wecancombinewithProposition9.
+Followingrate-distortiontheory,Alemietal.[92]considerthefollowingtractablevariationalbounds
+onthemutualinformation
+H −D ≤I(Z′;S′,A′ |S,U′)≤Rate (112)
+withentropyH,distortionDandratedefinedasfollows:
+H =−E [logpπ(S′,A′ |S,U′)] (113)
+S′,A′,S,U′
+(cid:20) (cid:20)(cid:90) (cid:21)(cid:21)
+D =−E E dz′p(z′ |s′,a′;θ)logq(s′,a′ |s,z′;ψ) (114)
+S,U′ S′,A′|S,U′
+Rate=E (cid:2) E (cid:2) D (cid:0) p(z′ |s′,a′;θ)∥q(z′ |s,u′;ϕ) (cid:1)(cid:3)(cid:3) (115)
+S,U′ S′,A′|S,U′ KL
+where the decoder q(s′,a′ | s,z′;ψ) is a variational approximation to p(s′,a′ | s,z′), and the
+marginal q(z′ | s,u′;ϕ) is a variational approximation to the true marginal p(z′ | s,u′). The
+distortion D quantifies how well we can decode the state-action pair (s′,a′) from the encoding
+27
+
+z′,byusingadecoderq(s′,a′ | s,z′;ψ)parameterizedbyψ. Thedistortionisreminiscentofan
+autoencoderloss,andhenceencouragestheencodingp(z′ | s′,a′)toretainasmuchinformation
+aspossibleonthestate-actionpair(s′,a′). TheratemeasurestheaverageKL-divergencebetween
+theencoderandvariationalmarginal. Ininformationtheory,thisratemeasurestheextranumberof
+bits(ornats)requiredtoencodesamplesfromZ′withanoptimalcodedesignedforthevariational
+marginalq(z′ |s,u′;ϕ).
+WecanusetheratetoimposeaninformationbottleneckonZ′. IfweconstraintheratetoRate≤a
+withasomepositiveconstant,werestricttheamountofinformationZ′canencodeabout(S′,A′),as
+p(z′ |s′,a′;θ)needstoremainclosetothemarginalq(z′ |s,u′;ϕ),quantifiedbytheKL-divergence.
+WecanmaximizethemutualinformationI(Z′;S′,A′ |S,U′)undertheinformationbottleneckby
+minimizingthedistortionunderthisrateconstraint. Insteadofimposingafixedconstraintontherate,
+wecancombinetherateanddistortionintoanunconstrainedoptimizationproblembyleveragingthe
+Lagrangeformulation
+minD+βRate (116)
+θ,ϕ,ψ
+Here, the β parameter determines the strength of the information bottleneck. This formulation
+is equivalent to the β Variational Autoencoder [93], and for β = 1 we recover the Variational
+Autoencoder[94].
+Tounderstandwhythisinformationbottleneckapproachisusefultolearncreditassignmentrepresen-
+tationsZ,weexaminetherateinmoredetail. Wecanrewritetherateas
+Rate=E (cid:2) D (cid:0) p(z′ |s,u′)∥q(z′ |s,u′;ϕ) (cid:1)(cid:3) + (117)
+S,U′ KL
+E (cid:2) D (cid:0) p(s′,a′ |s,z′)∥p(s′,a′ |s,u′) (cid:1)(cid:3) (118)
+S,U′,Z′ KL
+Hence,optimizingtheinformationbottleneckobjective(116)w.r.t. ϕfitsthevariationalmarginal
+q(z′ |s,u′;ϕ)tothetruemarginalp(z′ |s,u′)inducedbytheencoderp(z′ |s′,a′;θ). Proposition9
+usesthistruemarginaltorecombinecoefficientsbasedonZ intocoefficientsbasedonU. Hence,by
+optimizingtheinformationbottleneckobjective,welearnamodelq(z′ |s,u′;ϕ)thatapproximates
+the true marginal, which we then can use to obtain contribution coefficients with less spurious
+contributionsbyleveragingProposition9. Furthermore,minimizingtheratew.r.t. θshapesthelatent
+spaceofZ′ suchthatthetruemarginalp(z′ |s,u′)movesclosertowardsthevariationalmarginal
+q(z′ |s,u′;ϕ).
+Insummary,theoutlinedinformationbottleneckapproachforlearningacreditassignmentrepresenta-
+tionZisapromisingwayforwardtomergethepowersoflatentlearningwithalow-varianceCOCOA
+gradientestimator. ThedistortionandratetermsintheinformationbottleneckobjectiveofEq.116
+representatrade-offparameterizedbyβ. Minimizingthedistortionresultsinadetailedencoding
+Z′ with high mutual information with the state-action pair (S′,A′), which can be leveraged for
+latentlearning. MinimizingtherateshapesthelatentspaceofZ′insuchwaythatthetruemarginal
+p(z′ | s,u′) can be accurately approximated within the variational family of q(z′ | s,u′;ϕ), and
+fitstheparametersϕresultinginanaccuratemarginalmodel. Wecanthenleveragethevariational
+marginalq(z′ | s,u′;ϕ)toperformcounterfactualreasoningontherewardingstateencodingsZ′
+accordingtoProposition9,resultinginalow-varianceCOCOA-estimator.
+I Contributionanalysisandcausality
+I.1 CausalinterpretationofCOCOA
+COCOAiscloselyconnectedtocausalitytheory[42],wherethecontributioncoefficients(3)cor-
+respondtoperformingDo−interventionsonthecausalgraphtoestimatetheireffectonfuture
+rewards. To formalize this connection with causality, we need to use a new set of tools beyond
+conditionalprobabilities,ascausationisingeneralnotthesameascorrelation. Westartwithrep-
+resentingtheMDPcombinedwiththepolicyasadirectedacyclicgraphicalmodel(c.f. Fig.6ain
+App.C.1). Incausalreasoning,wehavetwodifferent‘modesofoperation’. Ontheonehand,wecan
+useobservationaldata,correspondingto‘observing’thestatesofthenodesinthegraphicalmodel,
+whichiscompatiblewithconditionalprobabilitiesmeasuringcorrelations. Ontheotherhand,wecan
+performinterventionsonthegraphicalmodel,wherewemanuallysetanode,e.g. A toaspecific
+t
+valueaindependentfromitsparentsS ,andseewhattheinfluenceisontheprobabilitydistributions
+t
+ofothernodesinthegraph,e.g. R . Theseinterventionsareformalizedwithdo-calculus[42],
+t+1
+28
+
+Figure14: Structuralcausalmodel(SCM)oftheMDP.Squaresrepresentdeterministicfunctionsand
+circlesrandomvariables.
+wherewedenoteaninterventionofputtinganodeV equaltovasDo(V =v),andcanbeusedto
+i i
+investigatecausalrelations.
+UsingthegraphicalmodelofFig.6bthatabstractstime,wecanusedo-interventionstoquantifythe
+causalcontributionofanactionA =atakeninstateS =suponreachingtherewardingoutcome
+t t
+U′ =u′inthefutureas,
+pπ(cid:0) U′ =u′ |S =s,Do(A =a) (cid:1)
+w (s,a,u′)= t t −1. (119)
+Do (cid:80) π(a˜|s)pπ (cid:0) U′ =u′ |S =s,Do(A =a˜) (cid:1)
+a˜∈A t t
+As conditioning on S satisfies the backdoor criterion [42] for U′ w.r.t. A, the interventional
+distribution pπ(cid:0) U′ = u′ | S = s,Do(A = a) (cid:1) is equal to the observational distribution
+t t
+pπ(cid:0) U′ = u′ | S = s,A = a (cid:1) . Hence, the causal contribution coefficients of Eq. 119 are
+t t
+equaltothecontributioncoefficientsofEq.3usedbyCOCOA.
+I.2 ExtendingCOCOAtocounterfactualinterventions
+Withincausalitytheory,counterfactualreasoninggoesonestepfurtherthancausalreasoning,by
+incorporatingthehindsightknowledgeoftheexternalstateoftheworldinitsreasoning. Appliedto
+COCOA,thismoreadvancedcounterfactualreasoningwouldevaluatethequery: ‘Howdoestaking
+actionainfluencetheprobabilityofreachingarewardingoutcome,comparedtotakingalternative
+actions a′, given everything else remains the same’. To formalize the difference between causal
+and counterfactual reasoning, we need to convert the causal DAG of Figure 6a into a structural
+causalmodel(SCM),asshowninFigure14. TheSCMexpressesallconditionaldistributionsas
+deterministic functions with independent noise variables N, akin to the reparameterization trick
+[94]. Incausalreasoning,weperformdo-interventionsonnodes,whichisequivalenttocuttingall
+incomingedgestoanode. Tocomputetheresultingprobabilities,westillusethepriordistribution
+overthenoisevariablesN.Counterfactualreasoninggoesonestepfurther.First,itinferstheposterior
+probabilitypπ({N}|T =τ),with{N}thesetofallnoisevariables,giventheobservedtrajectory
+τ. ThenitperformsaDo-interventionasincausalreasoning. Howevernow,tocomputetheresulting
+probabilitiesonthenodes,itusestheposteriornoisedistributioncombinedwiththemodifiedgraph.
+Onepossiblestrategytoestimatecontributionsusingtheabovecounterfactualreasoningistoexplicitly
+estimatetheposteriornoisedistributionandcombineitwithforwarddynamicsmodelstoobtain
+the counterfactual probability of reaching specific rewarding outcomes. Leveraging the work of
+Buesingetal.[43]isapromisingstartingpointforthisdirectionoffuturework. Alternatively,we
+canavoidexplicitlymodelingtheposteriornoisedistribution,byleveragingthehindsightdistribution
+combinedwiththeworkofMesnardetal.[3]. Here,weaimtolearnaparameterizedapproximation
+htothecounterfactualhindsightdistributionpπ(cid:0) A =a|S =s,U′ =u′(cid:1) ,wheretheτ-subscript
+τ t t
+indicatesthecounterfactualdistributionincorporatingthenoiseposterior. Buildingupontheapproach
+ofMesnardetal.[3],wecanlearnh(a | s′,s,Φ (τ))toapproximatethecounterfactualhindsight
+t
+distribution,withΦ (τ)asummarystatistictrainedtoencapsulatetheinformationoftheposterior
+t
+noisedistributionp({N}|T =τ). Mesnardetal.[3]showthatsuchasummarystatisticΦ (τ)can
+t
+beusedtoamortizetheposteriornoiseestimationifitsatisfiesthefollowingtwoconditions: (i)it
+needstoprovideusefulinformationforpredictingthecounterfactualhindsightdistributionand(ii)
+itneedstobeindependentfromtheactionA . Wecanachievebothcharacteristicsby(i)training
+t
+h(a | s′,s,Φ (τ))onthehindsightactionclassificationtaskandbackpropagatingthegradientsto
+t
+Φ (τ),and(ii)trainingΦ onanindependencemaximizationlossL (s),whichisminimizediff
+t t IM
+29
+
+Table6: Comparisonofdiscountedpolicygradientestimators
+Method Policygradientestimator(∇ˆ Vπ(s ))
+θ 0
+REINFORCE (cid:80) γt∇ logπ(A |S ) (cid:80) γkR
+t≥0 θ t t k≥0 t+k
+(cid:16) (cid:17)
+Advantage (cid:80) γt∇ logπ(A |S ) (cid:80) γkR −Vπ(S )
+t≥0 θ t t k≥0 t+k γ t
+Q-critic (cid:80) γt(cid:80) ∇ π(a|S )Qπ(S ,a)
+t≥0 a∈A θ t γ t
+COCOA (cid:80) γt∇ logπ(A |S )R + (cid:80) ∇ π(a|S ) (cid:80) γkw (S ,a,U )R
+t≥0 θ t t t a∈A θ t k≥1 γ t t+k t+k
+HCA+ (cid:80) γt∇ logπ(A |S )R + (cid:80) ∇ π(a|S ) (cid:80) γkw (S ,a,S )R
+t≥0 θ t t t a∈A θ t k≥1 γ t t+k t+k
+A andΦ areconditionallyindependentgivenS . AnexampleistominimizetheKLdivergence
+t t t
+betweenπ(a |s )andp(a |s ,Φ (τ))wherethelattercanbeapproximatedbytrainingaclassifier
+t t t t t
+q(a |s ,Φ (τ)). LeveragingthisapproachtoextendCOCOAtowardscounterfactualinterventions
+t t t
+isanexcitingdirectionforfutureresearch.
+J Contributionanalysiswithtemporaldiscounting
+AsdiscussedinApp.B,wecanimplicitlyincorporatediscountingintotheCOCOAframeworkby
+adjustingthetransitionprobabilitiestohaveafixedprobabilityof(1−γ)oftransitioningtothe
+absorbingstates ateachtimestep.
+∞
+WecanalsoreadilyincorporateexplicittimediscountingintotheCOCOAframework,whichwe
+discusshere. WeconsidernowadiscountedMDPdefinedasthetuple(S,A,p,p ,γ),withdiscount
+r
+factorγ ∈[0,1],and(S,A,p,p )asdefinedinSection2. ThediscountedvaluefunctionVπ(s)=
+r γ
+E [ (cid:80)∞ γtR ] and action value function Qπ(s,a) = E [ (cid:80)∞ γtR ] are the
+T∼T(s,π) t=0 t γ T∼T(s,a,π) t=0 t
+expecteddiscountedreturnwhenstartingfromstates,orstatesandactionarespectively. Table6
+showsthepolicygradientestimatorsofVπ(s)forREINFORCE,AdvantageandQ-critic.
+γ
+In a discounted MDP, it matters at which point in time we reach a rewarding outcome u, as the
+correspondingrewardsarediscounted. Hence,weadjustthecontributioncoefficientsto
+(cid:80) γkpπ(U =u′ |S =s,A =a)
+w (s,a,u′)= k≥1 t+k t t −1 (120)
+γ (cid:80) γkpπ(U =u′ |S =s)
+k≥1 t+k t
+pπ(A =a|S =s,U′ =u′)
+= γ t t −1 (121)
+π(a|s)
+Here,wedefinethediscountedhindsightdistributionpπ(A = a | S = s,U′ = u′)similarlyto
+γ t t
+theundiscountedhindsightdistributionexplainedinApp.C.1,butnowusingadifferentprobability
+distributiononthetimestepsk: p (K =k)=(1−β)βk−1,wherewetakeβ =γ. Wecanreadily
+β
+extendTheorems1-4totheexplicitdiscountedsetting,bytakingβ =γinsteadofthelimitofβ →1,
+andusingthediscountedCOCOApolicygradientestimatorshowninTable6.
+Toapproximatethediscountedhindsightdistributionpπ(A = a | S = s,U′ = u′),weneedto
+γ t t
+incorporatethetemporaldiscountingintotheclassificationcross-entropyloss:
+ 
+L γ =E π (cid:88)(cid:88) γkCE (cid:0) h γ (·|S t ,U t+k ),δ(a=A t ) (cid:1) , (122)
+t≥0k≥1
+with CE the cross-entropy loss, h (· | S ,U ) the classification model that approximates the
+γ t t+k
+discountedhindsightdistribution,andδ(a=A )aone-hotencodingofA .
+t t
+K BootstrappingwithCOCOA
+Here, we show how COCOA can be combined with n-step returns, and we make a correction to
+Theorem7ofHarutyunyanetal.[1]whichconsidersn-stepreturnsforHCA.
+ConsiderthegraphicalmodelofFig.15awherewemodeltime,K,asaseparatenodeinthegraphical
+model(c.f. App.C.1). Tomodeln-stepreturns,wenowdefinethefollowingpriorprobabilityonK,
+30
+
+(a) (b)
+Figure15: (a)Graphicalmodelwhereweabstracttime. (b)Graphicalmodelimplicitlyusedinthe
+proofofTheorem7inHarutyunyanetal.[1].
+parameterizedbyβ:
+(cid:40)
+βk if 1≤k ≤n−1 1−βn−1
+p (K =k)= z z =β (123)
+n,β 0 else 1−β
+Usingpπ astheprobabilitydistributioninducedbythisgraphicalmodel,wehavethat
+n,β
+(cid:88)
+pπ (U′ =u|S =s,A=a)= pπ (U′ =u,K =k |S =s,A=a) (124)
+n,β n,β
+k
+(cid:88)
+= p (K =k)pπ (U′ =u|S =s,A=a,K =k) (125)
+n,β n,β
+k
+n−1
+1−β (cid:88)
+= βkpπ(U =u|S =s,A =a) (126)
+β(1−βn−1) k 0 0
+k=1
+Weintroducethefollowingcontributioncoefficientsthatwewilluseforn-stepreturns
+(cid:80)n−1βkpπ(U =u′ |S =s,A =a)
+w (s,a,u′)= k=1 k 0 0 (127)
+n,β (cid:80)n−1βkpπ(U =u′ |S =s)
+k=1 k 0
+pπ (U′ =u′ |S =s,A=a) pπ (A=a|S =s,U′ =u′)
+= n,β −1= n,β −1 (128)
+pπ (U′ =u′ |S =s) π(a|s)
+n,β
+pπ(S =s′ |S =s,A =a) pπ(A=a|S =s,S =s′)
+w (s,a,s′)= n 0 0 −1= n −1 (129)
+n pπ(S =s′ |S =s) π(a|s)
+n 0
+Nowwearereadytoprovethen-stepreturntheoremforthediscountedMDPsetting. Wecanrecover
+theundiscountedsettingbytakingthelimitofγ →1 .
+−
+Theorem10. Considerstatesandactionaforwhichitholdsthatπ(a|s)>0andtakeβequaltothe
+discountfactorγ ∈[0,1]. Furthermore,assumethattherewardingoutcomeencodingu=f(s,a,r)
+isfullypredictiveofthereward(c.f. Definition2). ThentheadvantageAπ(s,a)=Qπ(s,a)−Vπ(s)
+isequalto
+(cid:34)n−1 (cid:35)
+(cid:88)
+Aπ(s,a)=r(s,a)−rπ(s)+E γkw (s,a,U )R +γnw (s,a,S )Vπ(S )
+T(s,π) n,β k k n n n
+k=1
+withr(s,a)therewardmodelandrπ(s)= (cid:80) π(a|s)r(s,a).
+a
+Proof. Westartwiththeaction-valuefunctionQπ,andwillsubtractthevalueVπ toobtaintheresult
+ontheadvantagefunction.
+ 
+(cid:88)
+Q(s,a)=E T∼T(s,a,π) γkR k (130)
+k≥1
+(cid:88) (cid:88)
+=r(s,a)+ γkpπ(R =r′ |s,a)r′ (131)
+k
+r′∈Rk≥1
+31
+
+n−1
+(cid:88) (cid:88) (cid:88)
+=r(s,a)+ γkpπ(R =r′,U =u′ |s,a)r′+ (132)
+k k
+r′∈Ru′∈Uk=1
+(cid:88)
+γn pπ(S =s′ |s,a)Vπ(s′) (133)
+n
+s′∈S
+n−1
+(cid:88) (cid:88) (cid:88)
+=r(s,a)+ γkpπ(R′ =r′ |U′ =u′)pπ(U =u′ |s,a)r′+ (134)
+k
+r′∈Ru′∈Uk=1
+(cid:88)
+γn pπ(S =s′ |s,a)Vπ(s′) (135)
+n
+s′∈S
+n−1
+(cid:88) (cid:88) (cid:88)
+=r(s,a)+ r(u′) γkpπ(U =u′ |s,a)+γn pπ(S =s′ |s,a)Vπ(s′)
+k n
+u′∈U k=1 s′∈S
+(136)
+=r(s,a)+ (cid:88) r(u′) n (cid:88) −1 γkpπ(U =u′ |s) (cid:80)n k′ − = 1 1 γk′pπ(U k′ =u|s,a) + (137)
+k (cid:80)n−1 γk′pπ(U =u|s)
+u′∈U k=1 k′=1 k′
+γn (cid:88) pπ(S =s′ |s) pπ(S n =s′ |s,a) Vπ(s′) (138)
+n pπ(S =s′ |s)
+n
+s′∈S
+n−1
+(cid:88) (cid:88)
+=r(s,a)+ r(u′) γkpπ(U =u′ |s)(w (s,a,u′)+1) (139)
+k n,β
+u′∈U k=1
+(cid:88)
++γn pπ(S =s′ |s)(w (s,a,s′)+1)Vπ(s′) (140)
+n n
+s′∈S
+(141)
+whereweusethatU′ isfullypredictiveoftherewardR′,anddefiner(u′) = (cid:80) p(R′ = r′ |
+r′∈R
+U′ =u′)r′Bysubtractingthevaluefunction,weget
+n−1
+(cid:88) (cid:88)
+A(s,a)=r(s,a)−rπ(s)+ r(u′) γkpπ(U =u′ |s)w (s,a,u′) (142)
+k n,β
+u′∈U k=1
+(cid:88)
++γn pπ(S =s′ |s)w (s,a,s′)Vπ(s′) (143)
+n n
+s′∈S
+(cid:34)n−1 (cid:35)
+(cid:88)
+=r(s,a)−rπ(s)+E γkw (s,a,U )R +γnw (s,a,S )Vπ(S ) (144)
+T(s,π) n,β k k n n n
+k=1
+Finally,wecansamplefromthisadvantagefunctiontoobtainann-stepCOCOAgradientestimator,
+akintoTheorem1.
+Notethatwerequiretolearnthestate-basedcontributioncoefficientsw (s,a,s′)tobootstrapthe
+n
+valuefunctionintothen-stepreturn,asthevaluefunctionrequiresaMarkovstates′asinputinstead
+ofarewardingoutcomeencodingu′. Unfortunately,thesestate-basedcontributioncoefficientswill
+sufferfromspuriouscontributions,akintoHCA,introducingasignificantamountofvarianceinto
+the n-step COCOA gradient estimator. We leave it to future research to investigate whether we
+canincorporatevaluefunctionsintoann-stepreturn,whileusingrewarding-outcomecontribution
+coefficientsw(s,a,u′)insteadofstate-basedcontributioncoefficientsw (s,a,s′).
+n
+Learningthecontributioncoefficients. Wecanlearnthecontributioncoefficientsw (s,a,u′)
+β,n
+withthesamestrategiesasdescribedinSection3,butnowwithtrainingdatafromn-steptrajectories
+insteadofcompletetrajectories. Ifweuseadiscountγ ̸=1,weneedtotakethisdiscountfactorinto
+accountinthetrainingdistributionorlossfunction(c.f. App.J).
+32
+
+CorrectiontoTheorem7ofHarutyunyanetal.[1]. Harutyunyanetal.[1]proposeatheorem
+similartoTheorem10,withtwoimportantdifferences. ThefirstoneconcernsthedistributiononK
+inthegraphicalmodelofFig.15a. Harutyunyanetal.[1]implicitlyusethisgraphicalmodel,but
+withadifferentpriorprobabilitydistributiononK:
+ βk−1(1−β) if 1≤k ≤n−1
+
+pHCA(K =k)= βn−1 if k =n (145)
+n,β
+0 else
+The graphical model combined with the distribution on K defines the hindsight distribution
+pπ (A=a|S =s,S′ =s′). TheseconddifferenceisthespecificQ-valueestimatorHaru-
+n,β,HCA
+tyunyanetal.[1]propose. Theyusethehindsightdistributionpπ (A=a|S =s,S′ =s′)in
+n,β,HCA
+frontofthevaluefunction(c.f. Theorem10),whichconsidersthats′canbereachedatanytimestep
+k ∼pHCA(k),whereasTheorem10usesw (s,a,s′)whichconsidersthats′isreachedexactlyat
+n,β n
+timestepk =n.
+Tothebestofourknowledge,thereisanerrorintheproposedproofofTheorem7byHarutyunyanetal.
+[1]forwhichwecouldnotfindasimplefix.Fortheinterestedreader,webrieflyexplaintheerror.One
+indicationoftheproblemisthatforβ →1,alltheprobabilitymassofpHCA(K =k)isconcentrated
+n,β
+at k = n, hence the corresponding hindsight distribution pπ (A = a | S = s,S′ = s′)
+n,β,HCA
+considersonlyhindsightstatess′encounteredattimek =n. Whilethisisnotamathematicalerror,it
+doesnotcorrespondtotheintuitionofa‘timeindependenthindsightdistribution’theauthorsprovide.
+Intheproofitself,aconditionalindependencerelationisassumedthatdoesnothold. Theauthors
+introduceahelpervariableZ definedonthestatespaceS,withaconditionaldistribution
+(cid:26) δ(z =s′) if 1≤k ≤n−1
+µ (Z =z |S′ =s′)= (146)
+k d˜π(z |s′) if k =n
+withthenormalizeddiscountedvisitdistributiond˜π(z |s′)=(1−γ) (cid:80) γkpπ(S =z |S =s).
+k k 0
+WecanmodelthissettingasthegraphicalmodelvisualizedinFig.15b. Intheproof(lastlineonpage
+15inthesupplementarymaterialsofHarutyunyanetal.[1]),thefollowingconditionalindependence
+isused:
+pπ(A =a|S =s,S′ =s′,Z =z)=pπ(A =a|S =s,S′ =s′) (147)
+0 0 0 0
+However, Fig. 15b shows that S′ is a collider on the path A → S′ ← K → Z. Hence, by
+0
+conditioningonS′weopenthiscolliderpath,makingA dependentonZ conditionedonS andS′,
+0 0
+therebyinvalidatingtheassumedconditionalindependence. Forexample,ifZ isdifferentfromS′,
+weknowthatK =n(c.f. Eq.146),henceZ cancontaininformationaboutactionA ,beyondS′,as
+0
+S′ignoresatwhichpointintimes′isencountered.
+L HCA-returnisabiasedestimatorinmanyrelevantenvironments
+L.1 HCA-return
+BesidesHCA-state,Harutyunyanetal.[1]introducedHCA-return,apolicygradientestimatorthat
+leveragesthehindsightdistributionconditionedonthereturn:
+(cid:88) ∇ logπ(A |S ) (cid:16) 1− π(A t |S t ) (cid:17) Z (148)
+θ t t pπ(A |S ,Z ) t
+t t t
+t≥0
+WhencomparingthisestimatorwithCOCOA-reward,weseetwoimportantdifferences: (i)HCA-
+return uses a hindsight function conditioned on the return instead of individual rewards, and (ii)
+HCA-return leverages the hindsight function as an action-dependent baseline for a Monte Carlo
+policygradientestimate,insteadofusingitforcontributioncoefficientstoevaluatecounterfactual
+actions. Importantly, the latter difference causes the HCA-return estimator to be biased in many
+environmentsofrelevance,evenwhenusingtheground-truthhindsightdistribution.
+L.2 HCA-returncanbebiased
+AnimportantdrawbackofHCA-returnisthatitcanbebiased,evenwhenusingtheground-truth
+hindsightdistribution. Theorem2ofHarutyunyanetal. 2019,consideringtheunbiasednessHCA-
+return,isvalidundertheassumptionthatforanypossiblerandomreturnZ forallpossibletrajectories
+33
+
+startingfromstates,itholdsthatpπ(a|s,z)>0. Thisrestrictiveassumptionrequiresthatforeach
+observedstate-actionpair(s ,a )alongatrajectory,allcounterfactualreturnsZ resultingfroma
+t t
+counterfactualtrajectorystartingfroms (notincludinga )resultinpπ(a |s ,Z)>0. Thisimplies
+t t t t
+thatallreturns(orrewardingstates)reachablefroms shouldalsobereachablefrom(s ,a ).
+t t t
+Consider the following bandit setting as a simple example where the above assumption is not
+satisfied. Thebandithastwoarms,witharewardof1and−2,andapolicyprobabilityof 2 and
+3
+1 respectively. Theadvantageforbotharmsis1and−2. Applyingeq. 6fromHarutyunyanetal.
+3
+resultsinAπ(s,a ) = (1− 2) = 1 andAπ(s,a ) = −2(1−1/3) = −4/3. Thisshowsthatthe
+1 3 3 2
+neededassumptionsforanunbiasedHCA-returnestimatorcanbeviolatedeveninsimplebandit
+settings.
+M Additionaldetails
+M.1 Authorcontributions
+Thispaperwasacollaborativeeffortofallsharedfirstauthorsworkingcloselytogether. Todothis
+factbetterjusticewegiveanideaofindividualcontributionsinthefollowing.
+Alexander Meulemans∗. Original idea, conceptualizing the theory and proving the theorems,
+conceptualdevelopmentofthealgorithms,experimentdesign,implementationofmainmethodand
+environments,debugging,neuralnetworkarchitecturedesign,runningexperiments,connectingthe
+projecttoexistingliterature,writingofmanuscript,firstdraftandsupplementarymaterials,feedback
+tothefigures.
+SimonSchug∗. Conceptualdevelopmentofthealgorithms,experimentdesign,implementationof
+mainmethod,baselinesandenvironments,neuralnetworkarchitecturedesign,debugging,tuning
+and running experiments, writing of manuscript, creation of figures, writing of supplementary
+materials.
+SeijinKobayashi∗. Conceptualdevelopmentofthealgorithms,experimentdesign,implementation
+ofenvironments,baselines,mainmethodandDynamicProgramming-basedground-truthmethods,
+debugging,tuningandrunningexperiments,feedbacktothemanuscript,writingofsupplementary
+materials.
+Nathaniel Daw. Regular project meetings, conceptual input and feedback for method and ex-
+perimental design, connecting the project to existing literature, feedback to the manuscript and
+figures.
+GregoryWayne. Seniorprojectsupervision,conceptualisingoftheprojectidea,conceptualdevelop-
+mentofthealgorithms,regularprojectmeetings,technicalandconceptualfeedbackformethodand
+experimentaldesign,connectingtheprojecttoexistingliterature,feedbacktothemanuscriptand
+figures.
+M.2 Computeresources
+WeusedLinuxworkstationswithNvidiaRTX2080andNvidiaRTX3090GPUsfordevelopment
+andconductedhyperparametersearchesandexperimentsusing5TPUv2-8,5TPUv3-8and1Linux
+serverwith8NvidiaRTX3090GPUsoverthecourseof9months. Allofthefinalexperiments
+presentedtakelessthanafewhourstocompleteusingasingleNvidiaRTX3090GPU.Intotal,we
+spentanestimatedamountof2GPUmonths.
+M.3 Softwareandlibraries
+Fortheresultsproducedinthispaperwereliedonfreeandopen-sourcesoftware. Weimplemented
+ourexperimentsinPythonusingJAX[95,ApacheLicense2.0]andtheDeepmindJaxEcosystem
+[82,ApacheLicense2.0]. Forexperimenttrackingweusedwandb[96,MITlicense]andforthe
+generationofplotsweusedplotly[97,MITlicense].
+34

@@ -1,0 +1,160 @@
+TAP version 13
+# Subtest: splits simple unquoted fields on commas
+ok 1 - splits simple unquoted fields on commas
+  ---
+  duration_ms: 0.915291
+  type: 'test'
+  ...
+# Subtest: returns a single field when there are no commas
+ok 2 - returns a single field when there are no commas
+  ---
+  duration_ms: 0.056208
+  type: 'test'
+  ...
+# Subtest: parsing an empty string returns a single empty field
+ok 3 - parsing an empty string returns a single empty field
+  ---
+  duration_ms: 0.040208
+  type: 'test'
+  ...
+# Subtest: removes surrounding double quotes from a quoted field
+ok 4 - removes surrounding double quotes from a quoted field
+  ---
+  duration_ms: 0.0385
+  type: 'test'
+  ...
+# Subtest: preserves commas inside a quoted field
+ok 5 - preserves commas inside a quoted field
+  ---
+  duration_ms: 0.04425
+  type: 'test'
+  ...
+# Subtest: does not split on commas enclosed in double quotes
+ok 6 - does not split on commas enclosed in double quotes
+  ---
+  duration_ms: 0.043458
+  type: 'test'
+  ...
+# Subtest: decodes two consecutive double quotes inside a quoted field as one literal double quote
+ok 7 - decodes two consecutive double quotes inside a quoted field as one literal double quote
+  ---
+  duration_ms: 0.033333
+  type: 'test'
+  ...
+# Subtest: handles escaped quotes at the start of a quoted field
+ok 8 - handles escaped quotes at the start of a quoted field
+  ---
+  duration_ms: 0.03125
+  type: 'test'
+  ...
+# Subtest: handles escaped quotes at the end of a quoted field
+ok 9 - handles escaped quotes at the end of a quoted field
+  ---
+  duration_ms: 0.040333
+  type: 'test'
+  ...
+# Subtest: handles a quoted field consisting only of escaped quotes
+ok 10 - handles a quoted field consisting only of escaped quotes
+  ---
+  duration_ms: 0.077959
+  type: 'test'
+  ...
+# Subtest: handles empty fields between consecutive commas
+ok 11 - handles empty fields between consecutive commas
+  ---
+  duration_ms: 0.036333
+  type: 'test'
+  ...
+# Subtest: handles trailing comma producing a trailing empty field
+ok 12 - handles trailing comma producing a trailing empty field
+  ---
+  duration_ms: 0.029958
+  type: 'test'
+  ...
+# Subtest: handles leading comma producing a leading empty field
+ok 13 - handles leading comma producing a leading empty field
+  ---
+  duration_ms: 0.033083
+  type: 'test'
+  ...
+# Subtest: handles a single comma producing two empty fields
+ok 14 - handles a single comma producing two empty fields
+  ---
+  duration_ms: 0.024375
+  type: 'test'
+  ...
+# Subtest: handles a quoted empty string field
+ok 15 - handles a quoted empty string field
+  ---
+  duration_ms: 0.030292
+  type: 'test'
+  ...
+# Subtest: handles a quoted empty string field among other fields
+ok 16 - handles a quoted empty string field among other fields
+  ---
+  duration_ms: 0.024875
+  type: 'test'
+  ...
+# Subtest: handles multiple quoted fields with commas and escaped quotes
+ok 17 - handles multiple quoted fields with commas and escaped quotes
+  ---
+  duration_ms: 0.021083
+  type: 'test'
+  ...
+# Subtest: handles a quoted field containing only commas
+ok 18 - handles a quoted field containing only commas
+  ---
+  duration_ms: 0.041709
+  type: 'test'
+  ...
+# Subtest: handles whitespace inside quoted fields
+ok 19 - handles whitespace inside quoted fields
+  ---
+  duration_ms: 0.023666
+  type: 'test'
+  ...
+# Subtest: handles a mix of quoted and unquoted empty fields
+ok 20 - handles a mix of quoted and unquoted empty fields
+  ---
+  duration_ms: 0.036792
+  type: 'test'
+  ...
+# Subtest: handles escaped quotes adjacent to commas inside quoted field
+ok 21 - handles escaped quotes adjacent to commas inside quoted field
+  ---
+  duration_ms: 0.024625
+  type: 'test'
+  ...
+# Subtest: handles a quoted field followed immediately by another quoted field
+ok 22 - handles a quoted field followed immediately by another quoted field
+  ---
+  duration_ms: 0.020125
+  type: 'test'
+  ...
+# Subtest: handles a line with many fields
+ok 23 - handles a line with many fields
+  ---
+  duration_ms: 0.046
+  type: 'test'
+  ...
+# Subtest: handles newlines preserved inside quoted fields
+ok 24 - handles newlines preserved inside quoted fields
+  ---
+  duration_ms: 0.357125
+  type: 'test'
+  ...
+# Subtest: handles tabs preserved inside quoted fields
+ok 25 - handles tabs preserved inside quoted fields
+  ---
+  duration_ms: 0.037875
+  type: 'test'
+  ...
+1..25
+# tests 25
+# suites 0
+# pass 25
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 49.005125

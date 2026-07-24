@@ -1,0 +1,16 @@
+{
+  "version": "lyo.test.v1",
+  "specRef": {
+    "path": "spec.json",
+    "sha256": "35e4234cba55d194d479749663daa7eac7b3eb3a83fb8dfc580fffb497daeab4"
+  },
+  "files": [
+    {
+      "path": "artifacts/tests/generated/tests/csv-line.test.js",
+      "sha256": "9721eefb3e36b5e86bb50e16bb33c66306cd579cd75e6cb2ca5e599520ddb94d"
+    }
+  ],
+  "language": "javascript",
+  "framework": "node:test",
+  "frozen": true
+}

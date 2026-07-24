@@ -1,0 +1,80 @@
+```js path=generated/src/semver.js
+function compareSemver(a, b) {
+  const parseVersion = (v) => {
+    // Strip build metadata (after '+')
+    v = v.split('+')[0];
+
+    // Split into main version and prerelease
+    const parts = v.split('-');
+    const mainVersion = parts[0];
+    const prerelease = parts.length > 1 ? parts[1].split('.') : [];
+
+    const [major, minor, patch] = mainVersion.split('.').map(Number);
+
+    return { major, minor, patch, prerelease };
+  };
+
+  const verA = parseVersion(a);
+  const verB = parseVersion(b);
+
+  // Compare major, minor, patch numerically
+  if (verA.major !== verB.major) {
+    return verA.major < verB.major ? -1 : 1;
+  }
+  if (verA.minor !== verB.minor) {
+    return verA.minor < verB.minor ? -1 : 1;
+  }
+  if (verA.patch !== verB.patch) {
+    return verA.patch < verB.patch ? -1 : 1;
+  }
+
+  // Compare prerelease
+  const preA = verA.prerelease;
+  const preB = verB.prerelease;
+
+  // Both have no prerelease → equal
+  if (preA.length === 0 && preB.length === 0) {
+    return 0;
+  }
+
+  // Version without prerelease has higher precedence
+  if (preA.length === 0) return 1;
+  if (preB.length === 0) return -1;
+
+  // Compare prerelease identifiers left to right
+  const maxLen = Math.max(preA.length, preB.length);
+  for (let i = 0; i < maxLen; i++) {
+    // Fewer identifiers → lower precedence when all preceding are equal
+    if (i >= preA.length) return -1;
+    if (i >= preB.length) return 1;
+
+    const idA = preA[i];
+    const idB = preB[i];
+
+    const isNumericA = /^\d+$/.test(idA);
+    const isNumericB = /^\d+$/.test(idB);
+
+    // Numeric identifier always has lower precedence than alphanumeric
+    if (isNumericA && !isNumericB) return -1;
+    if (!isNumericA && isNumericB) return 1;
+
+    if (isNumericA && isNumericB) {
+      // Both numeric: compare numerically
+      const numA = parseInt(idA, 10);
+      const numB = parseInt(idB, 10);
+      if (numA !== numB) {
+        return numA < numB ? -1 : 1;
+      }
+    } else {
+      // Both alphanumeric: compare lexically in ASCII order
+      if (idA !== idB) {
+        return idA < idB ? -1 : 1;
+      }
+    }
+  }
+
+  return 0;
+}
+
+module.exports = { compareSemver };
+```

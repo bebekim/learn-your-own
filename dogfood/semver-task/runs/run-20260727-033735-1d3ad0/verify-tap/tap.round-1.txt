@@ -1,0 +1,230 @@
+TAP version 13
+# Subtest: major version compared numerically
+ok 1 - major version compared numerically
+  ---
+  duration_ms: 0.843583
+  type: 'test'
+  ...
+# Subtest: multi-digit major versions compared numerically not lexically
+ok 2 - multi-digit major versions compared numerically not lexically
+  ---
+  duration_ms: 0.081
+  type: 'test'
+  ...
+# Subtest: minor version compared numerically when major equal
+ok 3 - minor version compared numerically when major equal
+  ---
+  duration_ms: 0.049041
+  type: 'test'
+  ...
+# Subtest: patch version compared numerically when major and minor equal
+ok 4 - patch version compared numerically when major and minor equal
+  ---
+  duration_ms: 0.042459
+  type: 'test'
+  ...
+# Subtest: full numeric precedence chain: major then minor then patch
+ok 5 - full numeric precedence chain: major then minor then patch
+  ---
+  duration_ms: 0.043167
+  type: 'test'
+  ...
+# Subtest: version with prerelease has lower precedence than same version without
+ok 6 - version with prerelease has lower precedence than same version without
+  ---
+  duration_ms: 0.04275
+  type: 'test'
+  ...
+# Subtest: alphanumeric prerelease identifiers compared lexically in ASCII order
+ok 7 - alphanumeric prerelease identifiers compared lexically in ASCII order
+  ---
+  duration_ms: 0.098875
+  type: 'test'
+  ...
+# Subtest: numeric prerelease identifiers compared numerically
+ok 8 - numeric prerelease identifiers compared numerically
+  ---
+  duration_ms: 0.050333
+  type: 'test'
+  ...
+# Subtest: numeric prerelease identifier always lower than alphanumeric
+ok 9 - numeric prerelease identifier always lower than alphanumeric
+  ---
+  duration_ms: 0.048959
+  type: 'test'
+  ...
+# Subtest: prerelease identifiers compared left to right, first difference wins
+ok 10 - prerelease identifiers compared left to right, first difference wins
+  ---
+  duration_ms: 0.075333
+  type: 'test'
+  ...
+# Subtest: fewer prerelease identifiers is lower when preceding identifiers equal
+ok 11 - fewer prerelease identifiers is lower when preceding identifiers equal
+  ---
+  duration_ms: 0.052875
+  type: 'test'
+  ...
+# Subtest: equal prerelease chains of equal length return 0
+ok 12 - equal prerelease chains of equal length return 0
+  ---
+  duration_ms: 0.035833
+  type: 'test'
+  ...
+# Subtest: build metadata ignored for precedence (no prerelease)
+ok 13 - build metadata ignored for precedence (no prerelease)
+  ---
+  duration_ms: 0.039167
+  type: 'test'
+  ...
+# Subtest: build metadata ignored for precedence (with prerelease)
+ok 14 - build metadata ignored for precedence (with prerelease)
+  ---
+  duration_ms: 0.026042
+  type: 'test'
+  ...
+# Subtest: build metadata does not affect prerelease comparison
+ok 15 - build metadata does not affect prerelease comparison
+  ---
+  duration_ms: 0.028417
+  type: 'test'
+  ...
+# Subtest: reflexivity holds for various versions
+ok 16 - reflexivity holds for various versions
+  ---
+  duration_ms: 0.439916
+  type: 'test'
+  ...
+# Subtest: antisymmetry holds for ordered pairs
+not ok 17 - antisymmetry holds for ordered pairs
+  ---
+  duration_ms: 0.591709
+  type: 'test'
+  location: '/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-033735-1d3ad0/verify/generated/tests/semver.test.js:155:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    compareSemver('1.0.0+build.5','1.0.0')=0 should be -compareSemver('1.0.0','1.0.0+build.5')=0
+    + actual - expected
+    
+    + 0
+    - -0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: -0
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-033735-1d3ad0/verify/generated/tests/semver.test.js:175:12)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+  ...
+# Subtest: spec example: 1.2.3 < 1.2.4
+ok 18 - spec example: 1.2.3 < 1.2.4
+  ---
+  duration_ms: 0.038708
+  type: 'test'
+  ...
+# Subtest: spec example: 2.0.0 < 10.0.0 (numeric not lexical)
+ok 19 - spec example: 2.0.0 < 10.0.0 (numeric not lexical)
+  ---
+  duration_ms: 0.026083
+  type: 'test'
+  ...
+# Subtest: spec example: 1.0.0-alpha < 1.0.0
+ok 20 - spec example: 1.0.0-alpha < 1.0.0
+  ---
+  duration_ms: 0.020458
+  type: 'test'
+  ...
+# Subtest: spec example: 1.0.0-alpha < 1.0.0-alpha.1 (fewer identifiers lower)
+ok 21 - spec example: 1.0.0-alpha < 1.0.0-alpha.1 (fewer identifiers lower)
+  ---
+  duration_ms: 0.018667
+  type: 'test'
+  ...
+# Subtest: spec example: 1.0.0-alpha.1 < 1.0.0-alpha.beta (numeric < alphanumeric)
+ok 22 - spec example: 1.0.0-alpha.1 < 1.0.0-alpha.beta (numeric < alphanumeric)
+  ---
+  duration_ms: 0.018875
+  type: 'test'
+  ...
+# Subtest: spec example: 1.0.0-beta.2 < 1.0.0-beta.11 (numeric prerelease compare)
+ok 23 - spec example: 1.0.0-beta.2 < 1.0.0-beta.11 (numeric prerelease compare)
+  ---
+  duration_ms: 0.017417
+  type: 'test'
+  ...
+# Subtest: spec example: 1.0.0-rc.1 < 1.0.0
+ok 24 - spec example: 1.0.0-rc.1 < 1.0.0
+  ---
+  duration_ms: 0.016417
+  type: 'test'
+  ...
+# Subtest: spec example: 1.0.0+build.5 == 1.0.0 (build metadata ignored)
+ok 25 - spec example: 1.0.0+build.5 == 1.0.0 (build metadata ignored)
+  ---
+  duration_ms: 0.027208
+  type: 'test'
+  ...
+# Subtest: zero versions compare equal
+ok 26 - zero versions compare equal
+  ---
+  duration_ms: 0.016334
+  type: 'test'
+  ...
+# Subtest: prerelease with all numeric identifiers compared numerically
+ok 27 - prerelease with all numeric identifiers compared numerically
+  ---
+  duration_ms: 0.023292
+  type: 'test'
+  ...
+# Subtest: mixed numeric and alphanumeric prerelease identifiers across positions
+ok 28 - mixed numeric and alphanumeric prerelease identifiers across positions
+  ---
+  duration_ms: 0.027667
+  type: 'test'
+  ...
+# Subtest: prerelease chains of different lengths with numeric identifiers
+ok 29 - prerelease chains of different lengths with numeric identifiers
+  ---
+  duration_ms: 0.022167
+  type: 'test'
+  ...
+# Subtest: build metadata on both prerelease and non-prerelease versions
+ok 30 - build metadata on both prerelease and non-prerelease versions
+  ---
+  duration_ms: 0.020875
+  type: 'test'
+  ...
+# Subtest: large multi-digit version numbers
+ok 31 - large multi-digit version numbers
+  ---
+  duration_ms: 0.021666
+  type: 'test'
+  ...
+# Subtest: complex ordering chain is transitive-consistent
+ok 32 - complex ordering chain is transitive-consistent
+  ---
+  duration_ms: 0.037875
+  type: 'test'
+  ...
+# Subtest: return values are strictly -1, 0, or 1
+ok 33 - return values are strictly -1, 0, or 1
+  ---
+  duration_ms: 0.056875
+  type: 'test'
+  ...
+1..33
+# tests 33
+# suites 0
+# pass 32
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 52.224375

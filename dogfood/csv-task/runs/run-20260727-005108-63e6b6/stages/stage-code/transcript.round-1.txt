@@ -1,0 +1,78 @@
+Looking at the specification, I need to implement a CSV line parser that handles:
+- Quoted fields (with quotes removed)
+- Commas inside quoted fields (preserved)
+- Escaped double quotes (`""` → `"`)
+- Empty string input (returns `['']`)
+- Empty fields between commas
+
+Let me create the implementation:
+
+```javascript
+function parseCsvLine(line) {
+  if (line === '') {
+    return [''];
+  }
+  
+  const fields = [];
+  let currentField = '';
+  let inQuotes = false;
+  let i = 0;
+  
+  while (i < line.length) {
+    const char = line[i];
+    
+    if (inQuotes) {
+      if (char === '"') {
+        // Check for escaped quote (two double quotes in a row)
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          currentField += '"';
+          i += 2;
+        } else {
+          // End of quoted field
+          inQuotes = false;
+          i++;
+        }
+      } else {
+        // Regular character inside quotes (including commas)
+        currentField += char;
+        i++;
+      }
+    } else {
+      if (char === '"') {
+        // Start of quoted field
+        inQuotes = true;
+        i++;
+      } else if (char === ',') {
+        // Field separator
+        fields.push(currentField);
+        currentField = '';
+        i++;
+      } else {
+        currentField += char;
+        i++;
+      }
+    }
+  }
+  
+  // Push the last field
+  fields.push(currentField);
+  
+  return fields;
+}
+
+module.exports = { parseCsvLine };
+```
+
+This implementation:
+1. Handles empty string input by returning `['']`
+2. Tracks whether we're inside a quoted field
+3. When inside quotes, treats commas as regular characters
+4. Detects escaped quotes (`""`) and converts them to a single `"`
+5. Splits on commas only when outside quotes
+6. Exports via CommonJS `module.exports`
+
+Now I'll write this to the specified output location:
+
+```json
+{"action": "write_file", "path": "generated/src/csv-line.js", "content": "function parseCsvLine(line) {\n  if (line === '') {\n    return [''];\n  }\n  \n  const fields = [];\n  let currentField = '';\n  let inQuotes = false;\n  let i = 0;\n  \n  while (i < line.length) {\n    const char = line[i];\n    \n    if (inQuotes) {\n      if (char === '\"') {\n        // Check for escaped quote (two double quotes in a row)\n        if (i + 1 < line.length && line[i + 1] === '\"') {\n          currentField += '\"';\n          i += 2;\n        } else {\n          // End of quoted field\n          inQuotes = false;\n          i++;\n        }\n      } else {\n        // Regular character inside quotes (including commas)\n        currentField += char;\n        i++;\n      }\n    } else {\n      if (char === '\"') {\n        // Start of quoted field\n        inQuotes = true;\n        i++;\n      } else if (char === ',') {\n        // Field separator\n        fields.push(currentField);\n        currentField = '';\n        i++;\n      } else {\n        currentField += char;\n        i++;\n      }\n    }\n  }\n  \n  // Push the last field\n  fields.push(currentField);\n  \n  return fields;\n}\n\nmodule.exports = { parseCsvLine };\n"}
+```

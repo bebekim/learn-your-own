@@ -1,0 +1,63 @@
+{
+  "version": "lyo.verifier-report.v1",
+  "specRef": {
+    "path": "spec.json",
+    "sha256": "2002309fe6620f1fe9ab8390e6329365ffa3503585290e59292c96c2b80b1b77"
+  },
+  "codeRef": {
+    "path": "artifacts/code/manifest.json",
+    "sha256": "f7a572b1c81c07cb71f8c55cf546691b4c3daace08c9eb50693bcadac2821a22"
+  },
+  "testRef": {
+    "path": "artifacts/tests/manifest.json",
+    "sha256": "8051c787f6b0070b6daaff96d6414e39805483a017663c35492906e61a48a18a"
+  },
+  "counts": {
+    "total": 10,
+    "passed": 8,
+    "failed": 2
+  },
+  "outcome": "fail",
+  "perTest": [
+    {
+      "name": "compareSemver(1.2.3, 1.2.4) === -1",
+      "status": "pass"
+    },
+    {
+      "name": "compareSemver(2.0.0, 10.0.0) === -1",
+      "status": "pass"
+    },
+    {
+      "name": "compareSemver(1.0.0-alpha, 1.0.0) === -1",
+      "status": "pass"
+    },
+    {
+      "name": "compareSemver(1.0.0-alpha, 1.0.0-alpha.1) === -1",
+      "status": "pass"
+    },
+    {
+      "name": "compareSemver(1.0.0-alpha.1, 1.0.0-alpha.beta) === -1",
+      "status": "pass"
+    },
+    {
+      "name": "compareSemver(1.0.0-beta.2, 1.0.0-beta.11) === -1",
+      "status": "pass"
+    },
+    {
+      "name": "compareSemver(1.0.0-rc.1, 1.0.0) === -1",
+      "status": "pass"
+    },
+    {
+      "name": "compareSemver(1.0.0+build.5, 1.0.0) === 0",
+      "status": "pass"
+    },
+    {
+      "name": "compareSemver is commutative antisymmetry",
+      "status": "fail"
+    },
+    {
+      "name": "compareSemver is reflexive",
+      "status": "fail"
+    }
+  ]
+}

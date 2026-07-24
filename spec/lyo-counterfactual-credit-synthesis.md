@@ -1,0 +1,157 @@
+# Counterfactual Credit Assignment — Deep-Read Synthesis for LYO
+
+Date: 2026-07-20. Papers read in full (digests on disk):
+
+1. **WCS** — Buesing et al., *Woulda, Coulda, Shoulda: Counterfactually-Guided
+   Policy Search* (DeepMind, 2018). Digest: `papers/wouldacouldashoulda-digest.md`.
+2. **COCOA** — Meulemans et al., *Would I have gotten that reward? Long-term
+   credit assignment by counterfactual contribution analysis* (NeurIPS 2023).
+   Digest: `papers/longtermcredit-digest.md`.
+
+Question taken to the papers: LYO's deferred §5.3 — "would the cycle have passed
+WITHOUT the lesson?" — plus the within-run over-crediting problem (today, ALL
+pending injections in a run are credited with its final outcome).
+
+## 1. The two papers sit on different Pearl rungs — and that distinction organizes everything
+
+| | WCS (2018) | COCOA (2023) |
+|---|---|---|
+| Question | Would *this specific episode* have gone differently under different actions? | How much does action $a$ in context $s$ raise the probability of outcome $u'$, on average? |
+| Rung | **3 — counterfactual**: abduction (infer noise posterior from the observed trajectory) → action (intervene) → prediction (re-simulate, noise held fixed) | **2 — interventional**: $do()$ collapses to an observational conditional because conditioning on $s$ satisfies the backdoor criterion |
+| Needs | A trusted SCM: known/learned mechanisms $f$, inferable noise posterior $p(U\mid\hat h)$ | Nothing but on-policy logs: $(s, a, u')$ triples + propensities |
+| Delivers | Unit-level counterfactuals ("would run #347 have passed") | Population-level contribution coefficients $w(s,a,u')$ |
+| LYO feasibility | **Not directly** — LYO has no environment model | **Yes** — pure density-ratio estimation over receipts |
+
+LYO's honest target is rung 2 (COCOA). Rung 3 is a long-term aspiration that
+starts with logging the exogenous-noise record now (see §4).
+
+## 2. Both papers independently convict the naive lift estimator
+
+The design's §5.3 sketch — difference-in-rates, $\bar p(\text{pass}\mid\ell) - \bar p(\text{pass}\mid\text{no }\ell,\ \text{same class})$ — fails in two named ways:
+
+- **Confounding by scenario mix (WCS, Lemma 1 litmus test).** WCS's unbiasedness
+  proof works because $p^{do(I)}(u) = p(u)$: an intervention must not shift the
+  *scenario* distribution. Thompson injection is history-dependent — lessons are
+  injected preferentially where failures persist (harder cycles). The with-ℓ and
+  without-ℓ groups then differ in latent difficulty, and difference-in-rates
+  misattributes environment effects to the lesson (Simpson). WCS §6's central
+  warning is exactly this failure: "wrongly attributing a negative outcome to
+  the agent's actions, instead of environment factors."
+- **Wrong baseline (COCOA).** COCOA's contribution measure is a contrast against
+  the **propensity mixture at the same context**, not a global pool:
+
+$$w(s,a,u') = \frac{p_\pi(u' \mid s, a)}{p_\pi(u' \mid s)} - 1 = \frac{p_\pi(a \mid s, u')}{\pi(a \mid s)} - 1$$
+
+  The right-hand form is a pure density ratio: how over-represented is lesson
+  $a$, relative to its propensity, among cycles that reached outcome $u'$?
+  Estimable from receipts alone — no dynamics model needed. **This is the
+  transferable core of COCOA for LYO.**
+
+## 3. The five design-changing conclusions
+
+### 3.1 Replace difference-in-rates with propensity-standardized ratio-lift
+
+Within matched strata $s$ = (task family × failure_class), per lesson $\ell$:
+
+$$\widehat{\mathrm{lift}}_\ell(s) = \frac{P(\text{pass} \mid s, \ell)}{\sum_{\ell'} \rho_{\ell'}(s)\, P(\text{pass} \mid s, \ell')} - 1$$
+
+with $\rho$ the selection propensities. Sign semantics (positive = helps), a
+natural zero gate, and — crucially — the result can be used as **fractional Beta
+counts** rather than binary counter increments. Thompson's randomization plus
+logged propensities gives the backdoor condition (inject ⊥ outcome | s, ρ) for
+free — the same argument that makes COCOA's do() an observational conditional.
+
+### 3.2 Fix within-run credit with a hindsight density ratio, not equal shares
+
+Current rule credits every pending injection with the final outcome —
+over-crediting. COCOA's fix: per injection $i$, coefficient
+
+$$w_i = \frac{\hat h(\ell_i \mid s_i, u')}{\rho_i} - 1$$
+
+where $\hat h$ is a small classifier trained on receipts to predict *which lesson
+was injected* from (context, outcome class). Lessons irrelevant to the observed
+outcome get $w \approx 0$ → **no counter movement** — multiplicative gating,
+which in COCOA's experiments cleanly beat additive baselines. Credit stays
+*pairwise* (injection × outcome class); COCOA's Thm. 3 warns joint/Shapley-style
+attribution inflates variance — do not build Shapley.
+
+### 3.3 Choose the outcome encoding $u'$ coarse-but-fully-predictive
+
+COCOA's deepest negative results are about the conditioning target:
+
+- Too fine ($u' = $ state / log hash) → the encoding decodes the action sequence
+  → credit becomes spurious → degrades to REINFORCE (their Prop. 2; the App G
+  continuous-reward trap).
+- Too coarse ($u' = $ raw pass/fail) → failure modes alias; can't separate which
+  failure the lesson cured (their reward-aliasing experiment, Fig. 5).
+- **LYO's sweet spot: $u' = (\text{failure\_class}, \text{pass})$** — the
+  taxonomy LYO already seeds from TRAIL. This is exactly what their
+  COCOA-feature variant does with learned object encodings.
+
+### 3.4 Schema additions to log NOW (retroactively impossible)
+
+Both digests independently converge on the same gap: **`sampled_score` currently
+stores the Thompson *draw* $\theta$, not the *selection probability*.** The
+propensity is $P(\ell \text{ top-ranked} \mid \text{candidate set}, \{(\alpha,\beta)\} \text{ at } t)$. Without it, IPW / doubly-robust estimation is impossible retroactively. Add to each `lesson_application` row (or a companion decision-log table):
+
+1. **Full propensity vector**: candidate set + each candidate's $(\alpha, \beta)$
+   at decision time + the explicit null arm (no-lesson cycles).
+2. **Null-injection decisions and negatives** — cycles where no lesson was
+   injected, and failed runs, with context tags. All estimator routes need them.
+3. **Decision-point context**: task id, failure_class, cycle index, retry count
+   — the backdoor set. Without it, any lift is confounded by difficulty.
+4. **Bandit posterior snapshot id** — the hindsight target drifts as Thompson
+   updates; versioning keeps old receipts interpretable/correctable.
+5. **Run randomness record**: seeds, temperature, model ids, tool-trace hashes —
+   the exogenous-noise log $\{N\}$ that any future rung-3 replay ("replay this
+   exact run without the lesson") requires. Cheap to log; impossible to reconstruct.
+
+### 3.5 Statistical hygiene rules (from WCS)
+
+- **Cluster by run.** Receipts within a run share the scenario $U$; treating
+  them as independent inflates Wilson's $n$. Aggregate per run, then across runs.
+- **Exploration floor = identification.** If any propensity hits zero in a
+  stratum, lift there is *unidentified*, not just noisy. Never let promotion
+  rules drive propensities to zero (matches the design's "candidates stay
+  retrievable" — now justified causally).
+- **Keep solo-injection probability > 0.** Top-2 joint injections can't identify
+  per-lesson main effects without solo samples (this is the deferred
+  cross-lesson-interaction problem, arriving early).
+- **Cycle index is part of the scenario.** Pool credit across cycles only after
+  stratifying/modeling it, else later-cycle lessons look better for positional
+  reasons.
+
+## 4. What NOT to build
+
+- **Full WCS-style SCM replay** of executor runs — no mechanisms $f$, no noise
+  posterior; would inherit every model-misspecification bias the paper warns
+  about. The practical surrogate, when volume justifies it: a fitted response
+  surface $\mathrm{logit}\,P(\text{pass}) = \alpha_j + \delta_\ell \cdot \mathbb{1}[\ell\ \text{injected}] + (\text{cycle terms})$ with per-run difficulty $\alpha_j$ — evaluating it at do(ℓ) vs do(∅) with $\alpha_j$ held fixed *is* the counterfactual query, and the fitted model plays the role of WCS's $f$.
+- **Shapley/leave-one-out coalition credit** (COCOA deliberately avoids it).
+- **HCA-return / final-outcome-conditioned baselines** (COCOA's App L proves
+  bias even with ground-truth hindsight).
+- **Cycle-distance credit decay** (COCOA's Eq. 1 critique: discounting *is* a
+  credit heuristic; contribution should be measured, not assumed by proximity).
+
+## 5. Revised credit machinery — v0.2 sketch
+
+1. **Keep** Beta posteriors + Thompson for *selection* (a decision policy, not an
+   estimator) and Wilson as the pollution floor. No changes.
+2. **Add** the decision-log schema (§3.4) immediately — backward-incompatible to
+   add later; everything else can wait.
+3. **Replace** "all pending injections get ±1" with hindsight-ratio fractional
+   counts $w_i$ (§3.2) once enough receipts exist to fit $\hat h$ (start:
+   stratified rates instead of a learned classifier — same math, coarser $\hat h$).
+4. **Promote** on the conjunction: Wilson-lower > 0.5 (pollution filter) ∧
+   ratio-lift CI excludes 0 within class strata (causal gate), clustered by run.
+5. **Scope note**: this stays rung-2. The unit-level "would *this* run have
+   passed" remains open until a trusted response surface exists — and the
+   randomness record (§3.4.5) is the down payment.
+
+## 6. Pointers
+
+- `papers/wouldacouldashoulda-digest.md` — full WCS digest (rung-3 mechanics,
+  assumptions, Lemma 1, transfer analysis §6).
+- `papers/longtermcredit-digest.md` — full COCOA digest (contribution measure,
+  estimators, Thm. 1–4, transfer analysis §6 with the log-NOW list).
+- `lyo-lesson-delta-design.md` §5.3 / §8 — the sections this synthesis revises.

@@ -22,9 +22,6 @@ export function usage(exitCode = 0): never {
 	  lyo tape view [--db path] --run-id id
 	  lyo harness learn-verifier-gate [--db path] --chosen-run-id id --rejected-run-id id [--protocol-id id] [--scope-kind worktree|repository|channel] [--scope-value value] [--recorded-by name]
 	  lyo exercise view [--db path] [--exercise-id id] [--run-id id] [--limit n]
-	  lyo learn style [--db path] [--verbose]
-	  lyo learn associations [--dir path] --dry-run [--compact]
-	  lyo learn explanation --dry-run --input path
 	  lyo import git --repo path --corpus path [--tag project] [--limit n] [--json]
 	  lyo pool collect --pool path --source path --tag project [--source path --tag project ...] [--json]
 	  lyo sync once --dir path --corpus path [--json]
@@ -44,7 +41,6 @@ export function usage(exitCode = 0): never {
 	  lyo associations derive [--db path] --job-id id [--outcome positive|negative|unknown]
 	  lyo associations recommend [--db path] --workspace-id id [--seed-zone-id id[,id]] [--include-nonpositive] [--limit n]
 	  lyo report [--db path] [--semantic [--lower] --run-id id] [--effects --run-id id] [--style --run-id id] [--at-bat --run-id id --task-context path]
-	  lyo experiment [--db path] --family-id id --baseline-run-id id --treatment-run-id id [--variant-run-id id] [--artifact id --association-edge edge] [--next-experiment text]
 	  lyo audit [--dir path]
 	  lyo demo fixture-replay [--db path]
 	  lyo eval report --episodes path [--baseline B0] [--treatment B4] [--rule-id id] [--markdown]

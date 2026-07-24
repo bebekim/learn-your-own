@@ -1,0 +1,114 @@
+TAP version 13
+# Subtest: Fields split on unquoted commas
+ok 1 - Fields split on unquoted commas
+  ---
+  duration_ms: 0.707666
+  type: 'test'
+  ...
+# Subtest: Quoted field removes surrounding quotes
+ok 2 - Quoted field removes surrounding quotes
+  ---
+  duration_ms: 0.058917
+  type: 'test'
+  ...
+# Subtest: Quoted field preserves internal commas
+ok 3 - Quoted field preserves internal commas
+  ---
+  duration_ms: 0.0395
+  type: 'test'
+  ...
+# Subtest: Escaped double quotes decode to one literal quote
+ok 4 - Escaped double quotes decode to one literal quote
+  ---
+  duration_ms: 0.046709
+  type: 'test'
+  ...
+# Subtest: Empty string returns one empty field
+ok 5 - Empty string returns one empty field
+  ---
+  duration_ms: 0.042
+  type: 'test'
+  ...
+# Subtest: Empty fields between consecutive unquoted commas
+ok 6 - Empty fields between consecutive unquoted commas
+  ---
+  duration_ms: 0.602291
+  type: 'test'
+  ...
+# Subtest: Quoted empty string returns empty field
+ok 7 - Quoted empty string returns empty field
+  ---
+  duration_ms: 0.04625
+  type: 'test'
+  ...
+# Subtest: Mixed empty quoted and unquoted empty fields
+ok 8 - Mixed empty quoted and unquoted empty fields
+  ---
+  duration_ms: 0.058625
+  type: 'test'
+  ...
+# Subtest: Quoted field with spaces
+ok 9 - Quoted field with spaces
+  ---
+  duration_ms: 0.055916
+  type: 'test'
+  ...
+# Subtest: Unquoted field with spaces
+ok 10 - Unquoted field with spaces
+  ---
+  duration_ms: 0.0785
+  type: 'test'
+  ...
+# Subtest: Single quoted field
+ok 11 - Single quoted field
+  ---
+  duration_ms: 0.048334
+  type: 'test'
+  ...
+# Subtest: Single unquoted field
+ok 12 - Single unquoted field
+  ---
+  duration_ms: 0.030875
+  type: 'test'
+  ...
+# Subtest: Backslash escaping within quoted fields
+not ok 13 - Backslash escaping within quoted fields
+  ---
+  duration_ms: 0.597542
+  type: 'test'
+  location: '/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/csv-task/runs/run-20260726-235207-90d921/verify/generated/tests/example.test.js:53:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+    +   'escaped\\\\quote'
+    -   'escaped\\"quote'
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 'escaped\\"quote'
+  actual:
+    0: 'escaped\\\\quote'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/csv-task/runs/run-20260726-235207-90d921/verify/generated/tests/example.test.js:54:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 12
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 40.578917

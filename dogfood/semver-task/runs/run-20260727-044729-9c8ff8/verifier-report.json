@@ -1,0 +1,139 @@
+{
+  "version": "lyo.verifier-report.v1",
+  "specRef": {
+    "path": "spec.json",
+    "sha256": "2002309fe6620f1fe9ab8390e6329365ffa3503585290e59292c96c2b80b1b77"
+  },
+  "codeRef": {
+    "path": "artifacts/code/manifest.json",
+    "sha256": "d15be3fe6cf38c896c0b5800a3f641e85d12eb8632496777e66cf3e191216ead"
+  },
+  "testRef": {
+    "path": "artifacts/tests/manifest.json",
+    "sha256": "58149dc20d91b02be51b91eb788461d4073c923cd9c95fcbb4bd044d154e081b"
+  },
+  "counts": {
+    "total": 29,
+    "passed": 27,
+    "failed": 2
+  },
+  "outcome": "fail",
+  "perTest": [
+    {
+      "name": "examples from spec: basic numeric patch comparison",
+      "status": "pass"
+    },
+    {
+      "name": "examples from spec: numeric (not lexical) major comparison",
+      "status": "pass"
+    },
+    {
+      "name": "examples from spec: prerelease lower than release",
+      "status": "pass"
+    },
+    {
+      "name": "examples from spec: fewer prerelease identifiers is lower",
+      "status": "pass"
+    },
+    {
+      "name": "examples from spec: numeric prerelease identifier lower than alphanumeric",
+      "status": "pass"
+    },
+    {
+      "name": "examples from spec: numeric prerelease identifiers compare numerically",
+      "status": "pass"
+    },
+    {
+      "name": "examples from spec: rc prerelease lower than release",
+      "status": "pass"
+    },
+    {
+      "name": "examples from spec: build metadata ignored for precedence",
+      "status": "pass"
+    },
+    {
+      "name": "major compared numerically",
+      "status": "pass"
+    },
+    {
+      "name": "minor compared numerically when major equal",
+      "status": "pass"
+    },
+    {
+      "name": "patch compared numerically when major and minor equal",
+      "status": "pass"
+    },
+    {
+      "name": "equal versions return 0",
+      "status": "pass"
+    },
+    {
+      "name": "equal versions with prerelease return 0",
+      "status": "pass"
+    },
+    {
+      "name": "equal versions with build metadata return 0",
+      "status": "pass"
+    },
+    {
+      "name": "build metadata ignored on prerelease versions",
+      "status": "pass"
+    },
+    {
+      "name": "prerelease lower than same version without prerelease",
+      "status": "pass"
+    },
+    {
+      "name": "prerelease identifiers compared left to right lexically for alphanumeric",
+      "status": "pass"
+    },
+    {
+      "name": "numeric prerelease identifier lower than alphanumeric",
+      "status": "pass"
+    },
+    {
+      "name": "fewer prerelease identifiers is lower when preceding equal",
+      "status": "pass"
+    },
+    {
+      "name": "more prerelease identifiers is higher when preceding equal",
+      "status": "pass"
+    },
+    {
+      "name": "multi-digit numeric prerelease identifiers compare numerically",
+      "status": "pass"
+    },
+    {
+      "name": "mixed numeric and alphanumeric prerelease identifiers",
+      "status": "fail"
+    },
+    {
+      "name": "antisymmetry: compareSemver(a,b) === -compareSemver(b,a)",
+      "status": "fail"
+    },
+    {
+      "name": "reflexivity: compareSemver(a, a) === 0",
+      "status": "pass"
+    },
+    {
+      "name": "build metadata does not affect ordering across different versions",
+      "status": "pass"
+    },
+    {
+      "name": "multi-digit major/minor/patch compared numerically",
+      "status": "pass"
+    },
+    {
+      "name": "prerelease chains of different lengths with numeric identifiers",
+      "status": "pass"
+    },
+    {
+      "name": "prerelease with numeric 0 identifier",
+      "status": "pass"
+    },
+    {
+      "name": "ASCII lexical order for alphanumeric identifiers",
+      "status": "pass"
+    }
+  ]
+}

@@ -33,11 +33,7 @@ import {
   analyzeTelemetrySemantics,
   planSemanticLowering,
   buildWorkflowStyleReport,
-  buildStyleLearningReport,
   buildCandidateAtBatReport,
-  buildCyberneticExperimentReport,
-  buildExplanationGraphReport,
-  computeRivalOutcomeMessage,
   recordModelCall,
 } from '../src/index.ts';
 import {

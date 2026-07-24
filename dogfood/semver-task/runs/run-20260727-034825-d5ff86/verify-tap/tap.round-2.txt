@@ -1,0 +1,212 @@
+TAP version 13
+# Subtest: returns -1 when patch is lower
+ok 1 - returns -1 when patch is lower
+  ---
+  duration_ms: 1.0705
+  type: 'test'
+  ...
+# Subtest: returns 1 when patch is higher
+ok 2 - returns 1 when patch is higher
+  ---
+  duration_ms: 0.062625
+  type: 'test'
+  ...
+# Subtest: returns 0 for equal versions
+ok 3 - returns 0 for equal versions
+  ---
+  duration_ms: 0.064667
+  type: 'test'
+  ...
+# Subtest: compares major numerically not lexically
+ok 4 - compares major numerically not lexically
+  ---
+  duration_ms: 0.055417
+  type: 'test'
+  ...
+# Subtest: compares minor numerically not lexically
+ok 5 - compares minor numerically not lexically
+  ---
+  duration_ms: 0.044916
+  type: 'test'
+  ...
+# Subtest: compares patch numerically not lexically
+ok 6 - compares patch numerically not lexically
+  ---
+  duration_ms: 0.035334
+  type: 'test'
+  ...
+# Subtest: major takes precedence over minor and patch
+ok 7 - major takes precedence over minor and patch
+  ---
+  duration_ms: 0.034291
+  type: 'test'
+  ...
+# Subtest: minor takes precedence over patch
+ok 8 - minor takes precedence over patch
+  ---
+  duration_ms: 0.03675
+  type: 'test'
+  ...
+# Subtest: prerelease version is lower than same version without prerelease
+ok 9 - prerelease version is lower than same version without prerelease
+  ---
+  duration_ms: 0.048542
+  type: 'test'
+  ...
+# Subtest: prerelease version is lower than same version without prerelease (rc)
+ok 10 - prerelease version is lower than same version without prerelease (rc)
+  ---
+  duration_ms: 0.068958
+  type: 'test'
+  ...
+# Subtest: prerelease with fewer identifiers is lower when preceding equal
+ok 11 - prerelease with fewer identifiers is lower when preceding equal
+  ---
+  duration_ms: 0.09925
+  type: 'test'
+  ...
+# Subtest: numeric prerelease identifier is lower than alphanumeric
+ok 12 - numeric prerelease identifier is lower than alphanumeric
+  ---
+  duration_ms: 0.042542
+  type: 'test'
+  ...
+# Subtest: numeric prerelease identifiers compare numerically
+ok 13 - numeric prerelease identifiers compare numerically
+  ---
+  duration_ms: 0.035208
+  type: 'test'
+  ...
+# Subtest: alphanumeric prerelease identifiers compare lexically in ASCII order
+ok 14 - alphanumeric prerelease identifiers compare lexically in ASCII order
+  ---
+  duration_ms: 0.035708
+  type: 'test'
+  ...
+# Subtest: build metadata is ignored for precedence
+ok 15 - build metadata is ignored for precedence
+  ---
+  duration_ms: 0.033458
+  type: 'test'
+  ...
+# Subtest: build metadata ignored with prerelease present
+ok 16 - build metadata ignored with prerelease present
+  ---
+  duration_ms: 0.025625
+  type: 'test'
+  ...
+# Subtest: prerelease identifiers compared left to right
+ok 17 - prerelease identifiers compared left to right
+  ---
+  duration_ms: 0.052166
+  type: 'test'
+  ...
+# Subtest: multi-digit numeric identifiers in prerelease
+ok 18 - multi-digit numeric identifiers in prerelease
+  ---
+  duration_ms: 0.045875
+  type: 'test'
+  ...
+# Subtest: mixed numeric and alphanumeric prerelease identifiers
+ok 19 - mixed numeric and alphanumeric prerelease identifiers
+  ---
+  duration_ms: 0.986
+  type: 'test'
+  ...
+# Subtest: prerelease chains of different lengths with equal prefix
+ok 20 - prerelease chains of different lengths with equal prefix
+  ---
+  duration_ms: 0.060041
+  type: 'test'
+  ...
+# Subtest: major/minor/patch with multiple digits
+ok 21 - major/minor/patch with multiple digits
+  ---
+  duration_ms: 0.034167
+  type: 'test'
+  ...
+# Subtest: identity: compareSemver(a, a) === 0 for all valid inputs
+ok 22 - identity: compareSemver(a, a) === 0 for all valid inputs
+  ---
+  duration_ms: 0.0555
+  type: 'test'
+  ...
+# Subtest: antisymmetry: compareSemver(a, b) === -compareSemver(b, a)
+not ok 23 - antisymmetry: compareSemver(a, b) === -compareSemver(b, a)
+  ---
+  duration_ms: 0.465292
+  type: 'test'
+  location: '/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-034825-d5ff86/verify/generated/tests/semver.test.js:136:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    failed for (1.0.0+build.5, 1.0.0)
+    + actual - expected
+    
+    + 0
+    - -0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: -0
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-034825-d5ff86/verify/generated/tests/semver.test.js:151:12)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+  ...
+# Subtest: full semver precedence ordering example
+ok 24 - full semver precedence ordering example
+  ---
+  duration_ms: 0.058166
+  type: 'test'
+  ...
+# Subtest: zero versions
+ok 25 - zero versions
+  ---
+  duration_ms: 0.024333
+  type: 'test'
+  ...
+# Subtest: prerelease on different base versions does not cross-compare
+ok 26 - prerelease on different base versions does not cross-compare
+  ---
+  duration_ms: 0.026333
+  type: 'test'
+  ...
+# Subtest: alphanumeric prerelease ASCII lexical order
+ok 27 - alphanumeric prerelease ASCII lexical order
+  ---
+  duration_ms: 0.021583
+  type: 'test'
+  ...
+# Subtest: numeric prerelease zero handling
+ok 28 - numeric prerelease zero handling
+  ---
+  duration_ms: 0.022041
+  type: 'test'
+  ...
+# Subtest: build metadata does not affect prerelease comparison
+ok 29 - build metadata does not affect prerelease comparison
+  ---
+  duration_ms: 0.020875
+  type: 'test'
+  ...
+# Subtest: deeply nested prerelease chains
+ok 30 - deeply nested prerelease chains
+  ---
+  duration_ms: 0.023667
+  type: 'test'
+  ...
+1..30
+# tests 30
+# suites 0
+# pass 29
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 45.6255

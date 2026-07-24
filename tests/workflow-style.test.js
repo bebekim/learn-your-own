@@ -32,12 +32,7 @@ import {
   analyzeTelemetrySemantics,
   planSemanticLowering,
   buildWorkflowStyleReport,
-  buildStyleLearningReport,
   buildCandidateAtBatReport,
-  buildCyberneticExperimentReport,
-  buildExplanationGraphReport,
-  computeRivalOutcomeMessage,
-  recordModelCall,
 } from '../src/index.ts';
 import { recordPrompt, recordCommand, recordPatch, recordStop } from './helpers/record.js';
 
@@ -264,136 +259,6 @@ test('Lyo workflow style report reports insufficient evidence for tiny traces', 
     assert.equal(report.confidence, 'low');
     assert.equal(report.metrics.humanPromptCount, 0);
     assert.equal(report.lineageMode, 'inferred_only');
-  } finally {
-    t.cleanup();
-  }
-});
-
-test('Lyo style learning report aggregates LLM usage and vibecoding style across runs', () => {
-  const t = tempDb();
-  try {
-    const kernel = createKernel({ dbPath: t.dbPath });
-    initLedger(kernel);
-    const cwd = '/tmp/project';
-
-    recordPrompt(kernel, {
-      eventId: 'style-learn-loop-01-prompt',
-      sessionId: 'session-style-learn-loop',
-      runId: 'turn-style-learn-loop',
-      cwd,
-    });
-    recordCommand(kernel, {
-      eventId: 'style-learn-loop-02-inspect',
-      sessionId: 'session-style-learn-loop',
-      runId: 'turn-style-learn-loop',
-      cwd,
-      command: "sed -n '1,80p' src/main.ts",
-    });
-    recordPatch(kernel, {
-      eventId: 'style-learn-loop-03-edit',
-      sessionId: 'session-style-learn-loop',
-      runId: 'turn-style-learn-loop',
-      cwd,
-      path: 'src/main.ts',
-    });
-    recordCommand(kernel, {
-      eventId: 'style-learn-loop-04-test-fail',
-      sessionId: 'session-style-learn-loop',
-      runId: 'turn-style-learn-loop',
-      cwd,
-      command: 'npm test',
-      exitCode: 1,
-    });
-    recordCommand(kernel, {
-      eventId: 'style-learn-loop-05-diagnose',
-      sessionId: 'session-style-learn-loop',
-      runId: 'turn-style-learn-loop',
-      cwd,
-      command: "sed -n '1,120p' src/main.ts",
-    });
-    recordPatch(kernel, {
-      eventId: 'style-learn-loop-06-fix',
-      sessionId: 'session-style-learn-loop',
-      runId: 'turn-style-learn-loop',
-      cwd,
-      path: 'src/main.ts',
-    });
-    recordCommand(kernel, {
-      eventId: 'style-learn-loop-07-test-pass',
-      sessionId: 'session-style-learn-loop',
-      runId: 'turn-style-learn-loop',
-      cwd,
-      command: 'npm test',
-      exitCode: 0,
-    });
-    recordModelCall(kernel, {
-      callId: 'style-learn-model-loop',
-      sessionId: 'session-style-learn-loop',
-      runId: 'turn-style-learn-loop',
-      provider: 'openai',
-      model: 'gpt-5',
-      modelLane: 'agent',
-      inputTokens: 1200,
-      outputTokens: 450,
-      status: 'completed',
-    });
-
-    recordPrompt(kernel, {
-      eventId: 'style-learn-prompt-01-prompt',
-      sessionId: 'session-style-learn-prompt',
-      runId: 'turn-style-learn-prompt',
-      cwd,
-    });
-    recordPrompt(kernel, {
-      eventId: 'style-learn-prompt-02-prompt',
-      sessionId: 'session-style-learn-prompt',
-      runId: 'turn-style-learn-prompt',
-      cwd,
-    });
-    recordPrompt(kernel, {
-      eventId: 'style-learn-prompt-03-prompt',
-      sessionId: 'session-style-learn-prompt',
-      runId: 'turn-style-learn-prompt',
-      cwd,
-    });
-    recordPatch(kernel, {
-      eventId: 'style-learn-prompt-04-edit',
-      sessionId: 'session-style-learn-prompt',
-      runId: 'turn-style-learn-prompt',
-      cwd,
-      path: 'src/other.ts',
-    });
-    recordModelCall(kernel, {
-      callId: 'style-learn-model-prompt',
-      sessionId: 'session-style-learn-prompt',
-      runId: 'turn-style-learn-prompt',
-      provider: 'anthropic',
-      model: 'claude-sonnet-4',
-      modelLane: 'agent',
-      inputTokens: 800,
-      outputTokens: 300,
-      status: 'completed',
-    });
-
-    normalizeHooks(kernel);
-    const report = buildStyleLearningReport(kernel);
-
-    assert.equal(report.learningVersion, 'lyo/style-learning/v1');
-    assert.equal(report.runCount, 2);
-    assert.equal(report.modelUsage.totalModelCalls, 2);
-    assert.equal(report.modelUsage.totalTokens, 2750);
-    assert.deepEqual(report.styleDistribution, {
-      promptDriven: 1,
-      manualOrchestrated: 1,
-      loopAssisted: 0,
-      loopDrivenCandidate: 0,
-      insufficientEvidence: 0,
-    });
-    assert.equal(report.aggregateMetrics.runsWithVerifiedEdits, 1);
-    assert.equal(report.aggregateMetrics.runsStoppedAfterEditWithoutVerification, 1);
-    assert.equal(report.learningCandidates.some((candidate) => candidate.id === 'preserve-verifier-debug-loop'), true);
-    assert.equal(report.learningCandidates.some((candidate) => candidate.id === 'critic-require-verifier-after-edit'), true);
-    assert.equal(report.learningCandidates.some((candidate) => candidate.id === 'convert-repeated-prompts-to-loop'), true);
   } finally {
     t.cleanup();
   }

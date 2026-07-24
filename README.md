@@ -103,8 +103,7 @@ Current package version: `0.3.0`.
   routing, failure classification, and session-start lesson injection.
 - Eval task fixtures, split validation, offline lesson replay, learned
   verifier rules, local baseline episode rows, and eval report/gate logic.
-- Dry-run semantic lowering, explanation-graph belief updates, and cybernetic
-  experiment reports.
+- Dry-run semantic lowering.
 - **Blind pipeline**: spec-first artifact contract (`lyo.spec.v1`, `lyo.plan.v1`
   and friends), static blindness checking, sandboxed code-writer/test-writer
   stages (Upstage, OpenRouter, Kimi CLI executors), deterministic `node --test`
@@ -164,47 +163,6 @@ Inspect one run as a workflow-style report:
 
 ```sh
 lyo report --db .agent-learning/learning.sqlite --style --run-id turn-1
-```
-
-Learn style candidates across local telemetry without writing artifacts. The
-default output is compact; add `--verbose` if you need every evidence run ID:
-
-```sh
-lyo learn style --db .agent-learning/learning.sqlite
-```
-
-Learn provisional source-to-verifier association hypotheses across local
-ledgers without persisting them:
-
-```sh
-lyo learn associations --dir ~/repositories --dry-run
-```
-
-Use `--compact` when you want promotion-oriented output without the full
-hypothesis and evidence arrays:
-
-```sh
-lyo learn associations --dir ~/repositories --dry-run --compact
-```
-
-Evaluate an explicit explanation graph without persisting derived beliefs:
-
-```sh
-lyo learn explanation --dry-run --input explanation.json
-```
-
-Compare baseline, treatment, and variant runs in a controlled learning
-experiment:
-
-```sh
-lyo experiment \
-  --db .agent-learning/learning.sqlite \
-  --family-id lyo-compiler-classifier-v1 \
-  --baseline-run-id <A0-run-id> \
-  --treatment-run-id <A1-run-id> \
-  --variant-run-id <A2-run-id> \
-  --artifact verifier:compiler-frontend \
-  --association-edge "src/compiler/** -> tests/compiler-frontend.test.js"
 ```
 
 Validate the frozen eval task set:
@@ -441,11 +399,7 @@ console.log(getObserverSummary(kernel));
 
 - [Deterministic Classification](docs/deterministic-classification.md)
 - [Behavior As Code](docs/behavior-as-code.md)
-- [Style Learning](docs/style-learning.md)
-- [Cybernetic Association Learner](docs/cybernetic-association-learner.md)
-- [Cybernetic Learning Experiment Protocol](docs/cybernetic-learning-experiment-protocol.md)
 - [Learned Context As Thermodynamic Control](docs/learned-context-thermodynamics.md)
-- [Learning As Inference Over An Explanation Graph](docs/learning-as-explanation-graph.md)
 - [Product Learning Log](docs/product-learning-log.md)
 - [Candidate At-Bat Telemetry Spec](docs/candidate-at-bat-telemetry-spec.md)
 - [Learned Reducer Rules And Eval Rubric](docs/learned-reducer-rules-eval-rubric.md)

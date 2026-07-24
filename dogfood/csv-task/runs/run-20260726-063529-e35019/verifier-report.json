@@ -1,0 +1,47 @@
+{
+  "version": "lyo.verifier-report.v1",
+  "specRef": {
+    "path": "spec.json",
+    "sha256": "35e4234cba55d194d479749663daa7eac7b3eb3a83fb8dfc580fffb497daeab4"
+  },
+  "codeRef": {
+    "path": "artifacts/code/manifest.json",
+    "sha256": "76927396962ac5cb6960165e308c9d69cbc747b66083c00ab3c12867aaf15e06"
+  },
+  "testRef": {
+    "path": "artifacts/tests/manifest.json",
+    "sha256": "728513a9a978c55769c32b9b74601c77709d82b88614c493f1e6b27231064478"
+  },
+  "counts": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0
+  },
+  "outcome": "pass",
+  "perTest": [
+    {
+      "name": "fields are split on commas not enclosed in double quotes",
+      "status": "pass"
+    },
+    {
+      "name": "quoted field has surrounding quotes removed",
+      "status": "pass"
+    },
+    {
+      "name": "two double quotes inside a quoted field decode to one literal double quote",
+      "status": "pass"
+    },
+    {
+      "name": "parsing an empty string returns a single empty field",
+      "status": "pass"
+    },
+    {
+      "name": "empty field between consecutive commas",
+      "status": "pass"
+    },
+    {
+      "name": "quoted empty string",
+      "status": "pass"
+    }
+  ]
+}

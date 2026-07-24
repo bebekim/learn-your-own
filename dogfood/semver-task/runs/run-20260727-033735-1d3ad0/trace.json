@@ -1,0 +1,115 @@
+{
+  "version": "lyo.trace.v1",
+  "runId": "run-20260727-033735-1d3ad0",
+  "planRef": {
+    "path": "plan.json",
+    "sha256": "1febbcad7f08c959d40de327a068ace9dcf9956378da448d8b48fe107320d8bc"
+  },
+  "stages": [
+    {
+      "stageId": "stage-code",
+      "round": 1,
+      "inputs": [
+        {
+          "path": "spec.json",
+          "sha256": "2002309fe6620f1fe9ab8390e6329365ffa3503585290e59292c96c2b80b1b77"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "artifacts/code/manifest.round-1.json",
+          "sha256": "74484fcbf9dbc2859dfeb9e7af819049d1f627adc0c2418eb189640320c09691"
+        }
+      ],
+      "model": "solar-open2",
+      "promptSha256": "2e2ca2bcebc7c982a89b374a79072dc9ed3b531f55416499a2491d103b8ce776",
+      "startedAt": "2026-07-27T03:37:35.693Z",
+      "finishedAt": "2026-07-27T03:38:03.432Z"
+    },
+    {
+      "stageId": "stage-test",
+      "round": 1,
+      "inputs": [
+        {
+          "path": "spec.json",
+          "sha256": "2002309fe6620f1fe9ab8390e6329365ffa3503585290e59292c96c2b80b1b77"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "artifacts/tests/manifest.json",
+          "sha256": "d3eca33a221ae300c3d26fad8bbdb54fa9bb8d766bd51dfc475be2fdf947c004"
+        }
+      ],
+      "model": "z-ai/glm-5.2",
+      "promptSha256": "ac6b422bf97475a5e6881ee7c1baa8fcc6ff42f9b6933aa47f70230e3b10e3a8",
+      "startedAt": "2026-07-27T03:37:35.733Z",
+      "finishedAt": "2026-07-27T03:37:59.758Z"
+    },
+    {
+      "stageId": "stage-verify",
+      "round": 1,
+      "inputs": [
+        {
+          "path": "artifacts/code/manifest.round-1.json",
+          "sha256": "74484fcbf9dbc2859dfeb9e7af819049d1f627adc0c2418eb189640320c09691"
+        },
+        {
+          "path": "artifacts/tests/manifest.json",
+          "sha256": "d3eca33a221ae300c3d26fad8bbdb54fa9bb8d766bd51dfc475be2fdf947c004"
+        }
+      ],
+      "outputs": [],
+      "startedAt": "2026-07-27T03:38:03.458Z",
+      "finishedAt": "2026-07-27T03:38:03.598Z"
+    },
+    {
+      "stageId": "stage-code",
+      "round": 2,
+      "inputs": [
+        {
+          "path": "spec.json",
+          "sha256": "2002309fe6620f1fe9ab8390e6329365ffa3503585290e59292c96c2b80b1b77"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "artifacts/code/manifest.round-2.json",
+          "sha256": "74484fcbf9dbc2859dfeb9e7af819049d1f627adc0c2418eb189640320c09691"
+        }
+      ],
+      "model": "solar-open2",
+      "promptSha256": "0dc37efb9696c4cfb39388c0c5924d5d705a0eb8d6d01d5757507feb65d848d3",
+      "startedAt": "2026-07-27T03:38:03.600Z",
+      "finishedAt": "2026-07-27T03:38:59.659Z"
+    },
+    {
+      "stageId": "stage-verify",
+      "round": 2,
+      "inputs": [
+        {
+          "path": "artifacts/code/manifest.round-2.json",
+          "sha256": "74484fcbf9dbc2859dfeb9e7af819049d1f627adc0c2418eb189640320c09691"
+        },
+        {
+          "path": "artifacts/tests/manifest.json",
+          "sha256": "d3eca33a221ae300c3d26fad8bbdb54fa9bb8d766bd51dfc475be2fdf947c004"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "verifier-report.json",
+          "sha256": "1f33f8c00b5c63c84da4e03fff36ddfa575d68b0d013a6eb6833cc3bd8a5a42d"
+        }
+      ],
+      "startedAt": "2026-07-27T03:38:59.675Z",
+      "finishedAt": "2026-07-27T03:38:59.777Z"
+    }
+  ],
+  "feedback": {
+    "rounds": 2,
+    "stopReason": "no_change"
+  },
+  "startedAt": "2026-07-27T03:37:35.692Z",
+  "finishedAt": "2026-07-27T03:38:59.782Z"
+}

@@ -1,0 +1,214 @@
+TAP version 13
+# Subtest: exports compareSemver as a named property
+ok 1 - exports compareSemver as a named property
+  ---
+  duration_ms: 2.151708
+  type: 'test'
+  ...
+# Subtest: examples from the specification
+not ok 2 - examples from the specification
+  ---
+  duration_ms: 4.120459
+  type: 'test'
+  location: '/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-064210-d54d56/verify/generated/tests/semver.test.js:15:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    1 !== -1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: -1
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    eq (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-064210-d54d56/verify/generated/tests/semver.test.js:9:41)
+    TestContext.<anonymous> (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-064210-d54d56/verify/generated/tests/semver.test.js:18:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3)
+  ...
+# Subtest: major version is compared numerically first
+ok 3 - major version is compared numerically first
+  ---
+  duration_ms: 0.567208
+  type: 'test'
+  ...
+# Subtest: minor version is compared numerically when major is equal
+ok 4 - minor version is compared numerically when major is equal
+  ---
+  duration_ms: 0.485834
+  type: 'test'
+  ...
+# Subtest: patch version is compared numerically when major and minor are equal
+ok 5 - patch version is compared numerically when major and minor are equal
+  ---
+  duration_ms: 0.835375
+  type: 'test'
+  ...
+# Subtest: multi-digit major/minor/patch values compare numerically, not lexically
+ok 6 - multi-digit major/minor/patch values compare numerically, not lexically
+  ---
+  duration_ms: 0.4965
+  type: 'test'
+  ...
+# Subtest: a version with a prerelease has lower precedence than the same version without one
+not ok 7 - a version with a prerelease has lower precedence than the same version without one
+  ---
+  duration_ms: 0.750208
+  type: 'test'
+  location: '/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-064210-d54d56/verify/generated/tests/semver.test.js:53:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    1 !== -1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: -1
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    eq (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-064210-d54d56/verify/generated/tests/semver.test.js:9:41)
+    TestContext.<anonymous> (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-064210-d54d56/verify/generated/tests/semver.test.js:54:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+  ...
+# Subtest: prerelease identifiers are compared left to right
+ok 8 - prerelease identifiers are compared left to right
+  ---
+  duration_ms: 0.18175
+  type: 'test'
+  ...
+# Subtest: numeric prerelease identifiers compare numerically
+ok 9 - numeric prerelease identifiers compare numerically
+  ---
+  duration_ms: 0.504166
+  type: 'test'
+  ...
+# Subtest: alphanumeric prerelease identifiers compare lexically in ASCII order
+ok 10 - alphanumeric prerelease identifiers compare lexically in ASCII order
+  ---
+  duration_ms: 0.104833
+  type: 'test'
+  ...
+# Subtest: a numeric prerelease identifier has lower precedence than an alphanumeric one
+ok 11 - a numeric prerelease identifier has lower precedence than an alphanumeric one
+  ---
+  duration_ms: 0.048
+  type: 'test'
+  ...
+# Subtest: a prerelease with fewer identifiers has lower precedence when preceding identifiers are equal
+ok 12 - a prerelease with fewer identifiers has lower precedence when preceding identifiers are equal
+  ---
+  duration_ms: 0.050375
+  type: 'test'
+  ...
+# Subtest: prerelease chains of different lengths with equal prefixes
+ok 13 - prerelease chains of different lengths with equal prefixes
+  ---
+  duration_ms: 0.035166
+  type: 'test'
+  ...
+# Subtest: mixed numeric and alphanumeric prerelease identifiers
+ok 14 - mixed numeric and alphanumeric prerelease identifiers
+  ---
+  duration_ms: 0.033125
+  type: 'test'
+  ...
+# Subtest: build metadata is ignored for precedence
+ok 15 - build metadata is ignored for precedence
+  ---
+  duration_ms: 0.027291
+  type: 'test'
+  ...
+# Subtest: build metadata is ignored on versions with prerelease
+ok 16 - build metadata is ignored on versions with prerelease
+  ---
+  duration_ms: 0.033209
+  type: 'test'
+  ...
+# Subtest: build metadata does not affect prerelease precedence ordering
+not ok 17 - build metadata does not affect prerelease precedence ordering
+  ---
+  duration_ms: 0.090167
+  type: 'test'
+  location: '/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-064210-d54d56/verify/generated/tests/semver.test.js:121:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    -1 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: -1
+  operator: 'strictEqual'
+  stack: |-
+    eq (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-064210-d54d56/verify/generated/tests/semver.test.js:9:41)
+    TestContext.<anonymous> (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-064210-d54d56/verify/generated/tests/semver.test.js:124:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+  ...
+# Subtest: reflexivity: compareSemver(a, a) === 0 for valid inputs
+ok 18 - reflexivity: compareSemver(a, a) === 0 for valid inputs
+  ---
+  duration_ms: 0.08625
+  type: 'test'
+  ...
+# Subtest: antisymmetry: compareSemver(a, b) === -compareSemver(b, a)
+ok 19 - antisymmetry: compareSemver(a, b) === -compareSemver(b, a)
+  ---
+  duration_ms: 0.456084
+  type: 'test'
+  ...
+# Subtest: full precedence ordering example
+not ok 20 - full precedence ordering example
+  ---
+  duration_ms: 0.09775
+  type: 'test'
+  location: '/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-064210-d54d56/verify/generated/tests/semver.test.js:167:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    1 !== -1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: -1
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    eq (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-064210-d54d56/verify/generated/tests/semver.test.js:9:41)
+    TestContext.<anonymous> (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/semver-task/runs/run-20260727-064210-d54d56/verify/generated/tests/semver.test.js:179:5)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 16
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 77.304541

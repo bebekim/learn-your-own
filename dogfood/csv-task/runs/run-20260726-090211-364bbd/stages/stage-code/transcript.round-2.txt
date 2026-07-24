@@ -1,0 +1,5 @@
+STAGE FAILED: kimi exited 1: • The user wants me to implement a CSV line parser in JavaScript. The task is relatively simple but there's iteration feedback that 4 of 20 checks failed. I need to re-read the spec and fix the implementation.
+
+  Let me check if any skills apply. This is fixing a bug/issue. The "systematic-debugging" skill is available in Extra scope and says "Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes". Since 4 tests failed, this skill applies.
+
+  However, the sk

@@ -1,0 +1,103 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { parseCsvLine } = require('../src/csv-line.js');
+
+test('splits simple unquoted fields on commas', () => {
+  assert.deepEqual(parseCsvLine('a,b,c'), ['a', 'b', 'c']);
+});
+
+test('returns a single field when there are no commas', () => {
+  assert.deepEqual(parseCsvLine('hello'), ['hello']);
+});
+
+test('parsing an empty string returns a single empty field', () => {
+  assert.deepEqual(parseCsvLine(''), ['']);
+});
+
+test('removes surrounding double quotes from a quoted field', () => {
+  assert.deepEqual(parseCsvLine('"hello"'), ['hello']);
+});
+
+test('preserves commas inside a quoted field', () => {
+  assert.deepEqual(parseCsvLine('"hello, world",x'), ['hello, world', 'x']);
+});
+
+test('preserves commas inside a quoted field in the middle of the line', () => {
+  assert.deepEqual(parseCsvLine('a,"b,c",d'), ['a', 'b,c', 'd']);
+});
+
+test('does not split on commas enclosed in double quotes at the start', () => {
+  assert.deepEqual(parseCsvLine('"a,b,c"'), ['a,b,c']);
+});
+
+test('decodes two consecutive double quotes inside a quoted field to one literal double quote', () => {
+  assert.deepEqual(parseCsvLine('"she said ""hi""",y'), ['she said "hi"', 'y']);
+});
+
+test('decodes escaped quotes when the entire field is just escaped quotes', () => {
+  assert.deepEqual(parseCsvLine('""""'), ['"']);
+});
+
+test('handles a quoted field containing only escaped quotes', () => {
+  assert.deepEqual(parseCsvLine('""""""'), ['""']);
+});
+
+test('handles empty fields between consecutive commas', () => {
+  assert.deepEqual(parseCsvLine('a,,b'), ['a', '', 'b']);
+});
+
+test('handles leading comma producing a leading empty field', () => {
+  assert.deepEqual(parseCsvLine(',a,b'), ['', 'a', 'b']);
+});
+
+test('handles trailing comma producing a trailing empty field', () => {
+  assert.deepEqual(parseCsvLine('a,b,'), ['a', 'b', '']);
+});
+
+test('handles a line with only commas producing all empty fields', () => {
+  assert.deepEqual(parseCsvLine(',,,'), ['', '', '', '']);
+});
+
+test('handles a quoted empty string field', () => {
+  assert.deepEqual(parseCsvLine('""'), ['']);
+});
+
+test('handles a quoted empty string field among other fields', () => {
+  assert.deepEqual(parseCsvLine('a,"",b'), ['a', '', 'b']);
+});
+
+test('handles a quoted field with leading and trailing spaces preserved', () => {
+  assert.deepEqual(parseCsvLine('"  spaced  "'), ['  spaced  ']);
+});
+
+test('handles multiple quoted fields in one line', () => {
+  assert.deepEqual(parseCsvLine('"a","b","c"'), ['a', 'b', 'c']);
+});
+
+test('handles mixed quoted and unquoted fields', () => {
+  assert.deepEqual(parseCsvLine('x,"y,z",w,"p""q"'), ['x', 'y,z', 'w', 'p"q']);
+});
+
+test('handles a quoted field containing escaped quotes and commas together', () => {
+  assert.deepEqual(parseCsvLine('"a,""b"",c"'), ['a,"b",c']);
+});
+
+test('handles a single comma producing two empty fields', () => {
+  assert.deepEqual(parseCsvLine(','), ['', '']);
+});
+
+test('preserves whitespace in unquoted fields', () => {
+  assert.deepEqual(parseCsvLine(' a , b '), [' a ', ' b ']);
+});
+
+test('handles a quoted field that spans the entire line with many escaped quotes', () => {
+  assert.deepEqual(parseCsvLine('"""start"" and ""end"""'), ['"start" and "end"']);
+});
+
+test('handles escaped quotes adjacent to field delimiters', () => {
+  assert.deepEqual(parseCsvLine('"a""","b"'), ['a"', 'b']);
+});
+
+test('handles a quoted field immediately followed by another quoted field with no comma', () => {
+  assert.deepEqual(parseCsvLine('"a""b"'), ['a"b']);
+});

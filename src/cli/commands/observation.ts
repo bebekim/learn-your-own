@@ -3,8 +3,6 @@ import {
   buildCandidateAtBatReport,
   parseCandidateAtBatTaskContext,
 } from '../../compiler/candidate-at-bat.ts';
-import { buildCyberneticExperimentReport } from '../../compiler/cybernetic-experiment.ts';
-import type { CyberneticExperimentAttemptInput } from '../../compiler/cybernetic-experiment.ts';
 import { auditEffectLedgers } from '../../compiler/effect-audit.ts';
 import { buildEffectReport } from '../../compiler/effect-report.ts';
 import { compileTelemetryRun, compileTelemetryRunAst } from '../../compiler/frontend.ts';
@@ -29,7 +27,6 @@ export const OBSERVATION_COMMANDS: Record<string, CommandHandler> = {
   'record-prompt': recordPromptCommand,
   report: reportCommand,
   audit: auditCommand,
-  experiment: experimentCommand,
 };
 
 function sessionStartCommand(args: CommandArgs): unknown {
@@ -120,49 +117,5 @@ function reportCommand(args: CommandArgs): unknown {
 function auditCommand(args: CommandArgs): unknown {
   return auditEffectLedgers({
     root: args.flagValue('--dir') ?? args.flagValue('--root') ?? args.cwd,
-  });
-}
-
-function experimentCommand(args: CommandArgs): unknown {
-  const familyId = args.requiredFlag('--family-id');
-  const artifactId = args.flagValue('--artifact') ?? null;
-  const associationEdge = args.flagValue('--association-edge') ?? null;
-
-  return withKernel(args, (kernel) => {
-    const attempts: CyberneticExperimentAttemptInput[] = [
-      {
-        attemptId: 'A0',
-        mode: 'baseline' as const,
-        telemetry: compileTelemetryRunAst(kernel, { runId: args.requiredFlag('--baseline-run-id') }),
-      },
-      {
-        attemptId: 'A1',
-        mode: 'treatment' as const,
-        telemetry: compileTelemetryRunAst(kernel, { runId: args.requiredFlag('--treatment-run-id') }),
-        deliveredArtifacts: artifactId ? [artifactId] : [],
-      },
-    ];
-
-    const variantRunId = args.flagValue('--variant-run-id');
-    if (variantRunId) {
-      attempts.push({
-        attemptId: 'A2',
-        mode: 'variant' as const,
-        telemetry: compileTelemetryRunAst(kernel, { runId: variantRunId }),
-        deliveredArtifacts: artifactId ? [artifactId] : [],
-      });
-    }
-
-    return observationReportResponse(
-      'experiment',
-      buildCyberneticExperimentReport({
-        familyId,
-        attempts,
-        associationEdges: associationEdge && artifactId
-          ? [{ edge: associationEdge, artifactId }]
-          : [],
-        nextExperiment: args.flagValue('--next-experiment') ?? null,
-      })
-    );
   });
 }

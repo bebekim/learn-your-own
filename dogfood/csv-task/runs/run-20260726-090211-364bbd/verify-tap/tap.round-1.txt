@@ -1,0 +1,238 @@
+TAP version 13
+# Subtest: splits fields on commas outside quotes
+ok 1 - splits fields on commas outside quotes
+  ---
+  duration_ms: 0.557916
+  type: 'test'
+  ...
+# Subtest: removes surrounding quotes from quoted fields
+ok 2 - removes surrounding quotes from quoted fields
+  ---
+  duration_ms: 0.055125
+  type: 'test'
+  ...
+# Subtest: preserves commas inside quoted fields
+ok 3 - preserves commas inside quoted fields
+  ---
+  duration_ms: 0.448584
+  type: 'test'
+  ...
+# Subtest: decodes escaped double quotes inside quoted fields
+ok 4 - decodes escaped double quotes inside quoted fields
+  ---
+  duration_ms: 0.055
+  type: 'test'
+  ...
+# Subtest: handles empty string input
+ok 5 - handles empty string input
+  ---
+  duration_ms: 0.046125
+  type: 'test'
+  ...
+# Subtest: handles empty fields between consecutive commas
+ok 6 - handles empty fields between consecutive commas
+  ---
+  duration_ms: 0.045875
+  type: 'test'
+  ...
+# Subtest: handles quoted empty string
+ok 7 - handles quoted empty string
+  ---
+  duration_ms: 0.034833
+  type: 'test'
+  ...
+# Subtest: handles mixed empty and quoted empty fields
+not ok 8 - handles mixed empty and quoted empty fields
+  ---
+  duration_ms: 0.499292
+  type: 'test'
+  location: '/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/csv-task/runs/run-20260726-090211-364bbd/verify/generated/tests/basic.test.js:33:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+        'a',
+        '',
+    -   'b'
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 'a'
+    1: ''
+    2: 'b'
+  actual:
+    0: 'a'
+    1: ''
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/csv-task/runs/run-20260726-090211-364bbd/verify/generated/tests/basic.test.js:34:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+  ...
+# Subtest: handles quoted field with only commas
+ok 9 - handles quoted field with only commas
+  ---
+  duration_ms: 0.055333
+  type: 'test'
+  ...
+# Subtest: handles multiple quoted fields with commas
+ok 10 - handles multiple quoted fields with commas
+  ---
+  duration_ms: 0.067208
+  type: 'test'
+  ...
+# Subtest: handles trailing comma
+ok 11 - handles trailing comma
+  ---
+  duration_ms: 0.049625
+  type: 'test'
+  ...
+# Subtest: handles leading comma
+ok 12 - handles leading comma
+  ---
+  duration_ms: 0.036375
+  type: 'test'
+  ...
+# Subtest: handles multiple consecutive quoted fields
+ok 13 - handles multiple consecutive quoted fields
+  ---
+  duration_ms: 0.023709
+  type: 'test'
+  ...
+# Subtest: handles quoted field containing escaped quotes and commas
+ok 14 - handles quoted field containing escaped quotes and commas
+  ---
+  duration_ms: 0.023417
+  type: 'test'
+  ...
+# Subtest: handles deeply nested escaped quotes
+ok 15 - handles deeply nested escaped quotes
+  ---
+  duration_ms: 0.030209
+  type: 'test'
+  ...
+# Subtest: handles quote inside quoted field at beginning
+ok 16 - handles quote inside quoted field at beginning
+  ---
+  duration_ms: 0.021958
+  type: 'test'
+  ...
+# Subtest: handles quote inside quoted field at end
+ok 17 - handles quote inside quoted field at end
+  ---
+  duration_ms: 0.040209
+  type: 'test'
+  ...
+# Subtest: handles quotes inside quoted field in middle
+not ok 18 - handles quotes inside quoted field in middle
+  ---
+  duration_ms: 0.114125
+  type: 'test'
+  location: '/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/csv-task/runs/run-20260726-090211-364bbd/verify/generated/tests/basic.test.js:73:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+    +   'hello'
+    -   'hel"lo'
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 'hel"lo'
+  actual:
+    0: 'hello'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/csv-task/runs/run-20260726-090211-364bbd/verify/generated/tests/basic.test.js:74:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+  ...
+# Subtest: handles escaped quotes at start and end of quoted field
+not ok 19 - handles escaped quotes at start and end of quoted field
+  ---
+  duration_ms: 0.08625
+  type: 'test'
+  location: '/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/csv-task/runs/run-20260726-090211-364bbd/verify/generated/tests/basic.test.js:77:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+    +   '""'
+    -   '"'
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: '"'
+  actual:
+    0: '""'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/csv-task/runs/run-20260726-090211-364bbd/verify/generated/tests/basic.test.js:78:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+  ...
+# Subtest: handles field with only escaped quotes
+not ok 20 - handles field with only escaped quotes
+  ---
+  duration_ms: 0.05775
+  type: 'test'
+  location: '/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/csv-task/runs/run-20260726-090211-364bbd/verify/generated/tests/basic.test.js:81:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+    +   '""'
+    -   '"'
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: '"'
+  actual:
+    0: '""'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/marcus.kim/repositories/individual/agent-learning-workflow/dogfood/csv-task/runs/run-20260726-090211-364bbd/verify/generated/tests/basic.test.js:82:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 16
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 37.18875

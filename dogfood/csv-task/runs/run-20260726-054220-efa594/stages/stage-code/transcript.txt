@@ -1,0 +1,139 @@
+• I’ll invoke the brainstorming skill first, since this is new functionality.
+
+• Implemented `parseCsvLine` in `generated/src/csv-line.js` as a pure CommonJS function matching the spec:
+
+  - Splits fields on commas outside double quotes
+  - Strips surrounding quotes from quoted fields
+  - Decodes `""` to a single literal `"` inside quoted fields
+  - Preserves commas inside quoted fields
+  - Returns `['']` for an empty input string
+
+
+• I need to implement a CSV line parser in JavaScript according to the spec. This is a creative/implementation task, but it's very small and constrained. The spec explicitly tells me to consume only spec.json, produce generated/src/csv-line.js, and not write tests.
+
+  The skill "brainstorming" says to use it before any creative work. However, this is a very constrained implementation task with a clear spec. But the rule is strict: if there's even 1% chance a skill applies, use it. So I should invoke the brainstorming skill.
+
+  Actually, wait. The task is to write a tiny CSV parser. The skill "brainstorming" is about exploring user intent, requirements, and design before implementation. Given the spec is authoritative and complete, and the task is very small, maybe I should still invoke it per the rules.
+
+  But also "api-design" and "implementation" skills are listed. These are in the prompt's skill list but may or may not correspond to actual skill files. The skill list shows only the available skills. The prompt says "Skills: api-design, implementation, refactoring" but these are not in the available skills list. So I only consider available skills.
+
+  Available relevant skills: possibly "ponytail" (lazy solution) but not requested. "using-superpowers" is already loaded. "brainstorming" is available.
+
+  Given the EXTREMELY-IMPORTANT reminder, I must use brainstorming before implementation. Let me invoke it.
+
+  Actually, I need to check if "brainstorming" skill applies. It says "Use this before any creative work - creating features, building components, adding functionality, or modifying behavior." This is creating functionality, so yes.
+
+  Let me invoke the Skill tool for brainstorming.
+
+• The brainstorming skill requires a full design process with user approval, writing a design doc, etc. However, this is a very constrained task from a stage-based workflow. The user instruction says "Stage: code-writer" and the objective is to implement and test the specification. The spec is authoritative and complete. 
+
+  But the skill says "Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it." This conflicts with the user's explicit stage instruction to implement.
+
+  However, system instructions say: "User instructions (CLAUDE.md, AGENTS.md, GEMINI.md, etc, direct requests) take precedence over skills". The user's prompt is a direct request with a specific stage and constraints. Also, the auto permission mode is active, and the user wants me to proceed.
+
+  Actually, the skill is loaded as an extra/superpowers skill. The system says user instructions take precedence. The user explicitly wants implementation output only, no tests, and to not read tests. The brainstorming skill would require writing a design doc to docs/superpowers/... which is outside allowed writes (only generated/src allowed).
+
+  Given the conflict, I should follow the user's direct instructions. The skill's design process doesn't fit this constrained stage task. I'll proceed with implementation directly.
+
+  Wait, but the rule says "IF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT." However, the same system instructions also say user instructions take precedence. There's a conflict. The user instruction is very specific: "Stage instructions: Consume only the declared inputs. Produce only implementation outputs. Leave test design to the test-writer stage."
+
+  I think in this case, the user's stage instructions override the general brainstorming skill. The task is not "let's build X" in the collaborative sense; it's a pipeline stage with strict inputs/outputs. I should implement directly.
+
+  Let me read the spec.json to be sure, then write the implementation.
+
+  Actually, I realize I should at least acknowledge I considered the skill. But the most important thing is to follow the user's explicit stage instructions. I'll proceed to read spec.json and implement.Now I need to implement the CSV parser. Let me think about the algorithm.
+
+  We need to parse a single CSV line. Rules:
+  - Fields split on commas not enclosed in double quotes
+  - A field wrapped in double quotes has surrounding quotes removed
+  - Two double quotes inside a quoted field decode to one literal double quote
+  - A quoted field may contain commas, preserved
+  - Empty string returns ['']
+  - Edge cases: empty fields between commas, quoted empty string
+
+  I'll implement a state machine/character scan.
+
+  Algorithm:
+  - Initialize result array, current field buffer, inQuotes = false
+  - Iterate through each char with index i:
+    - If char is '"':
+      - If inQuotes:
+        - Look ahead: if next char is also '"', it's an escaped quote. Add one quote to buffer, skip next char.
+        - Else, it's the closing quote. Set inQuotes = false.
+      - Else:
+        - Start quoted field. Set inQuotes = true.
+        - Note: if we have accumulated content before, that's fine (e.g., "a"b is weird but we don't need to validate)
+    - Else if char is ',':
+      - If inQuotes: add to buffer
+      - Else: push current buffer as field, reset buffer
+    - Else:
+      - Add char to buffer
+  - After loop, push current buffer
+
+  Wait, need to handle quoted empty string: input '""' should give [''].
+  Empty string input '' should give [''].
+
+  For unquoted empty between commas: 'a,,b' -> ['a', '', 'b'].
+
+  For quoted field: when we see opening quote, we set inQuotes=true and don't add anything. When closing quote, set inQuotes=false. The content between is added directly. For escaped quotes inside quotes, we see '"', look ahead next is '"', add one quote, skip next.
+
+  What about a quote at the end of a quoted field? Closing quote sets inQuotes=false. Then if we see comma, we push buffer. If end of string, push buffer.
+
+  What about content outside quotes after a closing quote? e.g. '"a"b,c' — we add 'b' to current field, then comma splits. That's fine.
+
+  What about '"' alone? It would set inQuotes=true and never close. We just push empty buffer. That's probably acceptable.
+
+  Let me implement this cleanly.
+
+  The output directory is generated/src. Need to create it. I can use Write which creates parent directories.
+
+  Let me write the file.Now I should verify the implementation works with the examples from the spec. I can run a quick node command. The spec says no I/O in the function, but I can run tests in terminal to verify. The constraint says terminal=false in tool permissions? Wait, the tool permissions in the prompt say terminal=false. That means I should not use the Bash tool? But I need to verify.
+
+  Actually, looking at the prompt: "Tool permissions: terminal=false, internet=false, github=false". This likely means I don't have permission to use the terminal. So I cannot run node to verify.
+
+  But the acceptance criteria says to implement and test. However, the stage instructions say "Make no claims about passing tests unless a later verifier artifact supplies evidence." and "Leave test design to the test-writer stage." The test artifacts are in generated/tests which is forbidden.
+
+  So I should not run tests myself. The implementation is written. Let me double-check the logic mentally:
+
+  Example 1: 'a,b,c'
+  - i=0 'a' -> current='a'
+  - i=1 ',' -> push 'a', current=''
+  - i=2 'b' -> current='b'
+  - i=3 ',' -> push 'b', current=''
+  - i=4 'c' -> current='c'
+  - end -> push 'c'
+  Result: ['a','b','c'] ✓
+
+  Example 2: '"hello, world",x'
+  - i=0 '"' -> inQuotes=true
+  - i=1..11 'hello, world' -> current='hello, world'
+  - i=12 '"' -> inQuotes=false
+  - i=13 ',' -> push 'hello, world', current=''
+  - i=14 'x' -> current='x'
+  - end -> push 'x'
+  Result: ['hello, world', 'x'] ✓
+
+  Example 3: '"she said ""hi""",y'
+  - i=0 '"' -> inQuotes=true
+  - i=1..8 'she said' -> current='she said '
+  - i=9 '"' -> inQuotes && line[10]==='"' -> current+='"', i++ (skip 10)
+  - i=11 'h' -> current='she said "h'
+  - i=12 'i' -> current='she said "hi'
+  - i=13 '"' -> inQuotes && line[14]==='"' -> current+='"', i++ (skip 14)
+  - i=15 '"' -> inQuotes=false
+  - i=16 ',' -> push, current=''
+  - i=17 'y' -> current='y'
+  - end push
+  Result: ['she said "hi"', 'y'] ✓
+
+  Example 4: ''
+  - loop doesn't run
+  - push current ('')
+  Result: [''] ✓
+
+  Edge: 'a,,b' -> ['a','','b'] ✓
+  Edge: '""' -> inQuotes=true at i=0, inQuotes=false at i=1, push current '' -> [''] ✓
+
+  Looks good. The implementation is complete.
+
+To resume this session: kimi -r session_034bbfe2-b531-4970-840e-6d138f13ae09

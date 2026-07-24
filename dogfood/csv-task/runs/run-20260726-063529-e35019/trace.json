@@ -1,0 +1,115 @@
+{
+  "version": "lyo.trace.v1",
+  "runId": "run-20260726-063529-e35019",
+  "planRef": {
+    "path": "plan.json",
+    "sha256": "474d90411e759d8a02d7ad78e1e850db65d9c0e5f4d8c7933af41317c855004b"
+  },
+  "stages": [
+    {
+      "stageId": "stage-code",
+      "round": 1,
+      "inputs": [
+        {
+          "path": "spec.json",
+          "sha256": "35e4234cba55d194d479749663daa7eac7b3eb3a83fb8dfc580fffb497daeab4"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "artifacts/code/manifest.round-1.json",
+          "sha256": "0e9f711438147904076b396100c9003636ba05215bb5159100098e87aee53990"
+        }
+      ],
+      "model": "kimi-code/kimi-for-coding",
+      "promptSha256": "6e6794fb887b46b20e2b757210d2cc8145211b6b6947bf3d7051d403282d77bd",
+      "startedAt": "2026-07-26T06:35:29.127Z",
+      "finishedAt": "2026-07-26T06:36:32.008Z"
+    },
+    {
+      "stageId": "stage-test",
+      "round": 1,
+      "inputs": [
+        {
+          "path": "spec.json",
+          "sha256": "35e4234cba55d194d479749663daa7eac7b3eb3a83fb8dfc580fffb497daeab4"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "artifacts/tests/manifest.json",
+          "sha256": "728513a9a978c55769c32b9b74601c77709d82b88614c493f1e6b27231064478"
+        }
+      ],
+      "model": "upstage/solar-pro-3",
+      "promptSha256": "1a89b9d8d57d924b40039749917a595f332ec43ae514cbf2f7e5558652c4d64d",
+      "startedAt": "2026-07-26T06:35:29.131Z",
+      "finishedAt": "2026-07-26T06:35:33.404Z"
+    },
+    {
+      "stageId": "stage-verify",
+      "round": 1,
+      "inputs": [
+        {
+          "path": "artifacts/code/manifest.round-1.json",
+          "sha256": "0e9f711438147904076b396100c9003636ba05215bb5159100098e87aee53990"
+        },
+        {
+          "path": "artifacts/tests/manifest.json",
+          "sha256": "728513a9a978c55769c32b9b74601c77709d82b88614c493f1e6b27231064478"
+        }
+      ],
+      "outputs": [],
+      "startedAt": "2026-07-26T06:36:32.029Z",
+      "finishedAt": "2026-07-26T06:36:32.234Z"
+    },
+    {
+      "stageId": "stage-code",
+      "round": 2,
+      "inputs": [
+        {
+          "path": "spec.json",
+          "sha256": "35e4234cba55d194d479749663daa7eac7b3eb3a83fb8dfc580fffb497daeab4"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "artifacts/code/manifest.round-2.json",
+          "sha256": "76927396962ac5cb6960165e308c9d69cbc747b66083c00ab3c12867aaf15e06"
+        }
+      ],
+      "model": "kimi-code/kimi-for-coding",
+      "promptSha256": "116cef245216da8746b20f2969f75cd5f779be6e284bdd45eada887dd53917ae",
+      "startedAt": "2026-07-26T06:36:32.236Z",
+      "finishedAt": "2026-07-26T06:41:11.392Z"
+    },
+    {
+      "stageId": "stage-verify",
+      "round": 2,
+      "inputs": [
+        {
+          "path": "artifacts/code/manifest.round-2.json",
+          "sha256": "76927396962ac5cb6960165e308c9d69cbc747b66083c00ab3c12867aaf15e06"
+        },
+        {
+          "path": "artifacts/tests/manifest.json",
+          "sha256": "728513a9a978c55769c32b9b74601c77709d82b88614c493f1e6b27231064478"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "verifier-report.json",
+          "sha256": "9d6890be9b362ddfc622c1907cd663c6059ecfea66a97ef65ab81581a5ac6f5b"
+        }
+      ],
+      "startedAt": "2026-07-26T06:41:11.431Z",
+      "finishedAt": "2026-07-26T06:41:11.508Z"
+    }
+  ],
+  "feedback": {
+    "rounds": 2,
+    "stopReason": "pass"
+  },
+  "startedAt": "2026-07-26T06:35:29.126Z",
+  "finishedAt": "2026-07-26T06:41:11.520Z"
+}

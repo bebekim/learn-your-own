@@ -1,0 +1,182 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { compareSemver } = require('../src/semver.js');
+
+// assert/strict uses Object.is: -(0) is -0, which does NOT equal 0.
+// Normalize by ADDING zero AFTER all arithmetic, on every side being compared.
+const num = (x) => x + 0;
+
+const eq = (actual, expected) => assert.equal(num(actual), num(expected));
+
+test('exports compareSemver as a named property', () => {
+  assert.equal(typeof compareSemver, 'function');
+});
+
+test('examples from the specification', () => {
+  eq(compareSemver('1.2.3', '1.2.4'), -1);
+  eq(compareSemver('2.0.0', '10.0.0'), -1);
+  eq(compareSemver('1.0.0-alpha', '1.0.0'), -1);
+  eq(compareSemver('1.0.0-alpha', '1.0.0-alpha.1'), -1);
+  eq(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.beta'), -1);
+  eq(compareSemver('1.0.0-beta.2', '1.0.0-beta.11'), -1);
+  eq(compareSemver('1.0.0-rc.1', '1.0.0'), -1);
+  eq(compareSemver('1.0.0+build.5', '1.0.0'), 0);
+});
+
+test('major version is compared numerically first', () => {
+  eq(compareSemver('1.0.0', '2.0.0'), -1);
+  eq(compareSemver('2.0.0', '1.0.0'), 1);
+  eq(compareSemver('10.0.0', '2.0.0'), 1);
+  eq(compareSemver('100.0.0', '99.0.0'), 1);
+});
+
+test('minor version is compared numerically when major is equal', () => {
+  eq(compareSemver('1.1.0', '1.2.0'), -1);
+  eq(compareSemver('1.2.0', '1.1.0'), 1);
+  eq(compareSemver('1.10.0', '1.2.0'), 1);
+  eq(compareSemver('1.0.0', '1.0.0'), 0);
+});
+
+test('patch version is compared numerically when major and minor are equal', () => {
+  eq(compareSemver('1.0.1', '1.0.2'), -1);
+  eq(compareSemver('1.0.2', '1.0.1'), 1);
+  eq(compareSemver('1.0.10', '1.0.2'), 1);
+  eq(compareSemver('1.0.0', '1.0.0'), 0);
+});
+
+test('multi-digit major/minor/patch values compare numerically, not lexically', () => {
+  eq(compareSemver('2.0.0', '10.0.0'), -1);
+  eq(compareSemver('1.2.0', '1.10.0'), -1);
+  eq(compareSemver('1.0.2', '1.0.10'), -1);
+});
+
+test('a version with a prerelease has lower precedence than the same version without one', () => {
+  eq(compareSemver('1.0.0-alpha', '1.0.0'), -1);
+  eq(compareSemver('1.0.0', '1.0.0-alpha'), 1);
+  eq(compareSemver('1.2.3-rc.1', '1.2.3'), -1);
+  eq(compareSemver('1.2.3', '1.2.3-rc.1'), 1);
+});
+
+test('prerelease identifiers are compared left to right', () => {
+  eq(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.2'), -1);
+  eq(compareSemver('1.0.0-alpha.2', '1.0.0-alpha.1'), 1);
+  eq(compareSemver('1.0.0-alpha.beta', '1.0.0-alpha.gamma'), -1);
+  eq(compareSemver('1.0.0-alpha.gamma', '1.0.0-alpha.beta'), 1);
+});
+
+test('numeric prerelease identifiers compare numerically', () => {
+  eq(compareSemver('1.0.0-beta.2', '1.0.0-beta.11'), -1);
+  eq(compareSemver('1.0.0-beta.11', '1.0.0-beta.2'), 1);
+  eq(compareSemver('1.0.0-beta.100', '1.0.0-beta.99'), 1);
+});
+
+test('alphanumeric prerelease identifiers compare lexically in ASCII order', () => {
+  eq(compareSemver('1.0.0-alpha', '1.0.0-beta'), -1);
+  eq(compareSemver('1.0.0-beta', '1.0.0-alpha'), 1);
+  eq(compareSemver('1.0.0-Alpha', '1.0.0-alpha'), -1); // uppercase before lowercase in ASCII
+  eq(compareSemver('1.0.0-alpha', '1.0.0-Alpha'), 1);
+});
+
+test('a numeric prerelease identifier has lower precedence than an alphanumeric one', () => {
+  eq(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.beta'), -1);
+  eq(compareSemver('1.0.0-alpha.beta', '1.0.0-alpha.1'), 1);
+  eq(compareSemver('1.0.0-1', '1.0.0-a'), -1);
+  eq(compareSemver('1.0.0-a', '1.0.0-1'), 1);
+});
+
+test('a prerelease with fewer identifiers has lower precedence when preceding identifiers are equal', () => {
+  eq(compareSemver('1.0.0-alpha', '1.0.0-alpha.1'), -1);
+  eq(compareSemver('1.0.0-alpha.1', '1.0.0-alpha'), 1);
+  eq(compareSemver('1.0.0-alpha.beta', '1.0.0-alpha.beta.1'), -1);
+  eq(compareSemver('1.0.0-alpha.beta.1', '1.0.0-alpha.beta'), 1);
+});
+
+test('prerelease chains of different lengths with equal prefixes', () => {
+  eq(compareSemver('1.0.0-rc.1', '1.0.0-rc.1.0'), -1);
+  eq(compareSemver('1.0.0-rc.1.0', '1.0.0-rc.1'), 1);
+  eq(compareSemver('1.0.0-rc.1.0.0', '1.0.0-rc.1.0.1'), -1);
+});
+
+test('mixed numeric and alphanumeric prerelease identifiers', () => {
+  eq(compareSemver('1.0.0-1.alpha', '1.0.0-1.beta'), -1);
+  eq(compareSemver('1.0.0-1.beta', '1.0.0-1.alpha'), 1);
+  eq(compareSemver('1.0.0-1.2', '1.0.0-1.alpha'), -1); // numeric 2 < alpha
+  eq(compareSemver('1.0.0-1.alpha', '1.0.0-1.2'), 1);
+});
+
+test('build metadata is ignored for precedence', () => {
+  eq(compareSemver('1.0.0+build.5', '1.0.0'), 0);
+  eq(compareSemver('1.0.0', '1.0.0+build.5'), 0);
+  eq(compareSemver('1.0.0+build.5', '1.0.0+build.6'), 0);
+  eq(compareSemver('1.0.0+build.6', '1.0.0+build.5'), 0);
+});
+
+test('build metadata is ignored on versions with prerelease', () => {
+  eq(compareSemver('1.0.0-alpha+build.5', '1.0.0-alpha'), 0);
+  eq(compareSemver('1.0.0-alpha', '1.0.0-alpha+build.5'), 0);
+  eq(compareSemver('1.0.0-alpha+build.5', '1.0.0-alpha+build.6'), 0);
+  eq(compareSemver('1.0.0-alpha+build.6', '1.0.0-alpha+build.5'), 0);
+});
+
+test('build metadata does not affect prerelease precedence ordering', () => {
+  eq(compareSemver('1.0.0-alpha+build.5', '1.0.0-alpha.1+build.6'), -1);
+  eq(compareSemver('1.0.0-alpha.1+build.6', '1.0.0-alpha+build.5'), 1);
+  eq(compareSemver('1.0.0+build.5', '1.0.0-alpha+build.6'), 1);
+});
+
+test('reflexivity: compareSemver(a, a) === 0 for valid inputs', () => {
+  const versions = [
+    '0.0.0',
+    '1.0.0',
+    '1.2.3',
+    '10.20.30',
+    '1.0.0-alpha',
+    '1.0.0-alpha.1',
+    '1.0.0-alpha.beta',
+    '1.0.0-beta.11',
+    '1.0.0-rc.1',
+    '1.0.0+build.5',
+    '1.0.0-alpha+build.5',
+    '1.0.0-alpha.1+build.99',
+  ];
+  for (const v of versions) {
+    eq(compareSemver(v, v), 0);
+  }
+});
+
+test('antisymmetry: compareSemver(a, b) === -compareSemver(b, a)', () => {
+  const pairs = [
+    ['1.2.3', '1.2.4'],
+    ['2.0.0', '10.0.0'],
+    ['1.0.0-alpha', '1.0.0'],
+    ['1.0.0-alpha', '1.0.0-alpha.1'],
+    ['1.0.0-alpha.1', '1.0.0-alpha.beta'],
+    ['1.0.0-beta.2', '1.0.0-beta.11'],
+    ['1.0.0-rc.1', '1.0.0'],
+    ['1.0.0+build.5', '1.0.0'],
+    ['1.0.0-alpha+build.5', '1.0.0-alpha.1+build.6'],
+    ['1.0.0-Alpha', '1.0.0-alpha'],
+    ['1.0.0-1', '1.0.0-a'],
+    ['100.0.0', '99.0.0'],
+  ];
+  for (const [a, b] of pairs) {
+    eq(num(compareSemver(a, b)), num(-compareSemver(b, a)));
+  }
+});
+
+test('full precedence ordering example', () => {
+  const ordered = [
+    '1.0.0-alpha',
+    '1.0.0-alpha.1',
+    '1.0.0-alpha.beta',
+    '1.0.0-beta',
+    '1.0.0-beta.2',
+    '1.0.0-beta.11',
+    '1.0.0-rc.1',
+    '1.0.0',
+  ];
+  for (let i = 0; i < ordered.length - 1; i++) {
+    eq(compareSemver(ordered[i], ordered[i + 1]), -1);
+    eq(compareSemver(ordered[i + 1], ordered[i]), 1);
+  }
+});

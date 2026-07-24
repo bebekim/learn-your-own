@@ -1,0 +1,859 @@
+WOULDA, COULDA, SHOULDA:
+COUNTERFACTUALLY-GUIDED POLICY SEARCH
+LarsBuesing,The´ophaneWeber,YoriZwols,
+Se´bastienRacanie`re,ArthurGuez,Jean-BaptisteLespiau,NicolasHeess
+DeepMind
+lbuesing@google.com
+ABSTRACT
+Learningpoliciesondatasynthesizedbymodelscaninprinciplequenchthethirst
+ofreinforcementlearningalgorithmsforlargeamountsofrealexperience,which
+isoftencostlytoacquire. However,simulatingplausibleexperiencedenovoisa
+hardproblemformanycomplexenvironments,oftenresultinginbiasesformodel-
+basedpolicyevaluationandsearch. Insteadofdenovosynthesisofdata,herewe
+assume logged, real experience and model alternative outcomes of this experi-
+enceundercounterfactualactions,i.e.actionsthatwerenotactuallytaken. Based
+on this, we propose the Counterfactually-Guided Policy Search (CF-GPS) algo-
+rithm for learning policies in POMDPs from off-policy experience. It leverages
+structuralcausalmodelsforcounterfactualevaluationofarbitrarypoliciesonin-
+dividualoff-policyepisodes. CF-GPScanimproveonvanillamodel-basedRLal-
+gorithmsbymakinguseofavailableloggeddatatode-biasmodelpredictions. In
+contrasttooff-policyalgorithmsbasedonImportanceSamplingwhichre-weight
+data, CF-GPS leverages a model to explicitly consider alternative outcomes, al-
+lowing the algorithm to make better use of experience data. We find empiri-
+cally that these advantages translate into improved policy evaluation and search
+resultsonanon-trivialgrid-worldtask.Finally,weshowthatCF-GPSgeneralizes
+thepreviouslyproposedGuidedPolicySearchandthatreparameterization-based
+algorithms such Stochastic Value Gradient can be interpreted as counterfactual
+methods.
+1 INTRODUCTION
+ImaginethatamonthagoAlicehadtwojoboffersfromcompaniesa anda . Shedecidedtojoin
+1 2
+a becauseofthelargersalary,inspiteofanawkwardfeelingduringthejobinterview. Sincethen
+1
+she learned a lot about a and recently received information about a from a friend, prodding her
+1 2
+nowtoimaginewhatwouldhavehappenedhadshejoineda . Re-evaluatingherdecisioninhind-
+2
+sight in this way, she concludes that she made a regrettable decision. She could and should have
+knownthata wasabetterchoice,hadsheonlyinterpretedthecuesduringtheinterviewcorrectly...
+2
+Thisexampletriestoillustratetheeverydayhumancapacitytoreasonaboutalternate, counterfac-
+tual outcomes of past experience with the goal of “mining worlds that could have been” (Pearl &
+Mackenzie, 2018). Social psychologists theorize that such cognitive processes are beneficial for
+improvingfuturedecisionmaking(Roese,1997). Inthispaperweaimtoleveragepossibleadvan-
+tages of counterfactual reasoning for learning decision making in the reinforcement learning (RL)
+framework.
+In spite of recent success, learning policies with standard, model-free RL algorithms can be no-
+toriously data inefficient. This issue can in principle be addressed by learning policies on data
+synthesizedfromamodel.However,amismatchbetweenthemodelandthetrueenvironment,often
+unavoidableinpractice,cancausethisapproachtofail(Talvitie,2014),resultinginpoliciesthatdo
+notgeneralizetotherealenvironment(Jiangetal.,2015). Motivatedbytheintroductoryexample,
+weproposetheCounterfactually-GuidedPolicySearch(CF-GPS)algorithm: Insteadofrelyingon
+datasynthesizedfromscratchbyamodel, wetrainpoliciesonmodelpredictionsofalternateout-
+comes of past experience from the true environment under counterfactual actions, i.e. actions that
+had not actually been taken, while everything else remaining the same (Pearl, 2009). At the heart
+1
+8102
+voN
+51
+]GL.sc[
+1v27260.1181:viXra
+
+ofCF-GPSarestructuralcausalmodels(SCMs)whichmodeltheenvironmentwithtwoingredients
+(Wright,1920): 1) Independentrandom variables, called scenarios here, summarize allaspects of
+theenvironmentthatcannotbeinfluencedbytheagent,e.g.thepropertiesofthecompaniesinAl-
+ice’sjobsearchexample. 2)Deterministictransitionfunctions(alsocalledcausalmechanisms)take
+thesescenarios,togetherwiththeagent’sactions,asinputandproducethepredictedoutcome. The
+central idea of CF-GPS is that, instead of running an agent on scenarios sampled de novo from a
+model,weinferscenariosinhindsightfromgivenoff-policydata,andthenevaluateandimprovethe
+agentonthesespecificscenariosusinggivenorlearnedcausalmechanisms(Balke&Pearl,1994).
+WeshowthatCF-GPSgeneralizesandempiricallyimprovesonavanillamodel-baseRLalgorithm,
+bymitigatingmodelmismatchvia“grounding”or“anchoring”model-basedpredictionsininferred
+scenarios. Asaresult,thisapproachexplicitlyallowstotrade-offhistoricaldataformodelbias. CF-
+GPS differs substantially from standard off-policy RL algorithms based on Importance Sampling
+(IS),wherehistoricaldataisre-weightedwithrespecttotheimportanceweightstoevaluateorlearn
+new policies (Precup, 2000). In contrast, CF-GPS explicitly reasons counterfactually about given
+off-policydata. Ourmaincontributionsare:
+1. We formulate model-based RL in POMDPs in terms of structural causal models, thereby
+connectingconceptsfromreinforcementlearningandcausalinference.
+2. We provide the first results, to the best of our knowledge, showing that counterfactual
+reasoning in structural causal models on off-policy data can facilitate solving non-trivial
+RLtasks.
+3. We show that two previously proposed classes of RL algorithms, namely Guided Policy
+Search (Levine & Koltun, 2013) and Stochastic Value Gradient methods (Heess et al.,
+2015),canbeinterpretedascounterfactualmethods,openinguppossiblegeneralizations.
+Thepaperisstructuredasfollows. Wefirstgiveaself-contained,high-levelrecapitulationofstruc-
+tural causal models and counterfactual inference, as these are less widely known in the RL and
+generativemodelcommunities. InparticularweshowhowtomodelPOMDPswithSCMs. Based
+onthisexposition,wefirstconsiderthetaskofpolicyevaluationanddiscusshowwecanleverage
+counterfactualinferenceinSCMstoimproveovernaivemodel-basedmethods. Wethengeneralize
+thisapproachtothepolicysearchsettingresultingintheCF-GPSalgorithm. Weclosebyhighlight-
+ing connections to previously proposed algorithms and by discussing assumptions and limitations
+oftheproposedmethod.
+2 PRELIMINARIES
+We denote random variables (RVs) with capital letters, e.g. X, and particular values with lower
+caps,e.g.x. ForadistributionP overavector-valuedrandomvariableX,wedenotethemarginal
+over Y ⊂ X by P (and density p ); however we often omit the subscript if it is clear from
+Y Y
+the context, e.g. as in Y ∼ P. We assume the episodic, Partially Observable Markov Decision
+Process (POMDP) setting with states S , actions A and observations O , for t = 1,...,T. For
+t t t
+easeofnotation,weassumethatO includestherewardR . Theundiscountedreturnisdenotedby
+t t
+G =
+(cid:80)T
+R . We consider stochastic policies π(a |h ) over actions conditioned on observation
+t=1 t t t
+historiesH = (O ,A ,...,A ,O ). WedenotetheresultingdistributionovertrajectoriesT =
+t 1 1 t−1 t
+(S ,O ,A ,...,A ,S ,O ) induced by running π in the environment with T ∼ Pπ and the
+1 1 1 T−1 T T
+correspondingdensitybypπ(τ).
+2.1 STRUCTURALCAUSALMODELS
+Definition 1 (Structural causal model). A structural causal model (SCM) M over X =
+(X ,...,X ) is given by a DAG G over nodes X, independent noise RVs U = (U ,...,U )
+1 N 1 N
+withdistributionsP andfunctionsf ,...,f suchthatX =f (pa ,U ),wherepa ⊂X arethe
+Ui 1 N i i i i i
+parentsofX inG. AnSCMentailsadistributionP withdensitypover(X,U).
+i
+WealsorefertoU asscenariosandtof ascausalmechanisms. Wegivea(broad)definitionofan
+i
+interventioninanSCM.Thisalsoincludeswhatisknownasstochasticinterventionsormechanism
+changes(Korbetal.,2004)whichgeneralizeatomicinterventions(Pearl,2009).
+2
+
+Uc H1 H2
+Ua A Uo1 O1 Ua1 A1 Uo2 O2 Ua2 A2
+O Us1 S2 S3
+Uo Us2 Us3
+Figure 1: Structural causal models (SCMs) model environments using random variables U (cir-
+cles,‘scenarios’),thatsummarizeimmutableaspects,someofwhichareobserved(grey),somenot
+(white). Thesearefedintodeterministicfunctionsf (blacksquares)thatapproximatecausalmech-
+i
+anisms. Left: SCMforacontextualbanditwithcontextU ,actionA,feedbackOandscenarioU .
+c o
+Right: SCMforaPOMDP,withinitialstateU =S ,statesS andhistoriesH . Themechanism
+s1 1 t t
+thatgeneratestheactionsA isthepolicyπ.
+t
+Definition2(InterventioninSCM). AninterventionI inanSCMMconsistsofreplacingsomeof
+theoriginalf (pa ,U )withotherfunctionsfI(paI,U )wherepaI aretheparentsinanewDAG
+i i i i i i i
+GI. WedenotetheresultingSCMwithMdo(I)withdistributionPdo(I)anddensitypdo(I).
+SCMrepresentationofPOMDPs WecanrepresentanygivenPOMDP(underapolicyπ)byan
+SCMMovertrajectoriesT inthefollowingway. Weexpressallconditionaldistributions,e.g.the
+transitionkernelP ,asdeterministicfunctionswithindependentnoisevariablesU,suchas
+St+1|St,At
+S = f (S ,A ,U ). Thisisalwayspossibleusingauto-regressiveuniformization,seeLemma
+t+1 st t t st
+2intheappendix. TheDAGG oftheresultingSCMisshowninfig.1. Thisprocedureisclosely
+related to the ‘reparameterization trick’ for models with location-scale distributions (Kingma &
+Welling,2013;Rezendeetal.,2014). WedenotethedistributionoverT entailedbytheSCMwith
+Pπ and its density by pπ to highlight the role of π; note the difference to the true environment
+distributionPπ withdensitypπ. Runningadifferentpolicyµinsteadofπ intheenvironmentcan
+be expressed as an intervention I(π → µ) consisting of replacing A = f (H ,U ) by A =
+t π t at t
+f (H ,U ). WedenotetheresultingmodeldistributionovertrajectorieswithPdo(I(π→µ)) = Pµ
+µ t at
+(analogouslypµ).
+Intuition Here,weillustratethemainadvantageofSCMsusingtheexampleofAlice’sjobchoice
+from the introduction. We model it as contextual bandit with feedback shown in fig. 1. Alice has
+some initial knowledge given by the context U that is available to her before taking action A of
+c
+joining company A = a or A = a . We model Alice’s decision as A = f (U ,U ), where U
+1 2 π c a a
+capturespotentialindeterminacyinAlice’sdecisionmaking. TheoutcomeO =f (A,U ,U )also
+o c o
+dependsonthescenarioU ,capturingallrelevant,unobservedandhighlycomplexpropertiesofthe
+o
+two companies such as working conditions etc. Given this model, we can reason about alternate
+outcomesf (a ,u ,u )andf (a ,u ,u )forsamethescenariou . Thisisnotpossibleifweonly
+o 1 c o o 2 c o o
+modeltheoutcomeontheleveloftheconditionaldistributionP .
+O|A,Uc
+2.2 COUNTERFACTUALINFERENCEINSCMS
+ForanSCMoverX,wedefineacounterfactualqueryasatriple(xˆ ,I,X )ofobservationsxˆ of
+o q o
+somevariablesX ⊂X,aninterventionIandqueryvariablesX ⊂X.Thesemanticsofthequery
+o q
+arethat,havingobservedxˆ ,wewanttoinferwhatX wouldhavebeenhadwedoneintervention
+o q
+I, while ‘keeping everything else the same’. Counterfactual inference (CFI) in SCMs answers the
+queryinthefollowingway(Balke&Pearl,1994):
+1. Infer the unobserved noise source U conditioned on the observations xˆ , i.e. compute
+o
+p(U|xˆ )andreplacethepriorp(U)withp(U|xˆ ). DenotetheresultingSCMbyM .
+o o xˆo
+2. Perform intervention I on M . This yields Mdo(I), which entails the counterfactual
+xˆo xˆo
+distributionpdo(I)|xˆo(x). Returnthemarginalpdo(I)|xˆo(x
+q
+).
+3
+
+NotethatourdefinitionexplicitlyallowsforpartialobservationsX ⊂X inaccordancewithPearl
+o
+(2009). A sampled-based version, denoted as CFI, is presented in Algorithm 1. An interesting
+property of the counterfactual distribution pdo(I)|xˆo is that marginalizing it over observations xˆ
+o
+yieldsanunbiasedestimatorofthedensityofX underinterventionI.
+q
+Lemma1(CFIforsimulation). Letobservationsxˆ ∼pcomefromaSCMMwithdensityp. Then
+o
+thecounterfactualdensitypdo(I)|xˆo isanunbiasedestimatorofpdo(I),i.e.
+E [pdo(I)|xˆo(x)] = pdo(I)(x)
+xˆo∼p
+TheproofisstraightforwardandoutlinedintheAppendixA.Thislemmaandthemarginalindepen-
+denceoftheU leadstothefollowingcorollary;theproofisgivenintheappendix.
+i
+Corollary1(MixedcounterfactualandpriorsimulationfromanSCM). Assumewehaveobserva-
+tions xˆ ∼ p. We can simulate from M, under any intervention I, i.e. obtain unbiased samples
+o
+from Mdo(I), by first sampling values u for an arbitrary subset U ⊂ U from the posterior
+CF CF
+p(u |xˆ ) and the remaining U := U\U from the prior p(u ), and then computing X
+CF o Prior CF Prior
+withnoiseu=u ∪u .
+CF Prior
+ThecorollaryessentiallystatesthatwecansamplefromthemodelMI,bysamplingsomeoftheU
+i
+fromtheprior,andinferringtherestfromdataxˆ (aslongasthelatterwasalsosampledfromM).
+o
+WewillmakeuseofthislaterforrunningaPOMDPmodelonscenariosU inferredfromdatawhile
+st
+randomizingtheactionnoiseU . WenotethatthenoisevariablesU fromtheposteriorP
+at CF UCF|xˆo
+arenotindependentanymore. Nevertheless,SCMswithnon-independentnoisedistributionsarising
+from counterfactual inference, denoted here by M , are commonly considered in the literature
+xˆo
+(Petersetal.,2017).
+Intuition ReturningtoAlice’sjobexamplefromtheintroduction,wegivesomeintuitionforcoun-
+terfactualinferenceinSCMs. Giventheconcreteoutcomeoˆ,underobservedcontextuˆ andhaving
+c
+joinedcompanyaˆ=a ,Alicecantrytoinfertheunderlyingscenariou ∼p(u |a ,uˆ ,oˆ)thatshe
+1 o o 1 c
+experiences;thisincludesfactorssuchasworkconditionsetc. Shecanthenreasoncounterfactually
+abouttheoutcomehadshejoinedtheothercompany,whichisgivenbyf (a ,uˆ ,u ). Thiscanin
+o 2 c o
+principleenablehertomakebetterdecisionsinthefutureinsimilarscenariosbychangingherpolicy
+f (A,U ,U ) such that the action with the preferred outcome becomes more likely under uˆ ,u .
+π c a c o
+In particular she can do so without having to use her (likely imperfect) prior model over possible
+companiesp(U ). Shecanusethecounterfactualpredictionsdiscussedaboveinsteadtolearnfrom
+o
+herexperience. Weusethisinsightforcounterfactualpolicyevaluationandsearchbelow.
+3 OFF-POLICY EVALUATION: MODEL-FREE, MODEL-BASED AND
+COUNTERFACTUAL
+To explain how counterfactual reasoning in SCMs can be used for policy search, we first con-
+sider the simpler problem of policy evaluation (PE) on off-policy data. The goal of off-policy
+PE is to determine the value of a policy π, i.e. its expected return E [G], without running the
+pπ
+policy itself. We assume that we have data D = {hˆi } consisting of logged episodes
+T i=1,...,N
+hˆi = (oˆi,aˆi,...aˆi ,oˆi ) from running a behavior policy µ. A standard, model-free approach
+T 1 1 T−1 T
+toPEistouseImportancesampling(IS):Wecanestimatethepolicy’svalueas (cid:80) wiGˆi,whereGˆi
+i
+istheempiricalreturnofhˆi andwi ∝ pπ(hˆi T ) areimportanceweights. However, ifthetrajectory
+T pµ(hˆi)
+densitiespπ andpµareverydifferent,thenth T isestimatorhaslargevariance. Intheextremecase,IS
+canbeuselessifthesupportofpµ doesnotcontainthatofpπ,irrespectiveofhowmuchdatafrom
+pµisavailable.
+If we have access to a model M, then we can evaluate the policy on synthetic data, i.e. we can
+estimateE [G]. Thisiscalledmodel-basedpolicyevaluation(MB-PE).However,anybiasinM
+pπ
+propagatesfrompπ totheestimateE [G]. Inthefollowing,weassumethatMisaSCMandwe
+pπ
+showthatwecanusecounterfactualreasoningforoff-policyevaluation(CF-PE).Asthemainresult
+forthissection,wearguethatweexpectCF-PEtobelessbiasedthanMB-PE,andweillustratethis
+pointwithexperiments.
+4
+
+Algorithm1Counterfactualpolicyevaluationandsearch
+//Counterfactualinference(CFI)
+1: procedureCFI(dataxˆ ,SCMM,interventionI,queryX )
+o q
+2: uˆ∼p(u|xˆ ) (cid:46)Samplenoisevariablesfromposterior
+o
+3: p(u)←δ(u−uˆ) (cid:46)Replacenoisedistributioninpwithuˆ
+4: f ←fI (cid:46)PerforminterventionI
+i i
+5: returnx ∼pdo(I)(x |uˆ) (cid:46)SimulatefromtheresultingmodelMI
+q q xˆo
+6: endprocedure
+//CounterfactualPolicyEvaluation(CF-PE)
+7: procedureCF-PE(SCMM,policyπ,replaybufferD,numberofsamplesN)
+8: fori∈{1,...N}do
+9: hˆi ∼D (cid:46)Samplefromthereplaybuffer
+T
+10: g =CFI(hˆi ,M,I(µ→π),G) (cid:46)Counterfactualevaluationofreturn
+i T
+11: endfor
+12: return 1 (cid:80)N g
+N i=1 i
+13: endprocedure
+//Counterfactually-GuidedPolicySearch(CF-GPS)
+14: procedureCF-GPS(SCMM,initialpolicyπ0,numberoftrajectorysamplesN)
+15: fork=1,...do
+16: ifsometimesthen
+17: µ←πk (cid:46)Updatebehaviorpolicy
+18: endif
+19: fori=1,...,N do
+20: hˆi ∼pµ (cid:46)Getoff-policydatafromthetrueenvironment
+T
+21: τi =CFI(hˆi ,M,I(µ→πλ),T) (cid:46)Counterfactualrolloutsunderplanner
+T
+22: endfor
+23: πk ←policyimprovementontrajectoriesτi=1,...,N usingeqn.1
+24: endfor
+25: endprocedure
+3.1 COUNTERFACTUALOFF-POLICYEVALUATION
+NaiveMB-PEwithaSCMMsimplyconsistofsamplingthescenariosU ∼P fromtheprior,and
+U
+thensimulatingatrajectoryτ fromthefunctionsf andcomputingitsreturn. However,givendata
+i
+D from pµ, our discussion of counterfactual inference in SCMs suggests the following alternative
+strategy:Assumingnomodelmismatch,i.e.pµ =pµ,wecanregardthetaskofoff-policyevaluation
+of π as a counterfactual query with data hˆi , intervention I(µ → π) and query variable G. In
+T
+otherwords,insteadofsamplingfromthepriorasinMB-PE,wearefreetothescenariosfromthe
+posterior ui ∼ pµ(·|hˆi ). The algorithm is given in Algorithm 1. Lemma 1 guarantees that this
+T
+resultsinanunbiasedestimate:
+Corollary2(CF-PEisunbiased). Assumingnomodelmismatch,CF-PEisunbiased.
+Furthermore,Corollary1allowsustoalsosamplesomeofthenoisevariablesfromthepriorinstead
+of the posterior, we can e.g. randomize the counterfactual actions by re-sampling the action noise
+U .
+a
+Motivation WhenshouldonepreferCF-PEoverthemorestraightforwardMB-PE?Assuminga
+perfectmodel,Corollary2statesthatbothyieldthesameanswerinexpectationforperfectmodels.
+For imperfect models however, these algorithms can differ substantially. MB-PE relies on purely
+syntheticdata,sampledfromthenoisedistributionp(U).Inpractice,thisisusuallyapproximatedby
+aparametricdensitymodel,whichcanleadtounder-fittingincaseofcomplexdistributions. Thisis
+awell-knowneffectingenerativemodelswithlatentvariables: Inspiteofrecentresearchprogress,
+e.g. models of natural images are still unable to accurately model the variability of the true data
+(Gregoretal.,2016). Incontrast,CF-PEsamplesfromtheposteriorN−1(cid:80)N pµ(U|hˆi ),which
+i=1 T
+has access to strictly more information than the prior p(U) by taking into account additional data
+hˆi . Thissemi-nonparametricdistributioncanhelptode-biasthemodelbyeffectivelywinnowing
+T
+5
+
+outpartsofthedomainofU whichdonotcorrespondtoanyrealdata. Wesubstantiatethisintuition
+withexperimentsbelow; aconcreteillustrationforthedifferencebetweenthepriorandposterior/
+counterfactualdistributionisgiveninfig.4intheappendixanddiscussedinappendixD.Therefore,
+weconcludethatweexpectCF-PEtooutperformMB-PE,ifthetransitionandrewardkernelsf
+st
+are accurate models of the environment dynamics, but if the marginal distribution over the noise
+sourcesP isdifficulttomodel.
+U
+3.2 EXPERIMENTS
+Environment Asanexample,weuseapartially-observedvariantoftheSOKOBANenvironment,
+whichwecallPO-SOKOBAN.TheoriginalSOKOBANpuzzleenvironmentwasdescribedinde-
+tail by Racanie`re et al. (2017); we give a brief summary here. The agent is situated in a 10×10
+gridworldanditsfiveactionsaretomovetooneoffouradjacenttilesandaNOOP.Inourvariant,
+thegoalistopushallthreeboxesontothethreetargets. Asboxescannotbepulled, manyactions
+result irreversibly in unsolvable states. Episodes are of length T = 50, and pushing a box onto a
+target yields a reward of 1, removing a box from a target yields −1, and solving a level results in
+anadditionalrewardof10. Thestateoftheenvironmentconsistsina10×10matrixofcategorical
+variablestakingvaluesin{0,...,6}indicatingifthecorrespondingtileisempty,awall,box,target,
+agent, or a valid combinations thereof (box+target and agent+target). In order to introduce partial
+observability,wedefinetheobservationsasthestatecorruptedbyi.i.d.(foreachtileandtimestep)
+flippingeachcategoricalvariabletothe“empty”statewithprobability0.9. Therefore, thestateof
+thegameislargelyunobservedatanygiventime, andasuccessfulagenthastointegrateobserva-
+tions over tens of time steps. Initial states U , also called levels, which are the scenarios in this
+s1
+environment,aregeneratedrandomlybyageneratoralgorithmwhichguaranteessolvability(i.e. all
+boxescanbepushedontotargets). Theenvironmentisvisualizedinfig.3intheappendix.
+Given the full state of PO-SOKOBAN, the transition kernel is deterministic and quite simple as
+onlytheagentandpotentiallyanadjacentboxmoves. Inferringthebeliefstate,i.e.thedistribution
+over states given the history of observations and actions, can however range from trivial to very
+challenging, dependingontheamountofavailablehistory. Inthelimitofalongobservedhistory,
+everytileiseventuallyobservedandthebeliefstateconcentratesonasinglestate(thetruestate)that
+can be easily inferred. With limited observed history however, inferring the posterior distribution
+overstates(beliefstate)isverycomplex. Considere.g.thesituationinthebeginningofanepisode
+(beforepushingthefirstbox). Onlythefirstobservationisavailable,howeverweknowthatallPO-
+SOKOBANlevelsareinitiallyguaranteedtobesolvableandthereforesatisfymanycombinatorial
+constraintsreflectingthattheagentisstillabletopushallboxesontotargets. Learningacompact
+parametricmodeloftheinitialstatedistributionfromempiricaldataisthereforedifficultandlikely
+resultsinlargemismatchbetweenthelearnedmodelandthetrueenvironment.
+Results To illustrate the potential advantages of CF-PE over MB-PE we perform policy evalua-
+tioninthePO-SOKOBANenvironment. Wefirstgenerateapolicyπ thatwewishtoevaluate, by
+training it using a previously-proposed distributed RL algorithm (Espeholt et al., 2018). The pol-
+icyisparameterizedasadeep,recurrentneuralnetworkconsistingofa3-layerdeepconvolutional
+LSTM (Xingjian et al., 2015) with 32 channels per layer and kernel size of 3. To further increase
+computationalpower, theLSTMtickstwiceforeachenvironmentstep. Theoutputoftheagentis
+avaluefunctionandasoftmaxyieldingtheprobabilitiesoftakingthe5actions. Inordertoobtain
+anSCMoftheenvironment,forthesakeofsimplicity,weassumethattheground-truthtransition,
+observation and reward kernels are given. Therefore the only part of the model that we need to
+learn is the distribution p(U ) of initial states S = U (for regular MB-PE), and the density
+s1 1 s1
+p(U |hˆi) for inferring levels in hindsight for CF-PE. We vary the amount of true data t that we
+s1 t
+conditionthisinferenceon,rangingfromt=0(norealdata,equivalenttoMB-PE)tot=T =50
+(afullepisodeofrealdataisusedtoinfertheinitialstateU ). Wetrainaseparatemodelforeach
+s1
+t ∈ {0,5,10,20,30,40,50}. To simplify model learning, both models were given access to the
+unobservedstateduringtraining,butnotattesttime. Themodelsarechosentobepowerful,multi-
+layer,generativeDRAWmodels(Gregoretal.,2015)trainedbyapproximatemaximumlikelihood
+learning(Kingma&Welling,2013;Rezendeetal.,2014). Themodelstakeasinputthe(potentially
+empty) data hˆi summarized by a backward RNN (a standard convolutional LSTM model with 32
+t
+units). The model is shown in fig. 3 in the appendix and additional details are given in appendix
+C.Thedatahˆi wascollectedunderauniformrandompolicyµ. Forallpolicyevaluations,weuse
+T
+6
+
+Figure 2: Experimental results on PO-SOKOBAN environment. Left: Policy evaluation. Policy
+evaluationerrordecreaseswithamountofoff-policydataavailable(in#transitionsperepisode)for
+inferring scenarios (levels) U that are used for counterfactual evaluation. No data (data points
+s1
+on the very left) corresponds to standard model-based policy evaluation (MB-PE), yielding large
+errors, whereas Counterfactual policy evaluation yields more accurate results. This holds for all
+three policies with different true performances. Right: Policy search. Counterfactually-Guided
+Policy Search (CF-GPS) outperforms a naive model-based RL (MB-PS) algorithm as well as a
+versionofstandardGuidedPolicySearch(‘GPS-like’)onPO-SOKOBAN.
+≈>105 levelsui fromtheinferredmodel. Inordertoevaluatepoliciesofdifferentproficiency,we
+derivefromtheoriginal(trained)π threepoliciesπ ,π ,π rangingfromalmostperfecttoalmost
+0 1 2
+randomperformancebyintroducingadditionalstochasticityduringactionselection.
+The policy evaluation results are shown in fig. 2. We found that for t = 0, in spite of extensive
+hyper-parameter search, the model p(U ) was unable to accurately capture the marginal distribu-
+s1
+tionofinitiallevelsinPO-SOKOBAN.Asarguedabove,asolvablelevelsatisfiesalargenumberof
+complexconstraintsthatspantheentiregridworld,whicharehardforaparametricmodeltocap-
+ture. Empirically,wefoundthatthemodelmismatchmanifesteditselfinsamplesfromp(U )not
+s1
+beingwell-formed,e.g.notsolvable,andhencetheperformanceofthepoliciesπ areverydifferent
+i
+on these synthetic levels compared to levels sampled form p. However, inferring levels from full
+observedepisodesi.e.p(U |hˆi )wasreliable, andrunningπ ontheseresultedinaccuratepolicy
+s1 50
+evaluation. Thefigurealsoshowsthetrade-offbetweenpolicyevaluationaccuracyandtheamount
+ofoff-policydataforintermediateamountsofthedatahˆi. Wealsowanttoemphasizethatinthis
+t
+setting, model-free policy evaluation by IS fails. The uniform behavior policy µ was too different
+fromπi,resultinginarelativeerror>0.8foralli=1,2,3.
+4 OFF-POLICY IMPROVEMENT: COUNTERFACTUALLY-GUIDED POLICY
+SEARCH
+In the following we show how we can leverage the insights from counterfactual policy evaluation
+forpolicysearch. Wecommencebyconsideringamodel-basedRLalgorithmanddiscusshowwe
+cangeneralizeitintoacounterfactualalgorithmtoincreaseitsrobustnesstomodelmismatch. We
+choseaparticularalgorithmtostartfromtomakeaconnectiontothepreviouslyproposedGuided
+Policy Search algorithm (Levine & Koltun, 2013; Levine & Abbeel, 2014), but we think a larger
+classofMBRLalgorithmscanbegeneralizedinananalogousmanner.
+4.1 STARTINGPOINT: VANILLAMODEL-BASEDRLWITHRETURNWEIGHTEDREGRESSION
+We start from the following algorithm. We assume we have a model M of the environment with
+trajectory distribution pπ. Our current policy estimate πk is improved at iteration k using return-
+weightedregression:
+(cid:90)
+πk+1 = argmax exp(G(τ))pπk (τ)logpπ(τ)dτ,
+π
+where G(τ) is the return of trajectory τ. This policy improvement step can be motivated by the
+frameworkofRLasvariationalinference(Toussaint,2009)andisequivalenttominimizingtheKL
+7
+
+divergencetoatrajectorydistribution∝exp(G)pπk whichputsadditionalmassonhigh-returntra-
+jectories. Althoughnotstrictlynecessaryforourexposition,wealsoallowforadedicatedproposal
+distribution over trajectories pλ(τ), under a policy λ. We refer to λ as a planner to highlight that
+it could consist of a procedure that solves episodes starting from arbitrary, full states s sampled
+1
+form the model, by repeatedly calling the model transition kernel, e.g. a search procedure such as
+MCTS(Browneetal.,2012)oranexpertpolicy.Concretely,weoptimizethefollowingfinitesample
+objective:
+(cid:88)
+N pπk(τi)
+πk+1 = argmax exp(Gi(τi)) logpπ(τi), τi ∼pλ. (1)
+pλ(τi)
+π
+i=1
+Werefertothisalgorithmasmodel-basedpolicysearch(MB-PS).Itisbasedonmodelrolloutsτi
+spanning entire episodes. An alternative would be to consider model rollouts starting from states
+visited in the real environment (if available). Both versions can be augmented by counterfactual
+methods,butforthesakeofsimplicitywefocusonthesimplerMB-PSversiondetailedabove(also
+wedidnotfindsignificantperformancedifferencesexperimentallybetweenbothversions).
+4.2 INCORPORATINGOFF-POLICYDATA: COUNTERFACTUALLY-GUIDEDPOLICYSEARCH
+Now, we assume that the model M is an SCM. Based on our discussion of counterfactual policy
+evaluation,itisstraightforwardtogeneralizetheMB-PSdescribedabovebyanchoringtherollouts
+τi under the model pλ in off-policy data D: Instead of sampling τi directly from the prior pλ,
+we draw them from counterfactual distribution pλ|hˆi T with data hˆi T ∼ D from the replay buffer,
+i.e. instead of sampling the scenarios U from the prior we infer them from the given data. Again
+invoking Lemma 1, this procedure is unbiased under no model mismatch. We term the resulting
+algorithmCounterfactually-GuidedPolicySearch(CF-GPS),anditissummarizedinAlgorithm1.
+ThemotivationforusingCF-GPSoverMB-PSisanalogoustotheadvantageofCF-PEoverMB-PE
+discussedinsec.3.1. ThepolicyπinCF-GPSisoptimizedonrolloutsτi thataregroundedindata
+hˆi T bysamplingthemfromthecounterfactualdistributionpλ|hˆi T insteadofthepriorpλ. Ifthisprior
+is difficult to model, we expect the counterfactual distribution to be more concentrated in regions
+wherethereisactualmassunderthetrueenvironmentpλ.
+4.3 EXPERIMENTS
+WeevaluateCF-GPSonthePO-SOKOBANenvironment,usingamodifieddistributedactor-learner
+architecturebasedonEspeholtetal.(2018):Multipleactors(here64)collectrealdatahˆ byrunning
+T
+the behavior policy µ in the true environment p. As in many distributed RL settings, µ is chosen
+to be a copy of the policy π, often slightly outdated, so the data must be considered to be off-
+policy.Thedistributionp(U |hˆ )overlevelsU isinferredfromthedatahˆ usingfromthemodel
+s1 T s1 T
+M. WesampleascenarioU foreachloggedepisode,andsimulate10counterfactualtrajectories
+s1
+τ1,...,10 under the planner λ for each such scenario. Here, for the sake of simplicity, instead of
+usingsearch,theplannerwasassumedtobeamixturebetweenπandapre-trainedexpertpolicyλ ,
+e
+i.e.λ=βλ +(1−β)π. Thescheduleβwassettoanexponentiallydecayingparameterwithtime
+e
+constant105 episodes. Thelearnerperformspolicyimprovementonπ usingτ1,...,10 accordingto
+eqn.1. Mwastrainedonline,inthesamewayasinsec.3.2. λandπwereparameterizedbydeep,
+recurrentneuralnetworkswiththesamearchitecturedescribedinsec.3.2.
+We compare CF-GPS with the vanilla MB-PS baseline described in sec. 4.1 (based on the same
+numberofpolicyupdates). MB-PSdiffersfromCF-GPSbyjusthavingaccesstoanunconditional
+modelp(U |∅)overinitialstates. Wealsoconsideramethodwhichconditionsthescenariomodel
+s1
+p(U |o )ontheveryfirstobservationo ,whichisavailablewhentakingthefirstactionandthere-
+s1 1 1
+foredoesnotinvolvehindsightreasoning. ThisismoreinformedcomparedtoMB-PS;howeverdue
+tothenoiseontheobservations,thestateisstillmostlyunobservedrenderingitverychallengingto
+learn a good parametric model of the belief state p(U |o ). We refer to this algorithm as Guided
+s1 1
+Policy Search-like (GPS-like), as it roughly corresponds to the algorithm presented by Levine &
+Abbeel(2014),asdiscussedingreaterdetailinsec.5. Fig.2showsthatCF-GPSoutperformsthese
+twobaselines. Asexpectedfromthepolicyevaluationexperiments,initialstatessampledfromthe
+modelsforGPSandMB-PSareoftennotsolvable,yieldinginferiortrainingdataforthepolicyπ.
+8
+
+InCF-GPS,thelevelsareinferredfromhindsightinferencep(U |hˆ ), yieldinghighqualitytrain-
+1 T
+ingdata. Forreference,wealsoshowapolicytrainedbythemodel-freemethodofEspeholtetal.
+(2018)usingthesameamountofenvironmentdata. Notsurprisingly,CF-GPSisabletomakebetter
+useofthedatacomparedtothemodel-freebaselineasithasaccesstothetruetransitionandreward
+kernels(whichwerenotgiventothemodel-freemethod).
+5 RELATED WORK
+Bottou et al. (2013) provide an in-depth discussion of applying models to off-policy evaluation.
+However, their and related approaches, e.g. (Li et al., 2015; Jiang & Li, 2015; Swaminathan &
+Joachims, 2015; Nedelec et al., 2017; Atan et al., 2016), rely on off-policy evaluation based on
+Importance Sampling (IS), also called Propensity Score method. Although these algorithms are
+also termed counterfactual policy evaluation, they are not counterfactual in the sense used in this
+paper, where noise variables are inferred from logged data and reused to evaluate counterfactual
+actions. Hence,theyaredoggedbyhighvarianceintheestimatorscommontoIS,inspiteofrecent
+improvements(Munosetal.,2016). Recently(Andrychowiczetal.,2017)proposedtheHindsight
+Experience Replay (HER) algorithm for learning a family of goal directed policies. In HER one
+observesanoutcomeinthetrueenvironment,whichiskeptfixed,andsearchesforthegoal-directed
+policythatshouldhaveachievedthisgoalinordertopositivelyreinforceit.Therefore,thisalgorithm
+iscomplementarytoCF-GPSwherewesearchoveralternativeoutcomesforagivenpolicy.OurCF-
+GPSalgorithmisinspiredbyandextendsworkpresentedbyAbbeeletal.(2006)onamethodforde-
+biasingweakmodelsbyestimatingadditivetermsinthetransitionkerneltobettermatchindividual,
+realtrajectories. Theresultingmodel,whichisacounterfactualdistributionintheterminologyused
+inourpaper,isthenusedformodel-basedpolicyimprovement. Ourworkgeneralizesthisapproach
+andhighlightsconceptualconnectionstocausalreasoning. Furthermore,wediscusstheconnection
+ofCF-GPStotwoclassesofRLalgorithmsingreaterdetailbelow.
+GuidedPolicySearch(GPS) CF-GPSiscloselyrelatedtoGPS,inparticularwefocusonGPS
+as presented by Levine & Abbeel (2014). Consider CF-GPS in the fully-observed MDP setting
+where O = S . Furthermore, assume that the SCM M is structured as follows: Let S =
+t t t+1
+f (S ,A ,U )bealinearfunctionin(S ,A )withcoefficientsgivenbyU . Further, assumean
+s t t st t t st
+i.i.d. GaussianmixturemodelonU forallt. Asthestatesarefullyobserved, theinferencestep
+st
+in the CFI procedure simplifies: we can infer the noise sources uˆ (samples or MAP estimates),
+st
+i.e.theunknownlineardynamics,frompairsofobserved,truestatessˆ,sˆ . Furthermoreassume
+t t+1
+thattherewardisaquadraticfunctionofthestate. Then,thecounterfactualdistributionpλ(τ|uˆ)is
+alinearquadraticregulator(LQR)withtime-varyingcoefficientsuˆ. Anappropriatechoiceforthe
+plannerλistheoptimallinearfeedbackpolicyforthegivenLQR,whichcanbecomputedexactly
+bydynamicprogramming.
+Observation 1. In the MDP setting, CF-GPS with a linear SCM and a dynamic programming
+plannerforLQRsλisequivalenttoGPS.
+AnotherperspectiveisthatGPSisthecounterfactualversionoftheMB-PSprocedurefromsec.4.1:
+Observation 2. In the MDP setting with a linear SCM and a dynamic programming planner for
+LQRsλ,GPSisthecounterfactualvariantoftheMB-PSprocedureoutlinedabove.
+ThefactthatGPSisasuccessfulalgorithminpracticeshowsthatthe‘grounding’ofmodel-based
+search/rolloutsinreal,off-policydataaffordedbycounterfactualreasoningmassivelyimprovesthe
+naive, ‘priorsample’-basedMB-PSalgorithm. Theseconsiderationsalsosuggestwhenweexpect
+CF-GPS to be superior compared to regular GPS: If the uncertainty in the environment transition
+U cannot be reliably identified from subsequent pairs of observations oˆ,oˆ alone, we expect
+st t t+1
+benefitsofinferringU fromalargercontextofobservations, intheextremecasefromtheentire
+st
+historyhˆ asdescribedabove.
+T
+Stochastic Value Gradient methods There are multiple interesting connections of CF-GPS to
+Stochastic Value Gradient (SVG) methods (Heess et al., 2015). In SVG, a policy π for a MDP
+is learned by gradient ascent on the expected return under a model p. Instead of using the score-
+functionestimator,SVGreliesonareparameterizationofthestochasticmodelandpolicy(Kingma
+9
+
+&Welling,2013;Rezendeetal.,2014). WenotethatthisreparameterizationcastspintoanSCM.
+As in GPS, the noise sources U are inferred from two subsequent observed states sˆ,sˆ from
+st t t+1
+thetrueenvironment,andtheactionnoiseU iskeptfrozen. AspointedoutintheGPSdiscussion,
+at
+thisprocedurecorrespondstotheinferencestepinacounterfactualquery. Giveninferredvaluesu
+forU,gradients∂ Gofthereturnunderthemodelaretakenwithrespecttothepolicyparameters
+θ
+θ. Wecanlooselyinterpretthesegradientsas2dim(θ)counterfactualpolicyevaluationsofpolicies
+π(θ±∆θ )whereasingledimensionioftheparametervectorθisperturbed.
+i
+6 DISCUSSION
+Simulatingplausiblesyntheticexperiencedenovoisahardproblemformanyenvironments,often
+resultinginbiasesformodel-basedRLalgorithms.Themaintakeawayfromthisworkisthatwecan
+improvepolicylearningbyevaluatingcounterfactualactionsinconcrete,pastscenarios. Compared
+toonlyconsideringsyntheticscenarios, thisproceduremitigatesmodelbias. However, itrelieson
+somecrucialassumptionsthatwewanttobrieflydiscusshere.Thefirstassumptionisthatoff-policy
+experience is available at all. In cases where this is e.g. too costly to acquire, we cannot use any
+of the proposed methods and have to exclusively rely on the simulator / model. We also assumed
+that there are no additional hidden confounders in the environment and that the main challenge
+in modelling the environment is capturing the distribution of the noise sources p(U), whereas we
+assumed that the transition and reward kernels given the noise is easy to model. This seems a
+reasonableassumptioninsomeenvironments,suchasthepartiallyobservedgrid-worldconsidered
+here, but not all. Probably the most restrictive assumption is that we require the inference over
+the noise U given data hˆ to be sufficiently accurate. We showed in our example, that we could
+T
+learn a parametric model of this distribution from privileged information, i.e. from joint samples
+u,h from the true environment. However, imperfect inference over the scenario U could result
+T
+e.g. in wrongly attributing a negative outcome to the agent’s actions, instead environment factors.
+Thiscouldinturnresultintoooptimisticpredictionsforcounterfactualactions. Futureresearchis
+neededtoinvestigateiflearningasufficientlystrongSCMispossiblewithoutprivilegedinformation
+forinterestingRLdomains. If,however,wecantrustthetransitionandrewardkernelsofthemodel,
+we can substantially improve model-based RL methods by counterfactual reasoning on off-policy
+data,asdemonstratedinourexperimentsandbythesuccessofGuidedPolicySearchandStochastic
+ValueGradientmethods.
+REFERENCES
+Pieter Abbeel, Morgan Quigley, and Andrew Y Ng. Using inaccurate models in reinforcement
+learning. In Proceedings of the 23rd international conference on Machine learning, pp. 1–8.
+ACM,2006.
+MarcinAndrychowicz,FilipWolski,AlexRay,JonasSchneider,RachelFong,PeterWelinder,Bob
+McGrew, Josh Tobin, OpenAI Pieter Abbeel, and Wojciech Zaremba. Hindsight experience re-
+play. InAdvancesinNeuralInformationProcessingSystems,pp.5048–5058,2017.
+Onur Atan, William R Zame, Qiaojun Feng, and Mihaela van der Schaar. Constructing Effective
+PersonalizedPoliciesUsingCounterfactualInferencefromBiasedDataSetswithManyFeatures.
+arXivpreprintarXiv:1612.08082,2016.
+Alexander Balke and Judea Pearl. Counterfactual probabilities: Computational methods, bounds
+andapplications.InProceedingsoftheTenthinternationalconferenceonUncertaintyinartificial
+intelligence,pp.46–54.MorganKaufmannPublishersInc.,1994.
+Le´onBottou,JonasPeters,JoaquinQuin˜onero-Candela,DenisXCharles,DMaxChickering,Elon
+Portugaly,DipankarRay,PatriceSimard,andEdSnelson. Counterfactualreasoningandlearning
+systems:Theexampleofcomputationaladvertising. TheJournalofMachineLearningResearch,
+14(1):3207–3260,2013.
+CameronBBrowne,EdwardPowley,DanielWhitehouse,SimonMLucas,PeterICowling,Philipp
+Rohlfshagen,StephenTavener,DiegoPerez,SpyridonSamothrakis,andSimonColton. Asurvey
+ofMonteCarlotreesearchmethods. IEEETransactionsonComputationalIntelligenceandAIin
+games,4(1):1–43,2012.
+10
+
+LasseEspeholt,HubertSoyer,RemiMunos,KarenSimonyan,VolodymirMnih,TomWard,Yotam
+Doron, Vlad Firoiu, Tim Harley, Iain Dunning, et al. IMPALA: Scalable distributed Deep-RL
+withimportanceweightedactor-learnerarchitectures. arXivpreprintarXiv:1802.01561,2018.
+KarolGregor,IvoDanihelka,AlexGraves,DaniloJimenezRezende,andDaanWierstra. Draw: A
+recurrentneuralnetworkforimagegeneration. arXivpreprintarXiv:1502.04623,2015.
+KarolGregor,FredericBesse,DaniloJimenezRezende,IvoDanihelka,andDaanWierstra.Towards
+conceptualcompression.InAdvancesInNeuralInformationProcessingSystems,pp.3549–3557,
+2016.
+NicolasHeess,GregoryWayne,DavidSilver,TimLillicrap,TomErez,andYuvalTassa. Learning
+continuous control policies by stochastic value gradients. In Advances in Neural Information
+ProcessingSystems,pp.2944–2952,2015.
+Nan Jiang and Lihong Li. Doubly robust off-policy value evaluation for reinforcement learning.
+arXivpreprintarXiv:1511.03722,2015.
+NanJiang,AlexKulesza,SatinderSingh,andRichardLewis. Thedependenceofeffectiveplanning
+horizononmodelaccuracy. InProceedingsofthe2015InternationalConferenceonAutonomous
+AgentsandMultiagentSystems,pp.1181–1189.InternationalFoundationforAutonomousAgents
+andMultiagentSystems,2015.
+Diederik P Kingma and Jimmy Ba. Adam: A method for stochastic optimization. arXiv preprint
+arXiv:1412.6980,2014.
+Diederik P Kingma and Max Welling. Auto-encoding variational Bayes. arXiv preprint
+arXiv:1312.6114,2013.
+KevinBKorb,LucasRHope,AnnENicholson,andKarlAxnick. Varietiesofcausalintervention.
+InPacificRimInternationalConferenceonArtificialIntelligence,pp.322–331.Springer,2004.
+SergeyLevineandPieterAbbeel. Learningneuralnetworkpolicieswithguidedpolicysearchunder
+unknown dynamics. In Advances in Neural Information Processing Systems, pp. 1071–1079,
+2014.
+SergeyLevineandVladlenKoltun. Guidedpolicysearch. InInternationalConferenceonMachine
+Learning,pp.1–9,2013.
+LihongLi,ShunbaoChen,JimKleban,andAnkurGupta. Counterfactualestimationandoptimiza-
+tion of click metrics in search engines: A case study. In Proceedings of the 24th International
+ConferenceonWorldWideWeb,pp.929–934.ACM,2015.
+Re´miMunos,TomStepleton,AnnaHarutyunyan,andMarcBellemare.Safeandefficientoff-policy
+reinforcementlearning. InAdvancesinNeuralInformationProcessingSystems,pp.1054–1062,
+2016.
+Thomas Nedelec, Nicolas Le Roux, and Vianney Perchet. A comparative study of counterfactual
+estimators. arXivpreprintarXiv:1704.00773,2017.
+JudeaPearl. Causality: Models,ReasoningandInference. CambridgeUniversityPress,NewYork,
+NY,USA,2ndedition,2009. ISBN052189560X,9780521895606.
+JudeaPearlandDanaMackenzie. TheBookofWhy: TheNewScienceofCauseandEffect. Basic
+Books,2018.
+J.Peters,D.Janzing,andB.Scho¨lkopf. ElementsofCausalInference-FoundationsandLearning
+Algorithms. Adaptive Computation and Machine Learning Series. The MIT Press, Cambridge,
+MA,USA,2017.
+Doina Precup. Eligibility traces for off-policy policy evaluation. Computer Science Department
+FacultyPublicationSeries,pp. 80,2000.
+11
+
+Se´bastien Racanie`re, The´ophane Weber, David Reichert, Lars Buesing, Arthur Guez,
+Danilo Jimenez Rezende, Adria` Puigdome`nech Badia, Oriol Vinyals, Nicolas Heess, Yujia Li,
+et al. Imagination-augmented agents for deep reinforcement learning. In Advances in Neural
+InformationProcessingSystems,pp.5690–5701,2017.
+Danilo Jimenez Rezende, Shakir Mohamed, and Daan Wierstra. Stochastic backpropagation and
+approximateinferenceindeepgenerativemodels. arXivpreprintarXiv:1401.4082,2014.
+NealJRoese. Counterfactualthinking. Psychologicalbulletin,121(1):133,1997.
+Adith Swaminathan and Thorsten Joachims. Counterfactual risk minimization: Learning from
+loggedbanditfeedback. InInternationalConferenceonMachineLearning,pp.814–823,2015.
+ErikTalvitie. ModelRegularizationforStableSampleRollouts. InUAI,pp.780–789,2014.
+MarcToussaint. Robottrajectoryoptimizationusingapproximateinference. InProceedingsofthe
+26thannualinternationalconferenceonmachinelearning,pp.1049–1056.ACM,2009.
+Sewall Wright. The relative importance of heredity and environment in determining the piebald
+patternofguinea-pigs. ProceedingsoftheNationalAcademyofSciences,6(6):320–332,1920.
+Shi Xingjian, Zhourong Chen, Hao Wang, Dit-Yan Yeung, Wai-Kin Wong, and Wang-chun Woo.
+Convolutional LSTM network: A machine learning approach for precipitation nowcasting. In
+Advancesinneuralinformationprocessingsystems,pp.802–810,2015.
+12
+
+A PROOFS
+A.1 PROOFOFLEMMA1
+Proof. We start from the fact that the density over noise sources U remains the same for every
+interventionI asU arerootnodesinG:
+pdo(I)(u) = p(u).
+Thisleadsto:
+(cid:90)
+pdo(I)(x) = pdo(I)(x|u)pdo(I)(u)du
+(cid:90)
+= pdo(I)(x|u)p(u)du
+(cid:90) (cid:18)(cid:90) (cid:19)
+= pdo(I)(x|u) p(xˆ ,u)dxˆ du
+o o
+(cid:90) (cid:90)
+= pdo(I)(x|u)p(u|xˆ )p(xˆ )dudxˆ
+o o o
+(cid:90)
+= E [ pdo(I)(x|u)p(u|xˆ )du]
+xˆo∼p o
+= E [pdo(I)|xˆ0(x)].
+xˆo∼p
+A.2 PROOFOFCOROLLARY1
+Proof. Given two sets CF ⊂ {1,...,N} and Prior ⊂ {1,...,N} with CF ∩ Prior = ∅ and
+CF∪Prior={1,...,N},wedefineu =(u ) andu =(u ) . Byconstruction,
+CF n n∈CF Prior n n∈Prior
+thescenariosU areindependentundertheprior,i.e.p(u)=
+(cid:81)N
+p(u ). Thereforeu andu
+n=1 n CF Prior
+areindependent. Wecanwrite:
+(cid:32) (cid:33)(cid:32) (cid:33)
+(cid:89) (cid:89)
+p(u) = p(u ) p(u )
+n n
+n∈CF n∈Prior
+= p(u )p(u ).
+CF Prior
+Following the arguments from Lemma 1, the averaged inference distribution is equal to the prior
+p(u) = E [p(u|xˆ )]. This also holds for any subset of the variables u, in particular for for
+xˆo∼p o
+p(u ). Hence:
+CF
+p(u) = p(u )p(u )
+CF Prior
+= E [p(u |xˆ )]p(u ).
+xˆo∼p CF o Prior
+B DETAILS ON CASTING A POMDP INTO SCM FORM
+Lemma 2 (Auto-regressive uniformization aka Reparametrization). Consider random variables
+X ,...,X with joint distribution P. There exist functions f for n ∈ {1,...,N} such that
+1 N n
+withindependentrandomvariablesU ∼ Uniform[0,1]therandomvariablesX(cid:48) equalX indis-
+n
+tribution,i.e.X(cid:48) = d X,whereX(cid:48) =(X(cid:48),...,X(cid:48))aredefinedas:
+1 n
+X(cid:48) := f (U ,X(cid:48) ).
+n n n <n
+Proof. We construct the functions f by induction on n. Consider the conditional distribu-
+n
+tion P . For fixed X , denote its CDF with F . We construct a random variable
+Xn|X<n <n n,X<n
+X(cid:48) := F−1 (U ) with U ∼ Uniform[0,1] independent from X and U . By virtue of
+n,X<n n n <n <n
+theinverse-CDFmethod, wehaveX(cid:48)|X = d X|X . Therefore, f (U ,X ) := F−1 (U )
+<n <n n n <n n,X<n n
+satisfiestheabovelemma.
+13
+
+Figure 3: Top: PO-SOKOBAN. Shown on the left is a procedurally generated initial state. The
+agent is shown in green, boxes in yellow, targets in blue and walls in red. The agent does not
+observethisstatebutasequenceofobservations,whicharemaskedbyiidnoisewith0.9probability,
+excepta3x3windowaroundtheagent. Bottom: Inferencemodel. Forcounterfactualinferencein
+PO-SOKOBAN, we need the (approximate) inference distribution p(U |hˆ ) over the initial state
+s1 T
+U =S ,conditionedonthehistoryofobservationshˆ .WemodelthisdistributionusingaDRAW
+s1 1 T
+generativemodelwithlatentvariablesZ,whichareconditionedontheoutputofabackwardRNN
+summarizingtheobservationhistory.
+C MODEL ARCHITECTURE
+We assume that we are given the true transition and reward kernels. As the transitions are deter-
+ministic in PO-SOKOBAN, the only part of the model that remains to be identified is the initial
+statedistributionp(U ). WelearnedthismodelfromdatausingatheDRAWmodel(Gregoretal.,
+s1
+2015), which is a parametric, multi-layer, latent variable, neural network model for distributions.
+ForourpurposeswechosetheconvolutionalDRAWarchitectureproposedby(Gregoretal.,2016).
+First,theobservationdataissummarizedbyaconvolutionalLSTMwith32hiddenunitsandkernel
+size of 3. The resulting final LSTM state is fed into a conditional Gaussian prior over the latent
+variablesZ ofthe8-layerconv-DRAWmodel. Eachlayerhas32hiddenlayersandthecan-
+k=1,...,8
+vas had 7 layers, corresponding to the 7 channels of the categorical U ∈ {0,1}10×10×7 that we
+s1
+wishtomodel.Themodel(togetherwiththebackwardRNN)wastrainedwiththeADAMoptimizer
+(Kingma&Ba,2014)ontheELBOlossusingthereparametrizationtrick(Kingma&Welling,2013;
+Rezendeetal.,2014). Themini-batchsizewassetto4andthelearningrateto3e−4. Wewantto
+emphasizethattheDRAWlatentvariablesZ arenotdirectlythenoisevariablesU oftheSCM,but
+integratingoutthesevariablesyieldsthisdistributionp(U |hˆ )= (cid:82) p(U |z,hˆ )p(z|hˆ )dhˆ .
+s1 T s1 T T T
+D MODEL MISMATCH ANALYSIS
+HereweprovidesomeanalysisoftheDRAWmodelovertheinitialstateU ,whichisthelearned
+s1
+partoftheSCMMusedforthepolicyevaluationexperimentspresentedin3.2. Asdetailedabove,
+we trained a separate model p(U |hˆ ) for each t = 1,...,50 parameterizing the cardinality of
+s1 t
+the data the model is conditioned on. We analyze three particular models for t = 0,1 and 50
+whichwetermtheunconditional/filtering/smoothingmodel,astheyareconditionedonnodata/
+ondatathatisavailableattesttime/alldatathatisavailableinhindsight. Directlyvisualizingthe
+distributionsp(U |hˆ )forananalysisisdifficultasthedomain{0,...,6}10×10ishigh-dimensional
+s1 t
+anddiscrete. InsteadwefocusonthelatentvariablesZ whicharelearnedbyDRAWtorepresent
+this distribution; by construction, these are jointly Normal, facilitating the analysis. In particular,
+wecomparep(Z|hˆ )withtheinferencedistributionq(Z|uˆ )conditionedonthetruestateUˆ . We
+t s1 s1
+looselyinterpretq(Z|uˆ )asthe”true”embeddingofthedatumuˆ ,whereasp(Z|hˆ )isthelearned
+s1 s1 t
+14
+
+unconditionalmodel,t=0 filteringmodel,t=1 smoothingmodel,t=50
+Figure4: Analysisofthemodelmismatchofthelearnedinferencedistributionsp(U |hˆ )overthe
+s1 t
+initialPO-SOKOBANstateU ,forthreedifferentamountsofobservationst=0,1and50. Shown
+s1
+are two dimensions of the learned latent representation Z of U . The (whitened) learned prior
+s1
+p(Z|hˆ )isindicatedbyaredcontourofonestandarddeviation. Theinferredmeanembeddingof
+t
+thetruelevelsareshowascrosses,andtheiraggregateddensityisshowninblue. Withincreasing
+amountdatathatthemodelisconditionedon,thelearneddistributionsmatchthedatabetter.
+embedding. Inaperfectmodelthepriormatchestheinferencedistributiononaverage:
+E [p(Z|hˆ )] = ! E [q(Z|uˆ )],
+hˆ t∼pµ t uˆs1∼pµ s1
+i.e.everysamplefromthepriorp(Z|hˆ )correspondstorealdataandviceversa. Wevisualizethe
+t
+averagedpriorE [p(Z|hˆ )]andtheaveragedposteriorE [q(Z|uˆ )]infig.4. Weshow
+hˆ t∼pµ t uˆs1∼pµ s1
+thetwodimensionsofZ wherethesedistributionshavethelargestKLdivergence. Also,theplots
+werewhitenedw.r.t.theaveragedprior,i.e.thelatterisasphericalGaussianintheplots,represented
+by an iso-probability contour corresponding to one standard deviation. The inference distribution
+foreachdatumuˆ isvisualizedbyitsmean(cross)andalevelsetcorrespondingtheonestandard
+s1
+deviationorless. Fortheunconditionalmodelt = 0,wefindthatthedistributionsarenotmatched
+well. In particular, there is a lot of prior mass that sits in regions where there is no or little true
+data. IntheRLsettingthisresultsinsyntheticdatafromthemodelthatisunrealisticandtraining
+a policy on this data leads to reduced test performance. Also, as apparent from the figure, there
+is structure in the embedding of the true data, that is not captured at all by the prior. This effect
+is markedly reduced in the filtering posterior, indicating that the conditional distribution p(Z|hˆ )
+1
+alreadycapturesthedatadistributionbetter. Thesmoothingmodelisaverygoodmatchtothedata.
+Withhighprobability,alltilesofthegameareobservedinhˆ ,enablingthemodeltoperfectlylearn
+50
+thebeliefstate,whichcollapsesinthissettingtoasinglestate.
+15

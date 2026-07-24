@@ -1,0 +1,155 @@
+{
+  "version": "lyo.verifier-report.v1",
+  "specRef": {
+    "path": "spec.json",
+    "sha256": "2002309fe6620f1fe9ab8390e6329365ffa3503585290e59292c96c2b80b1b77"
+  },
+  "codeRef": {
+    "path": "artifacts/code/manifest.json",
+    "sha256": "74484fcbf9dbc2859dfeb9e7af819049d1f627adc0c2418eb189640320c09691"
+  },
+  "testRef": {
+    "path": "artifacts/tests/manifest.json",
+    "sha256": "d3eca33a221ae300c3d26fad8bbdb54fa9bb8d766bd51dfc475be2fdf947c004"
+  },
+  "counts": {
+    "total": 33,
+    "passed": 32,
+    "failed": 1
+  },
+  "outcome": "fail",
+  "perTest": [
+    {
+      "name": "major version compared numerically",
+      "status": "pass"
+    },
+    {
+      "name": "multi-digit major versions compared numerically not lexically",
+      "status": "pass"
+    },
+    {
+      "name": "minor version compared numerically when major equal",
+      "status": "pass"
+    },
+    {
+      "name": "patch version compared numerically when major and minor equal",
+      "status": "pass"
+    },
+    {
+      "name": "full numeric precedence chain: major then minor then patch",
+      "status": "pass"
+    },
+    {
+      "name": "version with prerelease has lower precedence than same version without",
+      "status": "pass"
+    },
+    {
+      "name": "alphanumeric prerelease identifiers compared lexically in ASCII order",
+      "status": "pass"
+    },
+    {
+      "name": "numeric prerelease identifiers compared numerically",
+      "status": "pass"
+    },
+    {
+      "name": "numeric prerelease identifier always lower than alphanumeric",
+      "status": "pass"
+    },
+    {
+      "name": "prerelease identifiers compared left to right, first difference wins",
+      "status": "pass"
+    },
+    {
+      "name": "fewer prerelease identifiers is lower when preceding identifiers equal",
+      "status": "pass"
+    },
+    {
+      "name": "equal prerelease chains of equal length return 0",
+      "status": "pass"
+    },
+    {
+      "name": "build metadata ignored for precedence (no prerelease)",
+      "status": "pass"
+    },
+    {
+      "name": "build metadata ignored for precedence (with prerelease)",
+      "status": "pass"
+    },
+    {
+      "name": "build metadata does not affect prerelease comparison",
+      "status": "pass"
+    },
+    {
+      "name": "reflexivity holds for various versions",
+      "status": "pass"
+    },
+    {
+      "name": "antisymmetry holds for ordered pairs",
+      "status": "fail"
+    },
+    {
+      "name": "spec example: 1.2.3 < 1.2.4",
+      "status": "pass"
+    },
+    {
+      "name": "spec example: 2.0.0 < 10.0.0 (numeric not lexical)",
+      "status": "pass"
+    },
+    {
+      "name": "spec example: 1.0.0-alpha < 1.0.0",
+      "status": "pass"
+    },
+    {
+      "name": "spec example: 1.0.0-alpha < 1.0.0-alpha.1 (fewer identifiers lower)",
+      "status": "pass"
+    },
+    {
+      "name": "spec example: 1.0.0-alpha.1 < 1.0.0-alpha.beta (numeric < alphanumeric)",
+      "status": "pass"
+    },
+    {
+      "name": "spec example: 1.0.0-beta.2 < 1.0.0-beta.11 (numeric prerelease compare)",
+      "status": "pass"
+    },
+    {
+      "name": "spec example: 1.0.0-rc.1 < 1.0.0",
+      "status": "pass"
+    },
+    {
+      "name": "spec example: 1.0.0+build.5 == 1.0.0 (build metadata ignored)",
+      "status": "pass"
+    },
+    {
+      "name": "zero versions compare equal",
+      "status": "pass"
+    },
+    {
+      "name": "prerelease with all numeric identifiers compared numerically",
+      "status": "pass"
+    },
+    {
+      "name": "mixed numeric and alphanumeric prerelease identifiers across positions",
+      "status": "pass"
+    },
+    {
+      "name": "prerelease chains of different lengths with numeric identifiers",
+      "status": "pass"
+    },
+    {
+      "name": "build metadata on both prerelease and non-prerelease versions",
+      "status": "pass"
+    },
+    {
+      "name": "large multi-digit version numbers",
+      "status": "pass"
+    },
+    {
+      "name": "complex ordering chain is transitive-consistent",
+      "status": "pass"
+    },
+    {
+      "name": "return values are strictly -1, 0, or 1",
+      "status": "pass"
+    }
+  ]
+}

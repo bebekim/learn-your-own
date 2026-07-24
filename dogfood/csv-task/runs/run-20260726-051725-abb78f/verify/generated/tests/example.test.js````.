@@ -1,0 +1,61 @@
+
+I need to design tests that cover the specification invariants and edge cases. The specification examples include:
+
+1. Simple comma-separated fields: `parseCsvLine('a,b,c')` returns `['a', 'b', 'c']`.
+2. Quoted field with a comma inside: `parseCsvLine('\"hello, world\",x')` returns `['hello, world', 'x']`.
+3. Escaped double quotes inside a quoted field: `parseCsvLine('\"she said \"\"hi\"\"\",y')` returns `['she said \"hi\"', 'y']`. Note: In JSON, double quotes need escaping, but the example uses escaped quotes: `\"she said \"\"hi\"\"\",y`. Actually the string is: `"she said ""hi"",y`. The inner double quotes are escaped as `""` which decode to a literal double quote. So the field value should be `she said "hi"`.
+4. Empty string: `parseCsvLine('')` returns `['']`.
+
+Edge case hints:
+- Empty line
+- Quoted field containing commas
+- Escaped double quotes inside quoted fields
+- Empty fields between consecutive commas
+- Quoted empty string
+
+Additional edge cases to consider:
+- Unquoted empty field: `a,,b` -> `['a', '', 'b']`.
+- Quoted empty string: `","` -> `['']`.
+- Trailing comma: `a,b,` -> `['a', 'b', '']`.
+- Leading comma: `,a,b` -> `['', 'a', 'b']`.
+- Multiple commas with quotes and escapes.
+- Fields with only quotes? `""` -> `['']`.
+- Quotes around non-empty string with no commas: `\"hello\"` -> `['hello']`.
+- Multiple quotes in a row: `\"\"\"` -> `['\'\']`? Actually `"""` inside quotes decodes to a single double quote? According to RFC 4180, double quotes inside a quoted field are escaped by doubling, so `""""` would be `""` (two double quotes). But the spec says "Two double quotes inside a quoted field decode to one literal double quote". So `"""` is ambiguous: it could be interpreted as `""` (two double quotes) followed by an escaped quote? Actually typical CSV: to represent a double quote character inside a quoted field, you double it: `""` becomes `"`. So `""""` would be two double quotes: first `""` becomes `"`, second `""` becomes `"`, resulting in `""`. But the spec says "Two double quotes inside a quoted field decode to one literal double quote". That's consistent with the doubling rule. So `"""` is three double quotes? That would be `""` (escaped) + `"` (unescaped?) Not sure. Let's keep simple: test `""` and `\"\"\"\"` maybe.
+
+We need to produce test files. The user didn't specify a single file or multiple files. I can produce a single test file, maybe `csv-line.test.js`. However, the instruction says "Return each file as a fenced code block tagged with its path". It doesn't forbid multiple files. I think a single comprehensive test file is fine. But maybe they expect a test file that will be run with `node --test`. Node's `--test` can run `.js` files that export tests using the `test` module (Node's test runner). I can write using `test` from `node:test`. That's typical.
+
+Let's produce a test file `generated/tests/csv-line.test.js`. It should import the function from the sibling source: `const { parseCsvLine } = require('../src/csv-line');` (since the source is at `../src/csv-line.js`). Ensure the path is correct relative to generated/tests. The spec says "require('../src/...')". So I'll use that.
+
+I'll write test cases covering all examples and edge cases. Use assertions: `assert.deepStrictEqual(parseCsvLine(input), expected);`. Use `test` module.
+
+Let's craft the test file.
+
+Potential test cases:
+
+- Basic unquoted fields.
+- Empty input.
+- Quoted field with commas.
+- Escaped double quotes.
+- Empty fields between commas.
+- Trailing comma.
+- Leading comma.
+- Quoted empty string.
+- Unquoted empty fields.
+- Multiple consecutive quotes.
+- Complex combination.
+
+I'll produce a single file.
+
+Be careful about escaping in the test file: the input strings contain double quotes. In JavaScript string literals, we need to escape double quotes with backslash. So input `'\"hello, world\",x'` becomes `'\"hello, world\",x'`? Actually the example input is `parseCsvLine('\"hello, world\",x')`. That's a string literal inside the spec JSON. In the actual test, we need to pass the string `"hello, world",x`? Wait: The function takes a line string. The example shows `parseCsvLine('\"hello, world\",x')`. That means the line string is `"hello, world",x` (including the quotes). So the test input should be `"hello, world",x`. In JavaScript, to represent that string, we need to escape the inner double quotes: `'\"hello, world\",x'`. However, the outer string is delimited by single quotes, so we can just use single quotes: `'\"hello, world\",x'` works. Or we can use double quotes and escape outer: `'\"hello, world\",x'` is fine.
+
+Similarly, `parseCsvLine('\"she said \"\"hi\"\"\",y')` means line: `"she said ""hi"",y`. In JavaScript: `'\"she said \"\"hi\"\"\",y'`. That's tricky because we need to escape both outer and inner quotes. Using single quotes: `'\"she said \"\"hi\"\"\",y'` works: single quote outer, then double quote, then double double quote escaped as `\"\"`, etc. Actually inside single quotes, double quotes don't need escaping, but we need to escape the backslash? No, we can use `'\"she said \"\"hi\"\"\",y'` where `\"` is a double quote character. In JavaScript string literals, `\"` inside single quotes is just a double quote character (since backslash is allowed for double quotes inside single quotes? Actually inside single quotes, backslash is still interpreted as escaping the following character, but it's not necessary; you can just write `"` directly. However, the string `'\"she said \"\"hi\"\"\",y'` is valid: it starts with `'`, then `\"` (double quote), then `she said `, then `\"\"` (two double quotes), etc. But we could simplify by using double quotes for the outer string and escaping inner double quotes with backslash: `'\"she said \"\"hi\"\"\",y'` is messy. Better: use double quotes for outer and escape with backslash: `"\"she said \"\"hi\"\"\",y"` which is `\"` for outer double quote, then `\"` for inner double quotes? Actually we need to represent the line string exactly: `"she said ""hi"",y"`. In JavaScript, we can write: `"\"she said \"\"hi\"\"\",y"`. Let's break: outer double quotes, then `\"` escapes the first double quote, then `she said `, then `\"\"` escapes two double quotes, then `hi` etc. It's okay.
+
+I'll write test cases using raw strings with minimal escaping: I'll use single quotes for the input strings and include the double quotes directly, like `'"hello, world",x'`. That's simpler: `'"hello, world",x'`. The outer single quotes, inside we have double quotes, no need to escape. So input `'"hello, world",x'` is valid. For the escaped quotes case: `'"she said ""hi"",y'`. That's also valid: `'"she said ""hi"",y'`. For empty string: `''`.
+
+Thus test inputs can be written as `'"a,b,c"'`, `'"hello, world",x'`, `'"she said ""hi"",y'`, `''`.
+
+Now, test file.
+
+Let's produce the code block.
+

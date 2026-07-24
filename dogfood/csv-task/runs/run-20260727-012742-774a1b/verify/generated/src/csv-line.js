@@ -1,0 +1,62 @@
+/**
+ * Parses a single line of CSV into an array of fields.
+ * @param {string} line - The CSV line to parse.
+ * @returns {string[]} - An array of field values.
+ */
+function parseCsvLine(line) {
+  const fields = [];
+  let currentField = '';
+  let inQuotes = false;
+  let i = 0;
+
+  // Handle empty string explicitly as per spec: "Parsing an empty string returns a single empty field"
+  if (line === '') {
+    return [''];
+  }
+
+  while (i < line.length) {
+    const char = line[i];
+
+    if (inQuotes) {
+      if (char === '"') {
+        // Check for escaped double quote ("")
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          currentField += '"';
+          i += 2;
+          continue;
+        } else {
+          // End of quoted field
+          inQuotes = false;
+          i++;
+          continue;
+        }
+      } else {
+        // Regular character inside quotes
+        currentField += char;
+        i++;
+      }
+    } else {
+      if (char === ',') {
+        // Field separator
+        fields.push(currentField);
+        currentField = '';
+        i++;
+      } else if (char === '"') {
+        // Start of quoted field
+        inQuotes = true;
+        i++;
+      } else {
+        // Regular character outside quotes
+        currentField += char;
+        i++;
+      }
+    }
+  }
+
+  // Push the last field
+  fields.push(currentField);
+
+  return fields;
+}
+
+module.exports = { parseCsvLine };

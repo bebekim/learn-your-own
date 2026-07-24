@@ -1,0 +1,65 @@
+[
+  {
+    "name": "antisymmetry -0 trap (test-hallucination, from semver run S1)",
+    "input": {
+      "testName": "antisymmetry holds for ordered pairs",
+      "specText": "{\"invariants\":[\"compareSemver(a, b) === -compareSemver(b, a)\",\"Build metadata (after '+') is ignored for precedence\"]}",
+      "codeFiles": [
+        {
+          "path": "generated/src/semver.js",
+          "content": "function compareSemver(a, b) {\n  const pa = a.split('+')[0];\n  const pb = b.split('+')[0];\n  if (pa === pb) return 0;\n  return pa < pb ? -1 : 1;\n}\nmodule.exports = { compareSemver };"
+        }
+      ],
+      "testFiles": [
+        {
+          "path": "generated/tests/semver.test.js",
+          "content": "const assert = require('node:assert/strict');\ntest('antisymmetry', () => {\n  const fwd = compareSemver('1.0.0+build.5', '1.0.0');\n  const rev = compareSemver('1.0.0', '1.0.0+build.5');\n  assert.equal(fwd, -rev);\n});"
+        }
+      ],
+      "tapExcerpt": "not ok 1 - antisymmetry\n  error: assert.equal(0, -0) — Object.is distinguishes -0 from 0; the spec's === treats them as equal. The implementation returned plain 0 (correct); the test manufactured -0 by negating."
+    },
+    "expected": "test-hallucination"
+  },
+  {
+    "name": "empty-string contract violated (code-bug)",
+    "input": {
+      "testName": "empty string returns single empty field",
+      "specText": "{\"invariants\":[\"Parsing an empty string returns a single empty field\"],\"examples\":[{\"input\":\"parseCsvLine('')\",\"output\":\"['']\"}]}",
+      "codeFiles": [
+        {
+          "path": "generated/src/csv-line.js",
+          "content": "function parseCsvLine(line) {\n  if (line === '') return [];\n  return line.split(',');\n}\nmodule.exports = { parseCsvLine };"
+        }
+      ],
+      "testFiles": [
+        {
+          "path": "generated/tests/csv-line.test.js",
+          "content": "const assert = require('node:assert/strict');\ntest('empty string returns single empty field', () => {\n  assert.deepEqual(parseCsvLine(''), ['']);\n});"
+        }
+      ],
+      "tapExcerpt": "not ok 1 - empty string returns single empty field\n  error: Expected values to be strictly deep-equal:\n+ actual: []\n- expected: ['']"
+    },
+    "expected": "code-bug"
+  },
+  {
+    "name": "unescaped quotes inside quoted field (spec-gap, from csv run 5)",
+    "input": {
+      "testName": "quoted field containing commas and quotes",
+      "specText": "{\"invariants\":[\"Fields are split on commas that are not enclosed in double quotes\",\"A field wrapped in double quotes has the surrounding quotes removed\",\"Two double quotes inside a quoted field decode to one literal double quote\"]}",
+      "codeFiles": [
+        {
+          "path": "generated/src/csv-line.js",
+          "content": "function parseCsvLine(line) {\n  const fields = [];\n  let current = '', inQuotes = false;\n  for (const ch of line) {\n    if (ch === '\"') inQuotes = !inQuotes;\n    else if (ch === ',' && !inQuotes) { fields.push(current); current = ''; }\n    else current += ch;\n  }\n  fields.push(current);\n  return fields;\n}\nmodule.exports = { parseCsvLine };"
+        }
+      ],
+      "testFiles": [
+        {
+          "path": "generated/tests/csv-line.test.js",
+          "content": "const assert = require('node:assert/strict');\ntest('quoted field containing commas and quotes', () => {\n  assert.deepEqual(parseCsvLine('\"a,b,\"c,d\"\",e'), ['a,b,\"c,d\"', 'e']);\n});"
+        }
+      ],
+      "tapExcerpt": "not ok 1 - quoted field containing commas and quotes\n  error: input contains single (non-doubled) quotes inside a quoted field; the spec only defines quote semantics for wrapped fields and doubled-quote escapes, so both the test's and the implementation's readings are defensible extrapolations."
+    },
+    "expected": "spec-gap"
+  }
+]

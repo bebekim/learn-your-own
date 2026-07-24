@@ -5,13 +5,9 @@
  * (design doc §1.4, Appendix B.3). Implements:
  * - §3 schema (append-only lesson_delta log + folded lesson state + attribution
  *   join table lesson_application)
- * - §4.1 v_lesson_library view + §4.2 selection under a PLUGGABLE policy
- *   (see selection-policies.ts; lesson_decision.policy records which policy
- *   logged each decision — logged-bandit provenance for off-policy eval)
+ * - §4.1 v_lesson_library view + §4.2 Thompson-Beta selection
  * - §5.1 validation-grounded counter rule + §5.2 Wilson status rules
- * - §5.3 lesson_decision log: per-decision candidate snapshot (alpha/beta at
- *   decision time) + Monte-Carlo selection propensities (v0.2). This is the
- *   logged-bandit data the ratio-lift estimator joins against outcomes.
+ * - §5.3 lesson_decision log: per-decision candidate snapshot and selected arms.
  * - §6 replay (fold deltas back into state)
  * - §7 curator (merge / prune, watermark-driven)
  *
@@ -31,11 +27,9 @@
 import crypto from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { normalizeCue } from './failure-classifier.ts';
-import { DEFAULT_POLICY_ID, policyId, resolvePolicy } from './selection-policies.ts';
+import { DEFAULT_POLICY_ID, sampleThompsonBetaSelection } from './selection-policies.ts';
 import type {
-  ScoredSelection,
   SelectionCandidate,
-  SelectionPolicyRef,
 } from './selection-policies.ts';
 
 const WILSON_Z = 1.96;
@@ -116,11 +110,10 @@ CREATE TABLE IF NOT EXISTS preference_pair (
 
 -- §5.3 decision log (v0.2). One row per intervention decision: every
 -- candidate's posterior parameters (alpha = helpful+1, beta = harmful+1) and
--- selection propensity at decision time, the selected arms with their
--- policy scores, and the null-arm indicator (1 = no candidate existed, the
--- decision was "inject no lesson"). Immutable once written. The policy
--- column (added by migration v3) records which selection policy logged the
--- decision — logged-bandit provenance for off-policy evaluation.
+-- selected arms with their scores, and the null-arm indicator (1 = no
+-- candidate existed, the decision was "inject no lesson"). Immutable once
+-- written. The policy column (added by migration v3) records the fixed
+-- Thompson-Beta policy id used for the decision.
 CREATE TABLE IF NOT EXISTS lesson_decision (
   decision_id        TEXT PRIMARY KEY,
   run_id             TEXT NOT NULL,
@@ -128,7 +121,7 @@ CREATE TABLE IF NOT EXISTS lesson_decision (
   cycle_index        INTEGER,
   failure_class      TEXT NOT NULL,
   task_cue           TEXT,
-  candidates         TEXT NOT NULL,   -- JSON [{lesson_id, alpha, beta, propensity}]
+  candidates         TEXT NOT NULL,   -- JSON [{lesson_id, alpha, beta}]
   selected           TEXT NOT NULL,   -- JSON [{lesson_id, score}]
   null_arm           REAL NOT NULL DEFAULT 0,
   context            TEXT NOT NULL DEFAULT '{}',
@@ -270,9 +263,7 @@ export interface PreferencePairRow {
   created_at: string;
 }
 
-export interface DecisionCandidate extends SelectionCandidate {
-  propensity: number;
-}
+export type DecisionCandidate = SelectionCandidate;
 
 export type SelectedLesson = LibraryRow & { sampled_score: number | null };
 
@@ -295,15 +286,10 @@ export interface CreateLessonInput {
   executor_model?: string | null;
 }
 
-export interface SelectLessonsInput {
+export interface SelectWithDecisionInput {
   failure_class: string;
   limit?: number;
   rng?: () => number;
-}
-
-export interface SelectWithDecisionInput extends SelectLessonsInput {
-  propensityReplicates?: number;
-  policy?: SelectionPolicyRef;
 }
 
 export interface RecordApplicationInput {
@@ -705,88 +691,33 @@ export class LessonStore {
   }
 
   /**
-   * §4.2 retrieval + selection under the DEFAULT policy (Thompson-Beta).
-   * Thin wrapper kept for callers that only need selected lessons; new code
-   * should use selectWithDecision. Delegates to the same policy sampler so
-   * there is exactly ONE selection code path (same rng consumption order as
-   * the original inline implementation: candidate order, alpha gamma then
-   * beta gamma — seeded draws are unchanged).
-   */
-  selectLessons({ failure_class, limit = 2, rng = Math.random }: SelectLessonsInput): SelectedLesson[] {
-    const rows = this.db
-      .prepare('SELECT * FROM v_lesson_library WHERE failure_class = ?')
-      .all(failure_class) as unknown as LibraryRow[];
-    const candidates = rows.map((row) => ({
-      lesson_id: row.lesson_id,
-      alpha: row.helpful_count + 1,
-      beta: row.harmful_count + 1,
-    }));
-    return resolvePolicy(null)
-      .sampleSelection(candidates, limit, rng)
-      .map(({ index, score }: ScoredSelection) => ({ ...rows[index], sampled_score: score }));
-  }
-
-  /**
-   * §4.2 selection with §5.3 decision-record data, under ANY selection
-   * policy (default Thompson-Beta; inject another policy object or a
-   * registry id string — see selection-policies.ts). Returns the selected
-   * lessons, the FULL candidate set annotated with the posterior parameters
-   * (alpha = helpful+1, beta = harmful+1) and each candidate's selection
-   * propensity: P(lesson lands in the top `limit`) under the policy,
-   * Monte-Carlo estimated by replicating the policy's OWN sampler
-   * `propensityReplicates` times with the same injectable rng (the
-   * propensities feed the ratio-lift estimator's inverse-propensity
-   * weighting; deterministic policies degenerate to propensity 0/1, which
-   * is correct). When every candidate fits in the limit, inclusion is
-   * certain and propensity is exactly 1 (MC loop skipped). null_arm is 1
-   * only when no candidate exists (in practice createLesson runs first, so
-   * at least one always does). The returned `policy` id is the logging
-   * policy of record and belongs in the decision row.
+   * §4.2 selection with §5.3 decision-record data. Returns selected lessons,
+   * the full candidate set annotated with posterior parameters, and null_arm
+   * for cycles where no lesson was available.
    */
   selectWithDecision({
     failure_class,
     limit = 2,
     rng = Math.random,
-    propensityReplicates = 1000,
-    policy: policyRef = null,
   }: SelectWithDecisionInput): SelectWithDecisionResult {
-    const policy = resolvePolicy(policyRef);
     const rows = this.db
       .prepare('SELECT * FROM v_lesson_library WHERE failure_class = ?')
       .all(failure_class) as unknown as LibraryRow[];
 
     if (rows.length === 0) {
-      return { selected: [], candidates: [], null_arm: 1, policy: policyId(policy) };
+      return { selected: [], candidates: [], null_arm: 1, policy: DEFAULT_POLICY_ID };
     }
 
-    const baseCandidates = rows.map((row) => ({
+    const candidates = rows.map((row) => ({
       lesson_id: row.lesson_id,
       alpha: row.helpful_count + 1,
       beta: row.harmful_count + 1,
     }));
 
-    const inclusionCertain = rows.length <= limit;
-    const replicates = Math.max(0, propensityReplicates);
-    const tallies = new Array<number>(rows.length).fill(0);
-    if (!inclusionCertain) {
-      for (let replicate = 0; replicate < replicates; replicate++) {
-        for (const { index } of policy.sampleSelection(baseCandidates, limit, rng)) {
-          tallies[index]++;
-        }
-      }
-    }
-
-    const candidates = baseCandidates.map((candidate, index) => ({
-      ...candidate,
-      propensity: inclusionCertain ? 1 : replicates > 0 ? tallies[index] / replicates : 0,
-    }));
-
-    // The real selection draw (independent of the MC replicates).
-    const selected = policy
-      .sampleSelection(baseCandidates, limit, rng)
+    const selected = sampleThompsonBetaSelection(candidates, limit, rng)
       .map(({ index, score }) => ({ ...rows[index], sampled_score: score }));
 
-    return { selected, candidates, null_arm: 0, policy: policyId(policy) };
+    return { selected, candidates, null_arm: 0, policy: DEFAULT_POLICY_ID };
   }
 
   /**
@@ -841,13 +772,8 @@ export class LessonStore {
 
   /**
    * §5.3 decision log: one immutable row per intervention decision, capturing
-   * every candidate's (alpha, beta, propensity) at decision time plus the
-   * selected arms and their policy scores. Joined against outcomes via
-   * lesson_application.decision_id, this is the logged-bandit dataset the
-   * ratio-lift estimator (§5.3) evaluates — including the null arm (cycles
-   * where no lesson was injected). `policy` is the logging policy of record
-   * (name@version, e.g. 'thompson-beta@1'); pass the value returned by
-   * selectWithDecision. decision_id is dec_<16 hex>.
+   * every candidate's posterior parameters at decision time plus the selected
+   * arms and their scores. decision_id is dec_<16 hex>.
    */
   recordDecision({
     run_id,

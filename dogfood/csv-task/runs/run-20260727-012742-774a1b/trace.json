@@ -1,0 +1,78 @@
+{
+  "version": "lyo.trace.v1",
+  "runId": "run-20260727-012742-774a1b",
+  "planRef": {
+    "path": "plan.json",
+    "sha256": "95ac899036be3c7d8a7cb95926035d9f46057984d72b2494a387eb860611302e"
+  },
+  "stages": [
+    {
+      "stageId": "stage-code",
+      "round": 1,
+      "inputs": [
+        {
+          "path": "spec.json",
+          "sha256": "35e4234cba55d194d479749663daa7eac7b3eb3a83fb8dfc580fffb497daeab4"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "artifacts/code/manifest.round-1.json",
+          "sha256": "3e6fd148fff09638562b3d65e123d02ec6aeec575327433e2bb622248e35360f"
+        }
+      ],
+      "model": "solar-open2",
+      "promptSha256": "b51246f622f2011fd6607f43f51d39a03de282de42a497d55f61ea58476c0ae1",
+      "startedAt": "2026-07-27T01:27:42.071Z",
+      "finishedAt": "2026-07-27T01:28:48.491Z"
+    },
+    {
+      "stageId": "stage-test",
+      "round": 1,
+      "inputs": [
+        {
+          "path": "spec.json",
+          "sha256": "35e4234cba55d194d479749663daa7eac7b3eb3a83fb8dfc580fffb497daeab4"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "artifacts/tests/manifest.json",
+          "sha256": "2e12e00204aac5d0e64675e5d1714b35f276116ae9076bdd221e5cb24433c12e"
+        }
+      ],
+      "model": "z-ai/glm-5.2",
+      "promptSha256": "1a89b9d8d57d924b40039749917a595f332ec43ae514cbf2f7e5558652c4d64d",
+      "startedAt": "2026-07-27T01:27:42.081Z",
+      "finishedAt": "2026-07-27T01:27:47.428Z"
+    },
+    {
+      "stageId": "stage-verify",
+      "round": 1,
+      "inputs": [
+        {
+          "path": "artifacts/code/manifest.round-1.json",
+          "sha256": "3e6fd148fff09638562b3d65e123d02ec6aeec575327433e2bb622248e35360f"
+        },
+        {
+          "path": "artifacts/tests/manifest.json",
+          "sha256": "2e12e00204aac5d0e64675e5d1714b35f276116ae9076bdd221e5cb24433c12e"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "verifier-report.json",
+          "sha256": "10bdb0cecfd242dbfee7ffc017baf398b13a2c6cabd391be1daa4995b9ecd548"
+        }
+      ],
+      "startedAt": "2026-07-27T01:28:48.534Z",
+      "finishedAt": "2026-07-27T01:28:48.628Z"
+    }
+  ],
+  "feedback": {
+    "rounds": 1,
+    "stopReason": "pass"
+  },
+  "startedAt": "2026-07-27T01:27:42.070Z",
+  "finishedAt": "2026-07-27T01:28:48.637Z"
+}

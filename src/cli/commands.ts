@@ -9,7 +9,6 @@ import { EXERCISE_COMMANDS } from './commands/exercise.ts';
 import { HARNESS_COMMANDS } from './commands/harness.ts';
 import { HOOK_COMMANDS } from './commands/hooks.ts';
 import { INIT_COMMANDS } from './commands/init.ts';
-import { LEARNING_COMMANDS } from './commands/learning.ts';
 import { OBSERVATION_COMMANDS } from './commands/observation.ts';
 import { PIPELINE_COMMANDS } from './commands/pipeline.ts';
 import { RUN_COMMANDS } from './commands/runs.ts';
@@ -23,7 +22,6 @@ const COMMAND_HANDLERS: Record<string, CommandHandler> = {
   ...HOOK_COMMANDS,
   ...HARNESS_COMMANDS,
   ...OBSERVATION_COMMANDS,
-  ...LEARNING_COMMANDS,
   ...RUN_COMMANDS,
   ...TAPE_COMMANDS,
   ...WORKSPACE_COMMANDS,

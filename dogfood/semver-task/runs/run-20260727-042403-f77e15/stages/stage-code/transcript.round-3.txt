@@ -1,0 +1,125 @@
+```js path=generated/src/semver.js
+'use strict';
+
+/**
+ * Checks if a string represents a numeric identifier (only digits).
+ * @param {string} str
+ * @returns {boolean}
+ */
+function isNumeric(str) {
+  return /^\d+$/.test(str);
+}
+
+/**
+ * Compares two integers.
+ * @param {number} a
+ * @param {number} b
+ * @returns {number} -1, 0, or 1
+ */
+function compareIntegers(a, b) {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
+
+/**
+ * Compares two prerelease identifiers according to SemVer rules.
+ * 1. Numeric identifiers compare numerically.
+ * 2. Alphanumeric identifiers compare lexically in ASCII order.
+ * 3. Numeric identifiers always have lower precedence than alphanumeric ones.
+ * @param {string} a
+ * @param {string} b
+ * @returns {number} -1, 0, or 1
+ */
+function compareIdentifiers(a, b) {
+  const aIsNum = isNumeric(a);
+  const bIsNum = isNumeric(b);
+
+  if (aIsNum && bIsNum) {
+    return compareIntegers(parseInt(a, 10), parseInt(b, 10));
+  }
+
+  if (aIsNum && !bIsNum) {
+    return -1; // Numeric < Alphanumeric
+  }
+
+  if (!aIsNum && bIsNum) {
+    return 1; // Alphanumeric > Numeric
+  }
+
+  // Both alphanumeric: lexical ASCII comparison
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
+
+/**
+ * Compares two SemVer strings.
+ * @param {string} a
+ * @param {string} b
+ * @returns {number} -1, 0, or 1
+ */
+function compareSemver(a, b) {
+  // 1. Ignore build metadata (anything after '+')
+  const aCore = a.split('+')[0];
+  const bCore = b.split('+')[0];
+
+  // 2. Split core version from prerelease
+  const aParts = aCore.split('-');
+  const bParts = bCore.split('-');
+
+  const aVerStr = aParts[0];
+  const bVerStr = bParts[0];
+
+  // Prerelease identifiers are separated by dots.
+  const aPreStr = aParts.length > 1 ? aParts.slice(1).join('.') : null;
+  const bPreStr = bParts.length > 1 ? bParts.slice(1).join('.') : null;
+
+  const aPreIds = aPreStr ? aPreStr.split('.') : [];
+  const bPreIds = bPreStr ? bPreStr.split('.') : [];
+
+  // 3. Compare Major, Minor, Patch numerically
+  const aVer = aVerStr.split('.').map(Number);
+  const bVer = bVerStr.split('.').map(Number);
+
+  for (let i = 0; i < 3; i++) {
+    if (aVer[i] !== bVer[i]) {
+      return aVer[i] < bVer[i] ? -1 : 1;
+    }
+  }
+
+  // 4. Compare Prerelease
+  // A version with a prerelease has lower precedence than the same version without one.
+  const aHasPre = aPreIds.length > 0;
+  const bHasPre = bPreIds.length > 0;
+
+  if (!aHasPre && !bHasPre) {
+    return 0;
+  }
+
+  if (!aHasPre) {
+    return 1; // No prerelease > Prerelease
+  }
+
+  if (!bHasPre) {
+    return -1; // Prerelease < No prerelease
+  }
+
+  // Both have prerelease: compare identifiers
+  const maxLen = Math.max(aPreIds.length, bPreIds.length);
+
+  for (let i = 0; i < maxLen; i++) {
+    // A prerelease with fewer identifiers has lower precedence than one with more,
+    // when all preceding identifiers are equal.
+    if (i >= aPreIds.length) return -1;
+    if (i >= bPreIds.length) return 1;
+
+    const cmp = compareIdentifiers(aPreIds[i], bPreIds[i]);
+    if (cmp !== 0) return cmp;
+  }
+
+  return 0;
+}
+
+module.exports = { compareSemver };
+```

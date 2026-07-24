@@ -1,0 +1,261 @@
+```js
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { compareSemver } = require('../src/semver.js');
+
+test('major version precedence - higher major is greater', () => {
+  assert.equal(compareSemver('2.0.0', '1.0.0'), 1);
+  assert.equal(compareSemver('1.0.0', '2.0.0'), -1);
+});
+
+test('major version precedence - multi-digit numeric comparison', () => {
+  assert.equal(compareSemver('10.0.0', '2.0.0'), 1);
+  assert.equal(compareSemver('2.0.0', '10.0.0'), -1);
+  assert.equal(compareSemver('100.0.0', '99.0.0'), 1);
+});
+
+test('minor version precedence when major equal', () => {
+  assert.equal(compareSemver('1.2.0', '1.1.0'), 1);
+  assert.equal(compareSemver('1.1.0', '1.2.0'), -1);
+});
+
+test('patch version precedence when major and minor equal', () => {
+  assert.equal(compareSemver('1.0.1', '1.0.0'), 1);
+  assert.equal(compareSemver('1.0.0', '1.0.1'), -1);
+});
+
+test('full version precedence example from spec', () => {
+  assert.equal(compareSemver('1.2.3', '1.2.4'), -1);
+  assert.equal(compareSemver('1.2.4', '1.2.3'), 1);
+});
+
+test('prerelease has lower precedence than release version', () => {
+  assert.equal(compareSemver('1.0.0-alpha', '1.0.0'), -1);
+  assert.equal(compareSemver('1.0.0', '1.0.0-alpha'), 1);
+});
+
+test('prerelease with prerelease vs release', () => {
+  assert.equal(compareSemver('1.0.0-rc.1', '1.0.0'), -1);
+});
+
+test('prerelease identifiers compared left to right - first difference wins', () => {
+  assert.equal(compareSemver('1.0.0-alpha.beta', '1.0.0-alpha.alpha'), 1);
+  assert.equal(compareSemver('1.0.0-alpha.alpha', '1.0.0-alpha.beta'), -1);
+});
+
+test('numeric prerelease identifiers compare numerically', () => {
+  assert.equal(compareSemver('1.0.0-beta.2', '1.0.0-beta.11'), -1);
+  assert.equal(compareSemver('1.0.0-beta.11', '1.0.0-beta.2'), 1);
+  assert.equal(compareSemver('1.0.0-1', '1.0.0-2'), -1);
+  assert.equal(compareSemver('1.0.0-9', '1.0.0-10'), -1);
+});
+
+test('numeric prerelease identifier has lower precedence than alphanumeric', () => {
+  assert.equal(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.beta'), -1);
+  assert.equal(compareSemver('1.0.0-alpha.beta', '1.0.0-alpha.1'), 1);
+  assert.equal(compareSemver('1.0.0-1', '1.0.0-a'), -1);
+  assert.equal(compareSemver('1.0.0-a', '1.0.0-1'), 1);
+});
+
+test('alphanumeric prerelease identifiers compare lexically in ASCII order', () => {
+  assert.equal(compareSemver('1.0.0-alpha', '1.0.0-beta'), -1);
+  assert.equal(compareSemver('1.0.0-beta', '1.0.0-alpha'), 1);
+  assert.equal(compareSemver('1.0.0-aaa', '1.0.0-zzz'), -1);
+  assert.equal(compareSemver('1.0.0-Z', '1.0.0-a'), -1);
+});
+
+test('prerelease with fewer identifiers has lower precedence when preceding equal', () => {
+  assert.equal(compareSemver('1.0.0-alpha', '1.0.0-alpha.1'), -1);
+  assert.equal(compareSemver('1.0.0-alpha.1', '1.0.0-alpha'), 1);
+  assert.equal(compareSemver('1.0.0-alpha', '1.0.0-alpha.beta'), -1);
+  assert.equal(compareSemver('1.0.0-alpha.beta', '1.0.0-alpha'), 1);
+});
+
+test('prerelease with more identifiers is greater when preceding equal', () => {
+  assert.equal(compareSemver('1.0.0-alpha.1.1', '1.0.0-alpha.1'), 1);
+  assert.equal(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.1.1'), -1);
+});
+
+test('build metadata is ignored for precedence', () => {
+  assert.equal(compareSemver('1.0.0+build.5', '1.0.0'), 0);
+  assert.equal(compareSemver('1.0.0', '1.0.0+build.5'), 0);
+  assert.equal(compareSemver('1.0.0-alpha+build.5', '1.0.0-alpha'), 0);
+  assert.equal(compareSemver('1.0.0-alpha', '1.0.0-alpha+build.5'), 0);
+  assert.equal(compareSemver('1.0.0+build.5', '1.0.0+build.10'), 0);
+});
+
+test('build metadata with different prerelease identifiers', () => {
+  assert.equal(compareSemver('1.0.0-alpha+build.5', '1.0.0-beta+build.10'), -1);
+  assert.equal(compareSemver('1.0.0-beta+build.10', '1.0.0-alpha+build.5'), 1);
+});
+
+test('reflexivity - compareSemver(a, a) === 0', () => {
+  assert.equal(compareSemver('1.0.0', '1.0.0'), 0);
+  assert.equal(compareSemver('2.5.10', '2.5.10'), 0);
+  assert.equal(compareSemver('1.0.0-alpha', '1.0.0-alpha'), 0);
+  assert.equal(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.1'), 0);
+  assert.equal(compareSemver('1.0.0-beta.2', '1.0.0-beta.2'), 0);
+  assert.equal(compareSemver('1.0.0+build.5', '1.0.0+build.5'), 0);
+  assert.equal(compareSemver('1.0.0-alpha+build.5', '1.0.0-alpha+build.5'), 0);
+});
+
+test('antisymmetry - compareSemver(a, b) === -compareSemver(b, a)', () => {
+  const pairs = [
+    ['1.0.0', '2.0.0'],
+    ['2.0.0', '1.0.0'],
+    ['1.2.3', '1.2.4'],
+    ['1.0.0-alpha', '1.0.0'],
+    ['1.0.0', '1.0.0-alpha'],
+    ['1.0.0-alpha', '1.0.0-alpha.1'],
+    ['1.0.0-alpha.1', '1.0.0-alpha'],
+    ['1.0.0-alpha.1', '1.0.0-alpha.beta'],
+    ['1.0.0-alpha.beta', '1.0.0-alpha.1'],
+    ['1.0.0-beta.2', '1.0.0-beta.11'],
+    ['1.0.0-beta.11', '1.0.0-beta.2'],
+    ['1.0.0-rc.1', '1.0.0'],
+    ['1.0.0+build.5', '1.0.0'],
+    ['1.0.0', '1.0.0+build.5'],
+    ['1.0.0-alpha+build.5', '1.0.0-beta+build.10'],
+    ['1.0.0-beta+build.10', '1.0.0-alpha+build.5'],
+    ['10.0.0', '2.0.0'],
+    ['2.0.0', '10.0.0'],
+    ['1.0.0-1', '1.0.0-a'],
+    ['1.0.0-a', '1.0.0-1'],
+  ];
+  
+  for (const [a, b] of pairs) {
+    const resultAB = compareSemver(a, b);
+    const resultBA = compareSemver(b, a);
+    assert.equal(resultAB, -(resultBA + 0), `Failed for compareSemver('${a}', '${b}')`);
+  }
+});
+
+test('edge case - multi-digit patch versions', () => {
+  assert.equal(compareSemver('1.0.10', '1.0.9'), 1);
+  assert.equal(compareSemver('1.0.9', '1.0.10'), -1);
+});
+
+test('edge case - multi-digit minor versions', () => {
+  assert.equal(compareSemver('1.10.0', '1.9.0'), 1);
+  assert.equal(compareSemver('1.9.0', '1.10.0'), -1);
+});
+
+test('edge case - all multi-digit version numbers', () => {
+  assert.equal(compareSemver('10.20.30', '9.19.29'), 1);
+  assert.equal(compareSemver('9.19.29', '10.20.30'), -1);
+});
+
+test('edge case - prerelease with same numeric identifier but different length', () => {
+  assert.equal(compareSemver('1.0.0-1', '1.0.0-01'), 0);
+  assert.equal(compareSemver('1.0.0-01', '1.0.0-1'), 0);
+});
+
+test('edge case - complex prerelease chains', () => {
+  assert.equal(compareSemver('1.0.0-alpha.1.beta.2', '1.0.0-alpha.1.beta.10'), -1);
+  assert.equal(compareSemver('1.0.0-alpha.1.beta.10', '1.0.0-alpha.1.beta.2'), 1);
+});
+
+test('edge case - prerelease with build metadata on both sides', () => {
+  assert.equal(compareSemver('1.0.0-alpha+build.1', '1.0.0-alpha+build.2'), 0);
+  assert.equal(compareSemver('1.0.0-alpha.1+build.1', '1.0.0-alpha.1+build.2'), 0);
+});
+
+test('edge case - numeric vs alphanumeric in middle of chain', () => {
+  assert.equal(compareSemver('1.0.0-alpha.1.beta', '1.0.0-alpha.1.1'), 1);
+  assert.equal(compareSemver('1.0.0-alpha.1.1', '1.0.0-alpha.1.beta'), -1);
+});
+
+test('edge case - ASCII order for uppercase vs lowercase', () => {
+  assert.equal(compareSemver('1.0.0-alpha', '1.0.0-Alpha'), 1);
+  assert.equal(compareSemver('1.0.0-Alpha', '1.0.0-alpha'), -1);
+});
+
+test('edge case - empty prerelease identifier edge', () => {
+  assert.equal(compareSemver('1.0.0-', '1.0.0'), -1);
+  assert.equal(compareSemver('1.0.0', '1.0.0-'), 1);
+});
+```
+
+--- corrective retry ---
+
+```js path=generated/tests/semver.test.js
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { compareSemver } = require('../src/semver.js');
+
+// Helper to normalize -0 to 0 for numeric comparisons to satisfy Object.is strictness
+const normalize = (n) => n + 0;
+
+test('compareSemver returns 0 for identical versions', () => {
+    assert.strictEqual(normalize(compareSemver('1.0.0', '1.0.0')), 0);
+    assert.strictEqual(normalize(compareSemver('1.0.0-alpha', '1.0.0-alpha')), 0);
+    assert.strictEqual(normalize(compareSemver('1.0.0+build', '1.0.0+build')), 0);
+    assert.strictEqual(normalize(compareSemver('1.0.0+build1', '1.0.0+build2')), 0); // Build metadata ignored
+});
+
+test('compareSemver respects antisymmetry', () => {
+    const pairs = [
+        ['1.0.0', '2.0.0'],
+        ['1.0.0', '1.0.1'],
+        ['1.0.0-alpha', '1.0.0'],
+        ['1.0.0-alpha', '1.0.0-beta'],
+        ['1.0.0-beta.2', '1.0.0-beta.11'],
+        ['1.0.0-alpha.1', '1.0.0-alpha.beta'],
+        ['2.0.0', '10.0.0']
+    ];
+    for (const [a, b] of pairs) {
+        const res1 = normalize(compareSemver(a, b));
+        const res2 = normalize(compareSemver(b, a));
+        assert.strictEqual(res1, -res2, `Antisymmetry failed for ${a} vs ${b}`);
+    }
+});
+
+test('compareSemver compares major, minor, patch numerically', () => {
+    assert.strictEqual(normalize(compareSemver('1.2.3', '1.2.4')), -1);
+    assert.strictEqual(normalize(compareSemver('1.2.4', '1.2.3')), 1);
+    assert.strictEqual(normalize(compareSemver('2.0.0', '10.0.0')), -1); // Numeric, not lexical
+    assert.strictEqual(normalize(compareSemver('10.0.0', '2.0.0')), 1);
+    assert.strictEqual(normalize(compareSemver('1.0.0', '1.0.0')), 0);
+});
+
+test('compareSemver handles prerelease vs release', () => {
+    assert.strictEqual(normalize(compareSemver('1.0.0-alpha', '1.0.0')), -1);
+    assert.strictEqual(normalize(compareSemver('1.0.0', '1.0.0-alpha')), 1);
+    assert.strictEqual(normalize(compareSemver('1.0.0-rc.1', '1.0.0')), -1);
+});
+
+test('compareSemver handles prerelease identifier precedence', () => {
+    // Numeric < Alphanumeric
+    assert.strictEqual(normalize(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.beta')), -1);
+    assert.strictEqual(normalize(compareSemver('1.0.0-alpha.beta', '1.0.0-alpha.1')), 1);
+    
+    // Numeric comparison (2 < 11)
+    assert.strictEqual(normalize(compareSemver('1.0.0-beta.2', '1.0.0-beta.11')), -1);
+    assert.strictEqual(normalize(compareSemver('1.0.0-beta.11', '1.0.0-beta.2')), 1);
+
+    // Fewer identifiers < More identifiers (when preceding equal)
+    assert.strictEqual(normalize(compareSemver('1.0.0-alpha', '1.0.0-alpha.1')), -1);
+    assert.strictEqual(normalize(compareSemver('1.0.0-alpha.1', '1.0.0-alpha')), 1);
+});
+
+test('compareSemver ignores build metadata', () => {
+    assert.strictEqual(normalize(compareSemver('1.0.0+build.5', '1.0.0')), 0);
+    assert.strictEqual(normalize(compareSemver('1.0.0', '1.0.0+build.5')), 0);
+    assert.strictEqual(normalize(compareSemver('1.0.0-alpha+build.5', '1.0.0-alpha')), 0);
+    assert.strictEqual(normalize(compareSemver('1.0.0+build.5', '1.0.0+build.6')), 0);
+});
+
+test('compareSemver handles multi-digit major/minor/patch', () => {
+    assert.strictEqual(normalize(compareSemver('10.0.0', '9.0.0')), 1);
+    assert.strictEqual(normalize(compareSemver('1.10.0', '1.9.0')), 1);
+    assert.strictEqual(normalize(compareSemver('1.0.10', '1.0.9')), 1);
+});
+
+test('compareSemver handles mixed prerelease identifiers', () => {
+    // Based on spec: numeric < alphanumeric
+    assert.strictEqual(normalize(compareSemver('1.0.0-1.alpha', '1.0.0-1.beta')), -1);
+    assert.strictEqual(normalize(compareSemver('1.0.0-1.beta', '1.0.0-1.alpha')), 1);
+    // If first identifiers equal, compare second
+    assert.strictEqual(normalize(compareSemver('1.0.0-1.alpha', '1.0.0-2.alpha')), -1);
+});
+```

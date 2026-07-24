@@ -1,0 +1,62 @@
+{
+  "version": "lyo.plan.v1",
+  "planId": "csv-parse-line-run-1",
+  "specRef": {
+    "path": "spec.json",
+    "sha256": "791b5520c63df38126bc3e03134d3bb25db453bae86e417337c0987cfca003c4"
+  },
+  "stages": [
+    {
+      "stageId": "stage-code",
+      "role": "code-writer",
+      "executor": {
+        "kind": "kimi-cli",
+        "model": "kimi-code/kimi-for-coding",
+        "temperature": 0.2
+      },
+      "authority": {
+        "read": ["spec.json"],
+        "write": ["generated/src"],
+        "forbiddenRead": ["generated/tests"],
+        "forbiddenWrite": ["generated/tests"]
+      },
+      "inputs": [
+        { "path": "spec.json", "sha256": "791b5520c63df38126bc3e03134d3bb25db453bae86e417337c0987cfca003c4" }
+      ],
+      "outputs": ["generated/src"]
+    },
+    {
+      "stageId": "stage-test",
+      "role": "test-writer",
+      "executor": {
+        "kind": "openrouter",
+        "model": "upstage/solar-pro-3",
+        "temperature": 0.7
+      },
+      "authority": {
+        "read": ["spec.json"],
+        "write": ["generated/tests"],
+        "forbiddenRead": ["generated/src"],
+        "forbiddenWrite": ["generated/src"]
+      },
+      "inputs": [
+        { "path": "spec.json", "sha256": "791b5520c63df38126bc3e03134d3bb25db453bae86e417337c0987cfca003c4" }
+      ],
+      "outputs": ["generated/tests"]
+    },
+    {
+      "stageId": "stage-verify",
+      "role": "verifier",
+      "authority": {
+        "read": ["generated/src", "generated/tests"],
+        "write": [],
+        "forbiddenRead": [],
+        "forbiddenWrite": ["generated/src", "generated/tests"]
+      },
+      "inputs": [],
+      "outputs": []
+    }
+  ],
+  "feedbackPolicy": { "codeWriterSees": "aggregate_only" },
+  "stateless": true
+}

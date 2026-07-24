@@ -1,0 +1,30 @@
+{
+  "version": "lyo.spec.v1",
+  "specId": "csv-parse-line-1",
+  "signatures": ["parseCsvLine(line: string): string[]"],
+  "invariants": [
+    "Fields are split on commas that are not enclosed in double quotes",
+    "A field wrapped in double quotes has the surrounding quotes removed",
+    "Two double quotes inside a quoted field decode to one literal double quote",
+    "A quoted field may contain commas, which are preserved in the field value",
+    "Parsing an empty string returns a single empty field"
+  ],
+  "constraints": [
+    "JavaScript for Node.js, single file",
+    "CommonJS module exporting parseCsvLine via module.exports",
+    "Pure function, no I/O, no dependencies"
+  ],
+  "examples": [
+    { "input": "parseCsvLine('a,b,c')", "output": "['a', 'b', 'c']" },
+    { "input": "parseCsvLine('\"hello, world\",x')", "output": "['hello, world', 'x']" },
+    { "input": "parseCsvLine('\"she said \"\"hi\"\"\",y')", "output": "['she said \"hi\"', 'y']" },
+    { "input": "parseCsvLine('')", "output": "['']" }
+  ],
+  "edgeCaseHints": [
+    "Empty line",
+    "Quoted field containing commas",
+    "Escaped double quotes inside quoted fields",
+    "Empty fields between consecutive commas",
+    "Quoted empty string"
+  ]
+}

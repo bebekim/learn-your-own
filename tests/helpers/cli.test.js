@@ -30,9 +30,6 @@ test('CLI test helper passes stdin and can return expected command failures', ()
   );
   assert.equal(parsed.continue, true);
 
-  const failed = runLyo(
-    ['learn', 'associations'],
-    { expectFailure: true }
-  );
-  assert.match(failed, /learn associations is currently dry-run only/);
+  const failed = runLyo(['definitely-not-a-command'], { expectFailure: true });
+  assert.match(failed, /Usage:/);
 });
