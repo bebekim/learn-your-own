@@ -540,6 +540,9 @@ Purpose:
 test the kernel's learning mechanics without spending model tokens
 ```
 
+Feature 2 covers existing lessons only. Learned verifier rules join this replay
+path in Feature 3 after the rule tables and interpreter exist.
+
 Input:
 
 ```text
@@ -552,7 +555,7 @@ recorded final outcome
 Output:
 
 ```text
-selected lessons/rules
+selected lessons
 credit/debit updates
 promotion/quarantine decisions
 replay report JSON
@@ -565,8 +568,8 @@ seeded replay is deterministic
 replay does not call external models or shell verifiers
 credit assignment is tied to recorded outcomes
 report shows what would have been injected and why
-one test proves a useful verifier rule gains credit over repeated traces
-one test proves a harmful verifier rule is debited or quarantined
+one test proves a useful lesson gains credit over repeated traces
+one test proves a harmful lesson is debited or quarantined
 ```
 
 Out of scope:
