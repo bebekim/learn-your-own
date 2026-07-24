@@ -1,15 +1,23 @@
 import { resolve } from 'node:path';
 
 import {
+  parseBaselineId,
+  runLocalEpisode,
+} from '../../eval/live-runner.ts';
+import {
   readReplayTrace,
   replayTrace,
 } from '../../eval/replay.ts';
-import { validateEvalTaskDirectory } from '../../eval/tasks.ts';
+import {
+  readEvalTask,
+  validateEvalTaskDirectory,
+} from '../../eval/tasks.ts';
 import { LessonStore } from '../../lyo/lesson-store.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
 
 export const EVAL_COMMANDS: Record<string, CommandHandler> = {
   'eval replay': evalReplayCommand,
+  'eval run-local': evalRunLocalCommand,
   'eval validate': evalValidateCommand,
 };
 
@@ -35,4 +43,21 @@ function evalReplayCommand(args: CommandArgs): unknown {
   } finally {
     store.close();
   }
+}
+
+function evalRunLocalCommand(args: CommandArgs): unknown {
+  return {
+    ok: true,
+    episode: runLocalEpisode({
+      task: readEvalTask(resolve(args.cwd, args.requiredFlag('--task'))),
+      baselineId: parseBaselineId(args.requiredFlag('--baseline')),
+      model: args.flagValue('--model') ?? 'unknown',
+      harness: args.flagValue('--harness') ?? 'local-shell',
+      cwd: args.cwd,
+      dbPath: args.dbPath,
+      scopeKind: args.flagValue('--scope-kind') ?? 'repository',
+      scopeValue: args.flagValue('--scope-value') ?? args.cwd,
+      staticSkill: args.flagValue('--static-skill') ?? null,
+    }),
+  };
 }

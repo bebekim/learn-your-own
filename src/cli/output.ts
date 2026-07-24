@@ -44,6 +44,7 @@ export function usage(exitCode = 0): never {
 	  lyo audit [--dir path]
 	  lyo demo fixture-replay [--db path]
 	  lyo eval replay [--db path] --trace path [--seed n] [--limit n]
+	  lyo eval run-local [--db path] --task path --baseline B0|B1|B3|B4 [--model name] [--harness name] [--scope-kind kind] [--scope-value value] [--static-skill text]
 	  lyo eval validate [--dir path]
 
 	Environment:

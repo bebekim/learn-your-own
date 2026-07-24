@@ -10,6 +10,33 @@ export interface EvalTaskSummary {
   file: string;
 }
 
+export interface EvalTask {
+  task_id: string;
+  split: EvalSplit;
+  repo_ref: {
+    kind: string;
+    ref: string;
+  };
+  prompt: string;
+  allowed_tools: string[];
+  budget: {
+    max_turns: number;
+    max_wall_time_seconds: number;
+    max_tokens: number;
+  };
+  success_check:
+    | {
+        kind: 'command';
+        command: string;
+      }
+    | {
+        kind: 'evaluator';
+        evaluator_id: string;
+      };
+  expected_touched_paths: string[];
+  tags: string[];
+}
+
 export interface EvalTaskValidationReport {
   dir: string;
   taskCount: number;
@@ -71,28 +98,48 @@ export function validateEvalTaskDirectory(dir: string): EvalTaskValidationReport
   };
 }
 
+export function readEvalTask(path: string): EvalTask {
+  return validateTaskObject(readJsonObject(path), basename(path)).task;
+}
+
 function validateTaskFile(path: string, file: string): EvalTaskSummary {
-  const task = readJsonObject(path);
+  return validateTaskObject(readJsonObject(path), file).summary;
+}
+
+function validateTaskObject(task: JsonObject, file: string): { task: EvalTask; summary: EvalTaskSummary } {
   const errors: string[] = [];
   const taskId = requireString(task, 'task_id', errors);
   const split = requireSplit(task, errors);
 
-  requireRepoRef(task, errors);
-  requireString(task, 'prompt', errors);
-  requireStringArray(task, 'allowed_tools', errors);
-  requireBudget(task, errors);
-  requireSuccessCheck(task, errors);
-  requireStringArray(task, 'expected_touched_paths', errors);
-  requireStringArray(task, 'tags', errors);
+  const repoRef = requireRepoRef(task, errors);
+  const prompt = requireString(task, 'prompt', errors);
+  const allowedTools = requireStringArray(task, 'allowed_tools', errors);
+  const budget = requireBudget(task, errors);
+  const successCheck = requireSuccessCheck(task, errors);
+  const expectedTouchedPaths = requireStringArray(task, 'expected_touched_paths', errors);
+  const tags = requireStringArray(task, 'tags', errors);
 
   if (errors.length > 0) {
     throw new Error(`invalid eval task ${basename(file)}:\n- ${errors.join('\n- ')}`);
   }
 
   return {
-    taskId,
-    split,
-    file,
+    task: {
+      task_id: taskId,
+      split,
+      repo_ref: repoRef,
+      prompt,
+      allowed_tools: allowedTools,
+      budget,
+      success_check: successCheck,
+      expected_touched_paths: expectedTouchedPaths,
+      tags,
+    },
+    summary: {
+      taskId,
+      split,
+      file,
+    },
   };
 }
 
@@ -109,34 +156,37 @@ function readSplitTaskIds(value: JsonObject): Record<EvalSplit, Set<string>> {
   return result;
 }
 
-function requireRepoRef(task: JsonObject, errors: string[]): void {
+function requireRepoRef(task: JsonObject, errors: string[]): EvalTask['repo_ref'] {
   const value = requireObject(task, 'repo_ref', errors);
-  if (!value) return;
-  requireString(value, 'kind', errors);
-  requireString(value, 'ref', errors);
+  if (!value) return { kind: '', ref: '' };
+  return {
+    kind: requireString(value, 'kind', errors),
+    ref: requireString(value, 'ref', errors),
+  };
 }
 
-function requireBudget(task: JsonObject, errors: string[]): void {
+function requireBudget(task: JsonObject, errors: string[]): EvalTask['budget'] {
   const value = requireObject(task, 'budget', errors);
-  if (!value) return;
-  requirePositiveNumber(value, 'max_turns', errors);
-  requirePositiveNumber(value, 'max_wall_time_seconds', errors);
-  requirePositiveNumber(value, 'max_tokens', errors);
+  if (!value) return { max_turns: 0, max_wall_time_seconds: 0, max_tokens: 0 };
+  return {
+    max_turns: requirePositiveNumber(value, 'max_turns', errors),
+    max_wall_time_seconds: requirePositiveNumber(value, 'max_wall_time_seconds', errors),
+    max_tokens: requirePositiveNumber(value, 'max_tokens', errors),
+  };
 }
 
-function requireSuccessCheck(task: JsonObject, errors: string[]): void {
+function requireSuccessCheck(task: JsonObject, errors: string[]): EvalTask['success_check'] {
   const value = requireObject(task, 'success_check', errors);
-  if (!value) return;
+  if (!value) return { kind: 'command', command: '' };
   const kind = value.kind;
   if (kind === 'command') {
-    requireString(value, 'command', errors);
-    return;
+    return { kind, command: requireString(value, 'command', errors) };
   }
   if (kind === 'evaluator') {
-    requireString(value, 'evaluator_id', errors);
-    return;
+    return { kind, evaluator_id: requireString(value, 'evaluator_id', errors) };
   }
   errors.push('success_check.kind must be command or evaluator');
+  return { kind: 'command', command: '' };
 }
 
 function requirePositiveNumber(object: JsonObject, key: string, errors: string[]): number {
