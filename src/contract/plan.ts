@@ -14,9 +14,16 @@ export const planStageAuthoritySchema = z.object({
   forbiddenWrite: z.array(z.string().min(1)),
 });
 
+export const planStageExecutorSchema = z.object({
+  kind: z.enum(['kimi-cli', 'openrouter']),
+  model: z.string().min(1),
+  temperature: z.number().min(0).max(2).optional(),
+});
+
 export const planStageSchema = z.object({
   stageId: z.string().min(1),
   role: planStageRoleSchema,
+  executor: planStageExecutorSchema.optional(),
   authority: planStageAuthoritySchema,
   inputs: z.array(artifactRefSchema),
   outputs: z.array(z.string().min(1)),
@@ -35,6 +42,7 @@ export const planSchema = z.object({
 
 export type Plan = z.infer<typeof planSchema>;
 export type PlanStage = z.infer<typeof planStageSchema>;
+export type PlanStageExecutor = z.infer<typeof planStageExecutorSchema>;
 export type PlanStageRole = z.infer<typeof planStageRoleSchema>;
 export type PlanStageAuthority = z.infer<typeof planStageAuthoritySchema>;
 

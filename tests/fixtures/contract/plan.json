@@ -9,6 +9,11 @@
     {
       "stageId": "stage-code",
       "role": "code-writer",
+      "executor": {
+        "kind": "kimi-cli",
+        "model": "kimi-code/kimi-for-coding",
+        "temperature": 0.2
+      },
       "authority": {
         "read": ["tests/fixtures/contract/spec.json"],
         "write": ["generated/src"],
@@ -26,6 +31,11 @@
     {
       "stageId": "stage-test",
       "role": "test-writer",
+      "executor": {
+        "kind": "openrouter",
+        "model": "upstage/solar-pro-3",
+        "temperature": 0.7
+      },
       "authority": {
         "read": ["tests/fixtures/contract/spec.json"],
         "write": ["generated/tests"],

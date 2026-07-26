@@ -154,6 +154,30 @@ export type {
   VerifierReport,
 } from './contract/index.ts';
 export {
+  collectFiles,
+  filterDeclaredWrites,
+  materializeSandbox,
+  parseFileBlocks,
+} from './runner/files.ts';
+export type { FileBlock } from './runner/files.ts';
+export { createOpenRouterExecutor } from './runner/executors/openrouter.ts';
+export type {
+  OpenRouterChatFn,
+  OpenRouterChatMessage,
+  OpenRouterExecutorOptions,
+} from './runner/executors/openrouter.ts';
+export { createKimiCliExecutor } from './runner/executors/kimi-cli.ts';
+export type { KimiCliExecutorOptions, SpawnKimiFn } from './runner/executors/kimi-cli.ts';
+export type {
+  StageExecutionInput,
+  StageExecutionResult,
+  StageExecutor,
+} from './runner/executors/stage-executor.ts';
+export { parseTapOutput, runVerifier } from './runner/verifier.ts';
+export type { RunTestsFn, VerifierRun } from './runner/verifier.ts';
+export { runPipeline } from './runner/run-pipeline.ts';
+export type { ExecutorFactory, RunPipelineInput, RunPipelineResult } from './runner/run-pipeline.ts';
+export {
   corpusReport,
   syncCorpusOnce,
 } from './corpus/sync.ts';

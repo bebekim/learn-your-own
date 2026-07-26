@@ -112,6 +112,31 @@ test('checkBlindness flags a plan without a code-writer stage', () => {
   assert.ok(blindness.violations.some((violation) => violation.includes('code-writer')));
 });
 
+test('plan stages carry an optional executor binding', () => {
+  const result = validatePlan(fixture('plan.json'));
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.value.stages[0].executor, {
+    kind: 'kimi-cli',
+    model: 'kimi-code/kimi-for-coding',
+    temperature: 0.2,
+  });
+  assert.equal(result.value.stages[1].executor.kind, 'openrouter');
+});
+
+test('plan rejects an unknown executor kind', () => {
+  const plan = fixture('plan.json');
+  plan.stages[0].executor = { kind: 'docker', model: 'x' };
+  assert.equal(validatePlan(plan).ok, false);
+});
+
+test('plan without an executor binding remains valid', () => {
+  const plan = fixture('plan.json');
+  delete plan.stages[0].executor;
+  const result = validatePlan(plan);
+  assert.equal(result.ok, true);
+  assert.equal(result.value.stages[0].executor, undefined);
+});
+
 test('valid code manifest fixture round-trips', () => {
   const result = validateCodeManifest(fixture('code-manifest.json'));
   assert.equal(result.ok, true);

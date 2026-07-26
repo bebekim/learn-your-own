@@ -8,11 +8,12 @@ export {
   PLAN_VERSION,
   planSchema,
   planStageAuthoritySchema,
+  planStageExecutorSchema,
   planStageRoleSchema,
   planStageSchema,
   validatePlan,
 } from './plan.ts';
-export type { BlindnessResult, Plan, PlanStage, PlanStageAuthority, PlanStageRole } from './plan.ts';
+export type { BlindnessResult, Plan, PlanStage, PlanStageAuthority, PlanStageExecutor, PlanStageRole } from './plan.ts';
 export { CODE_VERSION, codeManifestSchema, validateCodeManifest } from './code.ts';
 export type { CodeManifest } from './code.ts';
 export { TEST_VERSION, testManifestSchema, validateTestManifest } from './test.ts';

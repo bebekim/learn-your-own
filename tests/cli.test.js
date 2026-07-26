@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -160,6 +161,58 @@ test('lyo experiment compares baseline, treatment, and variant attempts from a l
       ['verifying_consequence', 'successive_varied_consequence']
     );
     assert.equal(parsed.experiment.decision, 'generalize_candidate');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('lyo pipeline run refuses a plan that violates blindness', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-cli-pipeline-'));
+  try {
+    const spec = {
+      version: 'lyo.spec.v1',
+      specId: 'add-spec',
+      signatures: ['add(a, b)'],
+      invariants: ['commutative'],
+      constraints: [],
+      examples: [],
+    };
+    const specPath = join(dir, 'spec.json');
+    writeFileSync(specPath, JSON.stringify(spec));
+    const specRef = {
+      path: 'spec.json',
+      sha256: createHash('sha256')
+        .update(readFileSync(specPath))
+        .digest('hex'),
+    };
+    const stage = (stageId, role, write, forbiddenRead) => ({
+      stageId,
+      role,
+      executor: { kind: 'kimi-cli', model: 'unused' },
+      authority: { read: ['spec.json'], write: [write], forbiddenRead, forbiddenWrite: [] },
+      inputs: [specRef],
+      outputs: [write],
+    });
+    const plan = {
+      version: 'lyo.plan.v1',
+      planId: 'bad-plan',
+      specRef,
+      stages: [
+        stage('stage-code', 'code-writer', 'generated/src', []),
+        stage('stage-test', 'test-writer', 'generated/tests', ['generated/src']),
+      ],
+      feedbackPolicy: { codeWriterSees: 'aggregate_only' },
+      stateless: true,
+    };
+    const planPath = join(dir, 'plan.json');
+    writeFileSync(planPath, JSON.stringify(plan));
+
+    const parsed = runLyoJson(
+      ['pipeline', 'run', '--plan', planPath, '--runs-root', join(dir, 'runs')],
+      { expectFailure: true }
+    );
+    assert.equal(parsed.ok, false);
+    assert.match(parsed.error.message, /forbidden from reading test output/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
