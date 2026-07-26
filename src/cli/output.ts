@@ -47,6 +47,7 @@ export function usage(exitCode = 0): never {
 	  lyo eval replay [--db path] --trace path [--seed n] [--limit n]
 	  lyo eval run-local [--db path] --task path --baseline B0|B1|B3|B4 [--model name] [--harness name] [--scope-kind kind] [--scope-value value] [--static-skill text]
 	  lyo pipeline run --plan path [--runs-root dir]
+	  lyo pipeline learn --run dir[,dir2] [--judge-model model]
 	  lyo eval validate [--dir path]
 
 	Environment:

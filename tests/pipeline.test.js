@@ -421,3 +421,23 @@ test('runPipeline removes stale outputs from earlier rounds', async () => {
     assert.equal(existsSync(join(result.runDir, 'verify/generated/src/stale.js')), false);
   });
 });
+
+test('runPipeline persists raw verifier TAP output per round', async () => {
+  await withTmp(async (dir) => {
+    const { planPath } = writeSource(dir, { maxRounds: 3 });
+    const codePrompts = [];
+    const factory = iteratingCodeFactory(codePrompts, [
+      'module.exports = { add: (a, b) => a - b };\n',
+      'module.exports = { add: (a, b) => a + b };\n',
+    ]);
+    const result = await runPipeline({
+      planPath,
+      runsRoot: join(dir, 'runs'),
+      executorFactory: factory,
+    });
+    const tap1 = readFileSync(join(result.runDir, 'verify-tap/tap.round-1.txt'), 'utf8');
+    assert.match(tap1, /not ok \d+ - adds positive integers/);
+    const tap2 = readFileSync(join(result.runDir, 'verify-tap/tap.round-2.txt'), 'utf8');
+    assert.match(tap2, /ok \d+ - adds positive integers/);
+  });
+});

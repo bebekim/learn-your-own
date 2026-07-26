@@ -188,6 +188,11 @@ export async function runPipeline({
       testPath: testStage.outputs[0],
       runTests,
     });
+    // Raw verifier output is evidence for post-run analysis (LYO sees all).
+    // It lives outside verify/, which is rebuilt fresh each round.
+    const tapDir = join(runDir, 'verify-tap');
+    mkdirSync(tapDir, { recursive: true });
+    writeFileSync(join(tapDir, `tap.round-${round}.txt`), verification.rawOutput);
     const finishedAt = now().toISOString();
     traceStages.push({
       stageId: verifierStage?.stageId ?? 'verifier',

@@ -220,6 +220,24 @@ export {
   parseReflectionJson,
 } from './lyo/elaborator-reflector.ts';
 export { LessonStore } from './lyo/lesson-store.ts';
+export {
+  buildJudgePrompt,
+  consumeTraces,
+  extractDisagreements,
+  loadRunEvidence,
+  parseJudgeResponse,
+} from './lyo/trace-consumer.ts';
+export type {
+  AnalyzedDisagreement,
+  ConsumeTraceInput,
+  DisagreementInput,
+  JudgeClassification,
+  JudgeFn,
+  Judgment,
+  RunAnalysis,
+  RunEvidence,
+  TraceConsumption,
+} from './lyo/trace-consumer.ts';
 export { LearnedRuleStore } from './lyo/learned-rules.ts';
 export {
   emitSessionLessons,
