@@ -1,18 +1,22 @@
 import { resolve } from 'node:path';
 
 import { consumeTraces } from '../../lyo/trace-consumer.ts';
+import { compareRuns } from '../../runner/compare-runs.ts';
 import { runPipeline } from '../../runner/run-pipeline.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
 
 export const PIPELINE_COMMANDS: Record<string, CommandHandler> = {
   'pipeline run': pipelineRunCommand,
   'pipeline learn': pipelineLearnCommand,
+  'pipeline compare': pipelineCompareCommand,
 };
 
 async function pipelineRunCommand(args: CommandArgs): Promise<unknown> {
+  const lessonsDir = args.flagValue('--lessons');
   const result = await runPipeline({
     planPath: resolve(args.requiredFlag('--plan')),
     runsRoot: resolve(args.flagValue('--runs-root') ?? 'runs'),
+    lessonsDir: lessonsDir ? resolve(lessonsDir) : undefined,
   });
   return {
     ok: true,
@@ -30,14 +34,19 @@ async function pipelineLearnCommand(args: CommandArgs): Promise<unknown> {
     .requiredFlag('--run')
     .split(',')
     .map((entry) => resolve(entry.trim()));
+  const library = args.flagValue('--library');
+  const gateMode = args.flagValue('--gate');
   const result = await consumeTraces({
     runDirs,
     judgeModel: args.flagValue('--judge-model'),
+    libraryDir: library ? resolve(library) : undefined,
+    gate: { mode: gateMode === 'strict' ? 'strict' : 'permissive' },
   });
   return {
     ok: true,
     updatePath: result.updatePath,
     analysisPath: result.analysisPath,
+    installedLessons: result.installedLessons,
     disagreements: result.analyses.flatMap((analysis) =>
       analysis.disagreements.map((disagreement) => ({
         runId: analysis.runId,
@@ -51,4 +60,12 @@ async function pipelineLearnCommand(args: CommandArgs): Promise<unknown> {
       artifact: promotion.artifactRef.path,
     })),
   };
+}
+
+async function pipelineCompareCommand(args: CommandArgs): Promise<unknown> {
+  const comparison = compareRuns({
+    baselineDir: resolve(args.requiredFlag('--baseline')),
+    treatmentDir: resolve(args.requiredFlag('--treatment')),
+  });
+  return { ok: true, ...comparison };
 }

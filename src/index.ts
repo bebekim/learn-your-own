@@ -230,6 +230,7 @@ export {
   lessonsForRole,
   loadLessons,
   renderLessonsBlock,
+  selectLessons,
 } from './lyo/lesson-library.ts';
 export type { Lesson } from './lyo/lesson-library.ts';
 export {

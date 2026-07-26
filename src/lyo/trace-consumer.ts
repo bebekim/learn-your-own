@@ -13,6 +13,7 @@ import { join } from 'node:path';
 
 import { hashFile } from '../contract/refs.ts';
 import type { ArtifactRef } from '../contract/refs.ts';
+import { installPromotedLessons } from './lesson-library.ts';
 import {
   LYO_UPDATE_VERSION,
   validateLyoUpdate,
@@ -73,6 +74,8 @@ export interface AnalyzedDisagreement extends DisagreementInput {
 export interface RunAnalysis {
   runId: string;
   runDir: string;
+  specId: string;
+  testWriterModel?: string;
   disagreements: AnalyzedDisagreement[];
 }
 
@@ -80,7 +83,23 @@ export interface ConsumeTraceInput {
   runDirs: string[];
   judge?: JudgeFn;
   judgeModel?: string;
+  libraryDir?: string;
+  gate?: { mode?: 'permissive' | 'strict' };
 }
+
+interface GateRules {
+  minRuns: number;
+  minSpecs: number;
+  wilsonFloor: number;
+  weakenBlocks: boolean;
+}
+
+const GATE_PRESETS: Record<'permissive' | 'strict', GateRules> = {
+  // Young ledger: recurrence is enough, statistics stay out of the way.
+  permissive: { minRuns: 2, minSpecs: 1, wilsonFloor: 0, weakenBlocks: false },
+  // Kernel discipline: cross-spec evidence, Wilson floor, contradiction kills.
+  strict: { minRuns: 2, minSpecs: 2, wilsonFloor: 0.5, weakenBlocks: true },
+};
 
 export interface TraceConsumption {
   analyses: RunAnalysis[];
@@ -88,12 +107,12 @@ export interface TraceConsumption {
   updatePath: string;
   analysisPath: string;
   lessonsDir: string;
+  installedLessons: string[];
 }
 
 const DEFAULT_JUDGE_MODEL = 'openai/gpt-4o-mini';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const JUDGE_TIMEOUT_MS = 180000;
-const PROMOTE_THRESHOLD = 2;
 
 export async function loadRunEvidence(runDir: string): Promise<RunEvidence> {
   const plan = must(validatePlan(readJson(join(runDir, 'plan.json'))), 'plan');
@@ -213,11 +232,14 @@ export async function consumeTraces({
   runDirs,
   judge,
   judgeModel,
+  libraryDir,
+  gate,
 }: ConsumeTraceInput): Promise<TraceConsumption> {
   if (runDirs.length === 0) {
     throw new Error('consumeTraces: at least one run dir is required');
   }
   const judgeFn = judge ?? defaultJudge(judgeModel);
+  const gateRules = GATE_PRESETS[gate?.mode ?? 'permissive'];
   const analyses: RunAnalysis[] = [];
   for (const runDir of runDirs) {
     const evidence = await loadRunEvidence(runDir);
@@ -225,25 +247,42 @@ export async function consumeTraces({
     for (const disagreement of extractDisagreements(evidence)) {
       disagreements.push({ ...disagreement, judgment: await judgeFn(disagreement) });
     }
-    analyses.push({ runId: evidence.runId, runDir, disagreements });
+    analyses.push({
+      runId: evidence.runId,
+      runDir,
+      specId: evidence.spec.specId,
+      testWriterModel: evidence.plan.stages.find((stage) => stage.role === 'test-writer')?.executor
+        ?.model,
+      disagreements,
+    });
   }
 
-  // Credibility gate: group lessons by signature; a lesson observed in only
-  // one run stays a candidate, 2+ runs earns future-runs promotion.
+  // Credibility gate: group lessons by classification (a lesson's phrasing
+  // drifts between judge calls; its KIND is the stable signal), then apply
+  // the gate preset — run count, cross-spec spread, Wilson floor, and
+  // weaken-event blocking in strict mode.
   const lessonGroups = new Map<
     string,
-    { judgment: Judgment; runIds: string[]; testNames: string[] }
+    { judgment: Judgment; runIds: string[]; specIds: Set<string>; models: Set<string>; testNames: string[] }
   >();
   for (const analysis of analyses) {
+    const seenInRun = new Set<string>();
     for (const disagreement of analysis.disagreements) {
-      const signature = `${disagreement.judgment.classification}:${slugify(disagreement.judgment.lesson)}`;
+      const signature = disagreement.judgment.classification;
       const group = lessonGroups.get(signature) ?? {
         judgment: disagreement.judgment,
         runIds: [],
+        specIds: new Set<string>(),
+        models: new Set<string>(),
         testNames: [],
       };
-      if (!group.runIds.includes(analysis.runId)) {
+      if (!seenInRun.has(signature)) {
         group.runIds.push(analysis.runId);
+        seenInRun.add(signature);
+      }
+      group.specIds.add(analysis.specId);
+      if (analysis.testWriterModel) {
+        group.models.add(analysis.testWriterModel);
       }
       group.testNames.push(disagreement.testName);
       lessonGroups.set(signature, group);
@@ -258,7 +297,25 @@ export async function consumeTraces({
   let lessonIndex = 0;
   for (const [signature, group] of lessonGroups) {
     lessonIndex++;
-    const promoted = group.runIds.length >= PROMOTE_THRESHOLD;
+    // Weaken events: runs with the same spec and test-writer model that
+    // produced NO disagreement of this class.
+    const harmful = analyses.filter(
+      (analysis) =>
+        !group.runIds.includes(analysis.runId) &&
+        group.specIds.has(analysis.specId) &&
+        analysis.testWriterModel !== undefined &&
+        group.models.has(analysis.testWriterModel)
+    ).length;
+    const helpful = group.runIds.length;
+    const wilsonLower = wilsonLowerBound(helpful, helpful + harmful);
+    const promoted =
+      helpful >= gateRules.minRuns &&
+      group.specIds.size >= gateRules.minSpecs &&
+      wilsonLower >= gateRules.wilsonFloor &&
+      !(gateRules.weakenBlocks && harmful > 0);
+    const gateStats =
+      `${signature}: observed in ${helpful} run(s), ${group.specIds.size} spec(s), ` +
+      `helpful=${helpful} harmful=${harmful} wilsonLower=${wilsonLower.toFixed(2)}`;
     const lessonPath = join(lessonsDir, `lesson-${lessonIndex}-${signature.replace(/[^a-z0-9-]/gi, '-').slice(0, 60)}.md`);
     writeFileSync(
       lessonPath,
@@ -285,9 +342,7 @@ export async function consumeTraces({
         sha256: hashFile(lessonPath).sha256,
       },
       scope: promoted ? 'future-runs' : 'candidate',
-      rationale:
-        `${group.judgment.classification} observed in ${group.runIds.length} run(s): ` +
-        group.judgment.rationale,
+      rationale: `${gateStats} — ${group.judgment.rationale}`,
     });
   }
 
@@ -333,7 +388,13 @@ export async function consumeTraces({
   const analysisPath = join(outDir, 'lyo-analysis.md');
   writeFileSync(analysisPath, renderAnalysisMd(analyses, update));
 
-  return { analyses, update, updatePath, analysisPath, lessonsDir };
+  // Delivery: promoted lessons are installed into the shared library so
+  // future runs can inject them.
+  const installedLessons = libraryDir
+    ? installPromotedLessons({ update, sourceDir: outDir, libraryDir })
+    : [];
+
+  return { analyses, update, updatePath, analysisPath, lessonsDir, installedLessons };
 }
 
 function renderAnalysisMd(analyses: RunAnalysis[], update: LyoUpdate): string {
@@ -464,12 +525,15 @@ function tapExcerptFor(tapText: string, testName: string): string {
   return excerpt.join('\n');
 }
 
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60);
+function wilsonLowerBound(successes: number, total: number, z = 1.96): number {
+  if (total === 0) {
+    return 0;
+  }
+  const p = successes / total;
+  const z2 = z * z;
+  const center = p + z2 / (2 * total);
+  const margin = z * Math.sqrt((p * (1 - p)) / total + z2 / (4 * total * total));
+  return (center - margin) / (1 + z2 / total);
 }
 
 function must<T>(result: ValidationResult<T>, artifact: string): T {

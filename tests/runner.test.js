@@ -309,3 +309,26 @@ test('upstage executor names UPSTAGE_API_KEY when the key is missing', async () 
   const executor = createUpstageExecutor({ model: 'solar-pro3' });
   await assert.rejects(() => executor({ prompt: 'p', sandboxDir: '/tmp' }), /UPSTAGE_API_KEY/);
 });
+
+test('kimi-cli executor retries once on non-zero exit and records both attempts', async () => {
+  const results = [
+    { stdout: '', stderr: 'connection dropped', code: 1 },
+    { stdout: 'recovered', stderr: '', code: 0 },
+  ];
+  const executor = createKimiCliExecutor({
+    spawnKimi: async () => results.shift(),
+    retryDelayMs: 0,
+  });
+  const result = await executor({ prompt: 'p', sandboxDir: '/tmp/sandbox' });
+  assert.match(result.transcript, /connection dropped/);
+  assert.match(result.transcript, /recovered/);
+  assert.equal(results.length, 0);
+});
+
+test('kimi-cli executor throws after the retry also fails', async () => {
+  const executor = createKimiCliExecutor({
+    spawnKimi: async () => ({ stdout: '', stderr: 'still broken', code: 1 }),
+    retryDelayMs: 0,
+  });
+  await assert.rejects(() => executor({ prompt: 'p', sandboxDir: '/tmp' }), /still broken/);
+});

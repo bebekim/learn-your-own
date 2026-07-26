@@ -59,13 +59,13 @@ async function sha256Of(path) {
   return createHash('sha256').update(read(path)).digest('hex');
 }
 
-async function makeRunDir(root, runId) {
+async function makeRunDir(root, runId, { specId = 'add-spec', failing = true } = {}) {
   const runDir = join(root, runId);
   mkdirSync(join(runDir, 'artifacts/code/generated/src'), { recursive: true });
   mkdirSync(join(runDir, 'artifacts/tests/generated/tests'), { recursive: true });
   mkdirSync(join(runDir, 'verify-tap'), { recursive: true });
 
-  writeFileSync(join(runDir, 'spec.json'), JSON.stringify(SPEC));
+  writeFileSync(join(runDir, 'spec.json'), JSON.stringify({ ...SPEC, specId }));
   const specRef = { path: 'spec.json', sha256: await sha256Of(join(runDir, 'spec.json')) };
 
   const plan = {
@@ -122,19 +122,33 @@ async function makeRunDir(root, runId) {
   const testRef = { path: 'artifacts/tests/manifest.json', sha256: await sha256Of(join(runDir, 'artifacts/tests/manifest.json')) };
 
   writeFileSync(join(runDir, 'verify-tap/tap.round-1.txt'), TAP);
-  const report = {
-    version: 'lyo.verifier-report.v1',
-    specRef,
-    codeRef,
-    testRef,
-    counts: { total: 3, passed: 1, failed: 2 },
-    outcome: 'fail',
-    perTest: [
-      { name: 'adds positive integers', status: 'pass' },
-      { name: 'handles overflow', status: 'fail' },
-      { name: 'is commutative', status: 'fail' },
-    ],
-  };
+  const report = failing
+    ? {
+        version: 'lyo.verifier-report.v1',
+        specRef,
+        codeRef,
+        testRef,
+        counts: { total: 3, passed: 1, failed: 2 },
+        outcome: 'fail',
+        perTest: [
+          { name: 'adds positive integers', status: 'pass' },
+          { name: 'handles overflow', status: 'fail' },
+          { name: 'is commutative', status: 'fail' },
+        ],
+      }
+    : {
+        version: 'lyo.verifier-report.v1',
+        specRef,
+        codeRef,
+        testRef,
+        counts: { total: 3, passed: 3, failed: 0 },
+        outcome: 'pass',
+        perTest: [
+          { name: 'adds positive integers', status: 'pass' },
+          { name: 'handles overflow', status: 'pass' },
+          { name: 'is commutative', status: 'pass' },
+        ],
+      };
   writeFileSync(join(runDir, 'verifier-report.json'), JSON.stringify(report));
 
   const trace = {
@@ -231,5 +245,131 @@ test('a lesson seen in two runs is promoted to future-runs scope', async () => {
     assert.equal(update.basedOnTraces.length, 2);
     const scopes = update.promotions.map((promotion) => promotion.scope);
     assert.ok(scopes.includes('future-runs'));
+  });
+});
+
+test('consumeTraces installs promoted lessons into the library dir', async () => {
+  await withTmp(async (dir) => {
+    const runA = await makeRunDir(dir, 'run-a');
+    const runB = await makeRunDir(dir, 'run-b');
+    const libraryDir = join(dir, 'library');
+    const result = await consumeTraces({
+      runDirs: [runA, runB],
+      judge: async () => JUDGMENT,
+      libraryDir,
+    });
+
+    assert.equal(result.installedLessons.length, 1);
+    const installed = readFileSync(result.installedLessons[0], 'utf8');
+    assert.match(installed, /must not assert behavior beyond the written spec/);
+  });
+});
+
+test('consumeTraces does not install single-run candidates into the library', async () => {
+  await withTmp(async (dir) => {
+    const runA = await makeRunDir(dir, 'run-a');
+    const libraryDir = join(dir, 'library');
+    const result = await consumeTraces({
+      runDirs: [runA],
+      judge: async () => JUDGMENT,
+      libraryDir,
+    });
+    assert.deepEqual(result.installedLessons, []);
+  });
+});
+
+test('lessons with the same classification but different phrasing group across runs', async () => {
+  await withTmp(async (dir) => {
+    const runA = await makeRunDir(dir, 'run-a');
+    const runB = await makeRunDir(dir, 'run-b');
+    const phrasings = [
+      'Test writers must not assert behavior beyond the written spec.',
+      'Never freeze an expectation that the spec text does not determine.',
+    ];
+    let call = 0;
+    const result = await consumeTraces({
+      runDirs: [runA, runB],
+      judge: async () => {
+        call++;
+        return { ...JUDGMENT, lesson: phrasings[call <= 2 ? 0 : 1] };
+      },
+    });
+
+    const promoted = JSON.parse(readFileSync(result.updatePath, 'utf8')).promotions;
+    const futureRuns = promoted.filter((promotion) => promotion.scope === 'future-runs');
+    assert.equal(futureRuns.length, 1);
+    assert.match(futureRuns[0].rationale, /2 run\(s\)/);
+  });
+});
+
+test('strict gate blocks promotion when observations come from a single spec', async () => {
+  await withTmp(async (dir) => {
+    const runA = await makeRunDir(dir, 'run-a');
+    const runB = await makeRunDir(dir, 'run-b');
+    const result = await consumeTraces({
+      runDirs: [runA, runB],
+      judge: async () => JUDGMENT,
+      gate: { mode: 'strict' },
+    });
+    const update = JSON.parse(readFileSync(result.updatePath, 'utf8'));
+    assert.deepEqual(
+      update.promotions.map((promotion) => promotion.scope),
+      ['candidate']
+    );
+    assert.match(update.promotions[0].rationale, /1 spec/);
+  });
+});
+
+test('strict gate promotes across two specs once Wilson n is sufficient', async () => {
+  await withTmp(async (dir) => {
+    // Wilson lower bound at 2/2 is ~0.34 < 0.5 — two clean observations are
+    // never enough in strict mode. At 4/4 it crosses 0.5.
+    const runs = [];
+    for (const [index, specId] of ['spec-one', 'spec-one', 'spec-two', 'spec-two'].entries()) {
+      runs.push(await makeRunDir(dir, `run-${index}`, { specId }));
+    }
+    const result = await consumeTraces({
+      runDirs: runs,
+      judge: async () => JUDGMENT,
+      gate: { mode: 'strict' },
+    });
+    const update = JSON.parse(readFileSync(result.updatePath, 'utf8'));
+    assert.deepEqual(
+      update.promotions.map((promotion) => promotion.scope),
+      ['future-runs']
+    );
+    assert.match(update.promotions[0].rationale, /2 spec/);
+    assert.match(update.promotions[0].rationale, /helpful=4 harmful=0/);
+  });
+});
+
+test('strict gate hard-blocks on a weaken event; permissive ignores it', async () => {
+  await withTmp(async (dir) => {
+    const runA = await makeRunDir(dir, 'run-a', { specId: 'spec-one' });
+    const runB = await makeRunDir(dir, 'run-b', { specId: 'spec-two' });
+    const cleanRun = await makeRunDir(dir, 'run-clean', { specId: 'spec-one', failing: false });
+
+    const strict = await consumeTraces({
+      runDirs: [runA, runB, cleanRun],
+      judge: async () => JUDGMENT,
+      gate: { mode: 'strict' },
+    });
+    const strictUpdate = JSON.parse(readFileSync(strict.updatePath, 'utf8'));
+    assert.deepEqual(
+      strictUpdate.promotions.map((promotion) => promotion.scope),
+      ['candidate']
+    );
+    assert.match(strictUpdate.promotions[0].rationale, /harmful=1/);
+
+    const permissive = await consumeTraces({
+      runDirs: [runA, runB, cleanRun],
+      judge: async () => JUDGMENT,
+      gate: { mode: 'permissive' },
+    });
+    const permissiveUpdate = JSON.parse(readFileSync(permissive.updatePath, 'utf8'));
+    assert.deepEqual(
+      permissiveUpdate.promotions.map((promotion) => promotion.scope),
+      ['future-runs']
+    );
   });
 });

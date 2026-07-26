@@ -33,9 +33,9 @@ import { createOpenRouterExecutor } from './executors/openrouter.ts';
 import { createUpstageExecutor } from './executors/upstage.ts';
 import type { StageExecutor } from './executors/stage-executor.ts';
 import {
-  lessonsForRole,
   loadLessons,
   renderLessonsBlock,
+  selectLessons,
   type Lesson,
 } from '../lyo/lesson-library.ts';
 import {
@@ -132,8 +132,8 @@ export async function runPipeline({
   // (titles only) and declared as hashed trace inputs.
   const library = lessonsDir ? loadLessons(lessonsDir) : [];
   const stageLessons: Record<'code-writer' | 'test-writer', Lesson[]> = {
-    'code-writer': lessonsForRole(library, 'code-writer'),
-    'test-writer': lessonsForRole(library, 'test-writer'),
+    'code-writer': selectLessons(library, { role: 'code-writer' }),
+    'test-writer': selectLessons(library, { role: 'test-writer' }),
   };
   prompts.codeWriter += renderLessonsBlock(stageLessons['code-writer']);
   prompts.testWriter += renderLessonsBlock(stageLessons['test-writer']);
