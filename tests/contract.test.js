@@ -231,3 +231,11 @@ test('trace accepts an optional feedback summary with a stop reason', () => {
     assert.equal(validateTrace(trace).ok, false, bad);
   }
 });
+
+test('plan executor accepts the upstage kind', () => {
+  const plan = fixture('plan.json');
+  plan.stages[1].executor = { kind: 'upstage', model: 'solar-pro3', temperature: 0.7 };
+  const result = validatePlan(plan);
+  assert.equal(result.ok, true);
+  assert.equal(result.value.stages[1].executor.kind, 'upstage');
+});

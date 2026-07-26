@@ -8,6 +8,7 @@ import {
   collectFiles,
   createKimiCliExecutor,
   createOpenRouterExecutor,
+  createUpstageExecutor,
   filterDeclaredWrites,
   materializeSandbox,
   parseFileBlocks,
@@ -272,4 +273,39 @@ test('openrouter executor requests reasoning exclusion and a token budget', asyn
     globalThis.fetch = originalFetch;
     delete process.env.OPENROUTER_API_KEY;
   }
+});
+
+test('upstage executor posts to the upstage endpoint with its own key and reasoning effort', async () => {
+  process.env.UPSTAGE_API_KEY = 'up_test_key';
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, init) => {
+    calls.push({ url, init });
+    return {
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: 'done' }, finish_reason: 'stop' }],
+      }),
+    };
+  };
+  try {
+    const executor = createUpstageExecutor({ model: 'solar-pro3', temperature: 0.7 });
+    const result = await executor({ prompt: 'COMPILED', sandboxDir: '/tmp/sandbox' });
+    assert.equal(result.transcript, 'done');
+    assert.equal(calls[0].url, 'https://api.upstage.ai/v1/chat/completions');
+    assert.equal(calls[0].init.headers.Authorization, 'Bearer up_test_key');
+    const body = JSON.parse(calls[0].init.body);
+    assert.equal(body.model, 'solar-pro3');
+    assert.equal(body.temperature, 0.7);
+    assert.equal(body.reasoning_effort, 'low');
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.UPSTAGE_API_KEY;
+  }
+});
+
+test('upstage executor names UPSTAGE_API_KEY when the key is missing', async () => {
+  delete process.env.UPSTAGE_API_KEY;
+  const executor = createUpstageExecutor({ model: 'solar-pro3' });
+  await assert.rejects(() => executor({ prompt: 'p', sandboxDir: '/tmp' }), /UPSTAGE_API_KEY/);
 });

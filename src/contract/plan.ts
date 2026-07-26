@@ -15,7 +15,7 @@ export const planStageAuthoritySchema = z.object({
 });
 
 export const planStageExecutorSchema = z.object({
-  kind: z.enum(['kimi-cli', 'openrouter']),
+  kind: z.enum(['kimi-cli', 'openrouter', 'upstage']),
   model: z.string().min(1),
   temperature: z.number().min(0).max(2).optional(),
 });

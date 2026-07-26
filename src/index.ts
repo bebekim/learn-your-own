@@ -168,6 +168,9 @@ export type {
 } from './runner/executors/openrouter.ts';
 export { createKimiCliExecutor } from './runner/executors/kimi-cli.ts';
 export type { KimiCliExecutorOptions, SpawnKimiFn } from './runner/executors/kimi-cli.ts';
+export { createUpstageExecutor, UPSTAGE_URL } from './runner/executors/upstage.ts';
+export type { UpstageExecutorOptions } from './runner/executors/upstage.ts';
+export { createOpenAiCompatibleExecutor } from './runner/executors/openai-compatible.ts';
 export type {
   StageExecutionInput,
   StageExecutionResult,
@@ -177,6 +180,8 @@ export { parseTapOutput, runVerifier } from './runner/verifier.ts';
 export type { RunTestsFn, VerifierRun } from './runner/verifier.ts';
 export { runPipeline } from './runner/run-pipeline.ts';
 export type { ExecutorFactory, RunPipelineInput, RunPipelineResult } from './runner/run-pipeline.ts';
+export { compareRuns } from './runner/compare-runs.ts';
+export type { RunComparison } from './runner/compare-runs.ts';
 export {
   corpusReport,
   syncCorpusOnce,
@@ -220,6 +225,13 @@ export {
   parseReflectionJson,
 } from './lyo/elaborator-reflector.ts';
 export { LessonStore } from './lyo/lesson-store.ts';
+export {
+  installPromotedLessons,
+  lessonsForRole,
+  loadLessons,
+  renderLessonsBlock,
+} from './lyo/lesson-library.ts';
+export type { Lesson } from './lyo/lesson-library.ts';
 export {
   buildJudgePrompt,
   consumeTraces,

@@ -30,7 +30,14 @@ import type {
 } from '../contract/index.ts';
 import { createKimiCliExecutor } from './executors/kimi-cli.ts';
 import { createOpenRouterExecutor } from './executors/openrouter.ts';
+import { createUpstageExecutor } from './executors/upstage.ts';
 import type { StageExecutor } from './executors/stage-executor.ts';
+import {
+  lessonsForRole,
+  loadLessons,
+  renderLessonsBlock,
+  type Lesson,
+} from '../lyo/lesson-library.ts';
 import {
   collectFiles,
   filterDeclaredWrites,
@@ -49,6 +56,7 @@ export interface RunPipelineInput {
   executorFactory?: ExecutorFactory;
   runTests?: RunTestsFn;
   now?: () => Date;
+  lessonsDir?: string;
 }
 
 export interface RunPipelineResult {
@@ -83,6 +91,7 @@ export async function runPipeline({
   executorFactory = defaultExecutorFactory,
   runTests,
   now = () => new Date(),
+  lessonsDir,
 }: RunPipelineInput): Promise<RunPipelineResult> {
   const sourceRoot = dirname(planPath);
   const plan = mustValidate(validatePlan(readJson(planPath)), 'plan');
@@ -119,6 +128,18 @@ export async function runPipeline({
   const specRef = runRef(join(runDir, 'spec.json'));
 
   const prompts = buildStagePrompts(plan, spec, specText, codeStage, testStage);
+  // Delivery: promoted lessons are injected into the blind-safe stage prompts
+  // (titles only) and declared as hashed trace inputs.
+  const library = lessonsDir ? loadLessons(lessonsDir) : [];
+  const stageLessons: Record<'code-writer' | 'test-writer', Lesson[]> = {
+    'code-writer': lessonsForRole(library, 'code-writer'),
+    'test-writer': lessonsForRole(library, 'test-writer'),
+  };
+  prompts.codeWriter += renderLessonsBlock(stageLessons['code-writer']);
+  prompts.testWriter += renderLessonsBlock(stageLessons['test-writer']);
+  const lessonRefs = (role: 'code-writer' | 'test-writer'): ArtifactRef[] =>
+    stageLessons[role].map((lesson) => ({ path: lesson.path, sha256: lesson.sha256 }));
+
   const pipelineStartedAt = now().toISOString();
   const maxRounds = plan.feedbackPolicy.maxRounds ?? 1;
   const iterating = maxRounds > 1;
@@ -149,11 +170,16 @@ export async function runPipeline({
   ]);
 
   const traceStages: Trace['stages'] = [];
-  const recordWriter = (outcome: StageOutcome, round?: number, manifestRef?: ArtifactRef): void => {
+  const recordWriter = (
+    outcome: StageOutcome,
+    round?: number,
+    manifestRef?: ArtifactRef,
+    extraInputs: ArtifactRef[] = []
+  ): void => {
     traceStages.push({
       stageId: outcome.stage.stageId,
       round,
-      inputs: [specRef],
+      inputs: [specRef, ...extraInputs],
       outputs: [manifestRef ?? outcome.manifestRef],
       model: outcome.stage.executor?.model,
       promptSha256: outcome.promptSha256,
@@ -164,9 +190,10 @@ export async function runPipeline({
   recordWriter(
     firstCodeOutcome,
     iterating ? 1 : undefined,
-    iterating ? snapshotManifest(runDir, runRef, 'code', 1) : undefined
+    iterating ? snapshotManifest(runDir, runRef, 'code', 1) : undefined,
+    lessonRefs('code-writer')
   );
-  recordWriter(testOutcome, iterating ? 1 : undefined);
+  recordWriter(testOutcome, iterating ? 1 : undefined, undefined, lessonRefs('test-writer'));
 
   // Deterministic verifier: merge both output trees and run the frozen tests.
   const verifyRound = async (
@@ -240,7 +267,7 @@ export async function runPipeline({
       round,
     });
     codeManifestRef = snapshotManifest(runDir, runRef, 'code', round);
-    recordWriter(codeOutcome, round, codeManifestRef);
+    recordWriter(codeOutcome, round, codeManifestRef, lessonRefs('code-writer'));
     ({ verification } = await verifyRound(round, codeManifestRef));
 
     if (verification.outcome === 'pass') {
@@ -497,6 +524,12 @@ function defaultExecutorFactory(stage: PlanStage): StageExecutor {
   }
   if (stage.executor.kind === 'kimi-cli') {
     return createKimiCliExecutor({ model: stage.executor.model });
+  }
+  if (stage.executor.kind === 'upstage') {
+    return createUpstageExecutor({
+      model: stage.executor.model,
+      temperature: stage.executor.temperature,
+    });
   }
   return createOpenRouterExecutor({
     model: stage.executor.model,
