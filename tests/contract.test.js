@@ -196,3 +196,38 @@ test('hashValue is deterministic and key-order independent', () => {
   assert.match(left, /^[0-9a-f]{64}$/);
   assert.notEqual(left, VALID_SHA256.replace(/a/g, 'b'));
 });
+
+test('feedbackPolicy accepts an optional maxRounds budget', () => {
+  const plan = fixture('plan.json');
+  plan.feedbackPolicy.maxRounds = 3;
+  const result = validatePlan(plan);
+  assert.equal(result.ok, true);
+  assert.equal(result.value.feedbackPolicy.maxRounds, 3);
+});
+
+test('feedbackPolicy rejects a non-positive maxRounds', () => {
+  const plan = fixture('plan.json');
+  plan.feedbackPolicy.maxRounds = 0;
+  assert.equal(validatePlan(plan).ok, false);
+});
+
+test('trace stage records accept an optional round number', () => {
+  const trace = fixture('trace.json');
+  trace.stages[0].round = 2;
+  const result = validateTrace(trace);
+  assert.equal(result.ok, true);
+  assert.equal(result.value.stages[0].round, 2);
+});
+
+test('trace accepts an optional feedback summary with a stop reason', () => {
+  const trace = fixture('trace.json');
+  trace.feedback = { rounds: 3, stopReason: 'stuck' };
+  const result = validateTrace(trace);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.value.feedback, { rounds: 3, stopReason: 'stuck' });
+
+  for (const bad of ['finished', 'error', '']) {
+    trace.feedback = { rounds: 3, stopReason: bad };
+    assert.equal(validateTrace(trace).ok, false, bad);
+  }
+});

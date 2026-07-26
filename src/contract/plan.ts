@@ -36,6 +36,8 @@ export const planSchema = z.object({
   stages: z.array(planStageSchema).min(1),
   feedbackPolicy: z.object({
     codeWriterSees: z.literal('aggregate_only'),
+    // Iteration budget for the code writer. Absent means single-pass.
+    maxRounds: z.number().int().min(1).optional(),
   }),
   stateless: z.literal(true),
 });

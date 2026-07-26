@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { cpSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { compileSeparatedCodeAndTestPromptArtifacts } from '../compiler/prompt-artifacts.ts';
@@ -31,8 +31,14 @@ import type {
 import { createKimiCliExecutor } from './executors/kimi-cli.ts';
 import { createOpenRouterExecutor } from './executors/openrouter.ts';
 import type { StageExecutor } from './executors/stage-executor.ts';
-import { collectFiles, filterDeclaredWrites, materializeSandbox, parseFileBlocks } from './files.ts';
-import { runVerifier, type RunTestsFn } from './verifier.ts';
+import {
+  collectFiles,
+  filterDeclaredWrites,
+  materializeSandbox,
+  parseFileBlocks,
+  type FileBlock,
+} from './files.ts';
+import { runVerifier, type RunTestsFn, type VerifierRun } from './verifier.ts';
 
 export type ExecutorFactory = (stage: PlanStage) => StageExecutor;
 
@@ -57,6 +63,7 @@ interface StageOutcome {
   stage: PlanStage;
   manifestRef: ArtifactRef;
   manifest: CodeManifest | TestManifest;
+  contents: FileBlock[];
   promptSha256: string;
   startedAt: string;
   finishedAt: string;
@@ -113,8 +120,10 @@ export async function runPipeline({
 
   const prompts = buildStagePrompts(plan, spec, specText, codeStage, testStage);
   const pipelineStartedAt = now().toISOString();
+  const maxRounds = plan.feedbackPolicy.maxRounds ?? 1;
+  const iterating = maxRounds > 1;
 
-  const [codeOutcome, testOutcome] = await Promise.all([
+  const [firstCodeOutcome, testOutcome] = await Promise.all([
     runWriterStage({
       stage: codeStage,
       prompt: prompts.codeWriter,
@@ -124,6 +133,7 @@ export async function runPipeline({
       executorFactory,
       specRef,
       now,
+      round: iterating ? 1 : undefined,
     }),
     runWriterStage({
       stage: testStage,
@@ -134,25 +144,116 @@ export async function runPipeline({
       executorFactory,
       specRef,
       now,
+      round: iterating ? 1 : undefined,
     }),
   ]);
 
+  const traceStages: Trace['stages'] = [];
+  const recordWriter = (outcome: StageOutcome, round?: number, manifestRef?: ArtifactRef): void => {
+    traceStages.push({
+      stageId: outcome.stage.stageId,
+      round,
+      inputs: [specRef],
+      outputs: [manifestRef ?? outcome.manifestRef],
+      model: outcome.stage.executor?.model,
+      promptSha256: outcome.promptSha256,
+      startedAt: outcome.startedAt,
+      finishedAt: outcome.finishedAt,
+    });
+  };
+  recordWriter(
+    firstCodeOutcome,
+    iterating ? 1 : undefined,
+    iterating ? snapshotManifest(runDir, runRef, 'code', 1) : undefined
+  );
+  recordWriter(testOutcome, iterating ? 1 : undefined);
+
   // Deterministic verifier: merge both output trees and run the frozen tests.
-  const verifyStartedAt = now().toISOString();
-  const verifyDir = join(runDir, 'verify');
-  const noManifest = (source: string): boolean => !source.endsWith('manifest.json');
-  cpSync(join(runDir, 'artifacts', 'code'), join(verifyDir), { recursive: true, filter: noManifest });
-  cpSync(join(runDir, 'artifacts', 'tests'), join(verifyDir), { recursive: true, filter: noManifest });
-  // Decouple the merged tree from any ancestor package.json (e.g. a repo with
-  // "type": "module" would break CommonJS artifacts). The spec's constraints
-  // declare the module system; CommonJS is the v1 default.
-  writeFileSync(join(verifyDir, 'package.json'), JSON.stringify({ type: 'commonjs' }));
-  const verification = await runVerifier({
-    dir: verifyDir,
-    testPath: testStage.outputs[0],
-    runTests,
-  });
-  const verifyFinishedAt = now().toISOString();
+  const verifyRound = async (
+    round: number,
+    codeManifestRef: ArtifactRef
+  ): Promise<{ verification: VerifierRun; startedAt: string; finishedAt: string }> => {
+    const startedAt = now().toISOString();
+    const verifyDir = join(runDir, 'verify');
+    rmSync(verifyDir, { recursive: true, force: true });
+    const noManifest = (source: string): boolean => !source.endsWith('manifest.json');
+    cpSync(join(runDir, 'artifacts', 'code'), verifyDir, { recursive: true, filter: noManifest });
+    cpSync(join(runDir, 'artifacts', 'tests'), verifyDir, { recursive: true, filter: noManifest });
+    // Decouple the merged tree from any ancestor package.json (e.g. a repo with
+    // "type": "module" would break CommonJS artifacts). The spec's constraints
+    // declare the module system; CommonJS is the v1 default.
+    writeFileSync(join(verifyDir, 'package.json'), JSON.stringify({ type: 'commonjs' }));
+    const verification = await runVerifier({
+      dir: verifyDir,
+      testPath: testStage.outputs[0],
+      runTests,
+    });
+    const finishedAt = now().toISOString();
+    traceStages.push({
+      stageId: verifierStage?.stageId ?? 'verifier',
+      round: iterating ? round : undefined,
+      inputs: [codeManifestRef, testOutcome.manifestRef],
+      outputs: [],
+      startedAt,
+      finishedAt,
+    });
+    return { verification, startedAt, finishedAt };
+  };
+
+  // Aggregate-only feedback loop: the code writer iterates against the frozen
+  // suite, seeing only its own previous code and pass/fail counts.
+  let codeOutcome = firstCodeOutcome;
+  let codeManifestRef = iterating
+    ? snapshotManifest(runDir, runRef, 'code', 1)
+    : codeOutcome.manifestRef;
+  let previousFiles = firstCodeOutcome.manifest.files;
+  let { verification } = await verifyRound(1, codeManifestRef);
+  let stopReason: 'pass' | 'max_rounds' | 'stuck' | 'no_change' | undefined =
+    verification.outcome === 'pass' ? 'pass' : undefined;
+  let bestPassed = verification.counts.passed;
+  let staleStrikes = 0;
+  let round = 1;
+
+  while (stopReason === undefined && round < maxRounds) {
+    round++;
+    const feedbackPrompt = buildFeedbackPrompt(
+      prompts.codeWriter,
+      codeOutcome.contents,
+      verification.counts,
+      round,
+      maxRounds
+    );
+    codeOutcome = await runWriterStage({
+      stage: codeStage,
+      prompt: feedbackPrompt,
+      artifactKind: 'code',
+      runDir,
+      sourceRoot,
+      executorFactory,
+      specRef,
+      now,
+      round,
+    });
+    codeManifestRef = snapshotManifest(runDir, runRef, 'code', round);
+    recordWriter(codeOutcome, round, codeManifestRef);
+    ({ verification } = await verifyRound(round, codeManifestRef));
+
+    if (verification.outcome === 'pass') {
+      stopReason = 'pass';
+    } else if (sameFileHashes(previousFiles, codeOutcome.manifest.files)) {
+      stopReason = 'no_change';
+    } else if (verification.counts.passed > bestPassed) {
+      bestPassed = verification.counts.passed;
+      staleStrikes = 0;
+    } else {
+      staleStrikes++;
+      if (staleStrikes >= 2) {
+        stopReason = 'stuck';
+      }
+    }
+    previousFiles = codeOutcome.manifest.files;
+  }
+  stopReason = stopReason ?? 'max_rounds';
 
   const report: VerifierReport = {
     version: VERIFIER_REPORT_VERSION,
@@ -166,23 +267,16 @@ export async function runPipeline({
   mustValidate(validateVerifierReport(report), 'verifier-report');
   const reportPath = join(runDir, 'verifier-report.json');
   writeFileSync(reportPath, JSON.stringify(report, null, 2));
+  const lastVerifyRecord = traceStages[traceStages.length - 1];
+  lastVerifyRecord.outputs = [runRef(reportPath)];
 
   const pipelineFinishedAt = now().toISOString();
   const trace: Trace = {
     version: TRACE_VERSION,
     runId: id,
     planRef,
-    stages: [
-      stageTraceRecord(codeOutcome, specRef),
-      stageTraceRecord(testOutcome, specRef),
-      {
-        stageId: verifierStage?.stageId ?? 'verifier',
-        inputs: [codeOutcome.manifestRef, testOutcome.manifestRef],
-        outputs: [runRef(reportPath)],
-        startedAt: verifyStartedAt,
-        finishedAt: verifyFinishedAt,
-      },
-    ],
+    stages: traceStages,
+    feedback: iterating ? { rounds: round, stopReason } : undefined,
     startedAt: pipelineStartedAt,
     finishedAt: pipelineFinishedAt,
   };
@@ -202,6 +296,7 @@ async function runWriterStage({
   executorFactory,
   specRef,
   now,
+  round,
 }: {
   stage: PlanStage;
   prompt: string;
@@ -211,14 +306,22 @@ async function runWriterStage({
   executorFactory: ExecutorFactory;
   specRef: ArtifactRef;
   now: () => Date;
+  round?: number;
 }): Promise<StageOutcome> {
   const sandboxDir = join(runDir, 'stages', stage.stageId, 'sandbox');
+  // Each stage execution starts from a clean sandbox: declared reads only,
+  // no leftovers from an earlier round.
+  rmSync(sandboxDir, { recursive: true, force: true });
+  mkdirSync(sandboxDir, { recursive: true });
   materializeSandbox({ sourceRoot, sandboxDir, readPaths: stage.authority.read });
 
   const startedAt = now().toISOString();
   const { transcript } = await executorFactory(stage)({ prompt, sandboxDir });
   const finishedAt = now().toISOString();
-  writeFileSync(join(runDir, 'stages', stage.stageId, 'transcript.txt'), transcript);
+  // Per-round transcripts are never overwritten; single-pass runs keep the
+  // plain name.
+  const transcriptName = round === undefined ? 'transcript.txt' : `transcript.round-${round}.txt`;
+  writeFileSync(join(runDir, 'stages', stage.stageId, transcriptName), transcript);
 
   // Single-shot executors return files as path-tagged blocks in the
   // transcript; only blocks under declared write paths touch disk.
@@ -240,7 +343,13 @@ async function runWriterStage({
 
   const artifactDir = join(runDir, 'artifacts', artifactKind);
   const manifestPath = join(artifactDir, 'manifest.json');
+  // Drop stale outputs from earlier rounds before copying the new ones;
+  // manifests and round snapshots live outside the declared output prefixes.
+  for (const prefix of stage.outputs) {
+    rmSync(join(artifactDir, prefix), { recursive: true, force: true });
+  }
   const files: ArtifactRef[] = [];
+  const contents: FileBlock[] = [];
   for (const relativePath of outputFiles) {
     const target = join(artifactDir, relativePath);
     mkdirSync(dirname(target), { recursive: true });
@@ -249,6 +358,12 @@ async function runWriterStage({
       path: target.slice(runDir.length + 1),
       sha256: hashFile(target).sha256,
     });
+    contents.push({ path: relativePath, content: readFileSync(target, 'utf8') });
+    if (round !== undefined) {
+      const snapshot = join(artifactDir, `files.round-${round}`, relativePath);
+      mkdirSync(dirname(snapshot), { recursive: true });
+      cpSync(target, snapshot);
+    }
   }
 
   const manifest =
@@ -282,22 +397,60 @@ async function runWriterStage({
       path: manifestPath.slice(runDir.length + 1),
       sha256: hashFile(manifestPath).sha256,
     },
+    contents,
     promptSha256: hashValue(prompt),
     startedAt,
     finishedAt,
   };
 }
 
-function stageTraceRecord(outcome: StageOutcome, specRef: ArtifactRef): Trace['stages'][number] {
-  return {
-    stageId: outcome.stage.stageId,
-    inputs: [specRef],
-    outputs: [outcome.manifestRef],
-    model: outcome.stage.executor?.model,
-    promptSha256: outcome.promptSha256,
-    startedAt: outcome.startedAt,
-    finishedAt: outcome.finishedAt,
-  };
+/**
+ * Preserve a round's manifest before the next round overwrites manifest.json.
+ * Trace records reference snapshots; the verifier report references the final
+ * canonical manifest.
+ */
+function snapshotManifest(
+  runDir: string,
+  runRef: (absolutePath: string) => ArtifactRef,
+  artifactKind: 'code' | 'tests',
+  round: number
+): ArtifactRef {
+  const source = join(runDir, 'artifacts', artifactKind, 'manifest.json');
+  const snapshot = join(runDir, 'artifacts', artifactKind, `manifest.round-${round}.json`);
+  cpSync(source, snapshot);
+  return runRef(snapshot);
+}
+
+function sameFileHashes(previous: ArtifactRef[], current: ArtifactRef[]): boolean {
+  const hashes = (files: ArtifactRef[]): string =>
+    files.map((file) => `${file.path}:${file.sha256}`).sort().join('\n');
+  return hashes(previous) === hashes(current);
+}
+
+/**
+ * The feedback channel, in full: pass/fail counts plus the writer's own
+ * previous implementation. No test names, no test code, no error details.
+ */
+function buildFeedbackPrompt(
+  originalPrompt: string,
+  previousFiles: FileBlock[],
+  counts: VerifierReport['counts'],
+  round: number,
+  maxRounds: number
+): string {
+  const filesBlock = previousFiles
+    .map((file) => `\`\`\`path=${file.path}\n${file.content}\n\`\`\``)
+    .join('\n\n');
+  return (
+    `${originalPrompt}\n\n---\n` +
+    `ITERATION FEEDBACK — ROUND ${round} of ${maxRounds}\n` +
+    `The frozen verification suite was run against your previous implementation.\n` +
+    `Result: ${counts.passed} of ${counts.total} checks passed; ${counts.failed} failed.\n` +
+    'You cannot see the tests and will not be told which checks failed or why. ' +
+    'Re-read the specification carefully, find the behaviors your implementation gets wrong, ' +
+    'and correct only your implementation.\n\n' +
+    `Your previous implementation:\n${filesBlock}\n`
+  );
 }
 
 function buildStagePrompts(

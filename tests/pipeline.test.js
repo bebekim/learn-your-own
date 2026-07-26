@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -31,7 +31,7 @@ const SPEC = {
   examples: [{ input: 'add(2, 3)', output: '5' }],
 };
 
-function writeSource(dir, { spec = SPEC, tamperSpec = false, weakenBlindness = false } = {}) {
+function writeSource(dir, { spec = SPEC, tamperSpec = false, weakenBlindness = false, maxRounds } = {}) {
   const specPath = join(dir, 'spec.json');
   writeFileSync(specPath, JSON.stringify(spec, null, 2));
   const specRef = { path: 'spec.json', sha256: hashFile(specPath).sha256 };
@@ -79,7 +79,10 @@ function writeSource(dir, { spec = SPEC, tamperSpec = false, weakenBlindness = f
     planId: 'plan-add-1',
     specRef,
     stages: [codeStage, testStage, verifierStage],
-    feedbackPolicy: { codeWriterSees: 'aggregate_only' },
+    feedbackPolicy: {
+      codeWriterSees: 'aggregate_only',
+      ...(maxRounds === undefined ? {} : { maxRounds }),
+    },
     stateless: true,
   };
   const planPath = join(dir, 'plan.json');
@@ -223,5 +226,198 @@ test('runPipeline persists stage transcripts for post-run inspection', async () 
       'utf8'
     );
     assert.match(testTranscript, /add\.test\.js/);
+  });
+});
+
+function iteratingCodeFactory(codePrompts, contentByRound) {
+  return (stage) => {
+    if (stage.role !== 'code-writer') {
+      return fakeExecutorFactory(stage);
+    }
+    return async ({ prompt, sandboxDir }) => {
+      codePrompts.push(prompt);
+      const content = contentByRound[Math.min(codePrompts.length, contentByRound.length) - 1];
+      mkdirSync(join(sandboxDir, 'generated/src'), { recursive: true });
+      writeFileSync(join(sandboxDir, 'generated/src/add.js'), content);
+      return { transcript: 'done' };
+    };
+  };
+}
+
+test('runPipeline iterates the code writer with aggregate-only feedback until pass', async () => {
+  await withTmp(async (dir) => {
+    const { planPath } = writeSource(dir, { maxRounds: 3 });
+    const codePrompts = [];
+    const factory = iteratingCodeFactory(codePrompts, [
+      'module.exports = { add: (a, b) => a - b };\n',
+      'module.exports = { add: (a, b) => a + b };\n',
+    ]);
+    const result = await runPipeline({
+      planPath,
+      runsRoot: join(dir, 'runs'),
+      executorFactory: factory,
+    });
+
+    assert.equal(result.report.outcome, 'pass');
+    assert.equal(codePrompts.length, 2);
+
+    assert.equal(codePrompts[0].includes('ITERATION FEEDBACK'), false);
+    // The feedback channel carries counts and the writer's own code — nothing else.
+    assert.match(codePrompts[1], /0 of 2 checks passed; 2 failed/);
+    assert.match(codePrompts[1], /a - b/);
+    assert.equal(codePrompts[1].includes('adds positive integers'), false);
+    assert.equal(codePrompts[1].includes('add.test.js'), false);
+
+    const trace = JSON.parse(readFileSync(result.tracePath, 'utf8'));
+    assert.deepEqual(trace.feedback, { rounds: 2, stopReason: 'pass' });
+    assert.deepEqual(
+      trace.stages.filter((stage) => stage.stageId === 'stage-code').map((stage) => stage.round),
+      [1, 2]
+    );
+  });
+});
+
+test('runPipeline stops at maxRounds while still failing', async () => {
+  await withTmp(async (dir) => {
+    const { planPath } = writeSource(dir, { maxRounds: 2 });
+    const codePrompts = [];
+    const factory = iteratingCodeFactory(codePrompts, [
+      'module.exports = { add: (a, b) => a - b };\n',
+      'module.exports = { add: (a, b) => b - a };\n',
+    ]);
+    const result = await runPipeline({
+      planPath,
+      runsRoot: join(dir, 'runs'),
+      executorFactory: factory,
+    });
+
+    assert.equal(result.report.outcome, 'fail');
+    assert.equal(codePrompts.length, 2);
+    const trace = JSON.parse(readFileSync(result.tracePath, 'utf8'));
+    assert.deepEqual(trace.feedback, { rounds: 2, stopReason: 'max_rounds' });
+  });
+});
+
+test('runPipeline stops early when the code does not change', async () => {
+  await withTmp(async (dir) => {
+    const { planPath } = writeSource(dir, { maxRounds: 4 });
+    const codePrompts = [];
+    const broken = 'module.exports = { add: (a, b) => a - b };\n';
+    const factory = iteratingCodeFactory(codePrompts, [broken, broken, broken, broken]);
+    const result = await runPipeline({
+      planPath,
+      runsRoot: join(dir, 'runs'),
+      executorFactory: factory,
+    });
+
+    assert.equal(result.report.outcome, 'fail');
+    assert.equal(codePrompts.length, 2);
+    const trace = JSON.parse(readFileSync(result.tracePath, 'utf8'));
+    assert.deepEqual(trace.feedback, { rounds: 2, stopReason: 'no_change' });
+  });
+});
+
+test('runPipeline stops when counts do not improve across rounds', async () => {
+  await withTmp(async (dir) => {
+    const { planPath } = writeSource(dir, { maxRounds: 5 });
+    const codePrompts = [];
+    const factory = iteratingCodeFactory(codePrompts, [
+      'module.exports = { add: (a, b) => a - b };\n',
+      'module.exports = { add: (a, b) => b - a };\n',
+      'module.exports = { add: (a, b) => a - b + 0 };\n',
+      'module.exports = { add: (a, b) => a + b };\n',
+      'module.exports = { add: (a, b) => a + b };\n',
+    ]);
+    const result = await runPipeline({
+      planPath,
+      runsRoot: join(dir, 'runs'),
+      executorFactory: factory,
+    });
+
+    assert.equal(result.report.outcome, 'fail');
+    assert.equal(codePrompts.length, 3);
+    const trace = JSON.parse(readFileSync(result.tracePath, 'utf8'));
+    assert.deepEqual(trace.feedback, { rounds: 3, stopReason: 'stuck' });
+  });
+});
+
+function scriptedCodeFactory(codePrompts, rounds) {
+  return (stage) => {
+    if (stage.role !== 'code-writer') {
+      return fakeExecutorFactory(stage);
+    }
+    return async ({ prompt, sandboxDir }) => {
+      codePrompts.push(prompt);
+      const files = rounds[Math.min(codePrompts.length, rounds.length) - 1];
+      for (const file of files) {
+        const target = join(sandboxDir, file.path);
+        mkdirSync(join(target, '..'), { recursive: true });
+        writeFileSync(target, file.content);
+      }
+      return { transcript: `round ${codePrompts.length} transcript` };
+    };
+  };
+}
+
+test('runPipeline preserves per-round transcripts and output files', async () => {
+  await withTmp(async (dir) => {
+    const { planPath } = writeSource(dir, { maxRounds: 3 });
+    const codePrompts = [];
+    const factory = scriptedCodeFactory(codePrompts, [
+      [{ path: 'generated/src/add.js', content: 'module.exports = { add: (a, b) => a - b };\n' }],
+      [{ path: 'generated/src/add.js', content: 'module.exports = { add: (a, b) => a + b };\n' }],
+    ]);
+    const result = await runPipeline({
+      planPath,
+      runsRoot: join(dir, 'runs'),
+      executorFactory: factory,
+    });
+    assert.equal(result.report.outcome, 'pass');
+
+    const stageDir = join(result.runDir, 'stages/stage-code');
+    assert.match(readFileSync(join(stageDir, 'transcript.round-1.txt'), 'utf8'), /round 1/);
+    assert.match(readFileSync(join(stageDir, 'transcript.round-2.txt'), 'utf8'), /round 2/);
+
+    const round1 = readFileSync(
+      join(result.runDir, 'artifacts/code/files.round-1/generated/src/add.js'),
+      'utf8'
+    );
+    const round2 = readFileSync(
+      join(result.runDir, 'artifacts/code/files.round-2/generated/src/add.js'),
+      'utf8'
+    );
+    assert.match(round1, /a - b/);
+    assert.match(round2, /a \+ b/);
+  });
+});
+
+test('runPipeline removes stale outputs from earlier rounds', async () => {
+  await withTmp(async (dir) => {
+    const { planPath } = writeSource(dir, { maxRounds: 3 });
+    const codePrompts = [];
+    const factory = scriptedCodeFactory(codePrompts, [
+      [
+        { path: 'generated/src/add.js', content: 'module.exports = { add: (a, b) => a - b };\n' },
+        { path: 'generated/src/stale.js', content: '// left over from round 1\n' },
+      ],
+      [{ path: 'generated/src/add.js', content: 'module.exports = { add: (a, b) => a + b };\n' }],
+    ]);
+    const result = await runPipeline({
+      planPath,
+      runsRoot: join(dir, 'runs'),
+      executorFactory: factory,
+    });
+    assert.equal(result.report.outcome, 'pass');
+
+    const manifest = JSON.parse(
+      readFileSync(join(result.runDir, 'artifacts/code/manifest.json'), 'utf8')
+    );
+    assert.equal(manifest.files.length, 1);
+    assert.match(manifest.files[0].path, /add\.js$/);
+    assert.equal(
+      existsSync(join(result.runDir, 'artifacts/code/generated/src/stale.js')),
+      false
+    );
+    assert.equal(existsSync(join(result.runDir, 'verify/generated/src/stale.js')), false);
   });
 });
