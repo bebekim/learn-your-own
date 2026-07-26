@@ -1,0 +1,15 @@
+{
+  "version": "lyo.code.v1",
+  "specRef": {
+    "path": "tests/fixtures/contract/spec.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "files": [
+    {
+      "path": "generated/src/add.ts",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "language": "typescript",
+  "entrypoint": "generated/src/add.ts"
+}

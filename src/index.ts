@@ -121,6 +121,39 @@ export {
   compileSeparatedCodeAndTestPromptArtifacts,
 } from './compiler/prompt-artifacts.ts';
 export {
+  checkBlindness,
+  CODE_VERSION,
+  hashFile,
+  hashValue,
+  LYO_UPDATE_VERSION,
+  PLAN_VERSION,
+  SPEC_VERSION,
+  TEST_VERSION,
+  TRACE_VERSION,
+  VERIFIER_REPORT_VERSION,
+  validateCodeManifest,
+  validateLyoUpdate,
+  validatePlan,
+  validateSpec,
+  validateTestManifest,
+  validateTrace,
+  validateVerifierReport,
+} from './contract/index.ts';
+export type {
+  ArtifactRef,
+  BlindnessResult,
+  CodeManifest,
+  LyoUpdate,
+  Plan,
+  PlanStage,
+  Spec,
+  TestManifest,
+  Trace,
+  ValidationIssue,
+  ValidationResult,
+  VerifierReport,
+} from './contract/index.ts';
+export {
   corpusReport,
   syncCorpusOnce,
 } from './corpus/sync.ts';

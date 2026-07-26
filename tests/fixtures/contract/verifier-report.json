@@ -1,0 +1,23 @@
+{
+  "version": "lyo.verifier-report.v1",
+  "specRef": {
+    "path": "tests/fixtures/contract/spec.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "codeRef": {
+    "path": "tests/fixtures/contract/code-manifest.json",
+    "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  "testRef": {
+    "path": "tests/fixtures/contract/test-manifest.json",
+    "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  },
+  "counts": { "total": 4, "passed": 3, "failed": 1 },
+  "outcome": "fail",
+  "perTest": [
+    { "name": "adds positive integers", "status": "pass" },
+    { "name": "is commutative", "status": "pass" },
+    { "name": "handles negatives", "status": "pass" },
+    { "name": "handles overflow boundary", "status": "fail", "message": "expected 9007199254740991, got NaN" }
+  ]
+}

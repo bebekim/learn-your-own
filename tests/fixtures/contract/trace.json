@@ -1,0 +1,50 @@
+{
+  "version": "lyo.trace.v1",
+  "runId": "run-example-1",
+  "planRef": {
+    "path": "tests/fixtures/contract/plan.json",
+    "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  },
+  "stages": [
+    {
+      "stageId": "stage-code",
+      "inputs": [
+        {
+          "path": "tests/fixtures/contract/spec.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "tests/fixtures/contract/code-manifest.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ],
+      "model": "openai/gpt-4o",
+      "promptSha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "startedAt": "2026-07-26T00:00:00.000Z",
+      "finishedAt": "2026-07-26T00:01:00.000Z"
+    },
+    {
+      "stageId": "stage-test",
+      "inputs": [
+        {
+          "path": "tests/fixtures/contract/spec.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "outputs": [
+        {
+          "path": "tests/fixtures/contract/test-manifest.json",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      ],
+      "model": "anthropic/claude-sonnet-4",
+      "promptSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "startedAt": "2026-07-26T00:00:00.000Z",
+      "finishedAt": "2026-07-26T00:01:10.000Z"
+    }
+  ],
+  "startedAt": "2026-07-26T00:00:00.000Z",
+  "finishedAt": "2026-07-26T00:02:00.000Z"
+}

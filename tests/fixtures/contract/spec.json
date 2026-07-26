@@ -1,0 +1,11 @@
+{
+  "version": "lyo.spec.v1",
+  "specId": "spec-example-1",
+  "signatures": ["add(a: number, b: number): number"],
+  "invariants": ["add(a, b) === add(b, a)"],
+  "constraints": ["Pure function, no I/O"],
+  "examples": [
+    { "input": "add(2, 3)", "output": "5", "note": "basic positive integers" }
+  ],
+  "edgeCaseHints": ["Integer overflow boundary", "Negative operands"]
+}

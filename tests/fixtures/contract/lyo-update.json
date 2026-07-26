@@ -1,0 +1,26 @@
+{
+  "version": "lyo.lyo-update.v0",
+  "basedOnTraces": [
+    {
+      "path": "tests/fixtures/contract/trace.json",
+      "sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+    }
+  ],
+  "promotions": [
+    {
+      "artifactRef": {
+        "path": "tests/fixtures/contract/spec.json",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "scope": "future-runs",
+      "rationale": "Spec produced measurable verifier pass-rate improvement across 3 runs."
+    }
+  ],
+  "beliefUpdates": [
+    {
+      "key": "code-writer.overflow-edge-case",
+      "value": { "observedFailures": 2 },
+      "rationale": "Overflow boundary failed in consecutive traces."
+    }
+  ]
+}

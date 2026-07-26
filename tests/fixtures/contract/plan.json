@@ -1,0 +1,58 @@
+{
+  "version": "lyo.plan.v1",
+  "planId": "plan-example-1",
+  "specRef": {
+    "path": "tests/fixtures/contract/spec.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "stages": [
+    {
+      "stageId": "stage-code",
+      "role": "code-writer",
+      "authority": {
+        "read": ["tests/fixtures/contract/spec.json"],
+        "write": ["generated/src"],
+        "forbiddenRead": ["generated/tests"],
+        "forbiddenWrite": ["generated/tests"]
+      },
+      "inputs": [
+        {
+          "path": "tests/fixtures/contract/spec.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "outputs": ["generated/src"]
+    },
+    {
+      "stageId": "stage-test",
+      "role": "test-writer",
+      "authority": {
+        "read": ["tests/fixtures/contract/spec.json"],
+        "write": ["generated/tests"],
+        "forbiddenRead": ["generated/src"],
+        "forbiddenWrite": ["generated/src"]
+      },
+      "inputs": [
+        {
+          "path": "tests/fixtures/contract/spec.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "outputs": ["generated/tests"]
+    },
+    {
+      "stageId": "stage-verify",
+      "role": "verifier",
+      "authority": {
+        "read": ["generated/src", "generated/tests"],
+        "write": ["generated/report"],
+        "forbiddenRead": [],
+        "forbiddenWrite": ["generated/src", "generated/tests"]
+      },
+      "inputs": [],
+      "outputs": ["generated/report"]
+    }
+  ],
+  "feedbackPolicy": { "codeWriterSees": "aggregate_only" },
+  "stateless": true
+}
