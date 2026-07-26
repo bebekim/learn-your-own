@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -439,5 +439,75 @@ test('runPipeline persists raw verifier TAP output per round', async () => {
     assert.match(tap1, /not ok \d+ - adds positive integers/);
     const tap2 = readFileSync(join(result.runDir, 'verify-tap/tap.round-2.txt'), 'utf8');
     assert.match(tap2, /ok \d+ - adds positive integers/);
+  });
+});
+
+test('runPipeline delivers library lessons to the blind-safe stage prompts only', async () => {
+  await withTmp(async (dir) => {
+    const { planPath } = writeSource(dir);
+    const libraryDir = join(dir, 'lessons');
+    mkdirSync(libraryDir, { recursive: true });
+    writeFileSync(
+      join(libraryDir, 'lesson-test.md'),
+      '# TEST LESSON TITLE XYZZY\n\n- classification: test-hallucination\n\n## Evidence\nassert.deepEqual(secretTestCode)\n'
+    );
+    writeFileSync(
+      join(libraryDir, 'lesson-code.md'),
+      '# CODE LESSON TITLE PLUGH\n\n- classification: code-bug\n'
+    );
+
+    const prompts = {};
+    const factory = (stage) => async ({ prompt, sandboxDir }) => {
+      prompts[stage.role] = prompt;
+      if (stage.role === 'code-writer') {
+        mkdirSync(join(sandboxDir, 'generated/src'), { recursive: true });
+        writeFileSync(
+          join(sandboxDir, 'generated/src/add.js'),
+          'module.exports = { add: (a, b) => a + b };\n'
+        );
+        return { transcript: 'code done' };
+      }
+      return { transcript: TEST_TRANSCRIPT };
+    };
+
+    const result = await runPipeline({
+      planPath,
+      runsRoot: join(dir, 'runs'),
+      executorFactory: factory,
+      lessonsDir: libraryDir,
+    });
+
+    // Each stage receives only its own lesson, as a title, never the evidence.
+    assert.match(prompts['code-writer'], /CODE LESSON TITLE PLUGH/);
+    assert.equal(prompts['code-writer'].includes('TEST LESSON TITLE XYZZY'), false);
+    assert.equal(prompts['code-writer'].includes('secretTestCode'), false);
+    assert.match(prompts['test-writer'], /TEST LESSON TITLE XYZZY/);
+    assert.equal(prompts['test-writer'].includes('CODE LESSON TITLE PLUGH'), false);
+    assert.equal(prompts['test-writer'].includes('secretTestCode'), false);
+
+    // Delivered lessons are declared, hashed trace inputs.
+    const trace = JSON.parse(readFileSync(result.tracePath, 'utf8'));
+    const codeInputs = trace.stages.find((stage) => stage.stageId === 'stage-code').inputs;
+    const testInputs = trace.stages.find((stage) => stage.stageId === 'stage-test').inputs;
+    assert.ok(codeInputs.some((input) => input.path.endsWith('lesson-code.md')));
+    assert.ok(testInputs.some((input) => input.path.endsWith('lesson-test.md')));
+    assert.equal(codeInputs.some((input) => input.path.endsWith('lesson-test.md')), false);
+  });
+});
+
+test('runPipeline preserves the transcript when a stage fails', async () => {
+  await withTmp(async (dir) => {
+    const { planPath } = writeSource(dir);
+    const factory = (stage) => async () => {
+      throw new Error(`${stage.stageId} exploded mid-request`);
+    };
+    await assert.rejects(
+      () => runPipeline({ planPath, runsRoot: join(dir, 'runs'), executorFactory: factory }),
+      /exploded mid-request/
+    );
+    const runsDir = join(dir, 'runs');
+    const runDir = join(runsDir, readdirSync(runsDir)[0]);
+    const transcript = readFileSync(join(runDir, 'stages/stage-code/transcript.txt'), 'utf8');
+    assert.match(transcript, /exploded mid-request/);
   });
 });

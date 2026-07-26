@@ -347,13 +347,22 @@ async function runWriterStage({
   mkdirSync(sandboxDir, { recursive: true });
   materializeSandbox({ sourceRoot, sandboxDir, readPaths: stage.authority.read });
 
-  const startedAt = now().toISOString();
-  const { transcript } = await executorFactory(stage)({ prompt, sandboxDir });
-  const finishedAt = now().toISOString();
   // Per-round transcripts are never overwritten; single-pass runs keep the
   // plain name.
   const transcriptName = round === undefined ? 'transcript.txt' : `transcript.round-${round}.txt`;
-  writeFileSync(join(runDir, 'stages', stage.stageId, transcriptName), transcript);
+  const transcriptPath = join(runDir, 'stages', stage.stageId, transcriptName);
+  const startedAt = now().toISOString();
+  let transcript: string;
+  try {
+    ({ transcript } = await executorFactory(stage)({ prompt, sandboxDir }));
+  } catch (error) {
+    // A failed stage still leaves its evidence behind.
+    const message = error instanceof Error ? error.message : String(error);
+    writeFileSync(transcriptPath, `STAGE FAILED: ${message}\n`);
+    throw error;
+  }
+  const finishedAt = now().toISOString();
+  writeFileSync(transcriptPath, transcript);
 
   // Single-shot executors return files as path-tagged blocks in the
   // transcript; only blocks under declared write paths touch disk.
