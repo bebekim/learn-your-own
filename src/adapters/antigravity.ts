@@ -21,7 +21,11 @@ export interface AgyHookEvent {
 export function translateAgyEvent(
   eventName: string,
   payload: Record<string, unknown>
-): AgyHookEvent {
+): AgyHookEvent | null {
+  // Noise: Antigravity emits PostToolUse events with a null toolCall.
+  if (eventName === 'PostToolUse' && (payload.toolCall === null || payload.toolCall === undefined)) {
+    return null;
+  }
   const workspacePaths = Array.isArray(payload.workspacePaths)
     ? (payload.workspacePaths as string[])
     : [];

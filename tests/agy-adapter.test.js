@@ -45,3 +45,8 @@ test('missing workspacePaths falls back gracefully', () => {
   const event = translateAgyEvent('Stop', { conversationId: 'conv-4' });
   assert.equal(event.cwd, undefined);
 });
+
+test('PostToolUse with null toolCall is filtered as noise', () => {
+  assert.equal(translateAgyEvent('PostToolUse', { conversationId: 'c', toolCall: null }), null);
+  assert.equal(translateAgyEvent('PostToolUse', { conversationId: 'c' }), null);
+});

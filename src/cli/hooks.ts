@@ -87,7 +87,11 @@ export async function runAgyHookCommand(
   const eventName = args.subcommand ?? 'Unknown';
   const input = await readStdin(stdin);
   const payload = input.trim() ? JSON.parse(input) : {};
-  return runClaudeStyleHook(args, translateAgyEvent(eventName, payload));
+  const translated = translateAgyEvent(eventName, payload);
+  if (translated === null) {
+    return {};
+  }
+  return runClaudeStyleHook(args, translated);
 }
 
 async function runClaudeStyleHook(
