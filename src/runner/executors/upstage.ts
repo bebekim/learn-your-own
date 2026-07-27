@@ -8,6 +8,8 @@ export interface UpstageExecutorOptions {
   temperature?: number;
   /** Upstage reasoning_effort: minimal|low|medium|high. Default low. */
   reasoningEffort?: 'minimal' | 'low' | 'medium' | 'high';
+  /** Default 65536 (vendor-recommended); 250B-class models are verbose. */
+  maxTokens?: number;
   chat?: ChatFn;
   timeoutMs?: number;
 }
@@ -21,6 +23,7 @@ export function createUpstageExecutor({
   model,
   temperature,
   reasoningEffort = 'low',
+  maxTokens = 65536,
   chat,
   timeoutMs,
 }: UpstageExecutorOptions): StageExecutor {
@@ -29,6 +32,7 @@ export function createUpstageExecutor({
     apiKeyEnv: 'UPSTAGE_API_KEY',
     model,
     temperature,
+    maxTokens,
     extraBody: { reasoning_effort: reasoningEffort },
     chat,
     timeoutMs,

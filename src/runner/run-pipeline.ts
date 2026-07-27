@@ -393,7 +393,7 @@ async function runWriterStage({
     // A failed stage still leaves its evidence behind.
     const message = error instanceof Error ? error.message : String(error);
     writeFileSync(transcriptPath, `STAGE FAILED: ${message}\n`);
-    throw error;
+    throw new Error(`stage '${stage.stageId}': ${message}`);
   }
   const finishedAt = now().toISOString();
   writeFileSync(transcriptPath, transcript);

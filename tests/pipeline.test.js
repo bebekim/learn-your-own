@@ -631,3 +631,16 @@ test('runPipeline delivers skeleton-patch lessons as code to the routed stage on
     assert.equal(prompts['test-writer'].includes('Normalize numeric assertions'), false);
   });
 });
+
+test('stage errors carry the stage id for legibility', async () => {
+  await withTmp(async (dir) => {
+    const { planPath } = writeSource(dir);
+    const factory = () => async () => {
+      throw new Error('completion truncated (finish_reason=length)');
+    };
+    await assert.rejects(
+      () => runPipeline({ planPath, runsRoot: join(dir, 'runs'), executorFactory: factory }),
+      /stage 'stage-code': completion truncated/
+    );
+  });
+});

@@ -298,6 +298,7 @@ test('upstage executor posts to the upstage endpoint with its own key and reason
     assert.equal(body.model, 'solar-pro3');
     assert.equal(body.temperature, 0.7);
     assert.equal(body.reasoning_effort, 'low');
+    assert.equal(body.max_tokens, 65536);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.UPSTAGE_API_KEY;
