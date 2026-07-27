@@ -11,6 +11,7 @@ import {
   lessonsForRole,
   loadLessons,
   renderLessonsBlock,
+  renderPatchBlock,
   selectLessons,
 } from '../src/index.ts';
 
@@ -232,5 +233,51 @@ test('compareRuns compares failure counts, not suite sizes', () => {
     });
     assert.equal(comparison.verdict, 'unchanged');
     assert.equal(comparison.failedDelta, 0);
+  });
+});
+
+const PATCH_LESSON_MD = [
+  '# Normalize numeric assertions with +0 after all negation.',
+  '',
+  '- classification: test-hallucination',
+  '- vehicle: skeleton-patch',
+  '- observed in runs: r1, r2',
+  '',
+  '## Prompt patch',
+  '```js',
+  'const num = (x) => x + 0;',
+  '',
+  "test('antisymmetry: f(a,b) === -f(b,a)', () => {",
+  '  assert.equal(num(f(a, b)), num(-f(b, a)));',
+  '});',
+  '```',
+  '',
+].join('\n');
+
+test('loadLessons parses vehicle and prompt patch, defaulting to prose', () => {
+  withTmp((dir) => {
+    writeFileSync(join(dir, 'patch.md'), PATCH_LESSON_MD);
+    writeFileSync(join(dir, 'plain.md'), TEST_LESSON_MD);
+    const lessons = loadLessons(dir);
+
+    const patch = lessons.find((lesson) => lesson.title.includes('Normalize'));
+    assert.equal(patch.vehicle, 'skeleton-patch');
+    assert.match(patch.promptPatch, /const num = \(x\) => x \+ 0/);
+
+    const plain = lessons.find((lesson) => lesson.title.includes('mechanically'));
+    assert.equal(plain.vehicle, 'prose');
+    assert.equal(plain.promptPatch, undefined);
+  });
+});
+
+test('renderPatchBlock renders imitable code, not advice', () => {
+  withTmp((dir) => {
+    writeFileSync(join(dir, 'patch.md'), PATCH_LESSON_MD);
+    const patch = loadLessons(dir)[0];
+    const block = renderPatchBlock([patch]);
+    assert.match(block, /Promoted lesson patterns/);
+    assert.match(block, /const num = \(x\) => x \+ 0/);
+    assert.match(block, /num\(f\(a, b\)\)/);
+    assert.equal(renderPatchBlock([]), '');
   });
 });

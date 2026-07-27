@@ -63,6 +63,8 @@ export interface Judgment {
   evidence: string;
   lesson: string;
   specEdit?: string;
+  vehicle?: 'prose' | 'skeleton-patch' | 'spec-constraint';
+  promptPatch?: string;
 }
 
 export type JudgeFn = (input: DisagreementInput) => Promise<Judgment>;
@@ -173,13 +175,18 @@ export function buildJudgePrompt(input: DisagreementInput): {
           'You can see everything. Classify the disagreement between the frozen test and the implementation. ' +
           'Respond with a single JSON object and nothing else: ' +
           '{"classification": "code-bug"|"test-hallucination"|"spec-gap", "rationale": string, ' +
-          '"evidence": string, "lesson": string, "spec_edit"?: string}. ' +
+          '"evidence": string, "lesson": string, "spec_edit"?: string, ' +
+          '"vehicle"?: "prose"|"skeleton-patch"|"spec-constraint", "prompt_patch"?: string}. ' +
           'code-bug: the implementation deviates from what the spec states. ' +
           'test-hallucination: the test asserts behavior the spec does not state. ' +
           'spec-gap: the spec does not determine the disputed behavior, so both readings are defensible. ' +
           'evidence: quote the exact spec, test, or code text the classification rests on. ' +
           'lesson: one transferable, imperative, standalone rule. ' +
           'spec_edit (required for spec-gap only): one sentence that would close the gap. ' +
+          'vehicle: how the lesson is best delivered. prose (default): a rule sentence. ' +
+          'skeleton-patch: the rule is better expressed as imitable code — include prompt_patch ' +
+          'with the exact helper code and a usage example a test writer can copy. ' +
+          'spec-constraint: the rule belongs in the specification itself. ' +
           'No markdown fences, no commentary.',
       },
       {
@@ -210,6 +217,8 @@ export function parseJudgeResponse(text: unknown): Judgment {
     evidence?: unknown;
     lesson?: unknown;
     spec_edit?: unknown;
+    vehicle?: unknown;
+    prompt_patch?: unknown;
   };
   if (!JUDGE_CLASSES.includes(parsed.classification as JudgeClassification)) {
     throw new Error(`judge: invalid classification ${JSON.stringify(parsed.classification)}`);
@@ -219,12 +228,21 @@ export function parseJudgeResponse(text: unknown): Judgment {
       throw new Error(`judge: missing ${field}`);
     }
   }
+  const vehicle =
+    parsed.vehicle === 'skeleton-patch' || parsed.vehicle === 'spec-constraint'
+      ? parsed.vehicle
+      : 'prose';
   return {
     classification: parsed.classification as JudgeClassification,
     rationale: parsed.rationale as string,
     evidence: parsed.evidence as string,
     lesson: parsed.lesson as string,
     specEdit: typeof parsed.spec_edit === 'string' ? parsed.spec_edit : undefined,
+    vehicle,
+    promptPatch:
+      vehicle === 'skeleton-patch' && typeof parsed.prompt_patch === 'string'
+        ? parsed.prompt_patch
+        : undefined,
   };
 }
 
@@ -323,6 +341,7 @@ export async function consumeTraces({
         `# ${group.judgment.lesson}`,
         '',
         `- classification: ${group.judgment.classification}`,
+        `- vehicle: ${group.judgment.vehicle ?? 'prose'}`,
         `- observed in runs: ${group.runIds.join(', ')}`,
         `- disagreements: ${group.testNames.join('; ')}`,
         `- status: ${promoted ? 'promoted' : 'candidate'}`,
@@ -333,6 +352,9 @@ export async function consumeTraces({
         '## Evidence',
         group.judgment.evidence,
         ...(group.judgment.specEdit ? ['', '## Suggested spec edit', group.judgment.specEdit] : []),
+        ...(group.judgment.promptPatch
+          ? ['', '## Prompt patch', '```js', group.judgment.promptPatch, '```']
+          : []),
         '',
       ].join('\n')
     );

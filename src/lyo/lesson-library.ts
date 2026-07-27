@@ -16,6 +16,8 @@ import { hashFile } from '../contract/refs.ts';
 import type { LyoUpdate } from '../contract/index.ts';
 import type { JudgeClassification } from './trace-consumer.ts';
 
+export type LessonVehicle = 'prose' | 'skeleton-patch' | 'spec-constraint';
+
 export interface Lesson {
   title: string;
   classification: JudgeClassification;
@@ -23,6 +25,8 @@ export interface Lesson {
   sha256: string;
   content: string;
   evidenceRuns: number;
+  vehicle: LessonVehicle;
+  promptPatch?: string;
 }
 
 const ROLE_BY_CLASSIFICATION: Partial<Record<JudgeClassification, 'code-writer' | 'test-writer'>> = {
@@ -60,6 +64,8 @@ export function loadLessons(libraryDir: string): Lesson[] {
       sha256: hashFile(path).sha256,
       content,
       evidenceRuns: runList ? runList.split(',').filter((run) => run.trim() !== '').length : 0,
+      vehicle: parseVehicle(content),
+      promptPatch: parsePromptPatch(content),
     });
   }
   return lessons;
@@ -97,6 +103,52 @@ export function renderLessonsBlock(lessons: Lesson[]): string {
     lessons.map((lesson) => `- ${lesson.title}`).join('\n') +
     '\n'
   );
+}
+
+/**
+ * Imitable code, not advice: the model's pattern-completion engine copies
+ * concrete examples far more reliably than it obeys prose rules. Each patch
+ * is the lesson expressed as helper code to imitate.
+ */
+export function renderPatchBlock(lessons: Lesson[]): string {
+  const patches = lessons
+    .map((lesson) => lesson.promptPatch)
+    .filter((patch): patch is string => patch !== undefined && patch.trim() !== '');
+  if (patches.length === 0) {
+    return '';
+  }
+  return (
+    '\n\nPromoted lesson patterns (imitate these in the code you generate):\n' +
+    patches.map((patch) => `\`\`\`js\n${patch.trim()}\n\`\`\``).join('\n\n') +
+    '\n'
+  );
+}
+
+function parseVehicle(content: string): LessonVehicle {
+  const vehicle = content.match(/^- vehicle: (\S+)$/m)?.[1];
+  if (vehicle === 'skeleton-patch' || vehicle === 'spec-constraint') {
+    return vehicle;
+  }
+  return 'prose';
+}
+
+function parsePromptPatch(content: string): string | undefined {
+  const marker = '## Prompt patch';
+  const start = content.indexOf(marker);
+  if (start === -1) {
+    return undefined;
+  }
+  let section = content.slice(start + marker.length);
+  const next = section.indexOf('\n## ');
+  if (next !== -1) {
+    section = section.slice(0, next);
+  }
+  const patch = section
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('```'))
+    .join('\n')
+    .trim();
+  return patch === '' ? undefined : patch;
 }
 
 /** Install future-runs-scoped lessons from an lyo-update into the library. */

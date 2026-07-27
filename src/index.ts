@@ -230,9 +230,10 @@ export {
   lessonsForRole,
   loadLessons,
   renderLessonsBlock,
+  renderPatchBlock,
   selectLessons,
 } from './lyo/lesson-library.ts';
-export type { Lesson } from './lyo/lesson-library.ts';
+export type { Lesson, LessonVehicle } from './lyo/lesson-library.ts';
 export {
   buildJudgePrompt,
   consumeTraces,

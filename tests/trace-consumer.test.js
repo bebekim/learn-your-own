@@ -373,3 +373,40 @@ test('strict gate hard-blocks on a weaken event; permissive ignores it', async (
     );
   });
 });
+
+test('judge vehicle and prompt_patch flow into the lesson file', async () => {
+  await withTmp(async (dir) => {
+    const runA = await makeRunDir(dir, 'run-a');
+    const result = await consumeTraces({
+      runDirs: [runA],
+      judge: async () => ({
+        ...JUDGMENT,
+        vehicle: 'skeleton-patch',
+        promptPatch: 'const num = (x) => x + 0;\nassert.equal(num(f(a,b)), num(-f(b,a)));',
+      }),
+    });
+    const lesson = readFileSync(
+      JSON.parse(readFileSync(result.updatePath, 'utf8')).promotions[0].artifactRef.path.startsWith('lyo-lessons')
+        ? join(result.updatePath, '..', JSON.parse(readFileSync(result.updatePath, 'utf8')).promotions[0].artifactRef.path)
+        : JSON.parse(readFileSync(result.updatePath, 'utf8')).promotions[0].artifactRef.path,
+      'utf8'
+    );
+    assert.match(lesson, /- vehicle: skeleton-patch/);
+    assert.match(lesson, /## Prompt patch/);
+    assert.match(lesson, /const num = \(x\) => x \+ 0/);
+  });
+});
+
+test('parseJudgeResponse maps vehicle and prompt_patch, defaulting to prose', () => {
+  const parsed = parseJudgeResponse(
+    '{"classification":"test-hallucination","rationale":"r","evidence":"e","lesson":"l","vehicle":"skeleton-patch","prompt_patch":"code()"}'
+  );
+  assert.equal(parsed.vehicle, 'skeleton-patch');
+  assert.equal(parsed.promptPatch, 'code()');
+
+  const noVehicle = parseJudgeResponse(
+    '{"classification":"spec-gap","rationale":"r","evidence":"e","lesson":"l","vehicle":"bogus"}'
+  );
+  assert.equal(noVehicle.vehicle, 'prose');
+  assert.equal(noVehicle.promptPatch, undefined);
+});

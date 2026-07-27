@@ -582,3 +582,52 @@ test('corrective retry happens at most once', async () => {
     );
   });
 });
+
+const PATCH_LESSON_MD = [
+  '# Normalize numeric assertions with +0 after all negation.',
+  '',
+  '- classification: test-hallucination',
+  '- vehicle: skeleton-patch',
+  '- observed in runs: r1, r2',
+  '',
+  '## Prompt patch',
+  '```js',
+  'const num = (x) => x + 0;',
+  '',
+  "test('antisymmetry: f(a,b) === -f(b,a)', () => {",
+  '  assert.equal(num(f(a, b)), num(-f(b, a)));',
+  '});',
+  '```',
+  '',
+].join('\n');
+
+test('runPipeline delivers skeleton-patch lessons as code to the routed stage only', async () => {
+  await withTmp(async (dir) => {
+    const { planPath } = writeSource(dir);
+    const libraryDir = join(dir, 'lessons');
+    mkdirSync(libraryDir, { recursive: true });
+    writeFileSync(join(libraryDir, 'patch.md'), PATCH_LESSON_MD);
+
+    const prompts = {};
+    const factory = (stage) => async ({ prompt, sandboxDir }) => {
+      prompts[stage.role] = prompt;
+      if (stage.role === 'code-writer') {
+        mkdirSync(join(sandboxDir, 'generated/src'), { recursive: true });
+        writeFileSync(join(sandboxDir, 'generated/src/add.js'), 'module.exports = { add: (a, b) => a + b };\n');
+        return { transcript: 'code done' };
+      }
+      return { transcript: TEST_TRANSCRIPT };
+    };
+
+    await runPipeline({
+      planPath,
+      runsRoot: join(dir, 'runs'),
+      executorFactory: factory,
+      lessonsDir: libraryDir,
+    });
+
+    assert.match(prompts['test-writer'], /const num = \(x\) => x \+ 0/);
+    assert.equal(prompts['code-writer'].includes('const num'), false);
+    assert.equal(prompts['test-writer'].includes('Normalize numeric assertions'), false);
+  });
+});

@@ -35,6 +35,7 @@ import type { StageExecutor } from './executors/stage-executor.ts';
 import {
   loadLessons,
   renderLessonsBlock,
+  renderPatchBlock,
   selectLessons,
   type Lesson,
 } from '../lyo/lesson-library.ts';
@@ -135,8 +136,24 @@ export async function runPipeline({
     'code-writer': selectLessons(library, { role: 'code-writer' }),
     'test-writer': selectLessons(library, { role: 'test-writer' }),
   };
-  prompts.codeWriter += renderLessonsBlock(stageLessons['code-writer']);
-  prompts.testWriter += renderLessonsBlock(stageLessons['test-writer']);
+  // Delivery is vehicle-routed: prose titles, imitable code patches, and
+  // spec-constraint addenda (shared, since they educate both writers).
+  const deliver = (lessons: Lesson[]): string => {
+    const prose = lessons.filter((lesson) => lesson.vehicle === 'prose');
+    const patches = lessons.filter((lesson) => lesson.vehicle === 'skeleton-patch');
+    return renderLessonsBlock(prose) + renderPatchBlock(patches);
+  };
+  const specConstraints = library.filter((lesson) => lesson.vehicle === 'spec-constraint');
+  if (specConstraints.length > 0) {
+    const addendum =
+      '\n\nSpec addendum (promoted constraints — treat as part of the specification):\n' +
+      specConstraints.map((lesson) => `- ${lesson.title}`).join('\n') +
+      '\n';
+    prompts.codeWriter += addendum;
+    prompts.testWriter += addendum;
+  }
+  prompts.codeWriter += deliver(stageLessons['code-writer']);
+  prompts.testWriter += deliver(stageLessons['test-writer']);
   const lessonRefs = (role: 'code-writer' | 'test-writer'): ArtifactRef[] =>
     stageLessons[role].map((lesson) => ({ path: lesson.path, sha256: lesson.sha256 }));
 
