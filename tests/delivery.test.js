@@ -178,7 +178,7 @@ test('compareRuns renders improved, regressed, and unchanged verdicts', () => {
       treatmentDir: join(dir, 'pass-run'),
     });
     assert.equal(improved.verdict, 'improved');
-    assert.equal(improved.passedDelta, 4);
+    assert.equal(improved.failedDelta, -4);
     assert.deepEqual(improved.baseline.counts, { total: 12, passed: 8, failed: 4 });
     assert.deepEqual(improved.treatment.counts, { total: 12, passed: 12, failed: 0 });
 
@@ -217,5 +217,20 @@ test('selectLessons caps delivery and orders by evidence then recency', () => {
 
     const codeSelected = selectLessons(loadLessons(dir), { role: 'code-writer' });
     assert.deepEqual(codeSelected.map((lesson) => lesson.title), ['CODE LESSON E']);
+  });
+});
+
+test('compareRuns compares failure counts, not suite sizes', () => {
+  withTmp((dir) => {
+    // Both runs pass 100%, but the suites differ in size — a larger suite is
+    // not an improvement.
+    writeReport(join(dir, 'small-suite'), { outcome: 'pass', passed: 25, failed: 0 });
+    writeReport(join(dir, 'large-suite'), { outcome: 'pass', passed: 27, failed: 0 });
+    const comparison = compareRuns({
+      baselineDir: join(dir, 'small-suite'),
+      treatmentDir: join(dir, 'large-suite'),
+    });
+    assert.equal(comparison.verdict, 'unchanged');
+    assert.equal(comparison.failedDelta, 0);
   });
 });
