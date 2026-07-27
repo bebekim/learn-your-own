@@ -50,3 +50,38 @@ test('PostToolUse with null toolCall is filtered as noise', () => {
   assert.equal(translateAgyEvent('PostToolUse', { conversationId: 'c', toolCall: null }), null);
   assert.equal(translateAgyEvent('PostToolUse', { conversationId: 'c' }), null);
 });
+
+test('agy-hook PreToolUse returns an explicit allow decision', async () => {
+  const { runAgyHookCommand } = await import('../src/cli/hooks.ts');
+  const { CliArgs } = await import('../src/cli/args.ts');
+  const { mkdtempSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+
+  const cwd = mkdtempSync(join(tmpdir(), 'lyo-agy-cmd-'));
+  try {
+    const payload = JSON.stringify({
+      conversationId: 'c1',
+      workspacePaths: [cwd],
+      toolCall: { name: 'run_command', args: { CommandLine: 'ls' } },
+    });
+    const args = new CliArgs(
+      ['node', 'lyo', 'agy-hook', 'PreToolUse', '--db-from-event-cwd', '--spool-dir-from-event-cwd'],
+      process.env,
+      cwd
+    );
+    const preTool = await runAgyHookCommand(args, (async function* () { yield payload; })());
+    assert.deepEqual(preTool, { decision: 'allow' });
+
+    const stopPayload = JSON.stringify({ conversationId: 'c1', workspacePaths: [cwd], terminationReason: 'NO_TOOL_CALL' });
+    const stopArgs = new CliArgs(
+      ['node', 'lyo', 'agy-hook', 'Stop', '--db-from-event-cwd', '--spool-dir-from-event-cwd'],
+      process.env,
+      cwd
+    );
+    const stop = await runAgyHookCommand(stopArgs, (async function* () { yield stopPayload; })());
+    assert.deepEqual(stop, {});
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});

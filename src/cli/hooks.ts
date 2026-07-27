@@ -92,7 +92,13 @@ export async function runAgyHookCommand(
   if (translated === null) {
     return {};
   }
-  return runClaudeStyleHook(args, translated);
+  const result = await runClaudeStyleHook(args, translated);
+  // Antigravity denies tool calls whose PreToolUse hook does not explicitly
+  // allow them; every other event accepts an empty object.
+  if (translated.hook_event_name === 'PreToolUse') {
+    return { decision: 'allow' };
+  }
+  return result;
 }
 
 export async function runDcodeHookCommand(
