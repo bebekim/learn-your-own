@@ -332,3 +332,23 @@ test('kimi-cli executor throws after the retry also fails', async () => {
   });
   await assert.rejects(() => executor({ prompt: 'p', sandboxDir: '/tmp' }), /still broken/);
 });
+
+test('parseFileBlocks accepts a path as the first line inside the fence', () => {
+  const text = [
+    '```js',
+    'generated/src/csv-line.js',
+    'const parseCsvLine = (line) => line.split(",");',
+    'module.exports = { parseCsvLine };',
+    '```',
+  ].join('\n');
+  const blocks = parseFileBlocks(text);
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].path, 'generated/src/csv-line.js');
+  assert.match(blocks[0].content, /parseCsvLine/);
+  assert.equal(blocks[0].content.includes('generated/src/csv-line.js'), false);
+});
+
+test('parseFileBlocks does not mistake ordinary code for a first-line path', () => {
+  const text = '```js\nconst x = require("fs");\nx.read();\n```';
+  assert.deepEqual(parseFileBlocks(text), []);
+});

@@ -7,16 +7,31 @@ export interface FileBlock {
 }
 
 const FILE_BLOCK_PATTERN = /```[^\n]*\bpath=([^\s`]+)[^\n]*\n([\s\S]*?)```/g;
+const GENERIC_BLOCK_PATTERN = /```([^\n]*)\n([\s\S]*?)```/g;
+// A bare relative path with an extension, e.g. generated/src/csv-line.js —
+// the fallback format some models use instead of a path= info tag.
+const FIRST_LINE_PATH_PATTERN = /^[a-z0-9_][a-z0-9_./-]*\.[a-z0-9]+$/i;
 
 /**
- * Extract fenced code blocks tagged with `path=<relative-path>` from model
- * output. Single-shot API stages (no tools) return files this way; the runner
- * then applies filterDeclaredWrites before anything touches disk.
+ * Extract fenced code blocks carrying a file path from model output.
+ * Two accepted formats: a `path=<relative-path>` tag in the info string, or
+ * a bare path as the first line inside the fence. The runner applies
+ * filterDeclaredWrites before anything touches disk.
  */
 export function parseFileBlocks(text: string): FileBlock[] {
   const blocks: FileBlock[] = [];
   for (const match of text.matchAll(FILE_BLOCK_PATTERN)) {
     blocks.push({ path: match[1], content: match[2] });
+  }
+  for (const match of text.matchAll(GENERIC_BLOCK_PATTERN)) {
+    if (match[1].includes('path=')) {
+      continue; // already captured by the path= pass
+    }
+    const lines = match[2].split('\n');
+    const first = lines[0]?.trim() ?? '';
+    if (FIRST_LINE_PATH_PATTERN.test(first)) {
+      blocks.push({ path: first, content: lines.slice(1).join('\n') });
+    }
   }
   return blocks;
 }
