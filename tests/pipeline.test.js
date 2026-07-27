@@ -536,3 +536,49 @@ test('upstage-kind stages parse file blocks from the transcript', async () => {
     assert.match(manifest.files[0].path, /add\.js$/);
   });
 });
+
+test('single-shot stage gets one corrective retry when no files parse', async () => {
+  await withTmp(async (dir) => {
+    const { planPath } = writeSource(dir);
+    const testPrompts = [];
+    const factory = (stage) => {
+      if (stage.role === 'code-writer') {
+        return fakeExecutorFactory(stage);
+      }
+      return async ({ prompt }) => {
+        testPrompts.push(prompt);
+        if (testPrompts.length === 1) {
+          return { transcript: '```js\nconst test = require(\'node:test\');\n```' };
+        }
+        return { transcript: TEST_TRANSCRIPT };
+      };
+    };
+    const result = await runPipeline({
+      planPath,
+      runsRoot: join(dir, 'runs'),
+      executorFactory: factory,
+    });
+    assert.equal(result.report.outcome, 'pass');
+    assert.equal(testPrompts.length, 2);
+    assert.match(testPrompts[1], /no path-tagged file blocks/);
+    const transcript = readFileSync(
+      join(result.runDir, 'stages/stage-test/transcript.txt'),
+      'utf8'
+    );
+    assert.match(transcript, /corrective retry/);
+  });
+});
+
+test('corrective retry happens at most once', async () => {
+  await withTmp(async (dir) => {
+    const { planPath } = writeSource(dir);
+    const factory = (stage) =>
+      stage.role === 'code-writer'
+        ? fakeExecutorFactory(stage)
+        : async () => ({ transcript: '```js\nconst x = 1;\n```' });
+    await assert.rejects(
+      () => runPipeline({ planPath, runsRoot: join(dir, 'runs'), executorFactory: factory }),
+      /no declared outputs/
+    );
+  });
+});

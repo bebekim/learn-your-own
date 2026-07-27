@@ -355,6 +355,23 @@ async function runWriterStage({
   let transcript: string;
   try {
     ({ transcript } = await executorFactory(stage)({ prompt, sandboxDir }));
+    // Single-shot stages must return path-tagged file blocks. Zero parseable
+    // files is a contract violation, not a format to guess at: one corrective
+    // retry with an explicit example, then fail loudly.
+    if (
+      isSingleShotKind(stage.executor?.kind) &&
+      filterDeclaredWrites(parseFileBlocks(transcript), stage.outputs).accepted.length === 0
+    ) {
+      const corrective = await executorFactory(stage)({
+        prompt:
+          `${prompt}\n\nCORRECTION: your previous reply contained no path-tagged file blocks, ` +
+          'so nothing could be written. Return each file as a fenced code block tagged with ' +
+          `its path, exactly like:\n\`\`\`js path=${stage.outputs[0]}/example.js\n<file contents>\n\`\`\`\n` +
+          'File blocks only — no prose.',
+        sandboxDir,
+      });
+      transcript = `${transcript}\n\n--- corrective retry ---\n\n${corrective.transcript}`;
+    }
   } catch (error) {
     // A failed stage still leaves its evidence behind.
     const message = error instanceof Error ? error.message : String(error);
