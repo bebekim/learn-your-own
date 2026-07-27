@@ -4,6 +4,7 @@ import { normalizeOutcome } from '../coercion.ts';
 import {
   runClaudeHookCommand,
   runCodexHookCommand,
+  runGeminiHookCommand,
 } from '../hooks.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
 import { withKernel } from './context.ts';
@@ -11,6 +12,7 @@ import { withKernel } from './context.ts';
 export const HOOK_COMMANDS: Record<string, CommandHandler> = {
   'codex-hook': runCodexHookCommand,
   'claude-hook': runClaudeHookCommand,
+  'gemini-hook': runGeminiHookCommand,
   'normalize hooks': normalizeHooksCommand,
 };
 

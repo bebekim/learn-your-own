@@ -4,6 +4,7 @@ import {
   createKernel,
 } from '../ledger.ts';
 import { initLedger } from '../schema.ts';
+import { translateGeminiEvent } from '../adapters/gemini.ts';
 import {
   drainHookSpool,
   handleClaudeHook,
@@ -64,6 +65,22 @@ export async function runClaudeHookCommand(
 ): Promise<unknown> {
   const input = await readStdin(stdin);
   const event = input.trim() ? JSON.parse(input) : {};
+  return runClaudeStyleHook(args, event);
+}
+
+export async function runGeminiHookCommand(
+  args: CliArgs,
+  stdin: AsyncIterable<string | Buffer>
+): Promise<unknown> {
+  const input = await readStdin(stdin);
+  const event = input.trim() ? JSON.parse(input) : {};
+  return runClaudeStyleHook(args, translateGeminiEvent(event));
+}
+
+async function runClaudeStyleHook(
+  args: CliArgs,
+  event: Record<string, unknown>
+): Promise<unknown> {
   const eventCwd = typeof event.cwd === 'string' && event.cwd ? event.cwd : args.cwd;
   const effectiveDbPath = args.hasFlag('--db-from-event-cwd')
     ? join(eventCwd, '.agent-learning', 'learning.sqlite')
