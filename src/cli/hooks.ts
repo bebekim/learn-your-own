@@ -5,6 +5,7 @@ import {
 } from '../ledger.ts';
 import { initLedger } from '../schema.ts';
 import { translateAgyEvent } from '../adapters/antigravity.ts';
+import { translateDcodeEvent } from '../adapters/deepagents.ts';
 import { translateGeminiEvent } from '../adapters/gemini.ts';
 import {
   drainHookSpool,
@@ -92,6 +93,15 @@ export async function runAgyHookCommand(
     return {};
   }
   return runClaudeStyleHook(args, translated);
+}
+
+export async function runDcodeHookCommand(
+  args: CliArgs,
+  stdin: AsyncIterable<string | Buffer>
+): Promise<unknown> {
+  const input = await readStdin(stdin);
+  const payload = input.trim() ? JSON.parse(input) : {};
+  return runClaudeStyleHook(args, translateDcodeEvent(payload));
 }
 
 async function runClaudeStyleHook(

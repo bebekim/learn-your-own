@@ -64,6 +64,8 @@ export { translateGeminiEvent } from './adapters/gemini.ts';
 export type { GeminiHookEvent } from './adapters/gemini.ts';
 export { translateAgyEvent } from './adapters/antigravity.ts';
 export type { AgyHookEvent } from './adapters/antigravity.ts';
+export { translateDcodeEvent } from './adapters/deepagents.ts';
+export type { DcodeHookEvent } from './adapters/deepagents.ts';
 export type {
   CanonicalHookEventName,
   HookObservation,
