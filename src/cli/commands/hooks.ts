@@ -2,6 +2,7 @@ import { drainHookSpool } from '../../hooks/runtime.ts';
 import { normalizeHooks } from '../../hooks/normalization-runner.ts';
 import { normalizeOutcome } from '../coercion.ts';
 import {
+  runAgyHookCommand,
   runClaudeHookCommand,
   runCodexHookCommand,
   runGeminiHookCommand,
@@ -13,6 +14,7 @@ export const HOOK_COMMANDS: Record<string, CommandHandler> = {
   'codex-hook': runCodexHookCommand,
   'claude-hook': runClaudeHookCommand,
   'gemini-hook': runGeminiHookCommand,
+  'agy-hook': runAgyHookCommand,
   'normalize hooks': normalizeHooksCommand,
 };
 

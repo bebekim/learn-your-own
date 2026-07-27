@@ -4,6 +4,7 @@ import {
   createKernel,
 } from '../ledger.ts';
 import { initLedger } from '../schema.ts';
+import { translateAgyEvent } from '../adapters/antigravity.ts';
 import { translateGeminiEvent } from '../adapters/gemini.ts';
 import {
   drainHookSpool,
@@ -75,6 +76,18 @@ export async function runGeminiHookCommand(
   const input = await readStdin(stdin);
   const event = input.trim() ? JSON.parse(input) : {};
   return runClaudeStyleHook(args, translateGeminiEvent(event));
+}
+
+export async function runAgyHookCommand(
+  args: CliArgs,
+  stdin: AsyncIterable<string | Buffer>
+): Promise<unknown> {
+  // Antigravity payloads omit the event name; the hooks.json command passes it
+  // as the positional argument right after `agy-hook`.
+  const eventName = args.subcommand ?? 'Unknown';
+  const input = await readStdin(stdin);
+  const payload = input.trim() ? JSON.parse(input) : {};
+  return runClaudeStyleHook(args, translateAgyEvent(eventName, payload));
 }
 
 async function runClaudeStyleHook(
