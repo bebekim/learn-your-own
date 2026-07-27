@@ -6,28 +6,41 @@ export interface FileBlock {
   content: string;
 }
 
-const FILE_BLOCK_PATTERN = /```[^\n]*\bpath=([^\s`]+)[^\n]*\n([\s\S]*?)```/g;
 const GENERIC_BLOCK_PATTERN = /```([^\n]*)\n([\s\S]*?)```/g;
+const INFO_PATH_PATTERN = /\bpath=([^\s`]+)/;
+const DECLARATION_PATTERN = /^path=([^\s`]+)$/;
 // A bare relative path with an extension, e.g. generated/src/csv-line.js —
 // the fallback format some models use instead of a path= info tag.
 const FIRST_LINE_PATH_PATTERN = /^[a-z0-9_][a-z0-9_./-]*\.[a-z0-9]+$/i;
 
 /**
- * Extract fenced code blocks carrying a file path from model output.
- * Two accepted formats: a `path=<relative-path>` tag in the info string, or
- * a bare path as the first line inside the fence. The runner applies
- * filterDeclaredWrites before anything touches disk.
+ * Extract fenced code blocks carrying a file path from model output. Models
+ * emit three formats, all accepted:
+ *  1. `path=<p>` tag in the block's info string, code in the same block
+ *  2. a bare path as the first line inside the fence
+ *  3. a block that only declares `path=<p>`, code in the NEXT block
+ * The runner applies filterDeclaredWrites before anything touches disk.
  */
 export function parseFileBlocks(text: string): FileBlock[] {
+  const raw = Array.from(text.matchAll(GENERIC_BLOCK_PATTERN)).map((match) => ({
+    info: match[1],
+    content: match[2],
+  }));
   const blocks: FileBlock[] = [];
-  for (const match of text.matchAll(FILE_BLOCK_PATTERN)) {
-    blocks.push({ path: match[1], content: match[2] });
-  }
-  for (const match of text.matchAll(GENERIC_BLOCK_PATTERN)) {
-    if (match[1].includes('path=')) {
-      continue; // already captured by the path= pass
+  for (let index = 0; index < raw.length; index++) {
+    const { info, content } = raw[index];
+    const infoPath = info.match(INFO_PATH_PATTERN);
+    if (infoPath) {
+      blocks.push({ path: infoPath[1], content });
+      continue;
     }
-    const lines = match[2].split('\n');
+    const declaration = content.trim().match(DECLARATION_PATTERN);
+    if (declaration && index + 1 < raw.length) {
+      blocks.push({ path: declaration[1], content: raw[index + 1].content });
+      index++;
+      continue;
+    }
+    const lines = content.split('\n');
     const first = lines[0]?.trim() ?? '';
     if (FIRST_LINE_PATH_PATTERN.test(first)) {
       blocks.push({ path: first, content: lines.slice(1).join('\n') });

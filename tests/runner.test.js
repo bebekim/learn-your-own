@@ -352,3 +352,19 @@ test('parseFileBlocks does not mistake ordinary code for a first-line path', () 
   const text = '```js\nconst x = require("fs");\nx.read();\n```';
   assert.deepEqual(parseFileBlocks(text), []);
 });
+
+test('parseFileBlocks pairs a path-declaration fence with the following code fence', () => {
+  const text = [
+    '```js',
+    'path=generated/src/semver.js',
+    '```',
+    '```javascript',
+    "'use strict';",
+    'function compareSemver(a, b) { return 0; }',
+    '```',
+  ].join('\n');
+  const blocks = parseFileBlocks(text);
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].path, 'generated/src/semver.js');
+  assert.match(blocks[0].content, /compareSemver/);
+});
