@@ -42,6 +42,11 @@ export function parseFileBlocks(text: string): FileBlock[] {
     }
     const lines = content.split('\n');
     const first = lines[0]?.trim() ?? '';
+    const firstLinePathTag = first.match(DECLARATION_PATTERN);
+    if (firstLinePathTag) {
+      blocks.push({ path: firstLinePathTag[1], content: lines.slice(1).join('\n') });
+      continue;
+    }
     if (FIRST_LINE_PATH_PATTERN.test(first)) {
       blocks.push({ path: first, content: lines.slice(1).join('\n') });
     }

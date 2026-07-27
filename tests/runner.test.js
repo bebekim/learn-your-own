@@ -368,3 +368,18 @@ test('parseFileBlocks pairs a path-declaration fence with the following code fen
   assert.equal(blocks[0].path, 'generated/src/semver.js');
   assert.match(blocks[0].content, /compareSemver/);
 });
+
+test('parseFileBlocks accepts a path= line inside the fence followed by code', () => {
+  const text = [
+    '```js',
+    'path=generated/src/semver.js',
+    'const compareSemver = (a, b) => 0;',
+    'module.exports = { compareSemver };',
+    '```',
+  ].join('\n');
+  const blocks = parseFileBlocks(text);
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].path, 'generated/src/semver.js');
+  assert.match(blocks[0].content, /compareSemver/);
+  assert.equal(blocks[0].content.includes('path='), false);
+});
