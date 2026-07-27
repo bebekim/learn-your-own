@@ -87,7 +87,7 @@ function defaultSpawnKimi({
           resolve({ stdout, stderr, code: -1 });
           return;
         }
-        resolve({ stdout, stderr, code: error?.code ?? 0 });
+        resolve({ stdout, stderr, code: typeof error?.code === 'number' ? error.code : 0 });
       }
     );
   });

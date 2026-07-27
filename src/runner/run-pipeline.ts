@@ -364,9 +364,10 @@ async function runWriterStage({
   const finishedAt = now().toISOString();
   writeFileSync(transcriptPath, transcript);
 
-  // Single-shot executors return files as path-tagged blocks in the
-  // transcript; only blocks under declared write paths touch disk.
-  if (stage.executor?.kind === 'openrouter') {
+  // Single-shot executors (no tools: openrouter, upstage) return files as
+  // path-tagged blocks in the transcript; only blocks under declared write
+  // paths touch disk.
+  if (isSingleShotKind(stage.executor?.kind)) {
     const { accepted } = filterDeclaredWrites(parseFileBlocks(transcript), stage.outputs);
     for (const file of accepted) {
       const target = join(sandboxDir, file.path);
@@ -512,12 +513,10 @@ function buildStagePrompts(
   });
 
   const specBlock = `\n\nSpecification (authoritative):\n${specText}\n`;
-  const codeAddendum =
-    codeStage.executor?.kind === 'openrouter'
+  const codeAddendum = isSingleShotKind(codeStage.executor?.kind)
       ? `${specBlock}\nRespond with file blocks only — no prose, no planning, no commentary.\nReturn each file as a fenced code block tagged with its path, e.g.\n\`\`\`js path=${codeStage.outputs[0]}/example.js\n<file contents>\n\`\`\`\nOnly files under: ${codeStage.outputs.join(', ')}.\n`
       : `${specBlock}\nThe specification is also available at '${plan.specRef.path}' inside your working directory. Write implementation files under: ${codeStage.outputs.join(', ')}. Do not write anywhere else.\n`;
-  const testAddendum =
-    testStage.executor?.kind === 'openrouter'
+  const testAddendum = isSingleShotKind(testStage.executor?.kind)
       ? `${specBlock}\nRespond with file blocks only — no prose, no planning, no commentary.\nReturn each file as a fenced code block tagged with its path, e.g.\n\`\`\`js path=${testStage.outputs[0]}/example.test.js\n<file contents>\n\`\`\`\nOnly files under: ${testStage.outputs.join(', ')}. Tests run with \`node --test\` against code merged as a sibling tree (e.g. require('../src/...') from ${testStage.outputs[0]}).\nTests MUST be CommonJS using node:test and node:assert/strict, exactly like:\n\`\`\`js\nconst test = require('node:test');\nconst assert = require('node:assert/strict');\nconst { functionUnderTest } = require('../src/<module>.js');\ntest('describes behavior', () => {\n  assert.deepEqual(functionUnderTest('input'), 'expected');\n});\n\`\`\`\nDo NOT use import/export syntax. Do NOT use Jest/Vitest APIs (expect, toEqual, describe/it from jest).\n`
       : `${specBlock}\nThe specification is also available at '${plan.specRef.path}' inside your working directory. Write test files under: ${testStage.outputs.join(', ')}. Do not write anywhere else.\n`;
 
@@ -525,6 +524,10 @@ function buildStagePrompts(
     codeWriter: compiled.artifacts.codeWriter.content + codeAddendum,
     testWriter: compiled.artifacts.testWriter.content + testAddendum,
   };
+}
+
+function isSingleShotKind(kind: string | undefined): boolean {
+  return kind === 'openrouter' || kind === 'upstage';
 }
 
 function defaultExecutorFactory(stage: PlanStage): StageExecutor {

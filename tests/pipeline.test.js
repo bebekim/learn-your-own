@@ -31,7 +31,7 @@ const SPEC = {
   examples: [{ input: 'add(2, 3)', output: '5' }],
 };
 
-function writeSource(dir, { spec = SPEC, tamperSpec = false, weakenBlindness = false, maxRounds } = {}) {
+function writeSource(dir, { spec = SPEC, tamperSpec = false, weakenBlindness = false, maxRounds, codeKind = 'kimi-cli' } = {}) {
   const specPath = join(dir, 'spec.json');
   writeFileSync(specPath, JSON.stringify(spec, null, 2));
   const specRef = { path: 'spec.json', sha256: hashFile(specPath).sha256 };
@@ -39,8 +39,7 @@ function writeSource(dir, { spec = SPEC, tamperSpec = false, weakenBlindness = f
   const codeStage = {
     stageId: 'stage-code',
     role: 'code-writer',
-    executor: { kind: 'kimi-cli', model: 'fake-code-model', temperature: 0.2 },
-    authority: {
+    executor: { kind: codeKind, model: 'fake-code-model', temperature: 0.2 },    authority: {
       read: ['spec.json'],
       write: ['generated/src'],
       forbiddenRead: weakenBlindness ? [] : ['generated/tests'],
@@ -509,5 +508,31 @@ test('runPipeline preserves the transcript when a stage fails', async () => {
     const runDir = join(runsDir, readdirSync(runsDir)[0]);
     const transcript = readFileSync(join(runDir, 'stages/stage-code/transcript.txt'), 'utf8');
     assert.match(transcript, /exploded mid-request/);
+  });
+});
+
+test('upstage-kind stages parse file blocks from the transcript', async () => {
+  await withTmp(async (dir) => {
+    const { planPath } = writeSource(dir, { codeKind: 'upstage' });
+    const factory = (stage) => {
+      if (stage.role === 'code-writer') {
+        return async () => ({
+          transcript:
+            '```js path=generated/src/add.js\nmodule.exports = { add: (a, b) => a + b };\n```',
+        });
+      }
+      return fakeExecutorFactory(stage);
+    };
+    const result = await runPipeline({
+      planPath,
+      runsRoot: join(dir, 'runs'),
+      executorFactory: factory,
+    });
+    assert.equal(result.report.outcome, 'pass');
+    const manifest = JSON.parse(
+      readFileSync(join(result.runDir, 'artifacts/code/manifest.json'), 'utf8')
+    );
+    assert.equal(manifest.files.length, 1);
+    assert.match(manifest.files[0].path, /add\.js$/);
   });
 });
