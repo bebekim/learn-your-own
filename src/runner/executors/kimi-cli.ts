@@ -82,10 +82,12 @@ function defaultSpawnKimi({
       { cwd, timeout: timeoutMs, maxBuffer: MAX_BUFFER_BYTES },
       (error, stdout, stderr) => {
         if (error && typeof error.code !== 'number') {
-          reject(error);
+          // Killed (timeout/SIGTERM) or spawn failure: a real failure, not
+          // success — signal-killed processes report code: null.
+          resolve({ stdout, stderr, code: -1 });
           return;
         }
-        resolve({ stdout, stderr, code: typeof error?.code === 'number' ? error.code : 0 });
+        resolve({ stdout, stderr, code: error?.code ?? 0 });
       }
     );
   });
