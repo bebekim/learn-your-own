@@ -31,3 +31,6 @@ node_modules/
 
 # Generated package artifacts
 /dist/
+
+# Worktree checkouts
+/.worktrees/
