@@ -8,8 +8,10 @@ import test from 'node:test';
 import {
   compareRuns,
   installPromotedLessons,
+  isDemoted,
   lessonsForRole,
   loadLessons,
+  recordLessonOutcome,
   renderLessonsBlock,
   renderPatchBlock,
   selectLessons,
@@ -197,26 +199,24 @@ test('compareRuns renders improved, regressed, and unchanged verdicts', () => {
   });
 });
 
-test('selectLessons caps delivery and orders by evidence then recency', () => {
+test('selectLessons caps delivery per role and excludes other roles', () => {
   withTmp((dir) => {
     const mk = (name, classification, runs, title) =>
       writeFileSync(
         join(dir, name),
         `# ${title}\n\n- classification: ${classification}\n- observed in runs: ${runs.join(', ')}\n`
       );
-    mk('a.md', 'test-hallucination', ['r1'], 'LESSON A one run');
-    mk('b.md', 'test-hallucination', ['r1', 'r2', 'r3'], 'LESSON B three runs');
-    mk('c.md', 'test-hallucination', ['r1', 'r2'], 'LESSON C two runs');
-    mk('d.md', 'test-hallucination', ['r1'], 'LESSON D one run');
+    mk('a.md', 'test-hallucination', ['r1'], 'LESSON A');
+    mk('b.md', 'test-hallucination', ['r1', 'r2', 'r3'], 'LESSON B');
+    mk('c.md', 'test-hallucination', ['r1', 'r2'], 'LESSON C');
+    mk('d.md', 'test-hallucination', ['r1'], 'LESSON D');
     mk('e.md', 'code-bug', ['r1'], 'CODE LESSON E');
 
-    const selected = selectLessons(loadLessons(dir), { role: 'test-writer', limit: 3 });
-    assert.deepEqual(
-      selected.map((lesson) => lesson.title),
-      ['LESSON B three runs', 'LESSON C two runs', 'LESSON A one run']
-    );
+    const selected = selectLessons(loadLessons(dir), { role: 'test-writer', limit: 3, rng: () => 0.5 });
+    assert.equal(selected.length, 3);
+    assert.ok(selected.every((lesson) => lesson.classification === 'test-hallucination'));
 
-    const codeSelected = selectLessons(loadLessons(dir), { role: 'code-writer' });
+    const codeSelected = selectLessons(loadLessons(dir), { role: 'code-writer', rng: () => 0.5 });
     assert.deepEqual(codeSelected.map((lesson) => lesson.title), ['CODE LESSON E']);
   });
 });
@@ -279,5 +279,74 @@ test('renderPatchBlock renders imitable code, not advice', () => {
     assert.match(block, /const num = \(x\) => x \+ 0/);
     assert.match(block, /num\(f\(a, b\)\)/);
     assert.equal(renderPatchBlock([]), '');
+  });
+});
+
+function lcg(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 0x100000000;
+  };
+}
+
+function lessonMd({ title, classification = 'test-hallucination', helpful = 0, harmful = 0, runs = ['r1'] }) {
+  return [
+    `# ${title}`,
+    '',
+    `- classification: ${classification}`,
+    `- helpful: ${helpful}`,
+    `- harmful: ${harmful}`,
+    `- observed in runs: ${runs.join(', ')}`,
+    '',
+  ].join('\n');
+}
+
+test('loadLessons parses helpful and harmful counters', () => {
+  withTmp((dir) => {
+    writeFileSync(join(dir, 'a.md'), lessonMd({ title: 'LESSON A', helpful: 3, harmful: 1 }));
+    const [lesson] = loadLessons(dir);
+    assert.equal(lesson.helpful, 3);
+    assert.equal(lesson.harmful, 1);
+  });
+});
+
+test('selectLessons is a posterior policy: outcomes beat observation counts', () => {
+  withTmp((dir) => {
+    writeFileSync(join(dir, 'a.md'), lessonMd({ title: 'OFTEN SEEN ALWAYS WRONG', helpful: 0, harmful: 4, runs: ['r1', 'r2', 'r3', 'r4', 'r5'] }));
+    writeFileSync(join(dir, 'b.md'), lessonMd({ title: 'RARELY SEEN ALWAYS RIGHT', helpful: 3, harmful: 0, runs: ['r1'] }));
+    const lessons = loadLessons(dir);
+    for (const seed of [1, 42, 1337]) {
+      const selected = selectLessons(lessons, { role: 'test-writer', limit: 2, rng: lcg(seed) });
+      assert.equal(selected[0].title, 'RARELY SEEN ALWAYS RIGHT', `seed ${seed}`);
+    }
+  });
+});
+
+test('selectLessons demotes lessons that only ever failed', () => {
+  withTmp((dir) => {
+    writeFileSync(join(dir, 'a.md'), lessonMd({ title: 'HARMFUL LESSON', helpful: 0, harmful: 2 }));
+    writeFileSync(join(dir, 'b.md'), lessonMd({ title: 'UNPROVEN LESSON', helpful: 0, harmful: 0 }));
+    const selected = selectLessons(loadLessons(dir), { role: 'test-writer', limit: 3, rng: lcg(7) });
+    assert.deepEqual(selected.map((lesson) => lesson.title), ['UNPROVEN LESSON']);
+  });
+});
+
+test('recordLessonOutcome bumps counters in the lesson file', () => {
+  withTmp((dir) => {
+    const lessonPath = join(dir, 'a.md');
+    writeFileSync(lessonPath, lessonMd({ title: 'LESSON A' }));
+    let lesson = recordLessonOutcome({ lessonPath, outcome: 'helpful' });
+    assert.equal(lesson.helpful, 1);
+    lesson = recordLessonOutcome({ lessonPath, outcome: 'harmful' });
+    lesson = recordLessonOutcome({ lessonPath, outcome: 'harmful' });
+    assert.equal(lesson.harmful, 2);
+    assert.equal(isDemoted(lesson), false, 'helped once, so not demoted');
+
+    const demotedPath = join(dir, 'b.md');
+    writeFileSync(demotedPath, lessonMd({ title: 'LESSON B' }));
+    recordLessonOutcome({ lessonPath: demotedPath, outcome: 'harmful' });
+    const demoted = recordLessonOutcome({ lessonPath: demotedPath, outcome: 'harmful' });
+    assert.equal(isDemoted(demoted), true);
   });
 });

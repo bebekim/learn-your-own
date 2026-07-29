@@ -233,8 +233,10 @@ export {
 export { LessonStore } from './lyo/lesson-store.ts';
 export {
   installPromotedLessons,
+  isDemoted,
   lessonsForRole,
   loadLessons,
+  recordLessonOutcome,
   renderLessonsBlock,
   renderPatchBlock,
   selectLessons,
