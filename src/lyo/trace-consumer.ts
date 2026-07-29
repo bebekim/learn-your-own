@@ -13,6 +13,7 @@ import { join } from 'node:path';
 
 import { hashFile } from '../contract/refs.ts';
 import type { ArtifactRef } from '../contract/refs.ts';
+import { accumulateEvidence, evidenceThreshold } from './evidence.ts';
 import { installPromotedLessons } from './lesson-library.ts';
 import {
   LYO_UPDATE_VERSION,
@@ -91,17 +92,17 @@ export interface ConsumeTraceInput {
 }
 
 interface GateRules {
-  minRuns: number;
+  alpha: number;
+  p1: number;
+  p0: number;
   minSpecs: number;
-  wilsonFloor: number;
-  weakenBlocks: boolean;
 }
 
 const GATE_PRESETS: Record<'permissive' | 'strict', GateRules> = {
-  // Young ledger: recurrence is enough, statistics stay out of the way.
-  permissive: { minRuns: 2, minSpecs: 1, wilsonFloor: 0, weakenBlocks: false },
-  // Kernel discipline: cross-spec evidence, Wilson floor, contradiction kills.
-  strict: { minRuns: 2, minSpecs: 2, wilsonFloor: 0.5, weakenBlocks: true },
+  // Young ledger: tolerate 1-in-10 false promotions.
+  permissive: { alpha: 0.1, p1: 0.5, p0: 0.1, minSpecs: 1 },
+  // Kernel discipline: 1-in-20 tolerance, cross-spec evidence required.
+  strict: { alpha: 0.05, p1: 0.5, p0: 0.1, minSpecs: 2 },
 };
 
 export interface TraceConsumption {
@@ -324,8 +325,9 @@ export async function consumeTraces({
   let lessonIndex = 0;
   for (const [signature, group] of lessonGroups) {
     lessonIndex++;
-    // Weaken events: runs with the same spec and test-writer model that
-    // produced NO disagreement of this class.
+    // Trust gate: sequential likelihood-ratio evidence, not run counts.
+    // Recurrences are 1s, weaken events (clean runs, same spec + writer
+    // model) are 0s; promotion when E > 1/alpha, cross-spec per preset.
     const harmful = analyses.filter(
       (analysis) =>
         !group.runIds.includes(analysis.runId) &&
@@ -334,18 +336,19 @@ export async function consumeTraces({
         group.models.has(analysis.testWriterModel)
     ).length;
     const helpful = group.runIds.length;
-    const wilsonLower = wilsonLowerBound(helpful, helpful + harmful);
+    const stream: Array<0 | 1> = [
+      ...Array.from({ length: helpful }, () => 1 as const),
+      ...Array.from({ length: harmful }, () => 0 as const),
+    ];
+    const evidence = accumulateEvidence(stream, gateRules.p1, gateRules.p0);
     const promoted =
-      helpful >= gateRules.minRuns &&
-      group.specIds.size >= gateRules.minSpecs &&
-      wilsonLower >= gateRules.wilsonFloor &&
-      !(gateRules.weakenBlocks && harmful > 0);
+      evidence > evidenceThreshold(gateRules.alpha) && group.specIds.size >= gateRules.minSpecs;
+    const gateStats =
+      `${signature}: E=${evidence.toFixed(1)} (threshold ${evidenceThreshold(gateRules.alpha).toFixed(0)}), ` +
+      `runs=${helpful}, clean=${harmful}, specs=${group.specIds.size}`;
     // An arm must be able to pay out: lessons with no falsifying observation
     // are recorded but never delivered.
     const deliverable = Boolean(group.judgment.falsifiableBy);
-    const gateStats =
-      `${signature}: observed in ${helpful} run(s), ${group.specIds.size} spec(s), ` +
-      `helpful=${helpful} harmful=${harmful} wilsonLower=${wilsonLower.toFixed(2)}`;
     const lessonPath = join(lessonsDir, `lesson-${lessonIndex}-${signature.replace(/[^a-z0-9-]/gi, '-').slice(0, 60)}.md`);
     writeFileSync(
       lessonPath,
@@ -558,17 +561,6 @@ function tapExcerptFor(tapText: string, testName: string): string {
     excerpt.push(line);
   }
   return excerpt.join('\n');
-}
-
-function wilsonLowerBound(successes: number, total: number, z = 1.96): number {
-  if (total === 0) {
-    return 0;
-  }
-  const p = successes / total;
-  const z2 = z * z;
-  const center = p + z2 / (2 * total);
-  const margin = z * Math.sqrt((p * (1 - p)) / total + z2 / (4 * total * total));
-  return (center - margin) / (1 + z2 / total);
 }
 
 function must<T>(result: ValidationResult<T>, artifact: string): T {

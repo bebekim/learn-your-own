@@ -301,7 +301,7 @@ test('lessons with the same classification but different phrasing group across r
     const promoted = JSON.parse(readFileSync(result.updatePath, 'utf8')).promotions;
     const futureRuns = promoted.filter((promotion) => promotion.scope === 'future-runs');
     assert.equal(futureRuns.length, 1);
-    assert.match(futureRuns[0].rationale, /2 run\(s\)/);
+    assert.match(futureRuns[0].rationale, /runs=2/);
   });
 });
 
@@ -319,14 +319,14 @@ test('strict gate blocks promotion when observations come from a single spec', a
       update.promotions.map((promotion) => promotion.scope),
       ['candidate']
     );
-    assert.match(update.promotions[0].rationale, /1 spec/);
+    assert.match(update.promotions[0].rationale, /specs=1/);
   });
 });
 
-test('strict gate promotes across two specs once Wilson n is sufficient', async () => {
+test('strict gate promotes across two specs once evidence crosses the boundary', async () => {
   await withTmp(async (dir) => {
-    // Wilson lower bound at 2/2 is ~0.34 < 0.5 — two clean observations are
-    // never enough in strict mode. At 4/4 it crosses 0.5.
+    // Four recurrences across two specs: E = 5^4 = 625, well past the strict
+    // threshold of 20. Two runs (E=25) also cross; what strict adds is minSpecs.
     const runs = [];
     for (const [index, specId] of ['spec-one', 'spec-one', 'spec-two', 'spec-two'].entries()) {
       runs.push(await makeRunDir(dir, `run-${index}`, { specId }));
@@ -341,13 +341,15 @@ test('strict gate promotes across two specs once Wilson n is sufficient', async 
       update.promotions.map((promotion) => promotion.scope),
       ['future-runs']
     );
-    assert.match(update.promotions[0].rationale, /2 spec/);
-    assert.match(update.promotions[0].rationale, /helpful=4 harmful=0/);
+    assert.match(update.promotions[0].rationale, /specs=2/);
+    assert.match(update.promotions[0].rationale, /runs=4, clean=0/);
   });
 });
 
-test('strict gate hard-blocks on a weaken event; permissive ignores it', async () => {
+test('one weaken event: strict boundary holds, permissive promotes', async () => {
   await withTmp(async (dir) => {
+    // [1,1,clean] → E ≈ 13.9: above the permissive threshold (10), below
+    // the strict one (20). Clean runs are arithmetic, not a veto.
     const runA = await makeRunDir(dir, 'run-a', { specId: 'spec-one' });
     const runB = await makeRunDir(dir, 'run-b', { specId: 'spec-two' });
     const cleanRun = await makeRunDir(dir, 'run-clean', { specId: 'spec-one', failing: false });
@@ -362,7 +364,7 @@ test('strict gate hard-blocks on a weaken event; permissive ignores it', async (
       strictUpdate.promotions.map((promotion) => promotion.scope),
       ['candidate']
     );
-    assert.match(strictUpdate.promotions[0].rationale, /harmful=1/);
+    assert.match(strictUpdate.promotions[0].rationale, /clean=1/);
 
     const permissive = await consumeTraces({
       runDirs: [runA, runB, cleanRun],

@@ -232,6 +232,11 @@ export {
 } from './lyo/elaborator-reflector.ts';
 export { LessonStore } from './lyo/lesson-store.ts';
 export {
+  accumulateEvidence,
+  evidenceThreshold,
+  logEvidenceRatio,
+} from './lyo/evidence.ts';
+export {
   installPromotedLessons,
   isDemoted,
   lessonsForRole,
