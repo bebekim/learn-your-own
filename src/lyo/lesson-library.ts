@@ -30,6 +30,7 @@ export interface Lesson {
   harmful: number;
   vehicle: LessonVehicle;
   promptPatch?: string;
+  falsifiableBy?: string;
 }
 
 const ROLE_BY_CLASSIFICATION: Partial<Record<JudgeClassification, 'code-writer' | 'test-writer'>> = {
@@ -76,6 +77,7 @@ export function loadLessonsFromFiles(paths: string[]): Lesson[] {
       harmful: parseCounter(content, 'harmful'),
       vehicle: parseVehicle(content),
       promptPatch: parsePromptPatch(content),
+      falsifiableBy: content.match(/^- falsifiable_by: (.+)$/m)?.[1],
     });
   }
   return lessons;

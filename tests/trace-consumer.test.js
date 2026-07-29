@@ -7,8 +7,10 @@ import test from 'node:test';
 import {
   consumeTraces,
   extractDisagreements,
+  loadLessons,
   loadRunEvidence,
   parseJudgeResponse,
+  selectLessons,
   validateLyoUpdate,
 } from '../src/index.ts';
 
@@ -172,6 +174,7 @@ const JUDGMENT = {
   rationale: 'The test asserts behavior the spec never states.',
   evidence: 'assert.deepEqual(add(MAX), 9007199254740991)',
   lesson: 'Test writers must not assert behavior beyond the written spec.',
+  falsifiableBy: 'a frozen test asserting behavior absent from the spec that a judge verifies as correct',
 };
 
 test('loadRunEvidence + extractDisagreements surfaces each failing test with its TAP excerpt', async () => {
@@ -194,7 +197,7 @@ test('loadRunEvidence + extractDisagreements surfaces each failing test with its
 
 test('parseJudgeResponse tolerates fenced JSON', () => {
   const parsed = parseJudgeResponse(
-    '```json\n{"classification":"spec-gap","rationale":"r","evidence":"e","lesson":"l","spec_edit":"s"}\n```'
+    '```json\n{"classification":"spec-gap","rationale":"r","evidence":"e","lesson":"l","spec_edit":"s","falsifiable_by":"f"}\n```'
   );
   assert.equal(parsed.classification, 'spec-gap');
   assert.equal(parsed.specEdit, 's');
@@ -399,14 +402,66 @@ test('judge vehicle and prompt_patch flow into the lesson file', async () => {
 
 test('parseJudgeResponse maps vehicle and prompt_patch, defaulting to prose', () => {
   const parsed = parseJudgeResponse(
-    '{"classification":"test-hallucination","rationale":"r","evidence":"e","lesson":"l","vehicle":"skeleton-patch","prompt_patch":"code()"}'
+    '{"classification":"test-hallucination","rationale":"r","evidence":"e","lesson":"l","vehicle":"skeleton-patch","prompt_patch":"code()","falsifiable_by":"f"}'
   );
   assert.equal(parsed.vehicle, 'skeleton-patch');
   assert.equal(parsed.promptPatch, 'code()');
 
   const noVehicle = parseJudgeResponse(
-    '{"classification":"spec-gap","rationale":"r","evidence":"e","lesson":"l","vehicle":"bogus"}'
+    '{"classification":"spec-gap","rationale":"r","evidence":"e","lesson":"l","vehicle":"bogus","falsifiable_by":"f"}'
   );
   assert.equal(noVehicle.vehicle, 'prose');
   assert.equal(noVehicle.promptPatch, undefined);
+});
+
+test('judge must state what observation would falsify the lesson', () => {
+  const parsed = parseJudgeResponse(
+    '{"classification":"test-hallucination","rationale":"r","evidence":"e","lesson":"l","falsifiable_by":"a passing run whose tests assert behavior absent from the spec"}'
+  );
+  assert.equal(parsed.falsifiableBy, 'a passing run whose tests assert behavior absent from the spec');
+
+  assert.throws(
+    () =>
+      parseJudgeResponse(
+        '{"classification":"test-hallucination","rationale":"r","evidence":"e","lesson":"always be careful"}'
+      ),
+    /falsifiable/
+  );
+});
+
+test('unfalsifiable lessons are marked undeliverable and not installed', async () => {
+  await withTmp(async (dir) => {
+    const runA = await makeRunDir(dir, 'run-a');
+    const runB = await makeRunDir(dir, 'run-b');
+    const libraryDir = join(dir, 'library');
+    const result = await consumeTraces({
+      runDirs: [runA, runB],
+      judge: async () => ({ ...JUDGMENT, falsifiableBy: undefined }),
+      libraryDir,
+    });
+
+    const update = JSON.parse(readFileSync(result.updatePath, 'utf8'));
+    assert.equal(update.promotions.length, 1);
+    assert.equal(update.promotions[0].scope, 'undeliverable');
+    assert.deepEqual(result.installedLessons, []);
+  });
+});
+
+test('falsifiable lessons are installed; undeliverable ones never load', async () => {
+  await withTmp(async (dir) => {
+    const runA = await makeRunDir(dir, 'run-a');
+    const runB = await makeRunDir(dir, 'run-b');
+    const libraryDir = join(dir, 'library');
+    await consumeTraces({
+      runDirs: [runA, runB],
+      judge: async () => ({ ...JUDGMENT, falsifiableBy: 'a run where X does Y' }),
+      libraryDir,
+    });
+
+    const lessons = loadLessons(libraryDir);
+    assert.equal(lessons.length, 1);
+    assert.equal(lessons[0].falsifiableBy, 'a run where X does Y');
+    const selected = selectLessons(lessons, { role: 'test-writer', rng: () => 0.5 });
+    assert.equal(selected.length, 1);
+  });
 });

@@ -65,6 +65,7 @@ export interface Judgment {
   specEdit?: string;
   vehicle?: 'prose' | 'skeleton-patch' | 'spec-constraint';
   promptPatch?: string;
+  falsifiableBy?: string;
 }
 
 export type JudgeFn = (input: DisagreementInput) => Promise<Judgment>;
@@ -176,12 +177,15 @@ export function buildJudgePrompt(input: DisagreementInput): {
           'Respond with a single JSON object and nothing else: ' +
           '{"classification": "code-bug"|"test-hallucination"|"spec-gap", "rationale": string, ' +
           '"evidence": string, "lesson": string, "spec_edit"?: string, ' +
-          '"vehicle"?: "prose"|"skeleton-patch"|"spec-constraint", "prompt_patch"?: string}. ' +
+          '"vehicle"?: "prose"|"skeleton-patch"|"spec-constraint", "prompt_patch"?: string, ' +
+          '"falsifiable_by": string}. ' +
           'code-bug: the implementation deviates from what the spec states. ' +
           'test-hallucination: the test asserts behavior the spec does not state. ' +
           'spec-gap: the spec does not determine the disputed behavior, so both readings are defensible. ' +
           'evidence: quote the exact spec, test, or code text the classification rests on. ' +
           'lesson: one transferable, imperative, standalone rule. ' +
+          'falsifiable_by (required): the concrete observation that would prove the lesson wrong. ' +
+          'If no run outcome could disprove it, the lesson is not a lesson — do not emit it. ' +
           'spec_edit (required for spec-gap only): one sentence that would close the gap. ' +
           'vehicle: how the lesson is best delivered. prose (default): a rule sentence. ' +
           'skeleton-patch: the rule is better expressed as imitable code — include prompt_patch ' +
@@ -219,6 +223,7 @@ export function parseJudgeResponse(text: unknown): Judgment {
     spec_edit?: unknown;
     vehicle?: unknown;
     prompt_patch?: unknown;
+    falsifiable_by?: unknown;
   };
   if (!JUDGE_CLASSES.includes(parsed.classification as JudgeClassification)) {
     throw new Error(`judge: invalid classification ${JSON.stringify(parsed.classification)}`);
@@ -227,6 +232,9 @@ export function parseJudgeResponse(text: unknown): Judgment {
     if (typeof parsed[field] !== 'string' || parsed[field].trim() === '') {
       throw new Error(`judge: missing ${field}`);
     }
+  }
+  if (typeof parsed.falsifiable_by !== 'string' || parsed.falsifiable_by.trim() === '') {
+    throw new Error('judge: missing falsifiable_by (an arm must be able to pay out)');
   }
   const vehicle =
     parsed.vehicle === 'skeleton-patch' || parsed.vehicle === 'spec-constraint'
@@ -243,6 +251,7 @@ export function parseJudgeResponse(text: unknown): Judgment {
       vehicle === 'skeleton-patch' && typeof parsed.prompt_patch === 'string'
         ? parsed.prompt_patch
         : undefined,
+    falsifiableBy: parsed.falsifiable_by as string,
   };
 }
 
@@ -331,6 +340,9 @@ export async function consumeTraces({
       group.specIds.size >= gateRules.minSpecs &&
       wilsonLower >= gateRules.wilsonFloor &&
       !(gateRules.weakenBlocks && harmful > 0);
+    // An arm must be able to pay out: lessons with no falsifying observation
+    // are recorded but never delivered.
+    const deliverable = Boolean(group.judgment.falsifiableBy);
     const gateStats =
       `${signature}: observed in ${helpful} run(s), ${group.specIds.size} spec(s), ` +
       `helpful=${helpful} harmful=${harmful} wilsonLower=${wilsonLower.toFixed(2)}`;
@@ -342,6 +354,7 @@ export async function consumeTraces({
         '',
         `- classification: ${group.judgment.classification}`,
         `- vehicle: ${group.judgment.vehicle ?? 'prose'}`,
+        ...(group.judgment.falsifiableBy ? [`- falsifiable_by: ${group.judgment.falsifiableBy}`] : []),
         `- observed in runs: ${group.runIds.join(', ')}`,
         `- disagreements: ${group.testNames.join('; ')}`,
         `- status: ${promoted ? 'promoted' : 'candidate'}`,
@@ -363,7 +376,7 @@ export async function consumeTraces({
         path: lessonPath.slice(outDir.length + 1),
         sha256: hashFile(lessonPath).sha256,
       },
-      scope: promoted ? 'future-runs' : 'candidate',
+      scope: deliverable ? (promoted ? 'future-runs' : 'candidate') : 'undeliverable',
       rationale: `${gateStats} — ${group.judgment.rationale}`,
     });
   }
