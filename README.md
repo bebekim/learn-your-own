@@ -105,6 +105,21 @@ Current package version: `0.3.0`.
   verifier rules, local baseline episode rows, and eval report/gate logic.
 - Dry-run semantic lowering, explanation-graph belief updates, and cybernetic
   experiment reports.
+- **Blind pipeline**: spec-first artifact contract (`lyo.spec.v1`, `lyo.plan.v1`
+  and friends), static blindness checking, sandboxed code-writer/test-writer
+  stages (Upstage, OpenRouter, Kimi CLI executors), deterministic `node --test`
+  verification, aggregate-only feedback rounds, and per-round evidence
+  preservation with token/cost accounting.
+- **Learning loop**: trace consumption with deterministic + LLM judging,
+  falsifiability-gated lesson admission, sequential likelihood-ratio trust
+  gates, Thompson-sampled lesson delivery with vehicles
+  (prose / skeleton-patch / spec-constraint), outcome credit assignment, and
+  demotion of harmful lessons.
+- **Bridge to real work**: night-shift markdown spec compilation to
+  `spec.json` + `plan.json`, and verifier-gated apply of code artifacts into
+  working trees.
+- Hook adapters for five agent harnesses: Kimi Code CLI, Codex, Gemini CLI,
+  Antigravity CLI, and Deep Agents Code.
 
 Not mature yet:
 
@@ -268,6 +283,39 @@ For the full CLI surface:
 lyo --help
 ```
 
+## Blind Pipeline
+
+Two LLMs write code and tests from the same specification without ever seeing
+each other's work. Blindness is enforced structurally (sandboxed reads,
+tool-less single-shot stages), the verifier is deterministic `node --test`,
+and a learning loop judges disagreements and promotes lessons into future
+runs.
+
+From a night-shift markdown spec to applied, verified code:
+
+```sh
+# 1. Any night-shift markdown spec becomes pipeline artifacts
+lyo pipeline init --spec ~/repositories/work/nectr-crm/Specs/05-something.md --task-dir .pipeline/something
+
+# 2. The blind split runs
+lyo pipeline run --plan .pipeline/something/plan.json --runs-root .pipeline/something/runs --lessons ~/.agent-learning/lessons
+
+# 3. Verified output lands in the repo (only if the verifier passed)
+lyo pipeline apply --run .pipeline/something/runs/<run-id> --target ~/repositories/work/nectr-crm
+```
+
+Learning over a batch of runs:
+
+```sh
+lyo pipeline learn --run .pipeline/something/runs/<run-id>[,<run-id-2>] --library ~/.agent-learning/lessons
+lyo pipeline compare --baseline <run-dir> --treatment <run-dir>
+lyo pipeline proposals --run <run-dir>
+```
+
+Every run emits content-hashed artifacts (`plan`, `spec`, code/test manifests,
+verifier report, trace with token/cost usage) under the run directory, so each
+round is fully reconstructible.
+
 ## Hooks
 
 Codex hook capture:
@@ -285,6 +333,30 @@ Claude hook capture:
 lyo claude-hook \
   --db-from-event-cwd \
   --prompt-dir-from-event-cwd \
+  --spool-dir-from-event-cwd
+```
+
+Gemini CLI hook capture:
+
+```sh
+lyo gemini-hook \
+  --db-from-event-cwd \
+  --spool-dir-from-event-cwd
+```
+
+Antigravity CLI hook capture (the event name travels as an argument):
+
+```sh
+lyo agy-hook <PreInvocation|PostInvocation|PreToolUse|PostToolUse|Stop> \
+  --db-from-event-cwd \
+  --spool-dir-from-event-cwd
+```
+
+Deep Agents Code hook capture:
+
+```sh
+lyo dcode-hook \
+  --db-from-event-cwd \
   --spool-dir-from-event-cwd
 ```
 
