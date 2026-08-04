@@ -189,6 +189,8 @@ export { runPipeline } from './runner/run-pipeline.ts';
 export type { ExecutorFactory, RunPipelineInput, RunPipelineResult } from './runner/run-pipeline.ts';
 export { compareRuns } from './runner/compare-runs.ts';
 export type { RunComparison } from './runner/compare-runs.ts';
+export { computeMergeDecision } from './runner/merge-confidence.ts';
+export type { MergeDecision, MergeSignals } from './runner/merge-confidence.ts';
 export {
   corpusReport,
   syncCorpusOnce,
