@@ -52,6 +52,7 @@ export function usage(exitCode = 0): never {
 	  lyo pipeline run --plan path [--runs-root dir] [--lessons dir]
 	  lyo pipeline learn --run dir[,dir2] [--judge-model model] [--library dir] [--gate permissive|strict]
 	  lyo pipeline compare --baseline dir --treatment dir
+	  lyo pipeline calibrate --cases path [--judge-model model]
 	  lyo eval validate [--dir path]
 
 	Environment:

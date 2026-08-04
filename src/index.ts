@@ -248,8 +248,18 @@ export {
 } from './lyo/lesson-library.ts';
 export type { Lesson, LessonVehicle } from './lyo/lesson-library.ts';
 export {
+  loadCalibrationCases,
+  runJudgeCalibration,
+} from './lyo/judge-calibration.ts';
+export type {
+  CalibrationCase,
+  CalibrationCaseResult,
+  CalibrationResult,
+} from './lyo/judge-calibration.ts';
+export {
   buildJudgePrompt,
   consumeTraces,
+  createDefaultJudge,
   extractDisagreements,
   loadRunEvidence,
   parseJudgeResponse,

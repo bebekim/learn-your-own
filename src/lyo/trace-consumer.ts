@@ -256,8 +256,7 @@ export function parseJudgeResponse(text: unknown): Judgment {
   };
 }
 
-export async function consumeTraces({
-  runDirs,
+export async function consumeTraces({  runDirs,
   judge,
   judgeModel,
   libraryDir,
@@ -489,6 +488,10 @@ function judgeRubricSha256(): string {
     tapExcerpt: '',
   });
   return hashValue(probe.messages[0].content);
+}
+
+export function createDefaultJudge(model?: string): JudgeFn {
+  return defaultJudge(model);
 }
 
 function defaultJudge(model?: string): JudgeFn {

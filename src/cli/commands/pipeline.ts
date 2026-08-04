@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 
-import { consumeTraces } from '../../lyo/trace-consumer.ts';
+import { loadCalibrationCases, runJudgeCalibration } from '../../lyo/judge-calibration.ts';
+import { consumeTraces, createDefaultJudge } from '../../lyo/trace-consumer.ts';
 import { compareRuns } from '../../runner/compare-runs.ts';
 import { runPipeline } from '../../runner/run-pipeline.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
@@ -9,6 +10,7 @@ export const PIPELINE_COMMANDS: Record<string, CommandHandler> = {
   'pipeline run': pipelineRunCommand,
   'pipeline learn': pipelineLearnCommand,
   'pipeline compare': pipelineCompareCommand,
+  'pipeline calibrate': pipelineCalibrateCommand,
 };
 
 async function pipelineRunCommand(args: CommandArgs): Promise<unknown> {
@@ -68,4 +70,12 @@ async function pipelineCompareCommand(args: CommandArgs): Promise<unknown> {
     treatmentDir: resolve(args.requiredFlag('--treatment')),
   });
   return { ok: true, ...comparison };
+}
+
+async function pipelineCalibrateCommand(args: CommandArgs): Promise<unknown> {
+  const result = await runJudgeCalibration({
+    cases: loadCalibrationCases(resolve(args.requiredFlag('--cases'))),
+    judge: createDefaultJudge(args.flagValue('--judge-model')),
+  });
+  return { ok: true, ...result };
 }
