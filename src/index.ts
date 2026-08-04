@@ -162,10 +162,11 @@ export type {
 export {
   collectFiles,
   filterDeclaredWrites,
+  loadBlockFormats,
   materializeSandbox,
   parseFileBlocks,
 } from './runner/files.ts';
-export type { FileBlock } from './runner/files.ts';
+export type { BlockFormatKind, BlockFormatRule, BlockFormatsArtifact, FileBlock } from './runner/files.ts';
 export { createOpenRouterExecutor } from './runner/executors/openrouter.ts';
 export type {
   OpenRouterChatFn,

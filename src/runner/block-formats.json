@@ -1,0 +1,29 @@
+{
+  "version": "lyo.block-formats.v1",
+  "rules": [
+    {
+      "id": "info-path-tag",
+      "kind": "info-tag",
+      "summary": "path=<p> tag in the block's info string; code in the same block",
+      "evidence": "baseline format; prompt addendum instructs this shape"
+    },
+    {
+      "id": "declaration-pair",
+      "kind": "declaration-pair",
+      "summary": "a fence that only declares path=<p>; code in the NEXT fence",
+      "evidence": "solar-open2, semver-task run-20260727-033859"
+    },
+    {
+      "id": "first-line-path-tag",
+      "kind": "first-line-path-tag",
+      "summary": "path=<p> as the first line inside the fence, code following in the same block",
+      "evidence": "solar-open2, semver-task run-20260727-035021"
+    },
+    {
+      "id": "first-line-bare-path",
+      "kind": "first-line-bare-path",
+      "summary": "bare relative path as the first line inside the fence",
+      "evidence": "solar-open2, csv-task run-20260726-051725: file landed on disk with stray backticks in its name"
+    }
+  ]
+}

@@ -10,6 +10,7 @@ import {
   createOpenRouterExecutor,
   createUpstageExecutor,
   filterDeclaredWrites,
+  loadBlockFormats,
   materializeSandbox,
   parseFileBlocks,
   parseTapOutput,
@@ -383,4 +384,25 @@ test('parseFileBlocks accepts a path= line inside the fence followed by code', (
   assert.equal(blocks[0].path, 'generated/src/semver.js');
   assert.match(blocks[0].content, /compareSemver/);
   assert.equal(blocks[0].content.includes('path='), false);
+});
+
+test('loadBlockFormats reads the versioned ruleset artifact with evidence', () => {
+  const ruleset = loadBlockFormats('src/runner/block-formats.json');
+  assert.equal(ruleset.version, 'lyo.block-formats.v1');
+  assert.equal(ruleset.rules.length, 4);
+  assert.equal(ruleset.rules[0].id, 'info-path-tag');
+  assert.ok(ruleset.rules.every((rule) => rule.evidence.length > 0));
+});
+
+test('parseFileBlocks executes an explicit ruleset in order', () => {
+  const text = '```js path=out/a.js\nconst x = 1;\n```\n```js\nout/b.js\nconst y = 2;\n```';
+  const onlyBare = {
+    version: 'lyo.block-formats.v1',
+    rules: [{ id: 'b', kind: 'first-line-bare-path', summary: 's', evidence: 'e' }],
+  };
+  const blocks = parseFileBlocks(text, onlyBare.rules);
+  assert.deepEqual(blocks.map((block) => block.path), ['out/b.js']);
+
+  const blocksDefault = parseFileBlocks(text);
+  assert.deepEqual(blocksDefault.map((block) => block.path), ['out/a.js', 'out/b.js']);
 });

@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, readdirSync, statSync } from 'node:fs';
+import { cpSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, normalize, sep } from 'node:path';
 
 export interface FileBlock {
@@ -9,19 +9,51 @@ export interface FileBlock {
 const GENERIC_BLOCK_PATTERN = /```([^\n]*)\n([\s\S]*?)```/g;
 const INFO_PATH_PATTERN = /\bpath=([^\s`]+)/;
 const DECLARATION_PATTERN = /^path=([^\s`]+)$/;
-// A bare relative path with an extension, e.g. generated/src/csv-line.js —
-// the fallback format some models use instead of a path= info tag.
+// A bare relative path with an extension, e.g. generated/src/csv-line.js.
 const FIRST_LINE_PATH_PATTERN = /^[a-z0-9_][a-z0-9_./-]*\.[a-z0-9]+$/i;
 
+export type BlockFormatKind =
+  | 'info-tag'
+  | 'declaration-pair'
+  | 'first-line-path-tag'
+  | 'first-line-bare-path';
+
+export interface BlockFormatRule {
+  id: string;
+  kind: BlockFormatKind;
+  summary: string;
+  evidence: string;
+}
+
+export interface BlockFormatsArtifact {
+  version: string;
+  rules: BlockFormatRule[];
+}
+
 /**
- * Extract fenced code blocks carrying a file path from model output. Models
- * emit three formats, all accepted:
- *  1. `path=<p>` tag in the block's info string, code in the same block
- *  2. a bare path as the first line inside the fence
- *  3. a block that only declares `path=<p>`, code in the NEXT block
- * The runner applies filterDeclaredWrites before anything touches disk.
+ * The four formats models have actually emitted, as an ordered, versioned,
+ * evidence-carrying ruleset. New formats become new rules in the artifact
+ * (src/runner/block-formats.json), not new code — T-improvement by data.
  */
-export function parseFileBlocks(text: string): FileBlock[] {
+export const DEFAULT_BLOCK_FORMAT_RULES: BlockFormatRule[] = [
+  { id: 'info-path-tag', kind: 'info-tag', summary: '', evidence: '' },
+  { id: 'declaration-pair', kind: 'declaration-pair', summary: '', evidence: '' },
+  { id: 'first-line-path-tag', kind: 'first-line-path-tag', summary: '', evidence: '' },
+  { id: 'first-line-bare-path', kind: 'first-line-bare-path', summary: '', evidence: '' },
+];
+
+export function loadBlockFormats(path: string): BlockFormatsArtifact {
+  const parsed = JSON.parse(readFileSync(path, 'utf8')) as BlockFormatsArtifact;
+  if (typeof parsed.version !== 'string' || !Array.isArray(parsed.rules)) {
+    throw new Error(`invalid block-formats artifact: ${path}`);
+  }
+  return parsed;
+}
+
+export function parseFileBlocks(
+  text: string,
+  rules: BlockFormatRule[] = DEFAULT_BLOCK_FORMAT_RULES
+): FileBlock[] {
   const raw = Array.from(text.matchAll(GENERIC_BLOCK_PATTERN)).map((match) => ({
     info: match[1],
     content: match[2],
@@ -29,26 +61,34 @@ export function parseFileBlocks(text: string): FileBlock[] {
   const blocks: FileBlock[] = [];
   for (let index = 0; index < raw.length; index++) {
     const { info, content } = raw[index];
-    const infoPath = info.match(INFO_PATH_PATTERN);
-    if (infoPath) {
-      blocks.push({ path: infoPath[1], content });
-      continue;
-    }
-    const declaration = content.trim().match(DECLARATION_PATTERN);
-    if (declaration && index + 1 < raw.length) {
-      blocks.push({ path: declaration[1], content: raw[index + 1].content });
-      index++;
-      continue;
-    }
     const lines = content.split('\n');
     const first = lines[0]?.trim() ?? '';
-    const firstLinePathTag = first.match(DECLARATION_PATTERN);
-    if (firstLinePathTag) {
-      blocks.push({ path: firstLinePathTag[1], content: lines.slice(1).join('\n') });
-      continue;
-    }
-    if (FIRST_LINE_PATH_PATTERN.test(first)) {
-      blocks.push({ path: first, content: lines.slice(1).join('\n') });
+    for (const rule of rules) {
+      if (rule.kind === 'info-tag') {
+        const match = info.match(INFO_PATH_PATTERN);
+        if (match) {
+          blocks.push({ path: match[1], content });
+          break;
+        }
+      } else if (rule.kind === 'declaration-pair') {
+        const match = content.trim().match(DECLARATION_PATTERN);
+        if (match && index + 1 < raw.length) {
+          blocks.push({ path: match[1], content: raw[index + 1].content });
+          index++;
+          break;
+        }
+      } else if (rule.kind === 'first-line-path-tag') {
+        const match = first.match(DECLARATION_PATTERN);
+        if (match) {
+          blocks.push({ path: match[1], content: lines.slice(1).join('\n') });
+          break;
+        }
+      } else if (rule.kind === 'first-line-bare-path') {
+        if (FIRST_LINE_PATH_PATTERN.test(first)) {
+          blocks.push({ path: first, content: lines.slice(1).join('\n') });
+          break;
+        }
+      }
     }
   }
   return blocks;
