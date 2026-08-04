@@ -11,7 +11,7 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { hashFile } from '../contract/refs.ts';
+import { hashFile, hashValue } from '../contract/refs.ts';
 import type { ArtifactRef } from '../contract/refs.ts';
 import { accumulateEvidence, evidenceThreshold } from './evidence.ts';
 import { installPromotedLessons } from './lesson-library.ts';
@@ -413,6 +413,10 @@ export async function consumeTraces({
     }),
     promotions,
     beliefUpdates,
+    producer: {
+      judgeModel: judgeModel ?? process.env.OPENROUTER_LYO_JUDGE_MODEL ?? DEFAULT_JUDGE_MODEL,
+      judgePromptSha256: judgeRubricSha256(),
+    },
   };
   const validation = validateLyoUpdate(update);
   if (!validation.ok) {
@@ -473,6 +477,18 @@ function renderAnalysisMd(analyses: RunAnalysis[], update: LyoUpdate): string {
   }
   lines.push('');
   return lines.join('\n');
+}
+
+function judgeRubricSha256(): string {
+  const probe = buildJudgePrompt({
+    runId: '',
+    testName: '',
+    specText: '',
+    codeFiles: [],
+    testFiles: [],
+    tapExcerpt: '',
+  });
+  return hashValue(probe.messages[0].content);
 }
 
 function defaultJudge(model?: string): JudgeFn {

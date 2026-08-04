@@ -467,3 +467,32 @@ test('falsifiable lessons are installed; undeliverable ones never load', async (
     assert.equal(selected.length, 1);
   });
 });
+
+test('lyo-update pins the judge model and rubric hash into the artifact', async () => {
+  await withTmp(async (dir) => {
+    const runA = await makeRunDir(dir, 'run-a');
+    const result = await consumeTraces({
+      runDirs: [runA],
+      judge: async () => JUDGMENT,
+      judgeModel: 'anthropic/claude-sonnet-5',
+    });
+
+    const update = JSON.parse(readFileSync(result.updatePath, 'utf8'));
+    assert.equal(validateLyoUpdate(update).ok, true);
+    assert.equal(update.producer.judgeModel, 'anthropic/claude-sonnet-5');
+    assert.match(update.producer.judgePromptSha256, /^[0-9a-f]{64}$/);
+  });
+});
+
+test('producer reflects the default judge model when none is passed', async () => {
+  await withTmp(async (dir) => {
+    const runA = await makeRunDir(dir, 'run-a');
+    const result = await consumeTraces({
+      runDirs: [runA],
+      judge: async () => JUDGMENT,
+    });
+    const update = JSON.parse(readFileSync(result.updatePath, 'utf8'));
+    assert.equal(typeof update.producer.judgeModel, 'string');
+    assert.ok(update.producer.judgeModel.length > 0);
+  });
+});
