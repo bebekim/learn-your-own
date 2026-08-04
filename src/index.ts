@@ -187,6 +187,8 @@ export type {
 } from './runner/executors/stage-executor.ts';
 export { parseTapOutput, runVerifier } from './runner/verifier.ts';
 export type { RunTestsFn, VerifierRun } from './runner/verifier.ts';
+export { applyRun } from './runner/apply.ts';
+export { compileSpecMarkdown } from './runner/spec-compiler.ts';
 export { runPipeline } from './runner/run-pipeline.ts';
 export type { ExecutorFactory, RunPipelineInput, RunPipelineResult } from './runner/run-pipeline.ts';
 export { compareRuns } from './runner/compare-runs.ts';

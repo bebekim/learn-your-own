@@ -54,6 +54,8 @@ export function usage(exitCode = 0): never {
 	  lyo pipeline compare --baseline dir --treatment dir
 	  lyo pipeline proposals --run dir
 	  lyo pipeline proposal-review --run dir --id id --status accepted|rejected
+	  lyo pipeline init --spec path [--task-dir dir]
+	  lyo pipeline apply --run dir --target dir [--force]
 	  lyo pipeline calibrate --cases path [--judge-model model]
 	  lyo eval validate [--dir path]
 

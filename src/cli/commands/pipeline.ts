@@ -1,11 +1,13 @@
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 
-import { validateSpecProposal } from '../../contract/index.ts';
+import { checkBlindness, validatePlan, validateSpec, validateSpecProposal } from '../../contract/index.ts';
 import { loadCalibrationCases, runJudgeCalibration } from '../../lyo/judge-calibration.ts';
 import { consumeTraces, createDefaultJudge } from '../../lyo/trace-consumer.ts';
+import { applyRun } from '../../runner/apply.ts';
 import { compareRuns } from '../../runner/compare-runs.ts';
 import { runPipeline } from '../../runner/run-pipeline.ts';
+import { compileSpecMarkdown } from '../../runner/spec-compiler.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
 
 export const PIPELINE_COMMANDS: Record<string, CommandHandler> = {
@@ -15,6 +17,8 @@ export const PIPELINE_COMMANDS: Record<string, CommandHandler> = {
   'pipeline calibrate': pipelineCalibrateCommand,
   'pipeline proposals': pipelineProposalsCommand,
   'pipeline proposal-review': pipelineProposalReviewCommand,
+  'pipeline init': pipelineInitCommand,
+  'pipeline apply': pipelineApplyCommand,
 };
 
 async function pipelineRunCommand(args: CommandArgs): Promise<unknown> {
@@ -133,4 +137,37 @@ async function pipelineProposalReviewCommand(args: CommandArgs): Promise<unknown
   }
   writeFileSync(proposalPath, JSON.stringify(proposal, null, 2));
   return { ok: true, proposalId: proposal.proposalId, status };
+}
+
+async function pipelineInitCommand(args: CommandArgs): Promise<unknown> {
+  const specPath = resolve(args.requiredFlag('--spec'));
+  const taskDir = resolve(args.flagValue('--task-dir') ?? dirname(specPath));
+  const { spec, plan } = compileSpecMarkdown({ specPath });
+  const specValidation = validateSpec(spec);
+  if (!specValidation.ok) {
+    throw new Error(`compiled spec invalid: ${specValidation.errors.map((e) => e.message).join('; ')}`);
+  }
+  const planValidation = validatePlan(plan);
+  if (!planValidation.ok) {
+    throw new Error(`compiled plan invalid: ${planValidation.errors.map((e) => e.message).join('; ')}`);
+  }
+  const blindness = checkBlindness(planValidation.value);
+  if (!blindness.ok) {
+    throw new Error(`compiled plan violates blindness:\n- ${blindness.violations.join('\n- ')}`);
+  }
+  mkdirSync(taskDir, { recursive: true });
+  const specOut = join(taskDir, 'spec.json');
+  const planOut = join(taskDir, 'plan.json');
+  writeFileSync(specOut, JSON.stringify(spec, null, 2) + '\n');
+  writeFileSync(planOut, JSON.stringify(plan, null, 2) + '\n');
+  return { ok: true, specPath: specOut, planPath: planOut, specId: spec.specId };
+}
+
+async function pipelineApplyCommand(args: CommandArgs): Promise<unknown> {
+  const result = applyRun({
+    runDir: resolve(args.requiredFlag('--run')),
+    targetDir: resolve(args.requiredFlag('--target')),
+    force: args.hasFlag('--force'),
+  });
+  return { ok: true, copied: result.copied, outcome: result.outcome };
 }
