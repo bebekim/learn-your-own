@@ -9,6 +9,7 @@ import {
   createKimiCliExecutor,
   createOpenRouterExecutor,
   createUpstageExecutor,
+  DEFAULT_BLOCK_FORMAT_RULES,
   filterDeclaredWrites,
   loadBlockFormats,
   materializeSandbox,
@@ -439,4 +440,35 @@ test('executor usage is optional when the chat fn does not provide it', async ()
   });
   const result = await executor({ prompt: 'p', sandboxDir: '/tmp/sandbox' });
   assert.equal(result.usage, undefined);
+});
+
+test('loadBlockFormats validates the artifact strictly', () => {
+  withTmp((dir) => {
+    const write = (name, value) => {
+      writeFileSync(join(dir, name), JSON.stringify(value));
+      return join(dir, name);
+    };
+    const valid = { version: 'lyo.block-formats.v1', rules: [{ id: 'a', kind: 'info-tag', summary: 's', evidence: 'e' }] };
+    assert.equal(loadBlockFormats(write('valid.json', valid)).rules.length, 1);
+    assert.throws(() => loadBlockFormats(write('badver.json', { ...valid, version: 'v0' })), /version/);
+    assert.throws(() => loadBlockFormats(write('badkind.json', { ...valid, rules: [{ ...valid.rules[0], kind: 'mystery' }] })), /kind/);
+    assert.throws(() => loadBlockFormats(write('dup.json', { ...valid, rules: [valid.rules[0], valid.rules[0]] })), /duplicate/);
+  });
+});
+
+test('parseFileBlocks behavior is gated by the rules, not hardcoded', () => {
+  const text = '```js\ngenerated/src/add.js\nconst x = 1;\n```';
+  // Full rules: the bare first-line path parses.
+  assert.equal(parseFileBlocks(text).length, 1);
+  // Without the first-line-bare-path rule, the same text parses nothing.
+  const withoutBare = DEFAULT_BLOCK_FORMAT_RULES.filter((rule) => rule.kind !== 'first-line-bare-path');
+  assert.deepEqual(parseFileBlocks(text, withoutBare), []);
+});
+
+test('the bundled block-formats artifact is the default ruleset', () => {
+  const bundled = loadBlockFormats(new URL('../src/runner/block-formats.json', import.meta.url).pathname);
+  assert.deepEqual(
+    DEFAULT_BLOCK_FORMAT_RULES.map((rule) => rule.id),
+    bundled.rules.map((rule) => rule.id)
+  );
 });

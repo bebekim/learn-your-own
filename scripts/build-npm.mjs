@@ -10,6 +10,13 @@ mkdirSync(outputDir, { recursive: true });
 
 for (const sourcePath of sourceFiles(join(root, 'src'))) {
   const relativePath = relative(join(root, 'src'), sourcePath);
+  const outputPath = join(outputDir, relativePath.replace(/\.ts$/, '.js'));
+  mkdirSync(dirname(outputPath), { recursive: true });
+  if (sourcePath.endsWith('.json')) {
+    // Assets ship verbatim (e.g. src/runner/block-formats.json).
+    writeFileSync(outputPath.replace(/\.js$/, '.json'), readFileSync(sourcePath));
+    continue;
+  }
   const source = readFileSync(sourcePath, 'utf8');
   const result = ts.transpileModule(source, {
     fileName: relativePath,
@@ -24,8 +31,6 @@ for (const sourcePath of sourceFiles(join(root, 'src'))) {
     /from\s+(['"])(\.\.?\/[^'"]+)\.ts\1/g,
     'from $1$2.js$1'
   );
-  const outputPath = join(outputDir, relativePath.replace(/\.ts$/, '.js'));
-  mkdirSync(dirname(outputPath), { recursive: true });
   writeFileSync(outputPath, output);
   if (relativePath === 'cli.ts' || relativePath === 'lyo/session-hook.ts') {
     chmodSync(outputPath, 0o755);
@@ -39,6 +44,8 @@ function sourceFiles(dir) {
     if (statSync(path).isDirectory()) {
       files.push(...sourceFiles(path));
     } else if (entry.endsWith('.ts') && !entry.endsWith('.d.ts')) {
+      files.push(path);
+    } else if (entry.endsWith('.json')) {
       files.push(path);
     }
   }

@@ -162,6 +162,7 @@ export type {
 } from './contract/index.ts';
 export {
   collectFiles,
+  DEFAULT_BLOCK_FORMAT_RULES,
   filterDeclaredWrites,
   loadBlockFormats,
   materializeSandbox,

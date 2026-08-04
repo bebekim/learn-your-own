@@ -30,25 +30,48 @@ export interface BlockFormatsArtifact {
   rules: BlockFormatRule[];
 }
 
-/**
- * The four formats models have actually emitted, as an ordered, versioned,
- * evidence-carrying ruleset. New formats become new rules in the artifact
- * (src/runner/block-formats.json), not new code — T-improvement by data.
- */
-export const DEFAULT_BLOCK_FORMAT_RULES: BlockFormatRule[] = [
-  { id: 'info-path-tag', kind: 'info-tag', summary: '', evidence: '' },
-  { id: 'declaration-pair', kind: 'declaration-pair', summary: '', evidence: '' },
-  { id: 'first-line-path-tag', kind: 'first-line-path-tag', summary: '', evidence: '' },
-  { id: 'first-line-bare-path', kind: 'first-line-bare-path', summary: '', evidence: '' },
+const BLOCK_FORMATS_VERSION = 'lyo.block-formats.v1';
+const BLOCK_FORMAT_KINDS: BlockFormatKind[] = [
+  'info-tag',
+  'declaration-pair',
+  'first-line-path-tag',
+  'first-line-bare-path',
 ];
 
 export function loadBlockFormats(path: string): BlockFormatsArtifact {
   const parsed = JSON.parse(readFileSync(path, 'utf8')) as BlockFormatsArtifact;
-  if (typeof parsed.version !== 'string' || !Array.isArray(parsed.rules)) {
-    throw new Error(`invalid block-formats artifact: ${path}`);
+  if (parsed.version !== BLOCK_FORMATS_VERSION) {
+    throw new Error(
+      `invalid block-formats version in ${path}: expected '${BLOCK_FORMATS_VERSION}', got ${JSON.stringify(parsed.version)}`
+    );
+  }
+  if (!Array.isArray(parsed.rules)) {
+    throw new Error(`invalid block-formats artifact: ${path}: rules must be an array`);
+  }
+  const seen = new Set<string>();
+  for (const rule of parsed.rules) {
+    if (typeof rule.id !== 'string' || rule.id === '') {
+      throw new Error(`invalid block-formats artifact: ${path}: every rule needs a non-empty id`);
+    }
+    if (!BLOCK_FORMAT_KINDS.includes(rule.kind)) {
+      throw new Error(`invalid block-formats kind '${rule.kind}' in ${path}`);
+    }
+    if (seen.has(rule.id)) {
+      throw new Error(`duplicate block-format rule id '${rule.id}' in ${path}`);
+    }
+    seen.add(rule.id);
   }
   return parsed;
 }
+
+/**
+ * The bundled artifact is the single source of truth for parsing formats;
+ * this constant merely holds it in memory at startup. New formats become
+ * new rules in src/runner/block-formats.json, not new code.
+ */
+export const DEFAULT_BLOCK_FORMAT_RULES: BlockFormatRule[] = loadBlockFormats(
+  new URL('./block-formats.json', import.meta.url).pathname
+).rules;
 
 export function parseFileBlocks(
   text: string,
