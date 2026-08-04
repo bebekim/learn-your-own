@@ -21,6 +21,7 @@ import {
   validateLyoUpdate,
   validatePlan,
   validateSpec,
+  validateSpecProposal,
   validateTrace,
   validateVerifierReport,
 } from '../contract/index.ts';
@@ -94,6 +95,11 @@ export interface LessonCredit {
   runId: string;
 }
 
+export interface SpecProposalRecord {
+  proposalId: string;
+  path: string;
+}
+
 export interface ConsumeTraceInput {
   runDirs: string[];
   judge?: JudgeFn;
@@ -124,6 +130,8 @@ export interface TraceConsumption {
   lessonsDir: string;
   installedLessons: string[];
   appliedCredits: LessonCredit[];
+  proposals: SpecProposalRecord[];
+  proposalsDir: string;
 }
 
 const DEFAULT_JUDGE_MODEL = 'openai/gpt-4o-mini';
@@ -492,7 +500,64 @@ export async function consumeTraces({  runDirs,
     }
   }
 
-  return { analyses, update, updatePath, analysisPath, lessonsDir, installedLessons, appliedCredits };
+  // Spec-proposals: spec-gap judgments carry a contract edit suggestion.
+  // These are first-class artifacts queued for human review — the spec is
+  // human-owned, so proposals wait; they never apply themselves.
+  const proposalsDir = join(outDir, 'spec-proposals');
+  const proposals: SpecProposalRecord[] = [];
+  const proposalsByEdit = new Map<string, { edit: string; rationale: string; evidence: string; sourceRuns: string[]; specId: string; runDir: string }>();
+  for (const analysis of analyses) {
+    for (const disagreement of analysis.disagreements) {
+      const { judgment } = disagreement;
+      if (judgment.classification !== 'spec-gap' || !judgment.specEdit) {
+        continue;
+      }
+      const key = `${analysis.specId}:${judgment.specEdit}`;
+      const existing = proposalsByEdit.get(key);
+      if (existing) {
+        if (!existing.sourceRuns.includes(analysis.runId)) {
+          existing.sourceRuns.push(analysis.runId);
+        }
+      } else {
+        proposalsByEdit.set(key, {
+          edit: judgment.specEdit,
+          rationale: judgment.rationale,
+          evidence: judgment.evidence,
+          sourceRuns: [analysis.runId],
+          specId: analysis.specId,
+          runDir: analysis.runDir,
+        });
+      }
+    }
+  }
+  for (const [, entry] of proposalsByEdit) {
+    const proposalId = `prop-${entry.specId}-${proposals.length + 1}`;
+    const proposal = {
+      version: 'lyo.spec-proposal.v1',
+      proposalId,
+      specRef: {
+        path: 'spec.json',
+        sha256: hashFile(join(entry.runDir, 'spec.json')).sha256,
+      },
+      specId: entry.specId,
+      edit: entry.edit,
+      rationale: entry.rationale,
+      evidence: entry.evidence,
+      sourceRuns: entry.sourceRuns,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+    const validation = validateSpecProposal(proposal);
+    if (!validation.ok) {
+      throw new Error(`invalid spec proposal: ${validation.errors.map((e) => e.message).join('; ')}`);
+    }
+    mkdirSync(proposalsDir, { recursive: true });
+    const proposalPath = join(proposalsDir, `${proposalId}.json`);
+    writeFileSync(proposalPath, JSON.stringify(proposal, null, 2));
+    proposals.push({ proposalId, path: proposalPath });
+  }
+
+  return { analyses, update, updatePath, analysisPath, lessonsDir, installedLessons, appliedCredits, proposals, proposalsDir };
 }
 
 function renderAnalysisMd(analyses: RunAnalysis[], update: LyoUpdate): string {

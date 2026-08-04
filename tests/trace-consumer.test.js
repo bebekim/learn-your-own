@@ -12,6 +12,7 @@ import {
   parseJudgeResponse,
   selectLessons,
   validateLyoUpdate,
+  validateSpecProposal,
 } from '../src/index.ts';
 
 async function withTmp(fn) {
@@ -601,5 +602,43 @@ test('mechanical disagreements skip the judge; semantic ones still call it', asy
 
     assert.deepEqual(judgeCalls, ['is commutative'],
       'ReferenceError disagreement must not reach the judge');
+  });
+});
+
+test('spec-gap judgments with spec_edit become proposal artifacts', async () => {
+  await withTmp(async (dir) => {
+    const runA = await makeRunDir(dir, 'run-a');
+    const result = await consumeTraces({
+      runDirs: [runA],
+      judge: async () => ({
+        classification: 'spec-gap',
+        rationale: 'spec silent on unquoted quotes',
+        evidence: 'mixed quoted and unquoted fields',
+        lesson: 'specs must define quote handling in unquoted fields',
+        specEdit: 'Add: quote characters inside unquoted fields are literal.',
+        falsifiableBy: 'a test on unquoted quote handling that the spec now determines',
+      }),
+    });
+
+    assert.equal(result.proposals.length, 1);
+    const proposal = JSON.parse(
+      readFileSync(join(result.proposalsDir, result.proposals[0].proposalId + '.json'), 'utf8')
+    );
+    assert.equal(validateSpecProposal(proposal).ok, true);
+    assert.equal(proposal.status, 'pending');
+    assert.equal(proposal.specId, 'add-spec');
+    assert.match(proposal.edit, /literal/);
+    assert.deepEqual(proposal.sourceRuns, ['run-a']);
+  });
+});
+
+test('non-spec-gap judgments produce no proposals', async () => {
+  await withTmp(async (dir) => {
+    const runA = await makeRunDir(dir, 'run-a');
+    const result = await consumeTraces({
+      runDirs: [runA],
+      judge: async () => JUDGMENT, // test-hallucination
+    });
+    assert.deepEqual(result.proposals, []);
   });
 });

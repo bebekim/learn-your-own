@@ -9,6 +9,7 @@ import {
   validateLyoUpdate,
   validatePlan,
   validateSpec,
+  validateSpecProposal,
   validateTestManifest,
   validateTrace,
   validateVerifierReport,
@@ -249,4 +250,26 @@ test('trace stage records accept optional token usage', () => {
 
   trace.stages[0].usage = { promptTokens: 'many' };
   assert.equal(validateTrace(trace).ok, false);
+});
+
+test('spec proposal artifact validates with required fields and status', () => {
+  const proposal = {
+    version: 'lyo.spec-proposal.v1',
+    proposalId: 'prop-1',
+    specRef: { path: 'spec.json', sha256: 'a'.repeat(64) },
+    specId: 'add-spec',
+    edit: 'Add: quotes inside unquoted fields are literal characters.',
+    rationale: 'Two runs disagreed on unquoted-field quote handling.',
+    evidence: 'mixed quoted and unquoted fields',
+    sourceRuns: ['run-a', 'run-b'],
+    status: 'pending',
+    createdAt: '2026-08-04T00:00:00.000Z',
+  };
+  const result = validateSpecProposal(proposal);
+  assert.equal(result.ok, true);
+  assert.equal(result.value.status, 'pending');
+
+  assert.equal(validateSpecProposal({ ...proposal, status: 'maybe' }).ok, false);
+  assert.equal(validateSpecProposal({ ...proposal, edit: '' }).ok, false);
+  assert.equal(validateSpecProposal({ ...proposal, version: 'lyo.spec-proposal.v0' }).ok, false);
 });

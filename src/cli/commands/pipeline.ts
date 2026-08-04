@@ -1,5 +1,7 @@
-import { resolve } from 'node:path';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 
+import { validateSpecProposal } from '../../contract/index.ts';
 import { loadCalibrationCases, runJudgeCalibration } from '../../lyo/judge-calibration.ts';
 import { consumeTraces, createDefaultJudge } from '../../lyo/trace-consumer.ts';
 import { compareRuns } from '../../runner/compare-runs.ts';
@@ -11,6 +13,8 @@ export const PIPELINE_COMMANDS: Record<string, CommandHandler> = {
   'pipeline learn': pipelineLearnCommand,
   'pipeline compare': pipelineCompareCommand,
   'pipeline calibrate': pipelineCalibrateCommand,
+  'pipeline proposals': pipelineProposalsCommand,
+  'pipeline proposal-review': pipelineProposalReviewCommand,
 };
 
 async function pipelineRunCommand(args: CommandArgs): Promise<unknown> {
@@ -84,4 +88,49 @@ async function pipelineCalibrateCommand(args: CommandArgs): Promise<unknown> {
     judge: createDefaultJudge(args.flagValue('--judge-model')),
   });
   return { ok: true, ...result };
+}
+
+async function pipelineProposalsCommand(args: CommandArgs): Promise<unknown> {
+  const proposalsDir = join(
+    resolve(args.requiredFlag('--run')),
+    'spec-proposals'
+  );
+  let entries: string[] = [];
+  try {
+    entries = readdirSync(proposalsDir).filter((entry) => entry.endsWith('.json')).sort();
+  } catch {
+    return { ok: true, proposals: [] };
+  }
+  const proposals = entries.map((entry) => {
+    const proposal = JSON.parse(readFileSync(join(proposalsDir, entry), 'utf8'));
+    return {
+      proposalId: proposal.proposalId,
+      specId: proposal.specId,
+      status: proposal.status,
+      edit: proposal.edit,
+      rationale: proposal.rationale,
+      sourceRuns: proposal.sourceRuns,
+    };
+  });
+  return { ok: true, proposals };
+}
+
+async function pipelineProposalReviewCommand(args: CommandArgs): Promise<unknown> {
+  const status = args.requiredFlag('--status');
+  if (status !== 'accepted' && status !== 'rejected') {
+    throw new Error(`--status must be accepted or rejected, got '${status}'`);
+  }
+  const proposalPath = join(
+    resolve(args.requiredFlag('--run')),
+    'spec-proposals',
+    `${args.requiredFlag('--id')}.json`
+  );
+  const proposal = JSON.parse(readFileSync(proposalPath, 'utf8'));
+  proposal.status = status;
+  const validation = validateSpecProposal(proposal);
+  if (!validation.ok) {
+    throw new Error(`invalid proposal after review: ${validation.errors.map((e) => e.message).join('; ')}`);
+  }
+  writeFileSync(proposalPath, JSON.stringify(proposal, null, 2));
+  return { ok: true, proposalId: proposal.proposalId, status };
 }

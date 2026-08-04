@@ -2,7 +2,9 @@ export { artifactRefSchema, hashFile, hashValue, SHA256_PATTERN } from './refs.t
 export type { ArtifactRef } from './refs.ts';
 export type { ValidationIssue, ValidationResult } from './validate.ts';
 export { SPEC_VERSION, specExampleSchema, specSchema, validateSpec } from './spec.ts';
+export { SPEC_PROPOSAL_VERSION, specProposalSchema, specProposalStatusSchema, validateSpecProposal } from './spec-proposal.ts';
 export type { Spec, SpecExample } from './spec.ts';
+export type { SpecProposal, SpecProposalStatus } from './spec-proposal.ts';
 export {
   checkBlindness,
   PLAN_VERSION,

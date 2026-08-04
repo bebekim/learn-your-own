@@ -217,3 +217,36 @@ test('lyo pipeline run refuses a plan that violates blindness', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('pipeline proposals lists and reviews spec proposals', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-cli-proposals-'));
+  try {
+    const runDir = join(dir, 'run-x');
+    mkdirSync(join(runDir, 'spec-proposals'), { recursive: true });
+    const proposal = {
+      version: 'lyo.spec-proposal.v1',
+      proposalId: 'prop-x-1',
+      specRef: { path: 'spec.json', sha256: 'a'.repeat(64) },
+      specId: 'x-spec',
+      edit: 'Add: quote characters inside unquoted fields are literal.',
+      rationale: 'both readings defensible',
+      evidence: 'mixed quoted fields',
+      sourceRuns: ['run-x'],
+      status: 'pending',
+      createdAt: '2026-08-04T00:00:00.000Z',
+    };
+    writeFileSync(join(runDir, 'spec-proposals', 'prop-x-1.json'), JSON.stringify(proposal));
+
+    const listed = runLyoJson(['pipeline', 'proposals', '--run', runDir]);
+    assert.equal(listed.ok, true);
+    assert.equal(listed.proposals.length, 1);
+    assert.equal(listed.proposals[0].status, 'pending');
+
+    const reviewed = runLyoJson(['pipeline', 'proposal-review', '--run', runDir, '--id', 'prop-x-1', '--status', 'accepted']);
+    assert.equal(reviewed.ok, true);
+    assert.equal(reviewed.status, 'accepted');
+    assert.equal(JSON.parse(readFileSync(join(runDir, 'spec-proposals', 'prop-x-1.json'), 'utf8')).status, 'accepted');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

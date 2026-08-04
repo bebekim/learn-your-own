@@ -141,6 +141,7 @@ export {
   validateLyoUpdate,
   validatePlan,
   validateSpec,
+  validateSpecProposal,
   validateTestManifest,
   validateTrace,
   validateVerifierReport,
