@@ -10,8 +10,9 @@ export interface UpstageExecutorOptions {
   reasoningEffort?: 'minimal' | 'low' | 'medium' | 'high';
   /** Default 65536 (vendor-recommended); 250B-class models are verbose. */
   maxTokens?: number;
-  chat?: ChatFn;
+  /** Default 300s; 250B-class models are slow even at low reasoning effort. */
   timeoutMs?: number;
+  chat?: ChatFn;
 }
 
 /**
@@ -25,7 +26,7 @@ export function createUpstageExecutor({
   reasoningEffort = 'low',
   maxTokens = 65536,
   chat,
-  timeoutMs,
+  timeoutMs = 300000,
 }: UpstageExecutorOptions): StageExecutor {
   return createOpenAiCompatibleExecutor({
     baseUrl: UPSTAGE_URL,
