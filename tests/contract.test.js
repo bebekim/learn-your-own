@@ -239,3 +239,14 @@ test('plan executor accepts the upstage kind', () => {
   assert.equal(result.ok, true);
   assert.equal(result.value.stages[1].executor.kind, 'upstage');
 });
+
+test('trace stage records accept optional token usage', () => {
+  const trace = fixture('trace.json');
+  trace.stages[0].usage = { promptTokens: 1234, completionTokens: 56, totalTokens: 1290, cost: 0.0042 };
+  const result = validateTrace(trace);
+  assert.equal(result.ok, true);
+  assert.equal(result.value.stages[0].usage.promptTokens, 1234);
+
+  trace.stages[0].usage = { promptTokens: 'many' };
+  assert.equal(validateTrace(trace).ok, false);
+});

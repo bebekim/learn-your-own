@@ -26,7 +26,7 @@ export {
   validateVerifierReport,
 } from './verifier-report.ts';
 export type { VerifierPerTest, VerifierReport, VerifierReportCounts } from './verifier-report.ts';
-export { TRACE_VERSION, traceFeedbackSchema, traceSchema, traceStageSchema, validateTrace } from './trace.ts';
+export { TRACE_VERSION, traceFeedbackSchema, traceSchema, traceStageSchema, traceStageUsageSchema, validateTrace } from './trace.ts';
 export type { Trace, TraceFeedback, TraceStage } from './trace.ts';
 export {
   LYO_UPDATE_VERSION,

@@ -3,8 +3,17 @@ export interface StageExecutionInput {
   sandboxDir: string;
 }
 
+export interface StageUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  /** USD when the provider reports it (OpenRouter); absent otherwise. */
+  cost?: number;
+}
+
 export interface StageExecutionResult {
   transcript: string;
+  usage?: StageUsage;
 }
 
 /**

@@ -31,7 +31,7 @@ import type {
 import { createKimiCliExecutor } from './executors/kimi-cli.ts';
 import { createOpenRouterExecutor } from './executors/openrouter.ts';
 import { createUpstageExecutor } from './executors/upstage.ts';
-import type { StageExecutor } from './executors/stage-executor.ts';
+import type { StageExecutionResult, StageExecutor } from './executors/stage-executor.ts';
 import {
   loadLessons,
   renderLessonsBlock,
@@ -74,6 +74,7 @@ interface StageOutcome {
   manifest: CodeManifest | TestManifest;
   contents: FileBlock[];
   promptSha256: string;
+  usage?: StageExecutionResult['usage'];
   startedAt: string;
   finishedAt: string;
 }
@@ -200,6 +201,7 @@ export async function runPipeline({
       outputs: [manifestRef ?? outcome.manifestRef],
       model: outcome.stage.executor?.model,
       promptSha256: outcome.promptSha256,
+      usage: outcome.usage,
       startedAt: outcome.startedAt,
       finishedAt: outcome.finishedAt,
     });
@@ -370,8 +372,11 @@ async function runWriterStage({
   const transcriptPath = join(runDir, 'stages', stage.stageId, transcriptName);
   const startedAt = now().toISOString();
   let transcript: string;
+  let usage: StageExecutionResult['usage'];
   try {
-    ({ transcript } = await executorFactory(stage)({ prompt, sandboxDir }));
+    const execution = await executorFactory(stage)({ prompt, sandboxDir });
+    transcript = execution.transcript;
+    usage = execution.usage;
     // Single-shot stages must return path-tagged file blocks. Zero parseable
     // files is a contract violation, not a format to guess at: one corrective
     // retry with an explicit example, then fail loudly.
@@ -475,6 +480,7 @@ async function runWriterStage({
     },
     contents,
     promptSha256: hashValue(prompt),
+    usage,
     startedAt,
     finishedAt,
   };

@@ -5,6 +5,13 @@ import { validateVersioned, type ValidationResult } from './validate.ts';
 
 export const TRACE_VERSION = 'lyo.trace.v1';
 
+export const traceStageUsageSchema = z.object({
+  promptTokens: z.number().int().nonnegative(),
+  completionTokens: z.number().int().nonnegative(),
+  totalTokens: z.number().int().nonnegative(),
+  cost: z.number().nonnegative().optional(),
+});
+
 export const traceStageSchema = z.object({
   stageId: z.string().min(1),
   // Iteration number for stages re-run under the feedback loop.
@@ -13,6 +20,7 @@ export const traceStageSchema = z.object({
   outputs: z.array(artifactRefSchema),
   model: z.string().optional(),
   promptSha256: z.string().regex(SHA256_PATTERN).optional(),
+  usage: traceStageUsageSchema.optional(),
   startedAt: z.string().min(1),
   finishedAt: z.string().min(1),
 });

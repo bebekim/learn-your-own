@@ -1,4 +1,4 @@
-import type { StageExecutor } from './stage-executor.ts';
+import type { StageExecutor, StageUsage } from './stage-executor.ts';
 
 export interface ChatMessage {
   role: 'system' | 'user';
@@ -32,6 +32,8 @@ const DEFAULT_MAX_TOKENS = 16384;
  * Single-shot executor for any OpenAI-compatible chat completions API
  * (OpenRouter, Upstage, ...). The model gets NO tools, so it cannot read
  * anything beyond what the prompt inlines — blindness is structural.
+ * Token usage from the API response is attached when available (default
+ * chat path only; custom chat fns return content only).
  */
 export function createOpenAiCompatibleExecutor({
   baseUrl,
@@ -43,17 +45,28 @@ export function createOpenAiCompatibleExecutor({
   chat,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 }: OpenAiCompatibleExecutorOptions): StageExecutor {
-  const chatFn: ChatFn =
-    chat ||
-    ((args) =>
-      postChat({ baseUrl, apiKeyEnv, maxTokens, extraBody, timeoutMs, ...args }));
-  return async ({ prompt }) => ({
-    transcript: await chatFn({
+  if (chat) {
+    return async ({ prompt }) => ({
+      transcript: await chat({
+        model,
+        temperature,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+  }
+  return async ({ prompt }) => {
+    const { content, usage } = await postChat({
+      baseUrl,
+      apiKeyEnv,
+      maxTokens,
+      extraBody,
+      timeoutMs,
       model,
       temperature,
       messages: [{ role: 'user', content: prompt }],
-    }),
-  });
+    });
+    return { transcript: content, usage };
+  };
 }
 
 async function postChat({
@@ -71,7 +84,7 @@ async function postChat({
   maxTokens: number;
   extraBody?: Record<string, unknown>;
   timeoutMs: number;
-}): Promise<string> {
+}): Promise<{ content: string; usage?: StageUsage }> {
   const apiKey = process.env[apiKeyEnv];
   if (!apiKey) {
     throw new Error(`${apiKeyEnv} is not set`);
@@ -94,6 +107,12 @@ async function postChat({
     }
     const data = (await response.json()) as {
       choices?: Array<{ message?: { content?: unknown }; finish_reason?: string }>;
+      usage?: {
+        prompt_tokens?: number;
+        completion_tokens?: number;
+        total_tokens?: number;
+        cost?: number;
+      };
     };
     const choice = data?.choices?.[0];
     if (choice?.finish_reason === 'length') {
@@ -105,7 +124,17 @@ async function postChat({
     if (typeof content !== 'string' || content.trim() === '') {
       throw new Error('empty completion');
     }
-    return content;
+    const raw = data.usage;
+    const usage: StageUsage | undefined =
+      raw?.prompt_tokens !== undefined
+        ? {
+            promptTokens: raw.prompt_tokens,
+            completionTokens: raw.completion_tokens ?? 0,
+            totalTokens: raw.total_tokens ?? (raw.prompt_tokens ?? 0) + (raw.completion_tokens ?? 0),
+            cost: raw.cost,
+          }
+        : undefined;
+    return { content, usage };
   } finally {
     clearTimeout(timer);
   }

@@ -406,3 +406,37 @@ test('parseFileBlocks executes an explicit ruleset in order', () => {
   const blocksDefault = parseFileBlocks(text);
   assert.deepEqual(blocksDefault.map((block) => block.path), ['out/a.js', 'out/b.js']);
 });
+
+test('openrouter executor captures token usage from the API response', async () => {
+  process.env.OPENROUTER_API_KEY = 'test-key';
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({
+      choices: [{ message: { content: 'done' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 1234, completion_tokens: 56, total_tokens: 1290, cost: 0.0042 },
+    }),
+  });
+  try {
+    const executor = createOpenRouterExecutor({ model: 'fake-model' });
+    const result = await executor({ prompt: 'p', sandboxDir: '/tmp/sandbox' });
+    assert.deepEqual(result.usage, {
+      promptTokens: 1234,
+      completionTokens: 56,
+      totalTokens: 1290,
+      cost: 0.0042,
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.OPENROUTER_API_KEY;
+  }
+});
+
+test('executor usage is optional when the chat fn does not provide it', async () => {
+  const executor = createOpenRouterExecutor({
+    model: 'fake-model',
+    chat: async () => 'done',
+  });
+  const result = await executor({ prompt: 'p', sandboxDir: '/tmp/sandbox' });
+  assert.equal(result.usage, undefined);
+});

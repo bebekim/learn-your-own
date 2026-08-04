@@ -644,3 +644,27 @@ test('stage errors carry the stage id for legibility', async () => {
     );
   });
 });
+
+test('runPipeline records stage usage in the trace when the executor reports it', async () => {
+  await withTmp(async (dir) => {
+    const { planPath } = writeSource(dir);
+    const factory = (stage) => async ({ sandboxDir }) => {
+      if (stage.role === 'code-writer') {
+        mkdirSync(join(sandboxDir, 'generated/src'), { recursive: true });
+        writeFileSync(join(sandboxDir, 'generated/src/add.js'), 'module.exports = { add: (a, b) => a + b };\n');
+        return {
+          transcript: 'done',
+          usage: { promptTokens: 1000, completionTokens: 200, totalTokens: 1200, cost: 0.001 },
+        };
+      }
+      return { transcript: TEST_TRANSCRIPT };
+    };
+    const result = await runPipeline({ planPath, runsRoot: join(dir, 'runs'), executorFactory: factory });
+    const trace = JSON.parse(readFileSync(result.tracePath, 'utf8'));
+    const codeStage = trace.stages.find((stage) => stage.stageId === 'stage-code');
+    assert.equal(codeStage.usage.promptTokens, 1000);
+    assert.equal(codeStage.usage.cost, 0.001);
+    const testStage = trace.stages.find((stage) => stage.stageId === 'stage-test');
+    assert.equal(testStage.usage, undefined);
+  });
+});
