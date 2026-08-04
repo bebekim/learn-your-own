@@ -233,6 +233,7 @@ export {
   createElaboratorReflector,
   parseReflectionJson,
 } from './lyo/elaborator-reflector.ts';
+export { classifyMechanically } from './lyo/mechanical-judge.ts';
 export { LessonStore } from './lyo/lesson-store.ts';
 export {
   accumulateEvidence,

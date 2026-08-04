@@ -59,6 +59,7 @@ async function pipelineLearnCommand(args: CommandArgs): Promise<unknown> {
         runId: analysis.runId,
         testName: disagreement.testName,
         classification: disagreement.judgment.classification,
+        source: disagreement.judgment.source ?? 'judge',
       }))
     ),
     promotions: result.update.promotions.map((promotion) => ({

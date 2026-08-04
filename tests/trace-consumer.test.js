@@ -576,3 +576,30 @@ test('no credit when the class was never expected or the lesson never delivered'
     assert.equal(lesson.helpful + lesson.harmful, 0);
   });
 });
+
+test('mechanical disagreements skip the judge; semantic ones still call it', async () => {
+  await withTmp(async (dir) => {
+    const runDir = await makeRunDir(dir, 'run-a');
+    // Plant a mechanical failure in the report + TAP: ReferenceError variant.
+    const { readFileSync: read, writeFileSync: write } = await import('node:fs');
+    const { join: j } = await import('node:path');
+    const reportPath = j(runDir, 'verifier-report.json');
+    const report = JSON.parse(read(reportPath, 'utf8'));
+    report.perTest[1] = { name: 'handles overflow', status: 'fail' };
+    report.perTest[2] = { name: 'is commutative', status: 'fail' };
+    write(j(runDir, 'verify-tap', 'tap.round-1.txt'),
+      "not ok 1 - handles overflow\n  error: 'a is not defined'\n  name: 'ReferenceError'\nnot ok 2 - is commutative\n  error: |-\n    + 4\n    - 5\n");
+
+    const judgeCalls = [];
+    await consumeTraces({
+      runDirs: [runDir],
+      judge: async (input) => {
+        judgeCalls.push(input.testName);
+        return JUDGMENT;
+      },
+    });
+
+    assert.deepEqual(judgeCalls, ['is commutative'],
+      'ReferenceError disagreement must not reach the judge');
+  });
+});

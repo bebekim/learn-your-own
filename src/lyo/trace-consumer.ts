@@ -15,6 +15,7 @@ import { hashFile, hashValue } from '../contract/refs.ts';
 import type { ArtifactRef } from '../contract/refs.ts';
 import { accumulateEvidence, evidenceThreshold } from './evidence.ts';
 import { installPromotedLessons, loadLessons, recordLessonOutcome } from './lesson-library.ts';
+import { classifyMechanically } from './mechanical-judge.ts';
 import {
   LYO_UPDATE_VERSION,
   validateLyoUpdate,
@@ -67,6 +68,8 @@ export interface Judgment {
   vehicle?: 'prose' | 'skeleton-patch' | 'spec-constraint';
   promptPatch?: string;
   falsifiableBy?: string;
+  /** 'mechanical' when decided by deterministic rules, 'judge' when LLM-judged. */
+  source?: 'mechanical' | 'judge';
 }
 
 export type JudgeFn = (input: DisagreementInput) => Promise<Judgment>;
@@ -281,7 +284,10 @@ export async function consumeTraces({  runDirs,
     const evidence = await loadRunEvidence(runDir);
     const disagreements: AnalyzedDisagreement[] = [];
     for (const disagreement of extractDisagreements(evidence)) {
-      disagreements.push({ ...disagreement, judgment: await judgeFn(disagreement) });
+      // Deterministic first pass: mechanical failures never reach the judge.
+      const judgment =
+        classifyMechanically(disagreement) ?? { ...(await judgeFn(disagreement)), source: 'judge' as const };
+      disagreements.push({ ...disagreement, judgment });
     }
     analyses.push({
       runId: evidence.runId,
