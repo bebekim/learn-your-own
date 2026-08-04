@@ -49,6 +49,11 @@ async function pipelineLearnCommand(args: CommandArgs): Promise<unknown> {
     updatePath: result.updatePath,
     analysisPath: result.analysisPath,
     installedLessons: result.installedLessons,
+    credits: result.appliedCredits.map((credit) => ({
+      lesson: credit.lessonPath.split('/').pop(),
+      outcome: credit.outcome,
+      runId: credit.runId,
+    })),
     disagreements: result.analyses.flatMap((analysis) =>
       analysis.disagreements.map((disagreement) => ({
         runId: analysis.runId,

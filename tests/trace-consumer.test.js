@@ -61,7 +61,7 @@ async function sha256Of(path) {
   return createHash('sha256').update(read(path)).digest('hex');
 }
 
-async function makeRunDir(root, runId, { specId = 'add-spec', failing = true } = {}) {
+async function makeRunDir(root, runId, { specId = 'add-spec', failing = true, deliveredLessonPaths = [] } = {}) {
   const runDir = join(root, runId);
   mkdirSync(join(runDir, 'artifacts/code/generated/src'), { recursive: true });
   mkdirSync(join(runDir, 'artifacts/tests/generated/tests'), { recursive: true });
@@ -159,7 +159,7 @@ async function makeRunDir(root, runId, { specId = 'add-spec', failing = true } =
     planRef,
     stages: [
       { stageId: 'stage-code', inputs: [specRef], outputs: [codeRef], model: 'kimi-code/kimi-for-coding', startedAt: '2026-07-26T00:00:00.000Z', finishedAt: '2026-07-26T00:01:00.000Z' },
-      { stageId: 'stage-test', inputs: [specRef], outputs: [testRef], model: 'upstage/solar-pro-3', startedAt: '2026-07-26T00:00:00.000Z', finishedAt: '2026-07-26T00:01:10.000Z' },
+      { stageId: 'stage-test', inputs: [specRef, ...deliveredLessonPaths.map((path) => ({ path, sha256: 'f'.repeat(64) }))], outputs: [testRef], model: 'upstage/solar-pro-3', startedAt: '2026-07-26T00:00:00.000Z', finishedAt: '2026-07-26T00:01:10.000Z' },
       { stageId: 'stage-verify', inputs: [codeRef, testRef], outputs: [], startedAt: '2026-07-26T00:01:10.000Z', finishedAt: '2026-07-26T00:01:20.000Z' },
     ],
     startedAt: '2026-07-26T00:00:00.000Z',
@@ -494,5 +494,85 @@ test('producer reflects the default judge model when none is passed', async () =
     const update = JSON.parse(readFileSync(result.updatePath, 'utf8'));
     assert.equal(typeof update.producer.judgeModel, 'string');
     assert.ok(update.producer.judgeModel.length > 0);
+  });
+});
+
+function lessonFile({ title, classification = 'test-hallucination', helpful = 0, harmful = 0 }) {
+  return [
+    `# ${title}`,
+    '',
+    `- classification: ${classification}`,
+    `- falsifiable_by: a run contradicting the rule`,
+    `- helpful: ${helpful}`,
+    `- harmful: ${harmful}`,
+    '',
+  ].join('\n');
+}
+
+test('a delivered lesson whose class recurs is charged harmful', async () => {
+  await withTmp(async (dir) => {
+    const libraryDir = join(dir, 'library');
+    mkdirSync(libraryDir, { recursive: true });
+    const lessonPath = join(libraryDir, 'lesson-a.md');
+    writeFileSync(lessonPath, lessonFile({ title: 'NO HALLUCINATIONS' }));
+
+    // Both runs fail with the same class the lesson targets → harmful credit.
+    const runA = await makeRunDir(dir, 'run-a', { deliveredLessonPaths: [lessonPath] });
+    const runB = await makeRunDir(dir, 'run-b', { deliveredLessonPaths: [lessonPath] });
+    const result = await consumeTraces({
+      runDirs: [runA, runB],
+      judge: async () => JUDGMENT,
+      libraryDir,
+    });
+
+    const lesson = loadLessons(libraryDir).find((entry) => entry.path === lessonPath);
+    assert.equal(lesson.harmful, 2);
+    assert.equal(lesson.helpful, 0);
+    assert.ok(result.appliedCredits.length > 0);
+  });
+});
+
+test('a delivered lesson whose class stops recurring earns helpful', async () => {
+  await withTmp(async (dir) => {
+    const libraryDir = join(dir, 'library');
+    mkdirSync(libraryDir, { recursive: true });
+    const lessonPath = join(libraryDir, 'lesson-a.md');
+    writeFileSync(lessonPath, lessonFile({ title: 'NO HALLUCINATIONS' }));
+
+    // run-a establishes the class exists (failing, lesson not delivered);
+    // run-b delivers the lesson and passes clean → helpful credit.
+    const runA = await makeRunDir(dir, 'run-a', { failing: true });
+    const runB = await makeRunDir(dir, 'run-b', { failing: false, deliveredLessonPaths: [lessonPath] });
+    await consumeTraces({
+      runDirs: [runA, runB],
+      judge: async () => JUDGMENT,
+      libraryDir,
+    });
+
+    const lesson = loadLessons(libraryDir).find((entry) => entry.path === lessonPath);
+    assert.equal(lesson.helpful, 1);
+    assert.equal(lesson.harmful, 0);
+  });
+});
+
+test('no credit when the class was never expected or the lesson never delivered', async () => {
+  await withTmp(async (dir) => {
+    const libraryDir = join(dir, 'library');
+    mkdirSync(libraryDir, { recursive: true });
+    const lessonPath = join(libraryDir, 'lesson-a.md');
+    writeFileSync(lessonPath, lessonFile({ title: 'NO HALLUCINATIONS' }));
+
+    // single clean run: class never seen before, lesson delivered — no credit
+    const runA = await makeRunDir(dir, 'run-a', { failing: false, deliveredLessonPaths: [lessonPath] });
+    await consumeTraces({ runDirs: [runA], judge: async () => JUDGMENT, libraryDir });
+    let [lesson] = loadLessons(libraryDir);
+    assert.equal(lesson.helpful, 0);
+    assert.equal(lesson.harmful, 0);
+
+    // lesson exists but was never delivered in this failing run — no credit
+    const runB = await makeRunDir(dir, 'run-b', { failing: true });
+    await consumeTraces({ runDirs: [runB], judge: async () => JUDGMENT, libraryDir });
+    [lesson] = loadLessons(libraryDir);
+    assert.equal(lesson.helpful + lesson.harmful, 0);
   });
 });

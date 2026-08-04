@@ -14,7 +14,7 @@ import { join } from 'node:path';
 import { hashFile, hashValue } from '../contract/refs.ts';
 import type { ArtifactRef } from '../contract/refs.ts';
 import { accumulateEvidence, evidenceThreshold } from './evidence.ts';
-import { installPromotedLessons } from './lesson-library.ts';
+import { installPromotedLessons, loadLessons, recordLessonOutcome } from './lesson-library.ts';
 import {
   LYO_UPDATE_VERSION,
   validateLyoUpdate,
@@ -81,6 +81,14 @@ export interface RunAnalysis {
   specId: string;
   testWriterModel?: string;
   disagreements: AnalyzedDisagreement[];
+  /** Lesson paths recorded as stage inputs in this run's trace. */
+  deliveredLessonPaths: string[];
+}
+
+export interface LessonCredit {
+  lessonPath: string;
+  outcome: 'helpful' | 'harmful';
+  runId: string;
 }
 
 export interface ConsumeTraceInput {
@@ -112,6 +120,7 @@ export interface TraceConsumption {
   analysisPath: string;
   lessonsDir: string;
   installedLessons: string[];
+  appliedCredits: LessonCredit[];
 }
 
 const DEFAULT_JUDGE_MODEL = 'openai/gpt-4o-mini';
@@ -281,6 +290,9 @@ export async function consumeTraces({  runDirs,
       testWriterModel: evidence.plan.stages.find((stage) => stage.role === 'test-writer')?.executor
         ?.model,
       disagreements,
+      deliveredLessonPaths: evidence.trace.stages.flatMap((stage) =>
+        stage.inputs.map((input) => input.path)
+      ),
     });
   }
 
@@ -435,7 +447,46 @@ export async function consumeTraces({  runDirs,
     ? installPromotedLessons({ update, sourceDir: outDir, libraryDir })
     : [];
 
-  return { analyses, update, updatePath, analysisPath, lessonsDir, installedLessons };
+  // Credit assignment: for each lesson delivered in a run, charge harmful
+  // when its failure class recurred anyway; credit helpful when the class
+  // was expected (seen before with the same spec + writer model) but did
+  // not recur. Absence without expectation earns nothing.
+  const appliedCredits: LessonCredit[] = [];
+  if (libraryDir) {
+    const libraryLessons = loadLessons(libraryDir);
+    for (const analysis of analyses) {
+      const classesPresent = new Set(
+        analysis.disagreements.map((d) => d.judgment.classification)
+      );
+      for (const lessonPath of analysis.deliveredLessonPaths) {
+        const lesson = libraryLessons.find((entry) => entry.path === lessonPath);
+        if (!lesson) {
+          continue;
+        }
+        let outcome: LessonCredit['outcome'] | undefined;
+        if (classesPresent.has(lesson.classification)) {
+          outcome = 'harmful';
+        } else {
+          const expected = analyses.some(
+            (other) =>
+              other.runId !== analysis.runId &&
+              other.specId === analysis.specId &&
+              other.testWriterModel === analysis.testWriterModel &&
+              other.disagreements.some((d) => d.judgment.classification === lesson.classification)
+          );
+          if (expected) {
+            outcome = 'helpful';
+          }
+        }
+        if (outcome) {
+          recordLessonOutcome({ lessonPath, outcome });
+          appliedCredits.push({ lessonPath, outcome, runId: analysis.runId });
+        }
+      }
+    }
+  }
+
+  return { analyses, update, updatePath, analysisPath, lessonsDir, installedLessons, appliedCredits };
 }
 
 function renderAnalysisMd(analyses: RunAnalysis[], update: LyoUpdate): string {
