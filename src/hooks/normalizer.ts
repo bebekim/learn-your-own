@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { summarizeCommand } from '../behavior/commands.ts';
 import { classifyCommand, familyForCommand } from '../behavior/command-classifier.ts';
+import { extractDeployment } from '../behavior/deployment-extractor.ts';
 import type {
   ActivationConfidence,
   BehaviorPhase,
@@ -85,7 +86,7 @@ export function extractHookFacts(event: HookEventForNormalization): ExtractedHoo
         status,
         phase: 'unknown',
         outputSize: estimateToolOutputSize(payload),
-        deployment: null,
+        deployment: extractDeployment(commandName, commandText, status === 'planned' ? 'unknown' : status),
       });
     }
   }

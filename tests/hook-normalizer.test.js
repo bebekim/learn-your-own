@@ -104,7 +104,7 @@ test('hook normalizer passively records raw command, path, and zone activations'
     assert.equal(normalized.processedEvents, 2);
     assert.equal(normalized.pathActivations, 1);
     assert.equal(normalized.commandActivations, 1);
-    assert.equal(normalized.deploymentActions, 0);
+    assert.equal(normalized.deploymentActions, 1);
     assert.equal(normalized.zoneCoactivations, 1);
 
     const report = getJobActivationReport(kernel, { jobId: normalized.jobs[0] });
@@ -151,7 +151,9 @@ test('hook fact extractor turns a stored hook row into raw behavioral facts with
   assert.equal(facts.commands[0].phase, 'unknown');
   assert.equal(facts.commands[0].argvSummary.includes('secret-value'), false);
   assert.equal(facts.commands[0].outputSize, 9);
-  assert.equal(facts.commands[0].deployment, null);
+  assert.ok(facts.commands[0].deployment);
+  assert.equal(facts.commands[0].deployment.provider, 'releasectl');
+  assert.equal(facts.commands[0].deployment.status, 'succeeded');
   assert.deepEqual(facts.paths, []);
 });
 
