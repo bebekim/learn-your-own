@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { summarizeCommand } from '../behavior/commands.ts';
 import { classifyCommand, familyForCommand } from '../behavior/command-classifier.ts';
 import { extractDeployment } from '../behavior/deployment-extractor.ts';
+import { inferPhaseFromClassification, inferPhaseFromActivationKind } from '../behavior/phase-inference.ts';
 import type {
   ActivationConfidence,
   BehaviorPhase,
@@ -84,7 +85,7 @@ export function extractHookFacts(event: HookEventForNormalization): ExtractedHoo
         argvSummary: summarizeCommand(commandText),
         classification: classifyCommand(commandName, commandText),
         status,
-        phase: 'unknown',
+        phase: inferPhaseFromClassification(classifyCommand(commandName, commandText)),
         outputSize: estimateToolOutputSize(payload),
         deployment: extractDeployment(commandName, commandText, status === 'planned' ? 'unknown' : status),
       });
@@ -96,7 +97,7 @@ export function extractHookFacts(event: HookEventForNormalization): ExtractedHoo
         path: fact.path,
         activationKind: fact.activationKind,
         confidence: 'medium' as const,
-        phase: 'unknown' as const,
+        phase: inferPhaseFromActivationKind(fact.activationKind),
       }))
     : [];
 

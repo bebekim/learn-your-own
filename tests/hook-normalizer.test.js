@@ -250,13 +250,13 @@ test('hook normalizer extracts patch file kinds and repeated paths without phase
       activation.phase,
     ]).sort();
     assert.deepEqual(facts, [
-      ['src/index.ts', 'file_read', 'unknown'],
-      ['src/index.ts', 'file_read', 'unknown'],
-      ['src/index.ts', 'file_written', 'unknown'],
-      ['stale.txt', 'file_deleted', 'unknown'],
-      ['tests/new.test.js', 'file_created', 'unknown'],
+      ['src/index.ts', 'file_read', 'explore'],
+      ['src/index.ts', 'file_read', 'explore'],
+      ['src/index.ts', 'file_written', 'fix'],
+      ['stale.txt', 'file_deleted', 'fix'],
+      ['tests/new.test.js', 'file_created', 'fix'],
     ]);
-    assert.deepEqual(report.summary.paths.byPhase, { unknown: 5 });
+    assert.deepEqual(report.summary.paths.byPhase, { explore: 2, fix: 3 });
     assert.deepEqual(report.summary.paths.repeated, [
       { path: 'src/index.ts', activationKind: 'file_read', count: 2 },
     ]);
@@ -297,10 +297,10 @@ test('hook normalizer records shell output size and repeated commands without co
     assert.equal(report.commandActivations.length, 1);
     assert.equal(report.commandActivations[0].classification, 'test');
     assert.equal(report.commandActivations[0].status, 'succeeded');
-    assert.equal(report.commandActivations[0].phase, 'unknown');
+    assert.equal(report.commandActivations[0].phase, 'validate');
     assert.equal(report.commandActivations[0].outputSize, 8);
     assert.equal(report.commandActivations[0].occurrenceCount, 2);
-    assert.deepEqual(report.summary.commands.byPhase, { unknown: 1 });
+    assert.deepEqual(report.summary.commands.byPhase, { validate: 1 });
     assert.equal(report.summary.commands.totalOutputSize, 8);
     assert.deepEqual(report.summary.commands.repeated, [
       {
