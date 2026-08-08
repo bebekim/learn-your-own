@@ -3,6 +3,7 @@ import {
   deriveZoneCoactivationsForJob,
   ensureWorkspace,
   getWorkspaceByRoot,
+  listCommandActivations,
   recordCommandActivation,
   recordDeploymentAction,
   recordJob,
@@ -12,6 +13,7 @@ import {
 } from '../activation.ts';
 import type { LearningKernel } from '../ledger.ts';
 import type {
+  AssociationOutcome,
   WorkspaceRecord,
 } from '../types/activation.ts';
 import type {
@@ -129,7 +131,7 @@ export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInpu
     zoneCoactivations += deriveZoneCoactivationsForJob(kernel, { jobId }).length;
     associations += updateZoneAssociationsFromJob(kernel, {
       jobId,
-      outcome: input.outcome ?? 'unknown',
+      outcome: inferJobOutcome(kernel, jobId) as AssociationOutcome,
     }).length;
   }
 
@@ -145,6 +147,14 @@ export function normalizeHooks(kernel: LearningKernel, input: NormalizeHooksInpu
     exerciseAttempts: exerciseAttemptIds.size,
     exerciseEvents,
   };
+}
+
+function inferJobOutcome(kernel: LearningKernel, jobId: string): string {
+  const commands = listCommandActivations(kernel, jobId);
+  if (commands.length === 0) return 'unknown';
+  if (commands.some((c) => c.status === 'failed')) return 'negative';
+  if (commands.every((c) => c.status === 'succeeded')) return 'positive';
+  return 'unknown';
 }
 
 function workspaceForHookEvent(kernel: LearningKernel, cwd: string, workspaceId?: string): WorkspaceRecord {

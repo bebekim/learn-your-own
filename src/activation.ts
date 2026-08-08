@@ -16,6 +16,7 @@ export {
   getWorkspace,
   getWorkspaceByRoot,
   getZone,
+  listCommandActivations,
   recordCommandActivation,
   recordDeploymentAction,
   recordJob,

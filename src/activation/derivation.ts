@@ -126,7 +126,7 @@ export function deriveZoneCoactivationsForJob(kernel: LearningKernel, { jobId }:
 
 export function updateZoneAssociationsFromJob(
   kernel: LearningKernel,
-  { jobId, outcome = 'unknown' }: { jobId: string; outcome?: AssociationOutcome }
+  { jobId, outcome = 'unknown' }: { jobId: string; outcome: AssociationOutcome | undefined }
 ): ZoneAssociationRecord[] {
   ensureJob(kernel, jobId);
   const coactivations = listZoneCoactivations(kernel, jobId);
