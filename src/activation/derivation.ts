@@ -150,34 +150,66 @@ export function updateZoneAssociationsFromJob(
       ISO_NOW(),
       ISO_NOW()
     );
-    const observation = kernel.db.prepare(`
-      insert or ignore into zone_association_observations (
+    // Upsert the observation: on conflict (same association + job seen again),
+    // update the outcome. Track the old outcome so we can adjust counters.
+    const prev = kernel.db.prepare(`
+      select outcome as oldOutcome
+      from zone_association_observations
+      where association_id = ? and job_id = ?
+    `).get(associationId, jobId) as { oldOutcome: AssociationOutcome } | undefined;
+    const oldOutcome = prev?.oldOutcome ?? null;
+
+    kernel.db.prepare(`
+      insert into zone_association_observations (
         association_id, job_id, outcome, observed_at
       )
       values (?, ?, ?, ?)
+      on conflict(association_id, job_id) do update set
+        outcome = excluded.outcome,
+        observed_at = excluded.observed_at
     `).run(associationId, jobId, outcome, ISO_NOW());
-    if (observation.changes === 0) {
-      records.push(getZoneAssociation(kernel, coactivation.leftZoneId, coactivation.rightZoneId, associationKind));
-      continue;
+
+    if (oldOutcome === null) {
+      // New observation — increment support_count and outcome counters.
+      kernel.db.prepare(`
+        update zone_associations
+        set support_count = support_count + 1,
+          positive_outcomes = positive_outcomes + ?,
+          negative_outcomes = negative_outcomes + ?,
+          weight = support_count + 1 + positive_outcomes + ? - negative_outcomes - ?,
+          last_observed_at = ?,
+          updated_at = ?
+        where association_id = ?
+      `).run(
+        outcome === 'positive' ? 1 : 0,
+        outcome === 'negative' ? 1 : 0,
+        outcome === 'positive' ? 1 : 0,
+        outcome === 'negative' ? 1 : 0,
+        ISO_NOW(),
+        ISO_NOW(),
+        associationId
+      );
+    } else if (oldOutcome !== outcome) {
+      // Outcome changed — adjust counters by the delta, keep support_count.
+      kernel.db.prepare(`
+        update zone_associations
+        set positive_outcomes = positive_outcomes + ?,
+          negative_outcomes = negative_outcomes + ?,
+          weight = support_count + positive_outcomes + ? - negative_outcomes - ?,
+          last_observed_at = ?,
+          updated_at = ?
+        where association_id = ?
+      `).run(
+        // positive delta: +1 if new is positive, -1 if old was positive
+        (outcome === 'positive' ? 1 : 0) - (oldOutcome === 'positive' ? 1 : 0),
+        (outcome === 'negative' ? 1 : 0) - (oldOutcome === 'negative' ? 1 : 0),
+        (outcome === 'positive' ? 1 : 0) - (oldOutcome === 'positive' ? 1 : 0),
+        (outcome === 'negative' ? 1 : 0) - (oldOutcome === 'negative' ? 1 : 0),
+        ISO_NOW(),
+        ISO_NOW(),
+        associationId
+      );
     }
-    kernel.db.prepare(`
-      update zone_associations
-      set support_count = support_count + 1,
-        positive_outcomes = positive_outcomes + ?,
-        negative_outcomes = negative_outcomes + ?,
-        weight = support_count + 1 + positive_outcomes + ? - negative_outcomes - ?,
-        last_observed_at = ?,
-        updated_at = ?
-      where association_id = ?
-    `).run(
-      outcome === 'positive' ? 1 : 0,
-      outcome === 'negative' ? 1 : 0,
-      outcome === 'positive' ? 1 : 0,
-      outcome === 'negative' ? 1 : 0,
-      ISO_NOW(),
-      ISO_NOW(),
-      associationId
-    );
     records.push(getZoneAssociation(kernel, coactivation.leftZoneId, coactivation.rightZoneId, associationKind));
   }
   return records;
