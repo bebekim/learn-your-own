@@ -1,48 +1,7 @@
 import crypto from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 
-const DDL = `
-CREATE TABLE IF NOT EXISTS learned_rule (
-  rule_id TEXT PRIMARY KEY,
-  kind TEXT NOT NULL,
-  scope_kind TEXT NOT NULL,
-  scope_value TEXT NOT NULL,
-  condition_json TEXT NOT NULL,
-  action_json TEXT NOT NULL,
-  status TEXT NOT NULL,
-  helpful_count INTEGER NOT NULL DEFAULT 0,
-  harmful_count INTEGER NOT NULL DEFAULT 0,
-  created_from_ref TEXT,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS learned_rule_delta (
-  delta_id INTEGER PRIMARY KEY AUTOINCREMENT,
-  rule_id TEXT NOT NULL,
-  run_id TEXT,
-  actor TEXT NOT NULL,
-  delta_type TEXT NOT NULL,
-  payload_json TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS learned_rule_application (
-  application_id TEXT PRIMARY KEY,
-  rule_id TEXT NOT NULL,
-  run_id TEXT NOT NULL,
-  trigger_ref TEXT,
-  emitted_fact_json TEXT NOT NULL,
-  outcome TEXT NOT NULL DEFAULT 'pending',
-  counted INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL,
-  UNIQUE(rule_id, run_id, trigger_ref)
-);
-
-CREATE INDEX IF NOT EXISTS idx_learned_rule_scope ON learned_rule(kind, scope_kind, scope_value, status);
-CREATE INDEX IF NOT EXISTS idx_learned_rule_app_run ON learned_rule_application(run_id, counted);
-`;
+import { LYO_LEARNED_RULE_DDL } from './schema.ts';
 
 export type LearnedRuleStatus = 'candidate' | 'active' | 'quarantined' | 'retired';
 export type LearnedRuleOutcome = 'helpful' | 'harmful' | 'neutral';
@@ -118,7 +77,7 @@ export class LearnedRuleStore {
 
   constructor(dbPath = ':memory:') {
     this.db = new DatabaseSync(dbPath);
-    this.db.exec(DDL);
+    this.db.exec(LYO_LEARNED_RULE_DDL);
   }
 
   close(): void {

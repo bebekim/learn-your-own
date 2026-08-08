@@ -12,10 +12,10 @@
 import { cpSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { hashFile } from '../contract/refs.ts';
-import type { LyoUpdate } from '../contract/index.ts';
-import { sampleGamma } from './selection-policies.ts';
-import type { JudgeClassification } from './trace-consumer.ts';
+import { hashFile } from '../../contract/refs.ts';
+import type { LyoUpdate } from '../../contract/index.ts';
+import { sampleGamma } from '../selection/selection-policies.ts';
+import type { JudgeClassification } from '../judge/trace-consumer.ts';
 
 export type LessonVehicle = 'prose' | 'skeleton-patch' | 'spec-constraint';
 

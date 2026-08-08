@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { replayTrace } from '../src/eval/replay.ts';
-import { LessonStore } from '../src/lyo/lesson-store.ts';
+import { LessonStore } from '../src/lyo/storage/lesson-store.ts';
 import { runLyoJson } from './helpers/cli.js';
 
 test('offline replay uses seeded deterministic lesson selection', () => {

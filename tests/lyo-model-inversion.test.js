@@ -5,8 +5,8 @@ import {
   INVERSION_MAP,
   executorFamily,
   invertedReflectorModel,
-} from '../src/lyo/model-inversion.ts';
-import { resolveReflector } from '../src/lyo/reflector-policies.ts';
+} from '../src/lyo/reflection/model-inversion.ts';
+import { resolveReflector } from '../src/lyo/reflection/reflector-policies.ts';
 
 test('model inversion routing: parses the executor family from provider-prefixed ids', () => {
   assert.strictEqual(executorFamily('claude:level2'), 'claude');

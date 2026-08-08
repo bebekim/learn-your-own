@@ -11,29 +11,31 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { hashFile, hashValue } from '../contract/refs.ts';
-import type { ArtifactRef } from '../contract/refs.ts';
+import { hashFile, hashValue } from '../../contract/refs.ts';
+import type { ArtifactRef } from '../../contract/refs.ts';
 import { accumulateEvidence, evidenceThreshold } from './evidence.ts';
-import { installPromotedLessons, loadLessons, recordLessonOutcome } from './lesson-library.ts';
+import { installPromotedLessons, loadLessons, recordLessonOutcome } from '../storage/lesson-library.ts';
 import { classifyMechanically } from './mechanical-judge.ts';
+import { createDefaultJudge, DEFAULT_JUDGE_MODEL } from './openrouter.ts';
 import {
   LYO_UPDATE_VERSION,
+  mustValidate,
+  readJson,
   validateLyoUpdate,
   validatePlan,
   validateSpec,
   validateSpecProposal,
   validateTrace,
   validateVerifierReport,
-} from '../contract/index.ts';
+} from '../../contract/index.ts';
 import type {
   LyoUpdate,
   Plan,
   Spec,
   Trace,
-  ValidationResult,
   VerifierReport,
-} from '../contract/index.ts';
-import type { FileBlock } from '../runner/files.ts';
+} from '../../contract/index.ts';
+import type { FileBlock } from '../../runner/files.ts';
 
 export const JUDGE_CLASSES = ['code-bug', 'test-hallucination', 'spec-gap'] as const;
 export type JudgeClassification = (typeof JUDGE_CLASSES)[number];
@@ -134,16 +136,12 @@ export interface TraceConsumption {
   proposalsDir: string;
 }
 
-const DEFAULT_JUDGE_MODEL = 'openai/gpt-4o-mini';
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const JUDGE_TIMEOUT_MS = 180000;
-
 export async function loadRunEvidence(runDir: string): Promise<RunEvidence> {
-  const plan = must(validatePlan(readJson(join(runDir, 'plan.json'))), 'plan');
+  const plan = mustValidate(validatePlan(readJson(join(runDir, 'plan.json'))), 'plan');
   const specText = readFileSync(join(runDir, 'spec.json'), 'utf8');
-  const spec = must(validateSpec(JSON.parse(specText)), 'spec');
-  const trace = must(validateTrace(readJson(join(runDir, 'trace.json'))), 'trace');
-  const report = must(validateVerifierReport(readJson(join(runDir, 'verifier-report.json'))), 'verifier-report');
+  const spec = mustValidate(validateSpec(JSON.parse(specText)), 'spec');
+  const trace = mustValidate(validateTrace(readJson(join(runDir, 'trace.json'))), 'trace');
+  const report = mustValidate(validateVerifierReport(readJson(join(runDir, 'verifier-report.json'))), 'verifier-report');
 
   const readManifestFiles = (manifestPath: string): FileBlock[] => {
     const manifest = JSON.parse(readFileSync(join(runDir, manifestPath), 'utf8')) as {
@@ -285,7 +283,7 @@ export async function consumeTraces({  runDirs,
   if (runDirs.length === 0) {
     throw new Error('consumeTraces: at least one run dir is required');
   }
-  const judgeFn = judge ?? defaultJudge(judgeModel);
+  const judgeFn = judge ?? createDefaultJudge(judgeModel);
   const gateRules = GATE_PRESETS[gate?.mode ?? 'permissive'];
   const analyses: RunAnalysis[] = [];
   for (const runDir of runDirs) {
@@ -612,60 +610,6 @@ function judgeRubricSha256(): string {
   return hashValue(probe.messages[0].content);
 }
 
-export function createDefaultJudge(model?: string): JudgeFn {
-  return defaultJudge(model);
-}
-
-function defaultJudge(model?: string): JudgeFn {
-  return async (input) => {
-    const resolvedModel =
-      model || process.env.OPENROUTER_LYO_JUDGE_MODEL || DEFAULT_JUDGE_MODEL;
-    const { messages } = buildJudgePrompt(input);
-    const content = await openRouterChat({ model: resolvedModel, messages });
-    return parseJudgeResponse(content);
-  };
-}
-
-async function openRouterChat({
-  model,
-  messages,
-}: {
-  model: string;
-  messages: Array<{ role: 'system' | 'user'; content: string }>;
-}): Promise<string> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENROUTER_API_KEY is not set');
-  }
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), JUDGE_TIMEOUT_MS);
-  try {
-    const response = await fetch(OPENROUTER_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ model, messages, temperature: 0 }),
-      signal: controller.signal,
-    });
-    if (!response.ok) {
-      const body = (await response.text()).slice(0, 200);
-      throw new Error(`OpenRouter HTTP ${response.status}: ${body}`);
-    }
-    const data = (await response.json()) as {
-      choices?: Array<{ message?: { content?: unknown } }>;
-    };
-    const content = data?.choices?.[0]?.message?.content;
-    if (typeof content !== 'string' || content.trim() === '') {
-      throw new Error('OpenRouter: empty completion');
-    }
-    return content;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 function readLatestTap(runDir: string): string {
   let entries: string[] = [];
   try {
@@ -702,17 +646,4 @@ function tapExcerptFor(tapText: string, testName: string): string {
     excerpt.push(line);
   }
   return excerpt.join('\n');
-}
-
-function must<T>(result: ValidationResult<T>, artifact: string): T {
-  if (!result.ok) {
-    throw new Error(
-      `invalid ${artifact}: ${result.errors.map((e) => `${e.path}: ${e.message}`).join('; ')}`
-    );
-  }
-  return result.value;
-}
-
-function readJson(path: string): unknown {
-  return JSON.parse(readFileSync(path, 'utf8'));
 }

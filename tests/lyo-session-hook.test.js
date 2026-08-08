@@ -5,11 +5,11 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { LessonStore } from '../src/lyo/lesson-store.ts';
+import { LessonStore } from '../src/lyo/storage/lesson-store.ts';
 import {
   renderSessionLessons,
   resolveSessionLessonStorePath,
-} from '../src/lyo/session-hook.ts';
+} from '../src/lyo/selection/session-hook.ts';
 
 function tempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'lyo-session-hook-'));
@@ -37,7 +37,7 @@ test('LYO session hook: renders lessons from cwd store', () => {
 test('LYO session hook: missing store fails open', () => {
   const cwd = tempDir();
   const home = tempDir();
-  const result = spawnSync(process.execPath, ['src/lyo/session-hook.ts', '--cwd', cwd], {
+  const result = spawnSync(process.execPath, ['src/lyo/selection/session-hook.ts', '--cwd', cwd], {
     cwd: path.join(import.meta.dirname, '..'),
     encoding: 'utf8',
     env: {

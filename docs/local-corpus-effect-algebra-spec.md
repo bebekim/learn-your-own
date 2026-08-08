@@ -1,5 +1,7 @@
 # Local Corpus Sync Effect Algebra Spec
 
+> **Naming note — "packet" (Sense 2):** This document uses "packet" to mean a corpus-slice export: a tagged effect-trace slice exported from one repo-local ledger for sync or rebroadcast. This is distinct from the cross-zone circulation signal sense of "packet" in `docs/future/learning-circulation-spec.md`. See `Specs/00-spec-consolidation.md` §00.2.2.
+
 ## Purpose
 
 This spec defines the next package-side work for Lyo after the first local

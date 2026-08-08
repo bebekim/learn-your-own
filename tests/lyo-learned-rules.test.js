@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { LearnedRuleStore } from '../src/lyo/learned-rules.ts';
+import { LearnedRuleStore } from '../src/lyo/storage/learned-rules.ts';
 
 test('learned verifier rules persist rows and append deltas', () => {
   withStore((store) => {

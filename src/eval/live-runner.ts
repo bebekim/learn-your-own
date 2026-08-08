@@ -1,8 +1,8 @@
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 
-import { LearnedRuleStore } from '../lyo/learned-rules.ts';
-import type { VerifierGate } from '../lyo/learned-rules.ts';
+import { LearnedRuleStore } from '../lyo/storage/learned-rules.ts';
+import type { VerifierGate } from '../lyo/storage/learned-rules.ts';
 import type { EvalTask } from './tasks.ts';
 
 export type EvalBaselineId = 'B0' | 'B1' | 'B3' | 'B4';

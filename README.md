@@ -403,7 +403,7 @@ console.log(getObserverSummary(kernel));
 - [Product Learning Log](docs/product-learning-log.md)
 - [Candidate At-Bat Telemetry Spec](docs/candidate-at-bat-telemetry-spec.md)
 - [Learned Reducer Rules And Eval Rubric](docs/learned-reducer-rules-eval-rubric.md)
-- [Candidate At-Bat Implementation PRD](issues/candidate-at-bat-prd.md)
+- [Candidate At-Bat Implementation PRD](issues/done/candidate-at-bat-prd.md)
 
 ## Development
 

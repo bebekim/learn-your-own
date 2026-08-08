@@ -30,338 +30,63 @@
 
 import crypto from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
-import { normalizeCue } from './failure-classifier.ts';
-import { DEFAULT_POLICY_ID, policyId, resolvePolicy } from './selection-policies.ts';
+import { normalizeCue } from '../selection/failure-classifier.ts';
+import { DEFAULT_POLICY_ID, policyId, resolvePolicy } from '../selection/selection-policies.ts';
 import type {
   ScoredSelection,
   SelectionCandidate,
   SelectionPolicyRef,
-} from './selection-policies.ts';
+} from '../selection/selection-policies.ts';
+import {
+  LYO_LESSON_DDL,
+  WILSON_Z,
+  STATUS_RULE_MIN_SAMPLES,
+  PROMOTION_WILSON_LOWER,
+  QUARANTINE_WILSON_UPPER,
+} from './schema.ts';
+import type {
+  ApplicationRow,
+  CreateLessonInput,
+  DecisionCandidate,
+  DecisionRow,
+  DeltaRow,
+  LibraryRow,
+  LessonRow,
+  PairStatsRow,
+  PreferencePairRow,
+  RecordApplicationInput,
+  RecordDecisionInput,
+  RecordPreferencePairInput,
+  RecordTraceInput,
+  ReplayState,
+  SelectLessonsInput,
+  SelectedLesson,
+  SelectWithDecisionInput,
+  SelectWithDecisionResult,
+  TraceRow,
+} from './lesson-types.ts';
 
-const WILSON_Z = 1.96;
-const STATUS_RULE_MIN_SAMPLES = 8;
-const PROMOTION_WILSON_LOWER = 0.5;
-const QUARANTINE_WILSON_UPPER = 0.45;
-
-// DEVIATION 1 (see file header): lesson_application carries trigger_message_id
-// and is UNIQUE(lesson_id, run_id, trigger_message_id) — the attribution unit
-// is the validation cycle (one injection per trigger message), not the run.
-const DDL = `
-CREATE TABLE IF NOT EXISTS lesson_delta (
-  delta_id    INTEGER PRIMARY KEY AUTOINCREMENT,
-  lesson_id   TEXT NOT NULL,              -- lesson this delta mutates
-  run_id      TEXT,                       -- provenance run; NULL for curator passes
-  ts          TEXT NOT NULL DEFAULT (datetime('now')),
-  actor       TEXT NOT NULL,              -- 'reflector' | 'validator-rule' | 'curator'
-  delta_type  TEXT NOT NULL,              -- CREATE | EDIT | MARK_HELPFUL | MARK_HARMFUL
-                                          -- MERGE_INTO | QUARANTINE | REINSTATE | RETIRE
-  payload     TEXT NOT NULL               -- JSON; per-type shape documented in methods
-);
-
-CREATE TABLE IF NOT EXISTS lesson (
-  lesson_id     TEXT PRIMARY KEY,
-  status        TEXT NOT NULL DEFAULT 'candidate',  -- candidate | active | quarantined | retired
-  failure_class TEXT NOT NULL,
-  trigger_cue   TEXT NOT NULL,
-  explanation   TEXT NOT NULL,
-  intervention  TEXT NOT NULL,
-  helpful_count INTEGER NOT NULL DEFAULT 0,
-  harmful_count INTEGER NOT NULL DEFAULT 0,
-  uses          INTEGER NOT NULL DEFAULT 0,
-  created_at    TEXT NOT NULL,
-  updated_at    TEXT NOT NULL,
-  provenance    TEXT NOT NULL DEFAULT '[]'      -- JSON array of run_ids
-);
-
-CREATE TABLE IF NOT EXISTS lesson_application (
-  application_id     TEXT PRIMARY KEY,
-  lesson_id          TEXT NOT NULL REFERENCES lesson(lesson_id),
-  run_id             TEXT NOT NULL,
-  trigger_message_id TEXT,
-  task_cue           TEXT,                  -- what matched at retrieval time
-  sampled_score      REAL,                  -- the Thompson draw that selected it (audit)
-  outcome            TEXT NOT NULL DEFAULT 'pending',  -- pending | passed | failed
-  counted            INTEGER NOT NULL DEFAULT 0,       -- 1 once folded into counters
-  UNIQUE(lesson_id, run_id, trigger_message_id)
-);
-
-CREATE TABLE IF NOT EXISTS lyo_meta (key TEXT PRIMARY KEY, value TEXT);
-
--- Preference-pair learning evidence (ported from lyo-kernel recordTrace /
--- recordPreferencePair semantics). These are plain evidence tables, NOT
--- lesson deltas: they record which behavior trace was preferred over which,
--- so a future reflector can turn audited preferences into lessons.
-CREATE TABLE IF NOT EXISTS learning_trace (
-  trace_id     TEXT PRIMARY KEY,
-  run_id       TEXT,
-  kind         TEXT NOT NULL CHECK (kind IN ('behavior', 'protocol_application', 'agent_response', 'tool_use', 'other')),
-  summary      TEXT NOT NULL,
-  ref          TEXT,
-  payload_json TEXT,
-  created_at   TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS preference_pair (
-  preference_id     TEXT PRIMARY KEY,
-  context_hash      TEXT NOT NULL,
-  chosen_trace_id   TEXT NOT NULL REFERENCES learning_trace(trace_id),
-  rejected_trace_id TEXT NOT NULL REFERENCES learning_trace(trace_id),
-  reason            TEXT NOT NULL,
-  evidence_ref      TEXT NOT NULL,
-  recorded_by       TEXT,
-  confidence        TEXT NOT NULL DEFAULT 'medium' CHECK (confidence IN ('low', 'medium', 'high')),
-  created_at        TEXT NOT NULL,
-  CHECK (chosen_trace_id <> rejected_trace_id)
-);
-
--- §5.3 decision log (v0.2). One row per intervention decision: every
--- candidate's posterior parameters (alpha = helpful+1, beta = harmful+1) and
--- selection propensity at decision time, the selected arms with their
--- policy scores, and the null-arm indicator (1 = no candidate existed, the
--- decision was "inject no lesson"). Immutable once written. The policy
--- column (added by migration v3) records which selection policy logged the
--- decision — logged-bandit provenance for off-policy evaluation.
-CREATE TABLE IF NOT EXISTS lesson_decision (
-  decision_id        TEXT PRIMARY KEY,
-  run_id             TEXT NOT NULL,
-  trigger_message_id TEXT,
-  cycle_index        INTEGER,
-  failure_class      TEXT NOT NULL,
-  task_cue           TEXT,
-  candidates         TEXT NOT NULL,   -- JSON [{lesson_id, alpha, beta, propensity}]
-  selected           TEXT NOT NULL,   -- JSON [{lesson_id, score}]
-  null_arm           REAL NOT NULL DEFAULT 0,
-  context            TEXT NOT NULL DEFAULT '{}',
-  created_at         TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_delta_lesson ON lesson_delta(lesson_id, delta_id);
-CREATE INDEX IF NOT EXISTS idx_app_run      ON lesson_application(run_id, counted);
-CREATE INDEX IF NOT EXISTS idx_lesson_class ON lesson(failure_class, status);
-CREATE INDEX IF NOT EXISTS idx_decision_run   ON lesson_decision(run_id);
-CREATE INDEX IF NOT EXISTS idx_decision_class ON lesson_decision(failure_class);
-
--- §4.1 the library view. Candidates stay retrievable for exploration.
-CREATE VIEW IF NOT EXISTS v_lesson_library AS
-SELECT lesson_id, failure_class, trigger_cue, explanation, intervention,
-  helpful_count, harmful_count, uses,
-  CAST(helpful_count + 1 AS REAL) / (helpful_count + harmful_count + 2) AS posterior_mean
-FROM lesson
-WHERE status IN ('active', 'candidate');
-
--- Model-inversion pair stats (migration v4 columns). Which executor ×
--- reflector(-model) combination authors lessons that survive grounding?
--- pair_posterior_mean is the Beta-Bernoulli posterior over the pair's pooled
--- grounded outcomes — pairs are comparable exactly like lessons.
-CREATE VIEW IF NOT EXISTS v_lyo_pair_stats AS
-SELECT
-  COALESCE(executor_model, '(unknown)') AS executor_model,
-  COALESCE(reflector_policy, '(unknown)') AS reflector_policy,
-  COALESCE(reflector_model, '(none)') AS reflector_model,
-  COUNT(*) AS lessons,
-  SUM(helpful_count) AS helpful,
-  SUM(harmful_count) AS harmful,
-  SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS promoted,
-  SUM(CASE WHEN status = 'quarantined' THEN 1 ELSE 0 END) AS quarantined,
-  CAST(SUM(helpful_count) + 1 AS REAL) / (SUM(helpful_count) + SUM(harmful_count) + 2)
-    AS pair_posterior_mean
-FROM lesson
-GROUP BY executor_model, reflector_policy, reflector_model;
-`;
-
-export interface LessonRow {
-  lesson_id: string;
-  status: string;
-  failure_class: string;
-  trigger_cue: string;
-  explanation: string;
-  intervention: string;
-  helpful_count: number;
-  harmful_count: number;
-  uses: number;
-  created_at: string;
-  updated_at: string;
-  provenance: string;
-  reflector_policy: string | null;
-  reflector_model: string | null;
-  executor_model: string | null;
-}
-
-export interface DeltaRow {
-  delta_id: number;
-  lesson_id: string;
-  run_id: string | null;
-  ts: string;
-  actor: string;
-  delta_type: string;
-  payload: string;
-}
-
-export interface ApplicationRow {
-  application_id: string;
-  lesson_id: string;
-  run_id: string;
-  trigger_message_id: string | null;
-  task_cue: string | null;
-  sampled_score: number | null;
-  outcome: string;
-  counted: number;
-  decision_id: string | null;
-}
-
-export interface DecisionRow {
-  decision_id: string;
-  run_id: string;
-  trigger_message_id: string | null;
-  cycle_index: number | null;
-  failure_class: string;
-  task_cue: string | null;
-  candidates: string;
-  selected: string;
-  null_arm: number;
-  context: string;
-  created_at: string;
-  policy: string;
-}
-
-export interface PairStatsRow {
-  executor_model: string;
-  reflector_policy: string;
-  reflector_model: string;
-  lessons: number;
-  helpful: number;
-  harmful: number;
-  promoted: number;
-  quarantined: number;
-  pair_posterior_mean: number;
-}
-
-export interface LibraryRow {
-  lesson_id: string;
-  failure_class: string;
-  trigger_cue: string;
-  explanation: string;
-  intervention: string;
-  helpful_count: number;
-  harmful_count: number;
-  uses: number;
-  posterior_mean: number;
-}
-
-export interface TraceRow {
-  trace_id: string;
-  run_id: string | null;
-  kind: string;
-  summary: string;
-  ref: string | null;
-  payload_json: string | null;
-  created_at: string;
-}
-
-export interface PreferencePairRow {
-  preference_id: string;
-  context_hash: string;
-  chosen_trace_id: string;
-  rejected_trace_id: string;
-  reason: string;
-  evidence_ref: string;
-  recorded_by: string | null;
-  confidence: string;
-  created_at: string;
-}
-
-export interface DecisionCandidate extends SelectionCandidate {
-  propensity: number;
-}
-
-export type SelectedLesson = LibraryRow & { sampled_score: number | null };
-
-export interface SelectWithDecisionResult {
-  selected: SelectedLesson[];
-  candidates: DecisionCandidate[];
-  null_arm: number;
-  policy: string;
-}
-
-export interface CreateLessonInput {
-  failure_class: string;
-  trigger_cue: string;
-  explanation?: string;
-  intervention?: string;
-  run_id?: string | null;
-  actor?: string;
-  reflector?: string | null;
-  reflector_model?: string | null;
-  executor_model?: string | null;
-}
-
-export interface SelectLessonsInput {
-  failure_class: string;
-  limit?: number;
-  rng?: () => number;
-}
-
-export interface SelectWithDecisionInput extends SelectLessonsInput {
-  propensityReplicates?: number;
-  policy?: SelectionPolicyRef;
-}
-
-export interface RecordApplicationInput {
-  lesson_id: string;
-  run_id: string;
-  trigger_message_id?: string | null;
-  task_cue?: string | null;
-  sampled_score?: number | null;
-  decision_id?: string | null;
-}
-
-export interface RecordDecisionInput {
-  run_id: string;
-  trigger_message_id?: string | null;
-  cycle_index?: number | null;
-  failure_class: string;
-  task_cue?: string | null;
-  candidates: unknown;
-  selected: unknown;
-  null_arm?: number;
-  context?: unknown;
-  policy?: string | null;
-}
-
-export interface RecordTraceInput {
-  trace_id?: string;
-  run_id?: string | null;
-  kind: string;
-  summary: string;
-  ref?: string | null;
-  payload?: unknown;
-}
-
-export interface RecordPreferencePairInput {
-  chosen_trace_id: string;
-  rejected_trace_id: string;
-  reason: string;
-  evidence_ref: string;
-  confidence?: string;
-  recorded_by?: string | null;
-  context?: string;
-  context_hash?: string;
-  preference_id?: string;
-}
-
-export interface ReplayState {
-  lesson_id: string;
-  status: string;
-  failure_class: string;
-  trigger_cue: string;
-  explanation: string;
-  intervention: string;
-  helpful_count: number;
-  harmful_count: number;
-  created_at: string;
-  updated_at: string;
-  provenance: string[];
-}
+export type {
+  ApplicationRow,
+  CreateLessonInput,
+  DecisionCandidate,
+  DecisionRow,
+  DeltaRow,
+  LibraryRow,
+  LessonRow,
+  PairStatsRow,
+  PreferencePairRow,
+  RecordApplicationInput,
+  RecordDecisionInput,
+  RecordPreferencePairInput,
+  RecordTraceInput,
+  ReplayState,
+  SelectLessonsInput,
+  SelectedLesson,
+  SelectWithDecisionInput,
+  SelectWithDecisionResult,
+  TraceRow,
+} from './lesson-types.ts';
 
 interface TableInfoRow {
   name: string;
@@ -493,7 +218,7 @@ export class LessonStore {
     this.db.exec('PRAGMA journal_mode = WAL');
     this.db.exec('PRAGMA synchronous = NORMAL');
     this.db.exec('PRAGMA wal_autocheckpoint = 1000');
-    this.db.exec(DDL);
+    this.db.exec(LYO_LESSON_DDL);
     this._migrate();
   }
 

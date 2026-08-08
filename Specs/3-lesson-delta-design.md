@@ -1,7 +1,7 @@
 # LYO Lesson-Delta Design (v0.1)
 
 Design doc for LYO's durable lesson library on top of Zeroshot's SQLite ledger.
-Companion documents: `lyo-learning-layer-literature.md` (motivation, Appendix A for
+Companion documents: `1.1-learning-layer-literature.md` (motivation, Appendix A for
 why monolithic rewrites are forbidden).
 
 **Scope.** Specifies: (1) the lesson-delta schema, (2) the materialized-view query
@@ -9,7 +9,7 @@ that serves lessons to runs, (3) the validation-grounded counter update rule.
 Defers: explanation-extraction prompts, embedding/semantic retrieval, hypothesis
 tournaments, curation prompts (see §8). v0.2 design direction: §10 (abstraction
 ladder), §11 (lesson mempool — broadcast and addressing); §5.3 revised after the
-WCS/COCOA deep read (`lyo-counterfactual-credit-synthesis.md`).
+WCS/COCOA deep read (`3.1-counterfactual-credit-synthesis.md`).
 
 ## 1. Architecture invariants
 
@@ -169,7 +169,7 @@ $$\mathrm{wilson}_{\pm} \;=\; \frac{\hat{p} + \frac{z^2}{2n} \;\pm\; z\sqrt{\fra
 ### 5.3 Optional stronger gate (counterfactual lift) — revised 2026-07-20
 
 Revised after deep-reading Buesing et al. 2018 (WCS) and Meulemans et al. 2023
-(COCOA); full analysis in `lyo-counterfactual-credit-synthesis.md`. The original
+(COCOA); full analysis in `3.1-counterfactual-credit-synthesis.md`. The original
 difference-in-rates sketch is **convicted by both papers**: Thompson injection is
 history-dependent — lessons are injected preferentially where failures persist —
 so with-ℓ and without-ℓ groups differ in latent difficulty, and raw

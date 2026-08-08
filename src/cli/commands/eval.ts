@@ -17,7 +17,7 @@ import {
   readEvalTask,
   validateEvalTaskDirectory,
 } from '../../eval/tasks.ts';
-import { LessonStore } from '../../lyo/lesson-store.ts';
+import { LessonStore } from '../../lyo/storage/lesson-store.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
 
 export const EVAL_COMMANDS: Record<string, CommandHandler> = {

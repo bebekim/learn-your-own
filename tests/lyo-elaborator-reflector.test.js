@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { resolveReflector } from '../src/lyo/reflector-policies.ts';
+import { resolveReflector } from '../src/lyo/reflection/reflector-policies.ts';
 import {
   createElaboratorReflector,
   buildPrompt,
   parseReflectionJson,
   DEFAULT_MODEL,
-} from '../src/lyo/elaborator-reflector.ts';
+} from '../src/lyo/reflection/elaborator-reflector.ts';
 
 function makeRejectedValidation({ sender = 'validator' } = {}) {
   return {

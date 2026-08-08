@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { runLocalEpisode } from '../src/eval/live-runner.ts';
-import { LearnedRuleStore } from '../src/lyo/learned-rules.ts';
+import { LearnedRuleStore } from '../src/lyo/storage/learned-rules.ts';
 import { ROOT, runLyoJson } from './helpers/cli.js';
 
 test('local eval runner records comparable B0 and B3 smoke episodes', () => {

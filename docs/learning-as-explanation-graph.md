@@ -12,7 +12,7 @@ learning is inference over a graph of explanations
 
 The corresponding formal target is:
 
-- [Learning As Explanation Graph Spec](../spec/01-learning-as-explanation-graph.org)
+- [Learning As Explanation Graph Spec](../Specs/2-learning-as-explanation-graph.org)
 
 ## Why Association Counters Are Not Enough
 

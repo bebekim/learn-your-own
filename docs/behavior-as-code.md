@@ -147,6 +147,12 @@ Later, Lyo records an `outcomes` row for that delivery:
 outcomes: followed: 1, defect_repeated: 0, verified: 1, credit_delta: +1
 ```
 
+> **Scalar-credit tension note:** `credit_delta` is a scalar reward signal. This
+> is in tension with `docs/future/preference-derived-budget-pressure-spec.md`,
+> which forbids "fake reward numbers" as a category. The scalar formula is
+> retained here as a recorded outcome metric; it is not the primary learning
+> signal. See `Specs/00-spec-consolidation.md` §00.1.5.
+
 Did the agent run tests this time? Did the defect repeat? That evidence is
 data again, and it updates belief in the protocol: keep it, demote it, or
 re-scope it. Improved behavior is re-quoted, re-read, and feeds the next
@@ -183,7 +189,7 @@ describes is the same system the data reprograms.
 
 ## See Also
 
-- [Agent IR Spec](../spec/02-agent-ir-language.org)
+- [Agent IR Spec](../Specs/2.1-agent-ir-language.org)
 - [Learning As Inference Over An Explanation Graph](learning-as-explanation-graph.md)
 - [Style Learning](style-learning.md)
 - [Cybernetic Association Learner](cybernetic-association-learner.md)

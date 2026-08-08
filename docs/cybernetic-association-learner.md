@@ -420,6 +420,14 @@ demotable:
 These thresholds are bootstrap defaults, not universal truths. They should be
 stored with the learner version and made visible in reports.
 
+> **Gate authority note:** These bootstrap thresholds are superseded as the
+> authoritative promotion/quarantine gate for the kernel SQLite store by the
+> sequential likelihood-ratio criterion documented in
+> `docs/superpowers/specs/2026-07-27-principled-map.md` (Trust — sequential
+> analysis, E > 1/α). The Wilson score interval in `Specs/3-lesson-delta-design.md`
+> §5.2 serves the same kernel-store role. See `Specs/00-spec-consolidation.md`
+> §00.1.1 and §00.1.2.
+
 Later versions can replace raw credibility-effect counts with Bayesian weight
 of evidence:
 

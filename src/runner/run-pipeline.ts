@@ -1,52 +1,44 @@
 import { randomBytes } from 'node:crypto';
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { compileSeparatedCodeAndTestPromptArtifacts } from '../compiler/prompt-artifacts.ts';
 import type { ArtifactRef } from '../contract/refs.ts';
-import { hashFile, hashValue } from '../contract/refs.ts';
+import { hashFile } from '../contract/refs.ts';
 import {
   checkBlindness,
-  CODE_VERSION,
-  TEST_VERSION,
+  mustValidate,
+  readJson,
   TRACE_VERSION,
-  validateCodeManifest,
   validatePlan,
   validateSpec,
-  validateTestManifest,
   validateTrace,
   validateVerifierReport,
   VERIFIER_REPORT_VERSION,
 } from '../contract/index.ts';
 import type {
-  CodeManifest,
   Plan,
   PlanStage,
   Spec,
-  TestManifest,
   Trace,
-  ValidationResult,
   VerifierReport,
 } from '../contract/index.ts';
 import { createKimiCliExecutor } from './executors/kimi-cli.ts';
 import { createOpenRouterExecutor } from './executors/openrouter.ts';
 import { createUpstageExecutor } from './executors/upstage.ts';
-import type { StageExecutionResult, StageExecutor } from './executors/stage-executor.ts';
+import type { StageExecutor } from './executors/stage-executor.ts';
 import {
   loadLessons,
   renderLessonsBlock,
   renderPatchBlock,
   selectLessons,
   type Lesson,
-} from '../lyo/lesson-library.ts';
-import {
-  collectFiles,
-  filterDeclaredWrites,
-  materializeSandbox,
-  parseFileBlocks,
-  type FileBlock,
-} from './files.ts';
+} from '../lyo/storage/lesson-library.ts';
+import type { FileBlock } from './files.ts';
 import { runVerifier, type RunTestsFn, type VerifierRun } from './verifier.ts';
+import { runWriterStage, isSingleShotKind, type StageOutcome } from './writer-stage.ts';
+import type { LearningKernel } from '../ledger.ts';
+import { finishRun, recordModelCall, recordRun, recordRunGoal, recordTrace } from '../reducers.ts';
 
 export type ExecutorFactory = (stage: PlanStage) => StageExecutor;
 
@@ -58,6 +50,7 @@ export interface RunPipelineInput {
   runTests?: RunTestsFn;
   now?: () => Date;
   lessonsDir?: string;
+  kernel?: LearningKernel;
 }
 
 export interface RunPipelineResult {
@@ -66,17 +59,6 @@ export interface RunPipelineResult {
   report: VerifierReport;
   reportPath: string;
   tracePath: string;
-}
-
-interface StageOutcome {
-  stage: PlanStage;
-  manifestRef: ArtifactRef;
-  manifest: CodeManifest | TestManifest;
-  contents: FileBlock[];
-  promptSha256: string;
-  usage?: StageExecutionResult['usage'];
-  startedAt: string;
-  finishedAt: string;
 }
 
 /**
@@ -94,6 +76,7 @@ export async function runPipeline({
   runTests,
   now = () => new Date(),
   lessonsDir,
+  kernel,
 }: RunPipelineInput): Promise<RunPipelineResult> {
   const sourceRoot = dirname(planPath);
   const plan = mustValidate(validatePlan(readJson(planPath)), 'plan');
@@ -128,6 +111,37 @@ export async function runPipeline({
   });
   const planRef = runRef(join(runDir, 'plan.json'));
   const specRef = runRef(join(runDir, 'spec.json'));
+
+  // Kernel wiring: when a LearningKernel is provided, the pipeline records
+  // the blindness split into SQLite — one run row, one model_call per stage,
+  // one learning_trace per stage (carrying inputs/outputs/usage in the
+  // payload), and a run_goal from the spec's invariants. All writes are
+  // best-effort: a SQLite failure must never lose pipeline artifacts.
+  const safeKernel = (fn: (k: LearningKernel) => void): void => {
+    if (!kernel) return;
+    try { fn(kernel); } catch { /* sqlite is best-effort */ }
+  };
+  const stageLane = (stage: PlanStage): string => stage.role;
+  const parseModel = (model: string | undefined): { provider: string; model: string } => {
+    const sep = (model ?? '').indexOf('/');
+    return sep > 0
+      ? { provider: model!.slice(0, sep), model: model!.slice(sep + 1) }
+      : { provider: 'unknown', model: model ?? 'unknown' };
+  };
+  safeKernel((k) => {
+    recordRun(k, {
+      runId: id,
+      taskShape: spec.specId,
+      channel: plan.planId,
+      status: 'started',
+    });
+    recordRunGoal(k, {
+      runId: id,
+      goal: `Implement and test specification '${spec.specId}'.`,
+      successCriteria: spec.invariants.join('; '),
+      expectedProcess: `blind pipeline: ${codeStage.stageId} || ${testStage.stageId} → verifier`,
+    });
+  });
 
   const prompts = buildStagePrompts(plan, spec, specText, codeStage, testStage);
   // Delivery: promoted lessons are injected into the blind-safe stage prompts
@@ -205,6 +219,47 @@ export async function runPipeline({
       startedAt: outcome.startedAt,
       finishedAt: outcome.finishedAt,
     });
+    // Record the blindness split into SQLite: one model_call and one
+    // learning_trace per stage execution. The payload captures which
+    // branch ran, which model, which lessons were injected (memories
+    // invoked), and the token usage — the per-branch telemetry that
+    // trace.json carries on disk, now queryable in the kernel.
+    safeKernel((k) => {
+      const { provider, model: modelName } = parseModel(outcome.stage.executor?.model);
+      const lane = stageLane(outcome.stage);
+      recordModelCall(k, {
+        runId: id,
+        provider,
+        model: modelName,
+        modelLane: lane,
+        promptHash: outcome.promptSha256,
+        promptRef: manifestRef?.path ?? outcome.manifestRef.path,
+        inputTokens: outcome.usage?.promptTokens ?? null,
+        outputTokens: outcome.usage?.completionTokens ?? null,
+        totalTokens: outcome.usage?.totalTokens ?? null,
+        estimatedCost: outcome.usage?.cost ?? null,
+        status: 'completed',
+      });
+      recordTrace(k, {
+        runId: id,
+        kind: 'agent_response',
+        summary: `blind stage '${outcome.stage.stageId}' (round ${round ?? 1}, lane ${lane})`,
+        ref: manifestRef?.path ?? outcome.manifestRef.path,
+        payload: {
+          stageId: outcome.stage.stageId,
+          role: lane,
+          round,
+          model: outcome.stage.executor?.model ?? null,
+          promptSha256: outcome.promptSha256,
+          inputs: [specRef, ...extraInputs].map((ref) => ({ path: ref.path, sha256: ref.sha256 })),
+          outputs: [manifestRef ?? outcome.manifestRef].map((ref) => ({ path: ref.path, sha256: ref.sha256 })),
+          lessonsInjected: extraInputs.map((ref) => ref.path),
+          usage: outcome.usage ?? null,
+          startedAt: outcome.startedAt,
+          finishedAt: outcome.finishedAt,
+        },
+      });
+    });
   };
   recordWriter(
     firstCodeOutcome,
@@ -247,6 +302,26 @@ export async function runPipeline({
       outputs: [],
       startedAt,
       finishedAt,
+    });
+    // Record the verifier's verdict into SQLite — this is the grounding
+    // event: the environment's judgement that moves counters downstream.
+    safeKernel((k) => {
+      recordTrace(k, {
+        runId: id,
+        kind: 'tool_use',
+        summary: `verifier round ${round}: ${verification.outcome} (${verification.counts.passed}/${verification.counts.total} passed)`,
+        ref: join(runDir, 'verify-tap', `tap.round-${round}.txt`),
+        payload: {
+          stageId: verifierStage?.stageId ?? 'verifier',
+          role: 'verifier',
+          round,
+          outcome: verification.outcome,
+          counts: verification.counts,
+          inputs: [codeManifestRef, testOutcome.manifestRef].map((ref) => ({ path: ref.path, sha256: ref.sha256 })),
+          startedAt,
+          finishedAt,
+        },
+      });
     });
     return { verification, startedAt, finishedAt };
   };
@@ -335,156 +410,22 @@ export async function runPipeline({
   const tracePath = join(runDir, 'trace.json');
   writeFileSync(tracePath, JSON.stringify(trace, null, 2));
 
+  // Finalize the run in SQLite: mark status and record total token cost.
+  safeKernel((k) => {
+    const totalTokens = traceStages.reduce(
+      (sum, stage) => sum + (stage.usage?.totalTokens ?? 0),
+      0
+    );
+    finishRun(k, {
+      runId: id,
+      status: verification.outcome === 'pass' ? 'completed' : 'failed',
+      tokenCost: totalTokens,
+    });
+  });
+
   return { runId: id, runDir, report, reportPath, tracePath };
 }
 
-async function runWriterStage({
-  stage,
-  prompt,
-  artifactKind,
-  runDir,
-  sourceRoot,
-  executorFactory,
-  specRef,
-  now,
-  round,
-}: {
-  stage: PlanStage;
-  prompt: string;
-  artifactKind: 'code' | 'tests';
-  runDir: string;
-  sourceRoot: string;
-  executorFactory: ExecutorFactory;
-  specRef: ArtifactRef;
-  now: () => Date;
-  round?: number;
-}): Promise<StageOutcome> {
-  const sandboxDir = join(runDir, 'stages', stage.stageId, 'sandbox');
-  // Each stage execution starts from a clean sandbox: declared reads only,
-  // no leftovers from an earlier round.
-  rmSync(sandboxDir, { recursive: true, force: true });
-  mkdirSync(sandboxDir, { recursive: true });
-  materializeSandbox({ sourceRoot, sandboxDir, readPaths: stage.authority.read });
-
-  // Per-round transcripts are never overwritten; single-pass runs keep the
-  // plain name.
-  const transcriptName = round === undefined ? 'transcript.txt' : `transcript.round-${round}.txt`;
-  const transcriptPath = join(runDir, 'stages', stage.stageId, transcriptName);
-  const startedAt = now().toISOString();
-  let transcript: string;
-  let usage: StageExecutionResult['usage'];
-  try {
-    const execution = await executorFactory(stage)({ prompt, sandboxDir });
-    transcript = execution.transcript;
-    usage = execution.usage;
-    // Single-shot stages must return path-tagged file blocks. Zero parseable
-    // files is a contract violation, not a format to guess at: one corrective
-    // retry with an explicit example, then fail loudly.
-    if (
-      isSingleShotKind(stage.executor?.kind) &&
-      filterDeclaredWrites(parseFileBlocks(transcript), stage.outputs).accepted.length === 0
-    ) {
-      const corrective = await executorFactory(stage)({
-        prompt:
-          `${prompt}\n\nCORRECTION: your previous reply contained no path-tagged file blocks, ` +
-          'so nothing could be written. Return each file as a fenced code block tagged with ' +
-          `its path, exactly like:\n\`\`\`js path=${stage.outputs[0]}/example.js\n<file contents>\n\`\`\`\n` +
-          'File blocks only — no prose.',
-        sandboxDir,
-      });
-      transcript = `${transcript}\n\n--- corrective retry ---\n\n${corrective.transcript}`;
-    }
-  } catch (error) {
-    // A failed stage still leaves its evidence behind.
-    const message = error instanceof Error ? error.message : String(error);
-    writeFileSync(transcriptPath, `STAGE FAILED: ${message}\n`);
-    throw new Error(`stage '${stage.stageId}': ${message}`);
-  }
-  const finishedAt = now().toISOString();
-  writeFileSync(transcriptPath, transcript);
-
-  // Single-shot executors (no tools: openrouter, upstage) return files as
-  // path-tagged blocks in the transcript; only blocks under declared write
-  // paths touch disk.
-  if (isSingleShotKind(stage.executor?.kind)) {
-    const { accepted } = filterDeclaredWrites(parseFileBlocks(transcript), stage.outputs);
-    for (const file of accepted) {
-      const target = join(sandboxDir, file.path);
-      mkdirSync(dirname(target), { recursive: true });
-      writeFileSync(target, file.content);
-    }
-  }
-
-  const outputFiles = stage.outputs.flatMap((prefix) => collectOutputs(sandboxDir, prefix));
-  if (outputFiles.length === 0) {
-    throw new Error(
-      `stage '${stage.stageId}' produced no declared outputs under: ${stage.outputs.join(', ')}`
-    );
-  }
-
-  const artifactDir = join(runDir, 'artifacts', artifactKind);
-  const manifestPath = join(artifactDir, 'manifest.json');
-  // Drop stale outputs from earlier rounds before copying the new ones;
-  // manifests and round snapshots live outside the declared output prefixes.
-  for (const prefix of stage.outputs) {
-    rmSync(join(artifactDir, prefix), { recursive: true, force: true });
-  }
-  const files: ArtifactRef[] = [];
-  const contents: FileBlock[] = [];
-  for (const relativePath of outputFiles) {
-    const target = join(artifactDir, relativePath);
-    mkdirSync(dirname(target), { recursive: true });
-    cpSync(join(sandboxDir, relativePath), target);
-    files.push({
-      path: target.slice(runDir.length + 1),
-      sha256: hashFile(target).sha256,
-    });
-    contents.push({ path: relativePath, content: readFileSync(target, 'utf8') });
-    if (round !== undefined) {
-      const snapshot = join(artifactDir, `files.round-${round}`, relativePath);
-      mkdirSync(dirname(snapshot), { recursive: true });
-      cpSync(target, snapshot);
-    }
-  }
-
-  const manifest =
-    artifactKind === 'code'
-      ? ({
-          version: CODE_VERSION,
-          specRef,
-          files,
-          language: inferLanguage(files),
-        } satisfies CodeManifest)
-      : ({
-          version: TEST_VERSION,
-          specRef,
-          files,
-          language: inferLanguage(files),
-          framework: 'node:test',
-          frozen: true,
-        } satisfies TestManifest);
-  if (artifactKind === 'code') {
-    mustValidate(validateCodeManifest(manifest), 'code manifest');
-  } else {
-    mustValidate(validateTestManifest(manifest), 'test manifest');
-  }
-  mkdirSync(artifactDir, { recursive: true });
-  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-
-  return {
-    stage,
-    manifest,
-    manifestRef: {
-      path: manifestPath.slice(runDir.length + 1),
-      sha256: hashFile(manifestPath).sha256,
-    },
-    contents,
-    promptSha256: hashValue(prompt),
-    usage,
-    startedAt,
-    finishedAt,
-  };
-}
 
 /**
  * Preserve a round's manifest before the next round overwrites manifest.json.
@@ -566,9 +507,6 @@ function buildStagePrompts(
   };
 }
 
-function isSingleShotKind(kind: string | undefined): boolean {
-  return kind === 'openrouter' || kind === 'upstage';
-}
 
 function defaultExecutorFactory(stage: PlanStage): StageExecutor {
   if (!stage.executor) {
@@ -589,17 +527,6 @@ function defaultExecutorFactory(stage: PlanStage): StageExecutor {
   });
 }
 
-function collectOutputs(sandboxDir: string, prefix: string): string[] {
-  const absolute = join(sandboxDir, prefix);
-  if (!existsSync(absolute)) {
-    return [];
-  }
-  if (statSync(absolute).isDirectory()) {
-    return collectFiles(absolute).map((entry) => `${prefix}/${entry}`);
-  }
-  return [prefix];
-}
-
 function inferLanguage(files: ArtifactRef[]): string {
   const extension = files[0]?.path.split('.').pop();
   const languages: Record<string, string> = {
@@ -617,18 +544,6 @@ function soleStage(plan: Plan, role: PlanStage['role']): PlanStage {
     throw new Error(`plan must contain exactly one ${role} stage, found ${matches.length}`);
   }
   return matches[0];
-}
-
-function mustValidate<T>(result: ValidationResult<T>, artifact: string): T {
-  if (!result.ok) {
-    const details = result.errors.map((error) => `${error.path}: ${error.message}`).join('; ');
-    throw new Error(`invalid ${artifact}: ${details}`);
-  }
-  return result.value;
-}
-
-function readJson(path: string): unknown {
-  return JSON.parse(readFileSync(path, 'utf8'));
 }
 
 function defaultRunId(now: Date): string {

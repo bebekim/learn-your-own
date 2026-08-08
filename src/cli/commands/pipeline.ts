@@ -2,12 +2,15 @@ import { readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
 import { checkBlindness, validatePlan, validateSpec, validateSpecProposal } from '../../contract/index.ts';
-import { loadCalibrationCases, runJudgeCalibration } from '../../lyo/judge-calibration.ts';
-import { consumeTraces, createDefaultJudge } from '../../lyo/trace-consumer.ts';
+import { loadCalibrationCases, runJudgeCalibration } from '../../lyo/judge/judge-calibration.ts';
+import { consumeTraces } from '../../lyo/judge/trace-consumer.ts';
+import { createDefaultJudge } from '../../lyo/judge/openrouter.ts';
 import { applyRun } from '../../runner/apply.ts';
 import { compareRuns } from '../../runner/compare-runs.ts';
 import { runPipeline } from '../../runner/run-pipeline.ts';
 import { compileSpecMarkdown } from '../../runner/spec-compiler.ts';
+import { closeKernel, createKernel } from '../../ledger.ts';
+import { initLedger } from '../../schema.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
 
 export const PIPELINE_COMMANDS: Record<string, CommandHandler> = {
@@ -23,20 +26,27 @@ export const PIPELINE_COMMANDS: Record<string, CommandHandler> = {
 
 async function pipelineRunCommand(args: CommandArgs): Promise<unknown> {
   const lessonsDir = args.flagValue('--lessons');
-  const result = await runPipeline({
-    planPath: resolve(args.requiredFlag('--plan')),
-    runsRoot: resolve(args.flagValue('--runs-root') ?? 'runs'),
-    lessonsDir: lessonsDir ? resolve(lessonsDir) : undefined,
-  });
-  return {
-    ok: true,
-    runId: result.runId,
-    runDir: result.runDir,
-    outcome: result.report.outcome,
-    counts: result.report.counts,
-    reportPath: result.reportPath,
-    tracePath: result.tracePath,
-  };
+  const kernel = createKernel({ dbPath: args.dbPath });
+  initLedger(kernel);
+  try {
+    const result = await runPipeline({
+      planPath: resolve(args.requiredFlag('--plan')),
+      runsRoot: resolve(args.flagValue('--runs-root') ?? 'runs'),
+      lessonsDir: lessonsDir ? resolve(lessonsDir) : undefined,
+      kernel,
+    });
+    return {
+      ok: true,
+      runId: result.runId,
+      runDir: result.runDir,
+      outcome: result.report.outcome,
+      counts: result.report.counts,
+      reportPath: result.reportPath,
+      tracePath: result.tracePath,
+    };
+  } finally {
+    closeKernel(kernel);
+  }
 }
 
 async function pipelineLearnCommand(args: CommandArgs): Promise<unknown> {

@@ -14,6 +14,7 @@ import { PIPELINE_COMMANDS } from './commands/pipeline.ts';
 import { RUN_COMMANDS } from './commands/runs.ts';
 import { TAPE_COMMANDS } from './commands/tape.ts';
 import { WORKSPACE_COMMANDS } from './commands/workspace.ts';
+import { WORKTREE_COMMANDS } from './commands/worktree.ts';
 import type { CommandHandler } from './commands/context.ts';
 import { usage } from './output.ts';
 
@@ -25,6 +26,7 @@ const COMMAND_HANDLERS: Record<string, CommandHandler> = {
   ...RUN_COMMANDS,
   ...TAPE_COMMANDS,
   ...WORKSPACE_COMMANDS,
+  ...WORKTREE_COMMANDS,
   ...ACTIVATION_COMMANDS,
   ...ASSOCIATION_COMMANDS,
   ...CONTEXT_COMMANDS,

@@ -5,8 +5,8 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 
-import { LessonStore } from '../src/lyo/lesson-store.ts';
-import { classifyValidationFailure } from '../src/lyo/failure-classifier.ts';
+import { LessonStore } from '../src/lyo/storage/lesson-store.ts';
+import { classifyValidationFailure } from '../src/lyo/selection/failure-classifier.ts';
 
 // Deterministic rng (mulberry32) for reproducible Thompson draws.
 function mulberry32(seed) {

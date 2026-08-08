@@ -52,6 +52,7 @@ export function usage(exitCode = 0): never {
 	  lyo pipeline proposals --run dir
 	  lyo pipeline proposal-review --run dir --id id --status accepted|rejected
 	  lyo pipeline init --spec path [--task-dir dir]
+	  lyo worktree add --spec path --branch name [--path dir] [--task-dir dir] [--base ref] [--force]
 	  lyo pipeline apply --run dir --target dir [--force]
 	  lyo pipeline calibrate --cases path [--judge-model model]
 	  lyo eval validate [--dir path]

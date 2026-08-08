@@ -199,17 +199,17 @@ export {
   policyId,
   resolvePolicy,
   sampleGamma,
-} from './lyo/selection-policies.ts';
+} from './lyo/selection/selection-policies.ts';
 export {
   INVERSION_MAP,
   executorFamily,
   invertedReflectorModel,
-} from './lyo/model-inversion.ts';
+} from './lyo/reflection/model-inversion.ts';
 export {
   FAILURE_CLASSES,
   classifyValidationFailure,
   normalizeCue,
-} from './lyo/failure-classifier.ts';
+} from './lyo/selection/failure-classifier.ts';
 export {
   DEFAULT_REFLECTOR,
   EXPLANATION_MAX_LENGTH,
@@ -220,21 +220,21 @@ export {
   isValidReflection,
   reflectorId,
   resolveReflector,
-} from './lyo/reflector-policies.ts';
+} from './lyo/reflection/reflector-policies.ts';
 export {
   DEFAULT_MODEL,
   OPENROUTER_URL,
   buildPrompt,
   createElaboratorReflector,
   parseReflectionJson,
-} from './lyo/elaborator-reflector.ts';
-export { classifyMechanically } from './lyo/mechanical-judge.ts';
-export { LessonStore } from './lyo/lesson-store.ts';
+} from './lyo/reflection/elaborator-reflector.ts';
+export { classifyMechanically } from './lyo/judge/mechanical-judge.ts';
+export { LessonStore } from './lyo/storage/lesson-store.ts';
 export {
   accumulateEvidence,
   evidenceThreshold,
   logEvidenceRatio,
-} from './lyo/evidence.ts';
+} from './lyo/judge/evidence.ts';
 export {
   installPromotedLessons,
   isDemoted,
@@ -244,25 +244,25 @@ export {
   renderLessonsBlock,
   renderPatchBlock,
   selectLessons,
-} from './lyo/lesson-library.ts';
-export type { Lesson, LessonVehicle } from './lyo/lesson-library.ts';
+} from './lyo/storage/lesson-library.ts';
+export type { Lesson, LessonVehicle } from './lyo/storage/lesson-library.ts';
 export {
   loadCalibrationCases,
   runJudgeCalibration,
-} from './lyo/judge-calibration.ts';
+} from './lyo/judge/judge-calibration.ts';
 export type {
   CalibrationCase,
   CalibrationCaseResult,
   CalibrationResult,
-} from './lyo/judge-calibration.ts';
+} from './lyo/judge/judge-calibration.ts';
 export {
   buildJudgePrompt,
   consumeTraces,
-  createDefaultJudge,
   extractDisagreements,
   loadRunEvidence,
   parseJudgeResponse,
-} from './lyo/trace-consumer.ts';
+} from './lyo/judge/trace-consumer.ts';
+export { createDefaultJudge } from './lyo/judge/openrouter.ts';
 export type {
   AnalyzedDisagreement,
   ConsumeTraceInput,
@@ -273,19 +273,19 @@ export type {
   RunAnalysis,
   RunEvidence,
   TraceConsumption,
-} from './lyo/trace-consumer.ts';
-export { LearnedRuleStore } from './lyo/learned-rules.ts';
+} from './lyo/judge/trace-consumer.ts';
+export { LearnedRuleStore } from './lyo/storage/learned-rules.ts';
 export {
   emitSessionLessons,
   renderSessionLessons,
   resolveSessionLessonStorePath,
-} from './lyo/session-hook.ts';
+} from './lyo/selection/session-hook.ts';
 export type {
   ScoredSelection,
   SelectionCandidate,
   SelectionPolicy,
   SelectionPolicyRef,
-} from './lyo/selection-policies.ts';
+} from './lyo/selection/selection-policies.ts';
 export type {
   ApplyVerifierRulesInput,
   CreateVerifierRuleInput,
@@ -295,9 +295,9 @@ export type {
   LearnedRuleRow,
   LearnedRuleStatus,
   VerifierGate,
-} from './lyo/learned-rules.ts';
-export type { SessionHookPayload } from './lyo/session-hook.ts';
-export type { FailureClassification } from './lyo/failure-classifier.ts';
+} from './lyo/storage/learned-rules.ts';
+export type { SessionHookPayload } from './lyo/selection/session-hook.ts';
+export type { FailureClassification } from './lyo/selection/failure-classifier.ts';
 export type {
   Reflection,
   ReflectionInput,
@@ -305,13 +305,13 @@ export type {
   ReflectorContext,
   ReflectorRef,
   ValidationMessage,
-} from './lyo/reflector-policies.ts';
+} from './lyo/reflection/reflector-policies.ts';
 export type {
   BuildPromptInput,
   ChatFn,
   ChatMessage,
   ElaboratorReflectorOptions,
-} from './lyo/elaborator-reflector.ts';
+} from './lyo/reflection/elaborator-reflector.ts';
 export type {
   ApplicationRow,
   CreateLessonInput,
@@ -332,7 +332,7 @@ export type {
   SelectWithDecisionResult,
   SelectedLesson,
   TraceRow,
-} from './lyo/lesson-store.ts';
+} from './lyo/storage/lesson-store.ts';
 export { collectGitCorpusPool } from './corpus/pool.ts';
 export { analyzePythonLayer2Delta } from './corpus/git-layer2.ts';
 export type * from './compiler/syntax.ts';

@@ -1,11 +1,11 @@
 import { readFileSync } from 'node:fs';
 
-import { LessonStore } from '../lyo/lesson-store.ts';
+import { LessonStore } from '../lyo/storage/lesson-store.ts';
 import type {
   DecisionCandidate,
   LessonRow,
   SelectedLesson,
-} from '../lyo/lesson-store.ts';
+} from '../lyo/storage/lesson-store.ts';
 
 export interface ReplayCandidateLesson {
   failure_class: string;

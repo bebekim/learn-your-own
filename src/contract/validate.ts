@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 
 export interface ValidationIssue {
@@ -43,4 +44,16 @@ export function validateVersioned<Schema extends z.ZodType>(
   }
 
   return { ok: true, value: parsed.data };
+}
+
+export function mustValidate<T>(result: ValidationResult<T>, artifact: string): T {
+  if (!result.ok) {
+    const details = result.errors.map((error) => `${error.path}: ${error.message}`).join('; ');
+    throw new Error(`invalid ${artifact}: ${details}`);
+  }
+  return result.value;
+}
+
+export function readJson(path: string): unknown {
+  return JSON.parse(readFileSync(path, 'utf8'));
 }

@@ -33,5 +33,9 @@ node_modules/
 # Generated package artifacts
 /dist/
 
+# SQLite runtime files
+*.db-shm
+*.db-wal
+
 # Worktree checkouts
 /.worktrees/

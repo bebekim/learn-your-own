@@ -668,3 +668,74 @@ test('runPipeline records stage usage in the trace when the executor reports it'
     assert.equal(testStage.usage, undefined);
   });
 });
+
+test('runPipeline writes the blindness split to SQLite when a kernel is provided', async () => {
+  await withTmp(async (dir) => {
+    const { planPath } = writeSource(dir);
+    const dbPath = join(dir, 'learning.sqlite');
+    const { createKernel, closeKernel } = await import('../src/ledger.ts');
+    const { initLedger } = await import('../src/schema.ts');
+    const kernel = createKernel({ dbPath });
+    initLedger(kernel);
+    try {
+      const result = await runPipeline({
+        planPath,
+        runsRoot: join(dir, 'runs'),
+        executorFactory: fakeExecutorFactory,
+        kernel,
+      });
+      assert.equal(result.report.outcome, 'pass');
+
+      // runs table: one row, status completed
+      const run = kernel.db.prepare('select * from runs where run_id = ?').get(result.runId);
+      assert.equal(run.task_shape, 'add-spec');
+      assert.equal(run.status, 'completed');
+
+      // run_goals table: goal + success criteria from spec invariants
+      const goal = kernel.db.prepare('select * from run_goals where run_id = ?').get(result.runId);
+      assert.match(goal.goal, /add-spec/);
+      assert.match(goal.success_criteria, /add\(a, b\) === add\(b, a\)/);
+
+      // model_calls: one per writer stage (code-writer + test-writer)
+      const calls = kernel.db.prepare('select * from model_calls where run_id = ? order by model_lane').all(result.runId);
+      assert.equal(calls.length, 2);
+      assert.equal(calls[0].model_lane, 'code-writer');
+      assert.equal(calls[1].model_lane, 'test-writer');
+      assert.equal(calls[0].model, 'fake-code-model');
+      assert.equal(calls[1].model, 'fake-test-model');
+      assert.ok(calls[0].prompt_sha256, 'code-writer model_call should have a prompt hash');
+
+      // learning_traces: one per writer stage + one per verifier round
+      const traces = kernel.db.prepare('select * from learning_traces where run_id = ? order by created_at').all(result.runId);
+      assert.ok(traces.length >= 3, `expected >= 3 traces, got ${traces.length}`);
+      const writerTraces = traces.filter((t) => t.kind === 'agent_response');
+      assert.equal(writerTraces.length, 2);
+      const verifierTraces = traces.filter((t) => t.kind === 'tool_use');
+      assert.ok(verifierTraces.length >= 1);
+
+      // Verify the blindness split payload carries which lessons were injected
+      const codeTrace = writerTraces.find((t) => t.summary.includes('stage-code'));
+      const payload = JSON.parse(codeTrace.payload_json);
+      assert.equal(payload.role, 'code-writer');
+      assert.equal(payload.stageId, 'stage-code');
+      assert.ok(payload.inputs, 'trace payload should carry inputs');
+      assert.ok(payload.outputs, 'trace payload should carry outputs');
+      assert.ok(Array.isArray(payload.lessonsInjected), 'trace payload should carry lessonsInjected array');
+    } finally {
+      closeKernel(kernel);
+    }
+  });
+});
+
+test('runPipeline without a kernel still works (filesystem-only, no sqlite writes)', async () => {
+  await withTmp(async (dir) => {
+    const { planPath } = writeSource(dir);
+    const result = await runPipeline({
+      planPath,
+      runsRoot: join(dir, 'runs'),
+      executorFactory: fakeExecutorFactory,
+    });
+    assert.equal(result.report.outcome, 'pass');
+    assert.equal(existsSync(join(dir, 'learning.sqlite')), false);
+  });
+});

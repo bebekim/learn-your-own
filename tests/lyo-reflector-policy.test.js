@@ -6,7 +6,7 @@ import {
   reflectorId,
   resolveReflector,
   buildGuidanceText,
-} from '../src/lyo/reflector-policies.ts';
+} from '../src/lyo/reflection/reflector-policies.ts';
 
 test('lyo reflector policies: resolves null to the template default', () => {
   assert.strictEqual(resolveReflector(null), TEMPLATE_REFLECTOR);
