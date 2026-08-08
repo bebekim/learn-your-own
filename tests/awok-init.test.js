@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -73,6 +73,36 @@ test('awok init <folder> creates a fully wired workspace', () => {
     assert.ok(spec.includes('## Signatures'));
     assert.ok(spec.includes('## Desired behavior'));
     assert.ok(spec.includes('## Acceptance criteria'));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('awok init does not overwrite existing spec.md or plan.json', () => {
+  const tmp = mkdtempSync(join(tmpdir(), 'awok-init-no-overwrite-'));
+  const folderPath = join(tmp, 'myproject');
+  try {
+    // Pre-create spec.md and plan.json with real content
+    mkdirSync(join(folderPath, '.agent-learning'), { recursive: true });
+    writeFileSync(join(folderPath, 'spec.md'), '# My Real Spec\n\nCustom content\n', 'utf8');
+    writeFileSync(join(folderPath, 'plan.json'), JSON.stringify({ version: 'custom', stages: ['step1'] }, null, 2) + '\n', 'utf8');
+
+    const parsed = runLyoJson(['init', folderPath]);
+
+    assert.equal(parsed.ok, true);
+
+    // spec.md preserved
+    const spec = readFileSync(join(folderPath, 'spec.md'), 'utf8');
+    assert.equal(spec, '# My Real Spec\n\nCustom content\n');
+
+    // plan.json preserved
+    const plan = JSON.parse(readFileSync(join(folderPath, 'plan.json'), 'utf8'));
+    assert.equal(plan.version, 'custom');
+    assert.deepEqual(plan.stages, ['step1']);
+
+    // Other files still created
+    assert.equal(existsSync(join(folderPath, 'pipeline-config.json')), true);
+    assert.equal(existsSync(join(folderPath, '.agent-learning', 'learning.sqlite')), true);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

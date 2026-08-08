@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CommandArgs, CommandHandler } from './context.ts';
@@ -48,6 +48,7 @@ export function sessionHookAbsolutePath(): string {
 }
 
 function writeFileSafe(filePath: string, content: string): void {
+  if (existsSync(filePath)) return;
   mkdirSync(dirname(filePath), { recursive: true });
   writeFileSync(filePath, content, 'utf8');
 }
