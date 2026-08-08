@@ -6,6 +6,8 @@ export function usage(exitCode = 0): never {
   console.log(`Usage:
 	  lyo init [--db path]
 	  awok init <folder>
+	  awok wrap kimi
+	  awok unwrap kimi
 	  lyo codex-hook [--db path] [--db-from-event-cwd] [--channel name] [--prompt-dir path] [--prompt-dir-from-event-cwd] [--spool-dir path] [--spool-dir-from-event-cwd] [--workspace-id id] [--no-normalize-on-stop] [--no-normalize-on-tool-use]
 	  lyo claude-hook [--db path] [--db-from-event-cwd] [--prompt-dir path] [--prompt-dir-from-event-cwd] [--spool-dir path] [--spool-dir-from-event-cwd] [--workspace-id id] [--no-normalize-on-stop] [--no-normalize-on-tool-use]
 	  lyo gemini-hook [--db path] [--db-from-event-cwd] [--prompt-dir path] [--prompt-dir-from-event-cwd] [--spool-dir path] [--spool-dir-from-event-cwd] [--workspace-id id] [--no-normalize-on-stop] [--no-normalize-on-tool-use]

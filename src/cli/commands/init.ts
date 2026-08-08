@@ -38,12 +38,12 @@ const PIPELINE_CONFIG_TEMPLATE = {
   channel: 'claude',
 };
 
-function projectRoot(): string {
+export function projectRoot(): string {
   // init.ts is at <root>/src/cli/commands/init.ts — go up 4 levels to <root>/
   return dirname(dirname(dirname(dirname(fileURLToPath(import.meta.url)))));
 }
 
-function sessionHookAbsolutePath(): string {
+export function sessionHookAbsolutePath(): string {
   return join(projectRoot(), 'src', 'lyo', 'selection', 'session-hook.ts');
 }
 

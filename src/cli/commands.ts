@@ -15,11 +15,13 @@ import { RUN_COMMANDS } from './commands/runs.ts';
 import { TAPE_COMMANDS } from './commands/tape.ts';
 import { WORKSPACE_COMMANDS } from './commands/workspace.ts';
 import { WORKTREE_COMMANDS } from './commands/worktree.ts';
+import { WRAP_COMMANDS } from './commands/wrap.ts';
 import type { CommandHandler } from './commands/context.ts';
 import { usage } from './output.ts';
 
 const COMMAND_HANDLERS: Record<string, CommandHandler> = {
   ...INIT_COMMANDS,
+  ...WRAP_COMMANDS,
   ...HOOK_COMMANDS,
   ...HARNESS_COMMANDS,
   ...OBSERVATION_COMMANDS,
