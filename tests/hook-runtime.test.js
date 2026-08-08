@@ -376,7 +376,7 @@ test('Claude adapter records tool failures and normalizes failed commands', () =
       jobId: `claude-job-${createHash('sha256').update('claude-session-failure:claude-turn-failure').digest('hex').slice(0, 16)}`,
     });
     assert.equal(report.commandActivations.length, 1);
-    assert.equal(report.commandActivations[0].classification, 'unknown');
+    assert.equal(report.commandActivations[0].classification, 'test');
     assert.equal(report.commandActivations[0].status, 'failed');
   } finally {
     t.cleanup();

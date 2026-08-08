@@ -158,7 +158,7 @@ test('lyo normalize hooks turns Codex hook events into activation records', () =
 
     const report = runLyoJson(['activation', 'report', '--db', dbPath, '--job-id', normalized.jobs[0]]);
     assert.equal(report.ok, true);
-    assert.equal(report.commandActivations[0].classification, 'unknown');
+    assert.equal(report.commandActivations[0].classification, 'local_dev');
     assert.equal(report.pathActivations[0].path, 'src/index.ts');
   } finally {
     rmSync(dir, { recursive: true, force: true });

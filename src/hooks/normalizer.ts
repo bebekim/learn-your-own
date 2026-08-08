@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { summarizeCommand } from '../behavior/commands.ts';
+import { classifyCommand, familyForCommand } from '../behavior/command-classifier.ts';
 import type {
   ActivationConfidence,
   BehaviorPhase,
@@ -76,11 +77,11 @@ export function extractHookFacts(event: HookEventForNormalization): ExtractedHoo
       const status = inferHookCommandStatus(event.eventName, payload);
       commands.push({
         commandName,
-        commandFamily: commandName,
+        commandFamily: familyForCommand(commandName),
         workingDirectory: event.cwd,
         argv: commandText,
         argvSummary: summarizeCommand(commandText),
-        classification: 'unknown',
+        classification: classifyCommand(commandName, commandText),
         status,
         phase: 'unknown',
         outputSize: estimateToolOutputSize(payload),

@@ -108,7 +108,7 @@ test('hook normalizer passively records raw command, path, and zone activations'
     assert.equal(normalized.zoneCoactivations, 1);
 
     const report = getJobActivationReport(kernel, { jobId: normalized.jobs[0] });
-    assert.equal(report.commandActivations[0].classification, 'unknown');
+    assert.equal(report.commandActivations[0].classification, 'deploy');
     assert.equal(report.commandActivations[0].argvSummary.includes('secret-value'), false);
     assert.deepEqual(
       [...new Set(report.zoneActivations.map((activation) => activation.zoneId))].sort(),
@@ -146,7 +146,7 @@ test('hook fact extractor turns a stored hook row into raw behavioral facts with
   assert.equal(facts.evidenceRef, 'hook:hook-classifier');
   assert.equal(facts.commands.length, 1);
   assert.equal(facts.commands[0].commandName, 'releasectl');
-  assert.equal(facts.commands[0].classification, 'unknown');
+  assert.equal(facts.commands[0].classification, 'deploy');
   assert.equal(facts.commands[0].status, 'succeeded');
   assert.equal(facts.commands[0].phase, 'unknown');
   assert.equal(facts.commands[0].argvSummary.includes('secret-value'), false);
@@ -293,7 +293,7 @@ test('hook normalizer records shell output size and repeated commands without co
     const normalized = normalizeHooks(kernel);
     const report = getJobActivationReport(kernel, { jobId: normalized.jobs[0] });
     assert.equal(report.commandActivations.length, 1);
-    assert.equal(report.commandActivations[0].classification, 'unknown');
+    assert.equal(report.commandActivations[0].classification, 'test');
     assert.equal(report.commandActivations[0].status, 'succeeded');
     assert.equal(report.commandActivations[0].phase, 'unknown');
     assert.equal(report.commandActivations[0].outputSize, 8);

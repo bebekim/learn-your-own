@@ -259,7 +259,7 @@ test('lyo codex-hook can spool events before normalize hooks drains them', () =>
 
     const report = runLyoJson(['activation', 'report', '--db', dbPath, '--job-id', normalized.jobs[0]]);
     assert.equal(report.ok, true);
-    assert.equal(report.commandActivations[0].classification, 'unknown');
+    assert.equal(report.commandActivations[0].classification, 'local_dev');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
