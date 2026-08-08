@@ -1,0 +1,9 @@
+{
+  "version": "lyo.plan.v1",
+  "planId": "plan-initial",
+  "specRef": {
+    "path": "spec.md",
+    "sha256": ""
+  },
+  "stages": []
+}

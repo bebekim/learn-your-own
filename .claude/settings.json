@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/marcus.kim/repositories/individual/agent-learning-workflow/src/lyo/selection/session-hook.ts"
+          }
+        ]
+      }
+    ]
+  }
+}

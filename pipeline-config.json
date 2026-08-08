@@ -1,0 +1,6 @@
+{
+  "dbPath": ".agent-learning/learning.sqlite",
+  "lessonsDir": "lessons/",
+  "runsRoot": "runs/",
+  "channel": "claude"
+}
