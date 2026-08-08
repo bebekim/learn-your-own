@@ -15,6 +15,7 @@
   ],
   "bin": {
     "lyo": "./src/cli.ts",
+    "awok": "./src/cli.ts",
     "lyo-session-hook": "./src/lyo/selection/session-hook.ts",
     "wok": "./src/cli.ts"
   },
