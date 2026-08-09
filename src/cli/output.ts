@@ -44,6 +44,7 @@ export function usage(exitCode = 0): never {
 	  lyo associations derive [--db path] --job-id id [--outcome positive|negative|unknown]
 	  lyo associations recommend [--db path] --workspace-id id [--seed-zone-id id[,id]] [--include-nonpositive] [--limit n]
 	  lyo report [--db path] [--semantic [--lower] --run-id id] [--effects --run-id id] [--style --run-id id] [--at-bat --run-id id --task-context path]
+	  lyo prompt-kind-report [--db path]
 	  lyo audit [--dir path]
 	  lyo demo fixture-replay [--db path]
 	  lyo eval report --episodes path [--baseline B0] [--treatment B4] [--rule-id id] [--markdown]

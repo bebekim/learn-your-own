@@ -8,6 +8,7 @@ import { buildEffectReport } from '../../compiler/effect-report.ts';
 import { compileTelemetryRun, compileTelemetryRunAst } from '../../compiler/frontend.ts';
 import { planSemanticLowering } from '../../compiler/lowering.ts';
 import { buildWorkflowStyleReport } from '../../compiler/workflow-style.ts';
+import { buildPromptKindReport } from '../../measurement/prompt-kind.ts';
 import {
   getObserverSummary,
   recordPromptBoundary,
@@ -25,9 +26,16 @@ import { withKernel } from './context.ts';
 export const OBSERVATION_COMMANDS: Record<string, CommandHandler> = {
   'session-start': sessionStartCommand,
   'record-prompt': recordPromptCommand,
+  'prompt-kind-report': promptKindReportCommand,
   report: reportCommand,
   audit: auditCommand,
 };
+
+function promptKindReportCommand(args: CommandArgs): unknown {
+  return withKernel(args, (kernel) => (
+    observationReportResponse('promptKind', buildPromptKindReport(kernel))
+  ));
+}
 
 function sessionStartCommand(args: CommandArgs): unknown {
   return withKernel(args, (kernel) => ({

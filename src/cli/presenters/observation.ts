@@ -1,4 +1,4 @@
-export type ObservationReportKind = 'atBat' | 'style' | 'semantic' | 'experiment';
+export type ObservationReportKind = 'atBat' | 'style' | 'semantic' | 'experiment' | 'promptKind';
 
 export function observationSummaryResponse<T extends object>(summary: T): { ok: true } & T {
   return {
