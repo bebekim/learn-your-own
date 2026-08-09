@@ -40,10 +40,12 @@ export {
   recordSessionStarted,
 } from './reducers/observation.ts';
 export {
+  backfillPromptKindEvidence,
   getPromptKindBeliefs,
   recordPromptKindEvidence,
   recomputePromptKind,
 } from './reducers/prompt-kind-evidence.ts';
+export type { PromptKindBackfillResult } from './reducers/prompt-kind-evidence.ts';
 export {
   resolveTurnUserPrompts,
 } from './reducers/turn-context.ts';

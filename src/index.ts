@@ -51,6 +51,7 @@ export {
   getPromptKindBeliefs,
   recordPromptKindEvidence,
   recomputePromptKind,
+  backfillPromptKindEvidence,
   ensureExerciseAttempt,
   runFixtureReplayDemo,
 } from './reducers.ts';

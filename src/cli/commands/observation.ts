@@ -10,6 +10,7 @@ import { planSemanticLowering } from '../../compiler/lowering.ts';
 import { buildWorkflowStyleReport } from '../../compiler/workflow-style.ts';
 import { buildPromptKindReport } from '../../measurement/prompt-kind.ts';
 import {
+  backfillPromptKindEvidence,
   getObserverSummary,
   recordPromptBoundary,
   recordSessionStarted,
@@ -27,6 +28,7 @@ export const OBSERVATION_COMMANDS: Record<string, CommandHandler> = {
   'session-start': sessionStartCommand,
   'record-prompt': recordPromptCommand,
   'prompt-kind-report': promptKindReportCommand,
+  'backfill-prompt-kind': backfillPromptKindCommand,
   report: reportCommand,
   audit: auditCommand,
 };
@@ -34,6 +36,12 @@ export const OBSERVATION_COMMANDS: Record<string, CommandHandler> = {
 function promptKindReportCommand(args: CommandArgs): unknown {
   return withKernel(args, (kernel) => (
     observationReportResponse('promptKind', buildPromptKindReport(kernel))
+  ));
+}
+
+function backfillPromptKindCommand(args: CommandArgs): unknown {
+  return withKernel(args, (kernel) => (
+    observationReportResponse('promptKindBackfill', backfillPromptKindEvidence(kernel))
   ));
 }
 
