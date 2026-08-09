@@ -39,4 +39,7 @@ export {
   recordPromptBoundary,
   recordSessionStarted,
 } from './reducers/observation.ts';
+export {
+  resolveTurnUserPrompts,
+} from './reducers/turn-context.ts';
 export { runFixtureReplayDemo } from './reducers/demo.ts';

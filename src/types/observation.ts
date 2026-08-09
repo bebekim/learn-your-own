@@ -76,12 +76,20 @@ export interface RecordPromptBoundaryInput {
   model?: string | null;
 }
 
+export interface TurnUserPrompt {
+  promptId: string;
+  promptIndex: number;
+  promptKind: PromptKind;
+  promptSummary: string | null;
+}
+
 export interface PromptBoundaryRecord {
   promptId: string;
   sessionId: string;
   promptIndex: number;
   promptRole: string;
   promptKind: PromptKind;
+  turnUserPrompts?: TurnUserPrompt[];
 }
 
 export interface ObserverSummary {

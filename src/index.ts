@@ -47,6 +47,7 @@ export {
   recordSessionStarted,
   recordTrace,
   resolveProtocol,
+  resolveTurnUserPrompts,
   ensureExerciseAttempt,
   runFixtureReplayDemo,
 } from './reducers.ts';

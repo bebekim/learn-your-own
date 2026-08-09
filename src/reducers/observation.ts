@@ -15,6 +15,7 @@ import {
   getPreferenceSummary,
 } from './core.ts';
 import { getCredit } from './protocols.ts';
+import { resolveTurnUserPrompts } from './turn-context.ts';
 import {
   countRows,
   ISO_NOW,
@@ -82,12 +83,16 @@ export function recordPromptBoundary(kernel: LearningKernel, input: RecordPrompt
     input.model ?? null,
     ISO_NOW()
   );
+  const turnUserPrompts = input.role === 'assistant' && input.turnId
+    ? resolveTurnUserPrompts(kernel, input.turnId)
+    : undefined;
   return {
     promptId,
     sessionId: input.sessionId,
     promptIndex,
     promptRole: input.role,
     promptKind: kind,
+    turnUserPrompts,
   };
 }
 
