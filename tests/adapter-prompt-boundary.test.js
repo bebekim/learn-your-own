@@ -17,7 +17,7 @@ describe('adapter prompt boundary construction', () => {
 
       assert.ok(obs.promptBoundary);
       assert.equal(obs.promptBoundary.role, 'user');
-      assert.equal(obs.promptBoundary.kind, 'user_prompt');
+      assert.equal(obs.promptBoundary.kind, 'debugging_request');
       assert.equal(obs.promptBoundary.sessionId, 's1');
       assert.equal(obs.promptBoundary.turnId, 't1');
       assert.equal(obs.promptBoundary.promptText, 'fix the broken tests');
@@ -77,6 +77,7 @@ describe('adapter prompt boundary construction', () => {
 
       assert.ok(obs.promptBoundary);
       assert.equal(obs.promptBoundary.promptText, undefined);
+      assert.equal(obs.promptBoundary.kind, 'follow_up');
       assert.ok(obs.promptBoundary.promptHash);
       assert.ok(obs.promptBoundary.promptLength);
       assert.ok(obs.promptBoundary.summary);
@@ -96,7 +97,7 @@ describe('adapter prompt boundary construction', () => {
 
       assert.ok(obs.promptBoundary);
       assert.equal(obs.promptBoundary.role, 'user');
-      assert.equal(obs.promptBoundary.kind, 'user_prompt');
+      assert.equal(obs.promptBoundary.kind, 'refactoring_request');
       assert.equal(obs.promptBoundary.sessionId, 's1');
       assert.equal(obs.promptBoundary.turnId, 't1');
       assert.equal(obs.promptBoundary.promptText, 'refactor the auth module');
@@ -153,6 +154,7 @@ describe('adapter prompt boundary construction', () => {
 
       assert.ok(obs.promptBoundary);
       assert.equal(obs.promptBoundary.promptText, undefined);
+      assert.equal(obs.promptBoundary.kind, 'follow_up');
       assert.ok(obs.promptBoundary.promptHash);
     });
   });

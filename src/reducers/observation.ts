@@ -55,6 +55,7 @@ export function recordPromptBoundary(kernel: LearningKernel, input: RecordPrompt
   ensureSession(kernel, input.sessionId);
   const promptIndex = nextPromptIndex(kernel, input.sessionId);
   const promptId = `${input.sessionId}:prompt:${promptIndex}`;
+  const kind = promptIndex === 0 && input.role === 'user' ? 'direction_setting' : input.kind;
   const promptSha = input.promptText === undefined ? input.promptHash ?? null : sha256(input.promptText);
   const promptLengthValue = input.promptText === undefined ? input.promptLength : input.promptText.length;
   const promptLength = typeof promptLengthValue === 'number' ? ` length=${promptLengthValue}` : '';
@@ -73,7 +74,7 @@ export function recordPromptBoundary(kernel: LearningKernel, input: RecordPrompt
     input.turnId ?? null,
     promptIndex,
     input.role,
-    input.kind,
+    kind,
     promptSha,
     input.promptRef ?? null,
     `${promptSummary}${promptLength}`.trim(),
@@ -86,7 +87,7 @@ export function recordPromptBoundary(kernel: LearningKernel, input: RecordPrompt
     sessionId: input.sessionId,
     promptIndex,
     promptRole: input.role,
-    promptKind: input.kind,
+    promptKind: kind,
   };
 }
 
