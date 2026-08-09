@@ -13,6 +13,7 @@ import {
   backfillPromptKindEvidence,
   getObserverSummary,
   recordPromptBoundary,
+  recordSessionEnded,
   recordSessionStarted,
 } from '../../reducers.ts';
 import {
@@ -26,12 +27,22 @@ import { withKernel } from './context.ts';
 
 export const OBSERVATION_COMMANDS: Record<string, CommandHandler> = {
   'session-start': sessionStartCommand,
+  'session-end': sessionEndCommand,
   'record-prompt': recordPromptCommand,
   'prompt-kind-report': promptKindReportCommand,
   'backfill-prompt-kind': backfillPromptKindCommand,
   report: reportCommand,
   audit: auditCommand,
 };
+
+function sessionEndCommand(args: CommandArgs): unknown {
+  return withKernel(args, (kernel) => ({
+    ok: true,
+    session: recordSessionEnded(kernel, {
+      sessionId: args.requiredFlag('--session-id'),
+    }),
+  }));
+}
 
 function promptKindReportCommand(args: CommandArgs): unknown {
   return withKernel(args, (kernel) => (

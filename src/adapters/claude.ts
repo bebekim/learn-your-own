@@ -16,6 +16,7 @@ import type {
 import type {
   HookEventInput,
   RecordPromptBoundaryInput,
+  RecordSessionEndedInput,
   RecordSessionStartedInput,
 } from '../types/observation.ts';
 
@@ -72,10 +73,13 @@ export function claudeHookObservation(
   hookEvent.eventId = createHookEventId(hookEvent);
 
   let session: RecordSessionStartedInput | null = null;
+  let sessionEnd: RecordSessionEndedInput | null = null;
   let promptBoundary: RecordPromptBoundaryInput | null = null;
 
   if (runtimeEventName === 'SessionStart') {
     session = buildSession({ sessionId, repoPath: cwd, platform: 'claude', model: event.model ?? null });
+  } else if (runtimeEventName === 'SessionEnd') {
+    sessionEnd = { sessionId };
   } else if (runtimeEventName === 'UserPromptSubmit' && typeof event.prompt === 'string' && event.prompt) {
     session = buildSession({ sessionId, repoPath: cwd, platform: 'claude', model: event.model ?? null });
     promptBoundary = buildUserPromptBoundary({
@@ -106,6 +110,7 @@ export function claudeHookObservation(
     cwd,
     hookEvent,
     session,
+    sessionEnd,
     promptBoundary,
   };
 }

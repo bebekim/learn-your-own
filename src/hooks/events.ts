@@ -1,6 +1,7 @@
 import type {
   HookEventInput,
   RecordPromptBoundaryInput,
+  RecordSessionEndedInput,
   RecordSessionStartedInput,
 } from '../types/observation.ts';
 
@@ -44,6 +45,7 @@ export interface HookObservation {
   cwd: string;
   hookEvent: HookEventInput;
   session: RecordSessionStartedInput | null;
+  sessionEnd: RecordSessionEndedInput | null;
   promptBoundary: RecordPromptBoundaryInput | null;
 }
 
@@ -54,5 +56,6 @@ export interface HookSpoolPacket {
   recordedAt: string;
   hookEvent: HookEventInput;
   session: RecordSessionStartedInput | null;
+  sessionEnd?: RecordSessionEndedInput | null;
   promptBoundary: RecordPromptBoundaryInput | null;
 }

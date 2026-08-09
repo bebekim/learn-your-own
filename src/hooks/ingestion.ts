@@ -63,6 +63,7 @@ export function spoolHookObservation(observation: HookObservation, options: Hook
     recordedAt: ISO_NOW(),
     hookEvent: observation.hookEvent,
     session: observation.session,
+    sessionEnd: observation.sessionEnd ?? null,
     promptBoundary: observation.promptBoundary,
   };
   const written = writeJsonSpoolPacket({

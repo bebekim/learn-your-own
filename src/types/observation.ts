@@ -50,6 +50,15 @@ export interface SessionRecord {
   model: string | null;
 }
 
+export interface RecordSessionEndedInput {
+  sessionId: string;
+  endedAt?: string;
+}
+
+export interface SessionEndRecord extends SessionRecord {
+  endedAt: string | null;
+}
+
 export type PromptKind =
   | 'direction_setting'
   | 'debugging_request'

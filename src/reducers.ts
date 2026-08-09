@@ -37,6 +37,7 @@ export {
 export {
   getObserverSummary,
   recordPromptBoundary,
+  recordSessionEnded,
   recordSessionStarted,
 } from './reducers/observation.ts';
 export {

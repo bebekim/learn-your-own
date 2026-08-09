@@ -116,6 +116,7 @@ export function codexHookObservation(
     cwd,
     hookEvent,
     session,
+    sessionEnd: null,
     promptBoundary,
   };
 }

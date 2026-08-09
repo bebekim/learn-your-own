@@ -14,6 +14,7 @@ export function usage(exitCode = 0): never {
 	  lyo agy-hook event-name [--db path] [--db-from-event-cwd] [--prompt-dir path] [--prompt-dir-from-event-cwd] [--spool-dir path] [--spool-dir-from-event-cwd] [--workspace-id id] [--no-normalize-on-stop] [--no-normalize-on-tool-use]
 	  lyo dcode-hook [--db path] [--db-from-event-cwd] [--prompt-dir path] [--prompt-dir-from-event-cwd] [--spool-dir path] [--spool-dir-from-event-cwd] [--workspace-id id] [--no-normalize-on-stop] [--no-normalize-on-tool-use]
 	  lyo session-start [--db path] --session-id id [--repo-path path] [--platform name] [--model name]
+	  lyo session-end [--db path] --session-id id
 	  lyo record-prompt [--db path] --session-id id --role role [--kind kind] [--prompt-file path] [--summary text] [--response text] [--model name]
 	  lyo model-call record [--db path] --provider name --model name --model-lane lane [--call-id id] [--session-id id] [--run-id id] [--prompt-file path] [--prompt-ref path] [--summary text] [--input-tokens n] [--output-tokens n] [--total-tokens n] [--estimated-cost n] [--latency-ms n] [--status started|completed|failed]
 	  lyo run-start [--db path] --run-id id --task-shape shape --channel channel [--status status] [--token-cost n]

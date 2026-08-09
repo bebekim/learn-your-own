@@ -44,6 +44,7 @@ export {
   recordRun,
   recordRunGoal,
   recordRunTapeCell,
+  recordSessionEnded,
   recordSessionStarted,
   recordTrace,
   resolveProtocol,

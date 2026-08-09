@@ -23,6 +23,7 @@ import type {
 import type { LearningKernel } from '../ledger.ts';
 import {
   recordPromptBoundary,
+  recordSessionEnded,
   recordSessionStarted,
   resolveProtocol,
 } from '../reducers.ts';
@@ -34,6 +35,7 @@ import type {
   HookSpoolOptions,
   HookSpoolRecord,
   RecordPromptBoundaryInput,
+  RecordSessionEndedInput,
   RecordSessionStartedInput,
 } from '../types/observation.ts';
 import type { HookObservation, HookSpoolPacket } from './events.ts';
@@ -48,6 +50,7 @@ import { normalizeHooks } from './normalization-runner.ts';
 interface PersistableHookObservation {
   hookEvent: HookEventInput;
   session: RecordSessionStartedInput | null;
+  sessionEnd?: RecordSessionEndedInput | null;
   promptBoundary: RecordPromptBoundaryInput | null;
 }
 
@@ -171,6 +174,9 @@ function persistHookObservation(
   recordHookEvent(kernel, observation.hookEvent);
   if (observation.session) {
     recordSessionStarted(kernel, observation.session);
+  }
+  if (observation.sessionEnd) {
+    recordSessionEnded(kernel, observation.sessionEnd);
   }
   if (observation.promptBoundary) {
     recordPromptBoundary(kernel, observation.promptBoundary);

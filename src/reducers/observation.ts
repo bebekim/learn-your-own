@@ -11,7 +11,9 @@ import type {
   ObserverSummary,
   PromptBoundaryRecord,
   RecordPromptBoundaryInput,
+  RecordSessionEndedInput,
   RecordSessionStartedInput,
+  SessionEndRecord,
   SessionRecord,
 } from '../types/observation.ts';
 import {
@@ -57,6 +59,34 @@ export function recordSessionStarted(kernel: LearningKernel, input: RecordSessio
     ISO_NOW()
   );
   return requiredRow<SessionRecord>(getSession(kernel, input.sessionId), `session was not recorded: ${input.sessionId}`);
+}
+
+export function recordSessionEnded(kernel: LearningKernel, input: RecordSessionEndedInput): SessionEndRecord {
+  requireFields(input, ['sessionId']);
+  ensureSession(kernel, input.sessionId);
+  const endedAt = input.endedAt ?? ISO_NOW();
+  kernel.db.prepare(`
+    update agent_sessions
+    set ended_at = coalesce(ended_at, ?), updated_at = ?
+    where session_id = ?
+  `).run(endedAt, ISO_NOW(), input.sessionId);
+  const session = requiredRow<SessionRecord & { ended_at: string | null }>(
+    kernel.db.prepare(`
+      select
+        session_id as sessionId,
+        workspace_scope as workspaceScope,
+        repo_path as repoPath,
+        branch,
+        platform,
+        model,
+        ended_at
+      from agent_sessions
+      where session_id = ?
+    `).get(input.sessionId),
+    `session was not recorded: ${input.sessionId}`
+  );
+  const { ended_at, ...rest } = session;
+  return { ...rest, endedAt: ended_at };
 }
 
 export function recordPromptBoundary(kernel: LearningKernel, input: RecordPromptBoundaryInput): PromptBoundaryRecord {
