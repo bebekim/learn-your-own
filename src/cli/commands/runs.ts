@@ -23,6 +23,7 @@ function recordModelCallCommand(args: CommandArgs): unknown {
       callId: args.flagValue('--call-id'),
       sessionId: args.flagValue('--session-id') ?? null,
       runId: args.flagValue('--run-id') ?? null,
+      turnId: args.flagValue('--turn-id') ?? null,
       provider: args.requiredFlag('--provider'),
       model: args.requiredFlag('--model'),
       modelLane: args.requiredFlag('--model-lane'),

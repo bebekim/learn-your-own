@@ -191,6 +191,7 @@ export interface RecordModelCallInput {
   callId?: string;
   sessionId?: string | null;
   runId?: string | null;
+  turnId?: string | null;
   provider: string;
   model: string;
   modelLane: string;
@@ -211,6 +212,7 @@ export interface ModelCallRecord {
   callId: string;
   sessionId: string | null;
   runId: string | null;
+  turnId: string | null;
   provider: string;
   model: string;
   modelLane: string;

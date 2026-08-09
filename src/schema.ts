@@ -410,6 +410,7 @@ export function initLedger(kernel: LearningKernel): LearningKernel {
   ensureColumn(kernel, 'command_activations', 'phase', "text not null default 'unknown'");
   ensureColumn(kernel, 'command_activations', 'output_size', 'integer not null default 0');
   ensureColumn(kernel, 'command_activations', 'occurrence_count', 'integer not null default 1');
+  ensureColumn(kernel, 'model_calls', 'turn_id', 'text');
   return kernel;
 }
 

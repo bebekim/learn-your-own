@@ -16,7 +16,7 @@ export function usage(exitCode = 0): never {
 	  lyo session-start [--db path] --session-id id [--repo-path path] [--platform name] [--model name]
 	  lyo session-end [--db path] --session-id id
 	  lyo record-prompt [--db path] --session-id id --role role [--kind kind] [--prompt-file path] [--summary text] [--response text] [--model name]
-	  lyo model-call record [--db path] --provider name --model name --model-lane lane [--call-id id] [--session-id id] [--run-id id] [--prompt-file path] [--prompt-ref path] [--summary text] [--input-tokens n] [--output-tokens n] [--total-tokens n] [--estimated-cost n] [--latency-ms n] [--status started|completed|failed]
+	  lyo model-call record [--db path] --provider name --model name --model-lane lane [--call-id id] [--session-id id] [--run-id id] [--turn-id id] [--prompt-file path] [--prompt-ref path] [--summary text] [--input-tokens n] [--output-tokens n] [--total-tokens n] [--estimated-cost n] [--latency-ms n] [--status started|completed|failed]
 	  lyo run-start [--db path] --run-id id --task-shape shape --channel channel [--status status] [--token-cost n]
 	  lyo run-finish [--db path] --run-id id [--status status] [--token-cost n]
 	  lyo context goal [--db path] --run-id id --goal text [--success-criteria text] [--stop-condition text] [--expected-process text] [--risk-class class]

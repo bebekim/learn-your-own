@@ -174,15 +174,16 @@ export function recordModelCall(kernel: LearningKernel, input: RecordModelCallIn
 
   kernel.db.prepare(`
     insert into model_calls (
-      call_id, session_id, run_id, provider, model, model_lane, prompt_ref,
+      call_id, session_id, run_id, turn_id, provider, model, model_lane, prompt_ref,
       prompt_sha256, prompt_summary, input_tokens, output_tokens, total_tokens,
       estimated_cost, latency_ms, status, error_summary, created_at, updated_at
     )
-    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     callId,
     input.sessionId ?? null,
     input.runId ?? null,
+    input.turnId ?? null,
     input.provider,
     input.model,
     input.modelLane,
@@ -320,6 +321,7 @@ export function getModelCall(kernel: LearningKernel, callId: string): ModelCallR
       call_id as callId,
       session_id as sessionId,
       run_id as runId,
+      turn_id as turnId,
       provider,
       model,
       model_lane as modelLane,

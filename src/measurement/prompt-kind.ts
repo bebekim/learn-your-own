@@ -49,6 +49,12 @@ export interface PromptKindReport {
     retryRateFlipped: number | null;
     retryRateUnflipped: number | null;
   };
+  cost: {
+    total: number;
+    byTurn: Record<string, number>;
+    unattributed: number;
+    sessions: Record<string, number>;
+  };
 }
 
 export function buildPromptKindReport(kernel: LearningKernel): PromptKindReport {
@@ -196,6 +202,27 @@ export function buildPromptKindReport(kernel: LearningKernel): PromptKindReport 
   behavior.retryRateFlipped = flippedWithNext === 0 ? null : flippedRetried / flippedWithNext;
   behavior.retryRateUnflipped = unflippedWithNext === 0 ? null : unflippedRetried / unflippedWithNext;
 
+  const cost: PromptKindReport['cost'] = { total: 0, byTurn: {}, unattributed: 0, sessions: {} };
+  const costRows = kernel.db.prepare(`
+    select turn_id, session_id, coalesce(estimated_cost, 0) as cost
+    from model_calls
+  `).all() as unknown as { turn_id: string | null; session_id: string | null; cost: number }[];
+  for (const row of costRows) {
+    cost.total += row.cost;
+    if (row.turn_id) {
+      cost.byTurn[row.turn_id] = (cost.byTurn[row.turn_id] ?? 0) + row.cost;
+    } else {
+      cost.unattributed += row.cost;
+    }
+    if (row.session_id) {
+      cost.sessions[row.session_id] = (cost.sessions[row.session_id] ?? 0) + row.cost;
+    }
+  }
+  cost.total = roundCost(cost.total);
+  cost.unattributed = roundCost(cost.unattributed);
+  for (const key of Object.keys(cost.byTurn)) cost.byTurn[key] = roundCost(cost.byTurn[key]);
+  for (const key of Object.keys(cost.sessions)) cost.sessions[key] = roundCost(cost.sessions[key]);
+
   return {
     coverage: {
       userPrompts: prompts.length,
@@ -207,7 +234,12 @@ export function buildPromptKindReport(kernel: LearningKernel): PromptKindReport 
     methodConcordance,
     margins,
     behavior,
+    cost,
   };
+}
+
+function roundCost(value: number): number {
+  return Math.round(value * 1e6) / 1e6;
 }
 
 function summaryTokens(summary: string | null): Set<string> {
