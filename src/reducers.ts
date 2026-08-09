@@ -40,6 +40,11 @@ export {
   recordSessionStarted,
 } from './reducers/observation.ts';
 export {
+  getPromptKindBeliefs,
+  recordPromptKindEvidence,
+  recomputePromptKind,
+} from './reducers/prompt-kind-evidence.ts';
+export {
   resolveTurnUserPrompts,
 } from './reducers/turn-context.ts';
 export { runFixtureReplayDemo } from './reducers/demo.ts';

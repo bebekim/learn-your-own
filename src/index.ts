@@ -48,6 +48,9 @@ export {
   recordTrace,
   resolveProtocol,
   resolveTurnUserPrompts,
+  getPromptKindBeliefs,
+  recordPromptKindEvidence,
+  recomputePromptKind,
   ensureExerciseAttempt,
   runFixtureReplayDemo,
 } from './reducers.ts';

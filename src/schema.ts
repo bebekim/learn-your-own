@@ -138,6 +138,16 @@ export function initLedger(kernel: LearningKernel): LearningKernel {
       recorded_at text not null
     );
 
+    create table if not exists prompt_kind_evidence (
+      evidence_id text primary key,
+      prompt_id text not null references session_prompts(prompt_id),
+      kind text not null,
+      log_lr real not null,
+      method text not null,
+      evidence_ref text,
+      created_at text not null
+    );
+
     create table if not exists model_calls (
       call_id text primary key,
       session_id text,

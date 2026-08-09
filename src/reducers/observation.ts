@@ -1,5 +1,9 @@
 import type { LearningKernel } from '../ledger.ts';
 import {
+  classifyResponseContext,
+  PROMPT_KIND_LOG_LR,
+} from '../classification/prompt-kind.ts';
+import {
   optionalRow,
   requiredRow,
 } from '../db/rows.ts';
@@ -15,6 +19,10 @@ import {
   getPreferenceSummary,
 } from './core.ts';
 import { getCredit } from './protocols.ts';
+import {
+  recordPromptKindEvidence,
+  recomputePromptKind,
+} from './prompt-kind-evidence.ts';
 import { resolveTurnUserPrompts } from './turn-context.ts';
 import {
   countRows,
@@ -56,7 +64,6 @@ export function recordPromptBoundary(kernel: LearningKernel, input: RecordPrompt
   ensureSession(kernel, input.sessionId);
   const promptIndex = nextPromptIndex(kernel, input.sessionId);
   const promptId = `${input.sessionId}:prompt:${promptIndex}`;
-  const kind = promptIndex === 0 && input.role === 'user' ? 'direction_setting' : input.kind;
   const promptSha = input.promptText === undefined ? input.promptHash ?? null : sha256(input.promptText);
   const promptLengthValue = input.promptText === undefined ? input.promptLength : input.promptText.length;
   const promptLength = typeof promptLengthValue === 'number' ? ` length=${promptLengthValue}` : '';
@@ -75,7 +82,7 @@ export function recordPromptBoundary(kernel: LearningKernel, input: RecordPrompt
     input.turnId ?? null,
     promptIndex,
     input.role,
-    kind,
+    input.kind,
     promptSha,
     input.promptRef ?? null,
     `${promptSummary}${promptLength}`.trim(),
@@ -83,9 +90,47 @@ export function recordPromptBoundary(kernel: LearningKernel, input: RecordPrompt
     input.model ?? null,
     ISO_NOW()
   );
+
+  let kind = input.kind;
+  if (input.role === 'user') {
+    if (promptIndex === 0) {
+      recordPromptKindEvidence(kernel, {
+        promptId,
+        kind: 'direction_setting',
+        logLr: PROMPT_KIND_LOG_LR.positional,
+        method: 'positional',
+        evidenceRef: input.turnId,
+      });
+    }
+    recordPromptKindEvidence(kernel, {
+      promptId,
+      kind: input.kind,
+      logLr: PROMPT_KIND_LOG_LR.heuristic,
+      method: 'heuristic',
+      evidenceRef: input.turnId,
+    });
+    kind = recomputePromptKind(kernel, promptId).currentKind;
+  }
+
   const turnUserPrompts = input.role === 'assistant' && input.turnId
     ? resolveTurnUserPrompts(kernel, input.turnId)
     : undefined;
+  const contextualKind = input.role === 'assistant' && input.responseSummary
+    ? classifyResponseContext(input.responseSummary)
+    : null;
+  if (contextualKind && turnUserPrompts) {
+    for (const turnPrompt of turnUserPrompts) {
+      recordPromptKindEvidence(kernel, {
+        promptId: turnPrompt.promptId,
+        kind: contextualKind,
+        logLr: PROMPT_KIND_LOG_LR.contextual,
+        method: 'contextual',
+        evidenceRef: input.turnId,
+      });
+      recomputePromptKind(kernel, turnPrompt.promptId);
+    }
+  }
+
   return {
     promptId,
     sessionId: input.sessionId,

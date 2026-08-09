@@ -83,6 +83,41 @@ export interface TurnUserPrompt {
   promptSummary: string | null;
 }
 
+export type PromptKindEvidenceMethod =
+  | 'positional'
+  | 'heuristic'
+  | 'contextual'
+  | 'correction_signal'
+  | 'outcome';
+
+export interface RecordPromptKindEvidenceInput {
+  promptId: string;
+  kind: PromptKind;
+  logLr: number;
+  method: PromptKindEvidenceMethod;
+  evidenceRef?: string | null;
+}
+
+export interface PromptKindEvidenceRecord {
+  evidenceId: string;
+  promptId: string;
+  kind: PromptKind;
+  logLr: number;
+  method: PromptKindEvidenceMethod;
+}
+
+export interface PromptKindBelief {
+  kind: PromptKind;
+  logOdds: number;
+}
+
+export interface PromptKindRecomputeResult {
+  promptId: string;
+  previousKind: PromptKind;
+  currentKind: PromptKind;
+  changed: boolean;
+}
+
 export interface PromptBoundaryRecord {
   promptId: string;
   sessionId: string;
