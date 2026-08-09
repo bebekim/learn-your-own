@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.4.0
+
+This minor release adds the workspace scaffolding and wrap commands, new
+hook adapters, the offline eval layer, the blind pipeline with an
+evidence-gated learning loop, and the prompt-kind telemetry and episode
+compression work.
+
+### What changed
+
+- Workspace scaffolding: `awok init` for full workspace setup, plus
+  `awok wrap kimi` / `awok unwrap kimi`.
+- New hook adapters: `gemini-hook` (Gemini CLI), `agy-hook`
+  (Antigravity CLI), and `dcode-hook` (Deep Agents Code).
+- Offline eval layer: task fixtures and validator, lesson replay eval,
+  learned verifier rule store, baseline runner, eval report and gate.
+- Blind pipeline: sandboxed stage executors, artifact contracts (zod),
+  block-format rules as a versioned, evidence-carrying artifact,
+  sequential likelihood-ratio evidence gating, `falsifiable_by`
+  requirement, confidence-gated merge decisions, and judge calibration.
+- Lesson vehicles (prose, skeleton-patch, spec-constraint) and
+  outcome-aware lesson selection with demotion.
+- Behavior signals: deterministic command classification with family
+  grouping, behavior-phase inference, zone-association outcome tracking,
+  and deployment-action extraction.
+- Prompt-kind layer: heuristic prompt classification, log-LR belief
+  accumulation, measurement report, and evidence backfill.
+- Telemetry and cost: token usage and cost in trace stage records,
+  `turn_id` on model calls with cost attribution, prompt episode
+  compression with cost-waste metrics, and the work-arc continuation
+  rule.
+- Fixed the `ended_at` loop: session end is now recorded from
+  SessionEnd hooks.
+- Reorganized `src/lyo/` into subdirectories.
+
 ## 0.3.0
 
 This minor release ports the LYO learning layer from the zeroshot fork into
