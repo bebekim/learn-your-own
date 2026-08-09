@@ -159,3 +159,56 @@ describe('episode report section', () => {
     }
   });
 });
+
+describe('work-arc continuation (rule B)', () => {
+  function assistantResponse(kernel, input) {
+    return recordPromptBoundary(kernel, {
+      sessionId: 's1', role: 'assistant', kind: 'assistant_response', ...input,
+    });
+  }
+
+  it('continues the episode for a short prompt after a completed turn', () => {
+    const { kernel, cleanup } = setup();
+    try {
+      userPrompt(kernel, { turnId: 't1', kind: 'follow_up', promptText: 'refactor the auth module into smaller pieces' });
+      assistantResponse(kernel, { turnId: 't1', responseSummary: 'Split into three modules.' });
+      userPrompt(kernel, { turnId: 't2', kind: 'follow_up', promptText: 'proceed' });
+      assistantResponse(kernel, { turnId: 't2', responseSummary: 'Done with the split.' });
+      userPrompt(kernel, { turnId: 't3', kind: 'follow_up', promptText: 'what remains' });
+
+      const episodes = buildPromptEpisodes(kernel);
+      assert.equal(episodes.length, 1);
+      assert.equal(episodes[0].promptIds.length, 3);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('does not continue for a short prompt with no completed turn between', () => {
+    const { kernel, cleanup } = setup();
+    try {
+      userPrompt(kernel, { turnId: 't1', kind: 'follow_up', promptText: 'refactor the auth module into smaller pieces' });
+      userPrompt(kernel, { turnId: 't1', kind: 'follow_up', promptText: 'proceed' });
+
+      const episodes = buildPromptEpisodes(kernel);
+      // multi-message turn: no assistant response between → not a continuation
+      assert.equal(episodes.length, 2);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('does not continue for a longer prompt even after a completed turn', () => {
+    const { kernel, cleanup } = setup();
+    try {
+      userPrompt(kernel, { turnId: 't1', kind: 'follow_up', promptText: 'refactor the auth module into smaller pieces' });
+      assistantResponse(kernel, { turnId: 't1', responseSummary: 'Split into three modules.' });
+      userPrompt(kernel, { turnId: 't2', kind: 'follow_up', promptText: 'now design the caching layer for the api gateway' });
+
+      const episodes = buildPromptEpisodes(kernel);
+      assert.equal(episodes.length, 2);
+    } finally {
+      cleanup();
+    }
+  });
+});
