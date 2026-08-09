@@ -50,12 +50,23 @@ export interface SessionRecord {
   model: string | null;
 }
 
+export type PromptKind =
+  | 'direction_setting'
+  | 'debugging_request'
+  | 'question'
+  | 'correction'
+  | 'refactoring_request'
+  | 'task_instruction'
+  | 'follow_up'
+  | 'user_prompt'
+  | 'assistant_response';
+
 export interface RecordPromptBoundaryInput {
   sessionId: string;
   runId?: string | null;
   turnId?: string | null;
   role: string;
-  kind: string;
+  kind: PromptKind;
   promptText?: string;
   promptHash?: string | null;
   promptLength?: number | null;
@@ -70,7 +81,7 @@ export interface PromptBoundaryRecord {
   sessionId: string;
   promptIndex: number;
   promptRole: string;
-  promptKind: string;
+  promptKind: PromptKind;
 }
 
 export interface ObserverSummary {

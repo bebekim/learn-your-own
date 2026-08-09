@@ -53,7 +53,7 @@ function recordPromptCommand(args: CommandArgs): unknown {
       runId: args.flagValue('--run-id') ?? null,
       turnId: args.flagValue('--turn-id') ?? null,
       role: args.requiredFlag('--role'),
-      kind: args.flagValue('--kind') ?? 'user_prompt',
+      kind: (args.flagValue('--kind') ?? 'user_prompt') as import('../../types/observation.ts').PromptKind,
       promptText,
       promptRef: promptFile,
       summary: args.flagValue('--summary'),

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { classifyPromptKind } from '../src/adapters/shared.ts';
+import { classifyPromptKind } from '../src/classification/prompt-kind.ts';
 import { createKernel, initLedger, recordPromptBoundary } from '../src/index.ts';
 
 describe('classifyPromptKind', () => {

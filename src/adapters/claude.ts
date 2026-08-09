@@ -9,6 +9,7 @@ import {
   buildSession,
   buildUserPromptBoundary,
 } from './shared.ts';
+import { classifyPromptKind } from '../classification/prompt-kind.ts';
 import type {
   AssociationOutcome,
 } from '../types/activation.ts';
@@ -80,6 +81,7 @@ export function claudeHookObservation(
     promptBoundary = buildUserPromptBoundary({
       sessionId,
       turnId,
+      kind: classifyPromptKind(event.prompt),
       promptText: event.prompt,
       model: event.model ?? null,
       includeRawPrompt: options.includeRawPrompt,
