@@ -1,5 +1,7 @@
 import type { LearningKernel } from '../ledger.ts';
 import type { PromptKind } from '../types/observation.ts';
+import { buildPromptEpisodes } from './episodes.ts';
+import { jaccard, summaryTokens } from './text.ts';
 
 const RETRY_JACCARD_THRESHOLD = 0.5;
 const FLAT_MARGIN = Math.log(2);
@@ -8,6 +10,7 @@ const DECISIVE_MARGIN = Math.log(10);
 interface PromptRow {
   prompt_id: string;
   session_id: string;
+  turn_id: string | null;
   prompt_index: number;
   prompt_kind: PromptKind;
   prompt_summary: string | null;
@@ -55,11 +58,19 @@ export interface PromptKindReport {
     unattributed: number;
     sessions: Record<string, number>;
   };
+  episodes: {
+    count: number;
+    compressionRatio: number | null;
+    echoSpend: number;
+    retrySpend: number;
+    byKind: Record<string, number>;
+    costliest: { episodeId: string; sessionId: string; cost: number; prompts: number; kind: string | null }[];
+  };
 }
 
 export function buildPromptKindReport(kernel: LearningKernel): PromptKindReport {
   const prompts = kernel.db.prepare(`
-    select prompt_id, session_id, prompt_index, prompt_kind, prompt_summary
+    select prompt_id, session_id, turn_id, prompt_index, prompt_kind, prompt_summary
     from session_prompts
     where prompt_role = 'user'
     order by session_id, prompt_index
@@ -165,6 +176,15 @@ export function buildPromptKindReport(kernel: LearningKernel): PromptKindReport 
     else margins.decisive += 1;
   }
 
+  const costRows = kernel.db.prepare(`
+    select turn_id, session_id, coalesce(estimated_cost, 0) as cost
+    from model_calls
+  `).all() as unknown as { turn_id: string | null; session_id: string | null; cost: number }[];
+  const costByTurn = new Map<string, number>();
+  for (const row of costRows) {
+    if (row.turn_id) costByTurn.set(row.turn_id, (costByTurn.get(row.turn_id) ?? 0) + row.cost);
+  }
+
   const behavior: PromptKindReport['behavior'] = {
     retries: 0,
     terminalAssistantTurns: lastRoles.filter((row) => row.prompt_role === 'assistant').length,
@@ -182,14 +202,19 @@ export function buildPromptKindReport(kernel: LearningKernel): PromptKindReport 
   let flippedRetried = 0;
   let unflippedWithNext = 0;
   let unflippedRetried = 0;
+  let retrySpend = 0;
   for (const sessionPrompts of promptsBySession.values()) {
     for (let index = 0; index < sessionPrompts.length - 1; index += 1) {
       const previous = sessionPrompts[index];
+      const next = sessionPrompts[index + 1];
       const isRetry = jaccard(
         summaryTokens(previous.prompt_summary),
-        summaryTokens(sessionPrompts[index + 1].prompt_summary)
+        summaryTokens(next.prompt_summary)
       ) >= RETRY_JACCARD_THRESHOLD;
-      if (isRetry) behavior.retries += 1;
+      if (isRetry) {
+        behavior.retries += 1;
+        retrySpend += next.turn_id ? costByTurn.get(next.turn_id) ?? 0 : 0;
+      }
       if (flippedByPromptId.get(previous.prompt_id)) {
         flippedWithNext += 1;
         if (isRetry) flippedRetried += 1;
@@ -203,10 +228,6 @@ export function buildPromptKindReport(kernel: LearningKernel): PromptKindReport 
   behavior.retryRateUnflipped = unflippedWithNext === 0 ? null : unflippedRetried / unflippedWithNext;
 
   const cost: PromptKindReport['cost'] = { total: 0, byTurn: {}, unattributed: 0, sessions: {} };
-  const costRows = kernel.db.prepare(`
-    select turn_id, session_id, coalesce(estimated_cost, 0) as cost
-    from model_calls
-  `).all() as unknown as { turn_id: string | null; session_id: string | null; cost: number }[];
   for (const row of costRows) {
     cost.total += row.cost;
     if (row.turn_id) {
@@ -223,6 +244,33 @@ export function buildPromptKindReport(kernel: LearningKernel): PromptKindReport 
   for (const key of Object.keys(cost.byTurn)) cost.byTurn[key] = roundCost(cost.byTurn[key]);
   for (const key of Object.keys(cost.sessions)) cost.sessions[key] = roundCost(cost.sessions[key]);
 
+  const episodeList = buildPromptEpisodes(kernel);
+  const episodes: PromptKindReport['episodes'] = {
+    count: episodeList.length,
+    compressionRatio: episodeList.length === 0 ? null : roundCost(prompts.length / episodeList.length),
+    echoSpend: roundCost(episodeList.reduce(
+      (sum, episode) => sum + episode.members.slice(1).reduce((inner, member) => inner + member.cost, 0),
+      0
+    )),
+    retrySpend: roundCost(retrySpend),
+    byKind: {},
+    costliest: [...episodeList]
+      .sort((a, b) => b.cost - a.cost)
+      .slice(0, 5)
+      .map((episode) => ({
+        episodeId: episode.episodeId,
+        sessionId: episode.sessionId,
+        cost: episode.cost,
+        prompts: episode.members.length,
+        kind: episode.dominantKind,
+      })),
+  };
+  for (const episode of episodeList) {
+    if (episode.dominantKind) {
+      episodes.byKind[episode.dominantKind] = (episodes.byKind[episode.dominantKind] ?? 0) + 1;
+    }
+  }
+
   return {
     coverage: {
       userPrompts: prompts.length,
@@ -235,24 +283,10 @@ export function buildPromptKindReport(kernel: LearningKernel): PromptKindReport 
     margins,
     behavior,
     cost,
+    episodes,
   };
 }
 
 function roundCost(value: number): number {
   return Math.round(value * 1e6) / 1e6;
-}
-
-function summaryTokens(summary: string | null): Set<string> {
-  if (!summary) return new Set();
-  const cleaned = summary.replace(/\s+length=\d+$/, '').toLowerCase();
-  return new Set(cleaned.split(/[^a-z0-9]+/).filter((token) => token.length > 0));
-}
-
-function jaccard(left: Set<string>, right: Set<string>): number {
-  if (left.size === 0 || right.size === 0) return 0;
-  let intersection = 0;
-  for (const token of left) {
-    if (right.has(token)) intersection += 1;
-  }
-  return intersection / (left.size + right.size - intersection);
 }

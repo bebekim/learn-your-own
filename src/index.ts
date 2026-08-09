@@ -82,6 +82,8 @@ export { recordHookEvent } from './hooks/ingestion.ts';
 export { normalizeHooks } from './hooks/normalization-runner.ts';
 export { buildPromptKindReport } from './measurement/prompt-kind.ts';
 export type { PromptKindReport } from './measurement/prompt-kind.ts';
+export { buildPromptEpisodes } from './measurement/episodes.ts';
+export type { PromptEpisode, PromptEpisodeMember } from './measurement/episodes.ts';
 export {
   drainHookSpool,
   handleClaudeHook,
