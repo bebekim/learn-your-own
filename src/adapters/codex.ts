@@ -3,9 +3,12 @@ import {
   createHookEventId,
   fingerprintHookValue,
   sha256,
-  summarizeText,
-  writePromptBlob,
 } from './runtime.ts';
+import {
+  buildAssistantPromptBoundary,
+  buildSession,
+  buildUserPromptBoundary,
+} from './shared.ts';
 import type {
   AssociationOutcome,
 } from '../types/activation.ts';
@@ -81,50 +84,25 @@ export function codexHookObservation(
   let promptBoundary: RecordPromptBoundaryInput | null = null;
 
   if (runtimeEventName === 'SessionStart') {
-    session = {
-      sessionId,
-      workspaceScope: 'local',
-      repoPath: cwd,
-      platform: 'codex',
-      model: event.model ?? null,
-    };
+    session = buildSession({ sessionId, repoPath: cwd, platform: 'codex', model: event.model ?? null });
   } else if (runtimeEventName === 'UserPromptSubmit' && typeof event.prompt === 'string' && event.prompt) {
-    const promptRef = options.promptDir ? writePromptBlob(options.promptDir, turnId ?? sessionId, 'user', event.prompt) : undefined;
-    session = {
-      sessionId,
-      workspaceScope: 'local',
-      repoPath: cwd,
-      platform: 'codex',
-      model: event.model ?? null,
-    };
-    promptBoundary = {
+    session = buildSession({ sessionId, repoPath: cwd, platform: 'codex', model: event.model ?? null });
+    promptBoundary = buildUserPromptBoundary({
       sessionId,
       turnId,
-      role: 'user',
-      kind: 'user_prompt',
-      promptText: options.includeRawPrompt ? event.prompt : undefined,
-      promptHash: options.includeRawPrompt ? undefined : sha256(event.prompt),
-      promptLength: options.includeRawPrompt ? undefined : event.prompt.length,
-      promptRef,
-      summary: options.includeRawPrompt ? undefined : summarizeText(event.prompt),
+      promptText: event.prompt,
       model: event.model ?? null,
-    };
+      includeRawPrompt: options.includeRawPrompt,
+      promptDir: options.promptDir,
+    });
   } else if (runtimeEventName === 'Stop' && typeof event.last_assistant_message === 'string' && event.last_assistant_message) {
-    session = {
-      sessionId,
-      workspaceScope: 'local',
-      repoPath: cwd,
-      platform: 'codex',
-      model: event.model ?? null,
-    };
-    promptBoundary = {
+    session = buildSession({ sessionId, repoPath: cwd, platform: 'codex', model: event.model ?? null });
+    promptBoundary = buildAssistantPromptBoundary({
       sessionId,
       turnId,
-      role: 'assistant',
-      kind: 'assistant_response',
-      responseSummary: summarizeText(event.last_assistant_message),
+      responseMessage: event.last_assistant_message,
       model: event.model ?? null,
-    };
+    });
   }
 
   return {
