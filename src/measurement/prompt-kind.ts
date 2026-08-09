@@ -36,7 +36,7 @@ export interface PromptKindReport {
     unflipped: number;
     byKind: Record<string, number>;
   };
-  methodAccuracy: Record<string, { rows: number; matchingBelief: number; rate: number | null }>;
+  methodConcordance: Record<string, { prompts: number; agreeing: number; rate: number | null }>;
   margins: {
     flat: number;
     moderate: number;
@@ -85,16 +85,20 @@ export function buildPromptKindReport(kernel: LearningKernel): PromptKindReport 
     new Set(rows.filter((row) => row.method !== 'positional').map((row) => row.method));
 
   // A flip requires later content evidence (contextual, correction, outcome) to
-  // have moved the stored kind away from the heuristic vote. Positional-only
-  // disagreement (index-0 direction_setting) is not a flip.
+  // have caused the change: the stored kind must be one the later evidence
+  // actually voted for, and differ from the heuristic vote. Positional
+  // dominance (index-0 direction_setting) is not a flip.
   const flippedByPromptId = new Map<string, boolean>();
   for (const prompt of prompts) {
     const rows = evidenceByPrompt.get(prompt.prompt_id) ?? [];
     const heuristic = rows.find((row) => row.method === 'heuristic');
-    const hasLaterEvidence = rows.some((row) => row.method !== 'heuristic' && row.method !== 'positional');
+    const laterKinds = new Set(
+      rows.filter((row) => row.method !== 'heuristic' && row.method !== 'positional')
+        .map((row) => row.kind)
+    );
     flippedByPromptId.set(
       prompt.prompt_id,
-      heuristic !== undefined && hasLaterEvidence && prompt.prompt_kind !== heuristic.kind
+      heuristic !== undefined && prompt.prompt_kind !== heuristic.kind && laterKinds.has(prompt.prompt_kind)
     );
   }
 
@@ -110,20 +114,34 @@ export function buildPromptKindReport(kernel: LearningKernel): PromptKindReport 
     }
   }
 
-  const methodAccuracy: PromptKindReport['methodAccuracy'] = {};
-  const promptKindById = new Map(prompts.map((prompt) => [prompt.prompt_id, prompt.prompt_kind]));
+  // Inter-method concordance: on prompts where multiple content methods voted,
+  // do independent methods agree? This avoids the structural bias of measuring
+  // agreement with the final belief, which just restates the LR ordering.
+  const methodConcordance: PromptKindReport['methodConcordance'] = {};
   for (const prompt of prompts) {
     const rows = evidenceByPrompt.get(prompt.prompt_id) ?? [];
-    if (contentMethods(rows).size < 2) continue;
+    const kindsByMethod = new Map<string, Set<string>>();
     for (const row of rows) {
-      const entry = methodAccuracy[row.method] ?? { rows: 0, matchingBelief: 0, rate: null };
-      entry.rows += 1;
-      if (row.kind === promptKindById.get(row.prompt_id)) entry.matchingBelief += 1;
-      methodAccuracy[row.method] = entry;
+      if (row.method === 'positional') continue;
+      const kinds = kindsByMethod.get(row.method) ?? new Set<string>();
+      kinds.add(row.kind);
+      kindsByMethod.set(row.method, kinds);
+    }
+    const methods = [...kindsByMethod.keys()].sort();
+    for (let left = 0; left < methods.length; left += 1) {
+      for (let right = left + 1; right < methods.length; right += 1) {
+        const key = `${methods[left]}×${methods[right]}`;
+        const entry = methodConcordance[key] ?? { prompts: 0, agreeing: 0, rate: null };
+        entry.prompts += 1;
+        const leftKinds = kindsByMethod.get(methods[left]) ?? new Set<string>();
+        const rightKinds = kindsByMethod.get(methods[right]) ?? new Set<string>();
+        if ([...leftKinds].some((kind) => rightKinds.has(kind))) entry.agreeing += 1;
+        methodConcordance[key] = entry;
+      }
     }
   }
-  for (const entry of Object.values(methodAccuracy)) {
-    entry.rate = entry.rows === 0 ? null : entry.matchingBelief / entry.rows;
+  for (const entry of Object.values(methodConcordance)) {
+    entry.rate = entry.prompts === 0 ? null : entry.agreeing / entry.prompts;
   }
 
   const margins: PromptKindReport['margins'] = { flat: 0, moderate: 0, decisive: 0 };
@@ -186,7 +204,7 @@ export function buildPromptKindReport(kernel: LearningKernel): PromptKindReport 
         contentMethods(evidenceByPrompt.get(prompt.prompt_id) ?? []).size >= 2).length,
     },
     flips,
-    methodAccuracy,
+    methodConcordance,
     margins,
     behavior,
   };

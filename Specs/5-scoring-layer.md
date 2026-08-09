@@ -58,15 +58,13 @@ converting into better at-bats.
 The prompt-kind line shipped Google machinery with some Yahoo residue. Rework items,
 in order:
 
-- **R1 — Flip definition.** A flip currently counts any prompt whose stored kind
-  differs from its heuristic vote while later evidence exists. That admits 6 false
-  positives in the current ledger (positional `direction_setting` dominance counted
-  as flips). Correct definition: the stored kind equals a kind evidenced by a
-  non-positional, non-heuristic method AND differs from the heuristic vote.
-- **R2 — Pseudo-accuracy is structural.** With fixed LRs (4 > 3), contextual wins
-  every disagreement, so "agreement with belief" restates the LR ordering (contextual
-  showed 96% — by construction). Replace with inter-method concordance (heuristic ×
-  contextual agreement, independent of the belief) plus outcome-linked validation.
+- **R1 — Flip definition.** ~~A flip currently counts any prompt whose stored kind
+  differs from its heuristic vote while later evidence exists.~~ **LANDED** — a flip
+  now requires the stored kind to equal a kind the later evidence voted for;
+  positional dominance no longer counts.
+- **R2 — Pseudo-accuracy is structural.** **LANDED** — agreement-with-belief replaced
+  by inter-method concordance (pairwise kind-set intersection across content
+  methods). Outcome-linked validation lands with the at-bat score below.
 - **R3 — Retry threshold.** Jaccard 0.5 is hand-picked. Keep as a documented prior;
   calibrate against session outcomes or replace with a distribution-derived cutoff.
 - **R4 — Regex classifiers on trial.** `classifyPromptKind` and

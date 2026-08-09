@@ -93,7 +93,24 @@ describe('prompt kind measurement', () => {
     }
   });
 
-  it('reports per-method pseudo-accuracy against the final belief', () => {
+  it('does not count positional dominance as a flip even when later evidence exists', () => {
+    const { kernel, cleanup } = setup();
+    try {
+      userPrompt(kernel, { turnId: 't1', kind: 'follow_up', promptText: 'start on the billing feature' });
+      assistantResponse(kernel, { turnId: 't1', responseSummary: 'Fixed the crash in the billing worker.' });
+
+      const report = buildPromptKindReport(kernel);
+      // stored kind is direction_setting (positional, log 99); the contextual
+      // debugging vote lost. The heuristic disagreement comes from position,
+      // not from later evidence changing the outcome — not a flip.
+      assert.equal(report.flips.flipped, 0);
+      assert.equal(report.flips.unflipped, 1);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('reports inter-method concordance instead of agreement with the belief', () => {
     const { kernel, cleanup } = setup();
     try {
       userPrompt(kernel, { turnId: 't1', kind: 'follow_up', promptText: 'start on the billing feature' });
@@ -101,11 +118,27 @@ describe('prompt kind measurement', () => {
       assistantResponse(kernel, { turnId: 't2', responseSummary: 'Found the root cause and fixed the bug.' });
 
       const report = buildPromptKindReport(kernel);
-      // t2 prompt: heuristic said follow_up, belief is debugging_request → heuristic miss
-      assert.equal(report.methodAccuracy.heuristic.rows, 1);
-      assert.equal(report.methodAccuracy.heuristic.matchingBelief, 0);
-      assert.equal(report.methodAccuracy.contextual.rows, 1);
-      assert.equal(report.methodAccuracy.contextual.matchingBelief, 1);
+      // t2 prompt: heuristic kinds {follow_up}, contextual kinds {debugging_request} → disagree
+      const pair = report.methodConcordance['contextual×heuristic'];
+      assert.equal(pair.prompts, 1);
+      assert.equal(pair.agreeing, 0);
+      assert.equal(pair.rate, 0);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('counts concordant methods when both evidence the same kind', () => {
+    const { kernel, cleanup } = setup();
+    try {
+      userPrompt(kernel, { turnId: 't1', kind: 'debugging_request', promptText: 'the tests are failing' });
+      assistantResponse(kernel, { turnId: 't1', responseSummary: 'Fixed the failing assertion.' });
+
+      const report = buildPromptKindReport(kernel);
+      const pair = report.methodConcordance['contextual×heuristic'];
+      assert.equal(pair.prompts, 1);
+      assert.equal(pair.agreeing, 1);
+      assert.equal(pair.rate, 1);
     } finally {
       cleanup();
     }

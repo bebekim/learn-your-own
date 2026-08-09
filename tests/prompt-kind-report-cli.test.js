@@ -34,8 +34,9 @@ test('lyo prompt-kind-report emits classification measurement over recorded prom
     assert.equal(parsed.promptKind.coverage.withMultipleMethods, 1);
     assert.equal(parsed.promptKind.flips.flipped, 1);
     assert.equal(parsed.promptKind.flips.byKind.debugging_request, 1);
-    assert.equal(parsed.promptKind.methodAccuracy.contextual.rate, 1);
-    assert.equal(parsed.promptKind.methodAccuracy.heuristic.rate, 0);
+    const pair = parsed.promptKind.methodConcordance['contextual×heuristic'];
+    assert.equal(pair.prompts, 1);
+    assert.equal(pair.agreeing, 0);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
