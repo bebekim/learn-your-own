@@ -12,4 +12,6 @@ export { readShepherdExportFile, readTelemetryFile, summarizeTelemetry } from '.
 export { compileTelemetryArtifact } from './compile.ts';
 export { telemetryEventToHookInput } from './compile.ts';
 export { consumeTelemetryOutbox, followTelemetryOutbox } from './outbox.ts';
+export { startTelemetryServer } from './server.ts';
+export type { TelemetryServerHandle, TelemetryServerOptions } from './server.ts';
 export type { ConsumeTelemetryOutboxInput, ConsumeTelemetryOutboxResult } from './outbox.ts';

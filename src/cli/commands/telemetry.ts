@@ -11,12 +11,14 @@ import {
 import type { CommandArgs, CommandHandler } from './context.ts';
 import { closeKernel, createKernel } from '../../ledger.ts';
 import { initLedger } from '../../schema.ts';
+import { startTelemetryServer } from '../../telemetry/server.ts';
 
 export const TELEMETRY_COMMANDS: Record<string, CommandHandler> = {
   'telemetry inspect': telemetryInspectCommand,
   'telemetry convert-shepherd': telemetryConvertShepherdCommand,
   'telemetry compile': telemetryCompileCommand,
   'telemetry consume': telemetryConsumeCommand,
+  'telemetry serve': telemetryServeCommand,
 };
 
 function telemetryInspectCommand(args: CommandArgs): unknown {
@@ -79,4 +81,20 @@ async function telemetryConsumeCommand(args: CommandArgs): Promise<unknown> {
   } finally {
     closeKernel(kernel);
   }
+}
+
+async function telemetryServeCommand(args: CommandArgs): Promise<never> {
+  const kernel = createKernel({ dbPath: args.dbPath });
+  initLedger(kernel);
+  const service = await startTelemetryServer(kernel, {
+    host: args.flagValue('--host') ?? '127.0.0.1',
+    port: args.optionalNumber('--port') ?? 8788,
+  });
+  process.stdout.write(`${JSON.stringify({ ok: true, host: service.host, port: service.port })}\n`);
+  await new Promise<void>((resolve) => {
+    const stop = () => { void service.close().finally(() => { closeKernel(kernel); resolve(); }); };
+    process.once('SIGINT', stop);
+    process.once('SIGTERM', stop);
+  });
+  process.exit(0);
 }
