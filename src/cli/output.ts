@@ -48,6 +48,7 @@ export function usage(exitCode = 0): never {
 	  lyo telemetry inspect --file path
 	  lyo telemetry convert-shepherd --file path|dir --run-id id --output path
 	  lyo telemetry compile --file path [--run-id id]
+	  lyo telemetry consume --outbox path [--db path] [--follow]
 	  lyo prompt-kind-report [--db path]
 	  lyo backfill-prompt-kind [--db path]
 	  lyo audit [--dir path]

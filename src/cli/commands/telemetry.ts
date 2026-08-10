@@ -2,17 +2,21 @@ import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { encodeTelemetry } from '../../telemetry/contract.ts';
 import { compileTelemetryArtifact } from '../../telemetry/compile.ts';
+import { consumeTelemetryOutbox, followTelemetryOutbox } from '../../telemetry/outbox.ts';
 import {
   readShepherdExportFile,
   readTelemetryFile,
   summarizeTelemetry,
 } from '../../telemetry/files.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
+import { closeKernel, createKernel } from '../../ledger.ts';
+import { initLedger } from '../../schema.ts';
 
 export const TELEMETRY_COMMANDS: Record<string, CommandHandler> = {
   'telemetry inspect': telemetryInspectCommand,
   'telemetry convert-shepherd': telemetryConvertShepherdCommand,
   'telemetry compile': telemetryCompileCommand,
+  'telemetry consume': telemetryConsumeCommand,
 };
 
 function telemetryInspectCommand(args: CommandArgs): unknown {
@@ -53,4 +57,26 @@ function telemetryCompileCommand(args: CommandArgs): unknown {
     },
     semantic: compiled.semantic,
   };
+}
+
+async function telemetryConsumeCommand(args: CommandArgs): Promise<unknown> {
+  const kernel = createKernel({ dbPath: args.dbPath });
+  initLedger(kernel);
+  const input = {
+    outboxPath: resolve(args.cwd, args.requiredFlag('--outbox')),
+    consumerId: args.flagValue('--consumer-id'),
+    limit: args.optionalNumber('--limit') ?? undefined,
+  };
+  try {
+    if (args.hasFlag('--follow')) {
+      await followTelemetryOutbox(
+        kernel,
+        { ...input, intervalMs: args.optionalNumber('--interval-ms') ?? undefined },
+        (result) => process.stdout.write(`${JSON.stringify({ ok: true, ...result })}\n`)
+      );
+    }
+    return { ok: true, ...consumeTelemetryOutbox(kernel, input) };
+  } finally {
+    closeKernel(kernel);
+  }
 }

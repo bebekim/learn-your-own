@@ -3,6 +3,7 @@ import { initLedger } from '../schema.ts';
 import { recordHookEvent } from '../hooks/ingestion.ts';
 import { compileTelemetryRun } from '../compiler/frontend.ts';
 import type { CompiledTelemetryRun } from '../compiler/frontend.ts';
+import type { HookEventInput } from '../types/observation.ts';
 import type { TelemetryEvent } from './contract.ts';
 
 export function compileTelemetryArtifact(
@@ -13,21 +14,25 @@ export function compileTelemetryArtifact(
   initLedger(kernel);
   try {
     for (const event of events) {
-      recordHookEvent(kernel, {
-        eventId: event.eventId,
-        sessionId: sessionIdFor(event),
-        turnId: event.runId,
-        eventName: eventNameFor(event),
-        cwd: cwdFor(event),
-        model: modelFor(event),
-        payload: hookPayloadFor(event),
-        lyoVersion: 'telemetry.v1',
-      });
+      recordHookEvent(kernel, telemetryEventToHookInput(event));
     }
     return compileTelemetryRun(kernel, { runId: runId ?? events[0]?.runId ?? 'telemetry-run' });
   } finally {
     closeKernel(kernel);
   }
+}
+
+export function telemetryEventToHookInput(event: TelemetryEvent): HookEventInput {
+  return {
+    eventId: event.eventId,
+    sessionId: sessionIdFor(event),
+    turnId: event.runId,
+    eventName: eventNameFor(event),
+    cwd: cwdFor(event),
+    model: modelFor(event),
+    payload: hookPayloadFor(event),
+    lyoVersion: 'telemetry.v1',
+  };
 }
 
 function eventNameFor(event: TelemetryEvent): string {
@@ -47,17 +52,30 @@ function eventNameFor(event: TelemetryEvent): string {
 
 function hookPayloadFor(event: TelemetryEvent): unknown {
   if (event.source === 'native') return event.payload;
-  const payload = isObject(event.payload) ? event.payload : {};
+  const envelope = isObject(event.payload) ? event.payload : {};
+  const sourceEvent = isObject(envelope.event) ? envelope.event : envelope;
+  const payload = isObject(sourceEvent.payload) ? sourceEvent.payload : {};
   const params = isObject(payload.params) ? payload.params : {};
-  const path = stringValue(payload.path);
-  const command = stringValue(payload.command) ?? stringValue(params.command);
+  const path = stringValue(payload.path) ?? stringValue(sourceEvent.path);
+  const command = stringValue(payload.command)
+    ?? stringValue(params.command)
+    ?? stringValue(sourceEvent.command);
+  const toolName = event.kind === 'command'
+    ? 'Bash'
+    : event.kind === 'file'
+      ? 'FileChange'
+      : stringValue(payload.tool_name)
+        ?? stringValue(payload.toolName)
+        ?? stringValue(payload.effect_type)
+        ?? stringValue(sourceEvent.provider_event_kind)
+        ?? stringValue(sourceEvent.kind)
+        ?? event.kind;
   return {
     hook_event_name: eventNameFor(event),
-    tool_name: stringValue(payload.tool_name)
-      ?? stringValue(payload.toolName)
-      ?? stringValue(payload.effect_type)
-      ?? event.kind,
+    tool_name: toolName,
     tool_input: {
+      ...sourceEvent,
+      ...payload,
       ...params,
       ...(path ? { path, file_path: path } : {}),
       ...(command ? { command } : {}),

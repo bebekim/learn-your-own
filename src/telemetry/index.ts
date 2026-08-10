@@ -10,3 +10,6 @@ export { shepherdEffectToTelemetry, shepherdExportToTelemetry } from './shepherd
 export type { ShepherdEffect } from './shepherd-source.ts';
 export { readShepherdExportFile, readTelemetryFile, summarizeTelemetry } from './files.ts';
 export { compileTelemetryArtifact } from './compile.ts';
+export { telemetryEventToHookInput } from './compile.ts';
+export { consumeTelemetryOutbox, followTelemetryOutbox } from './outbox.ts';
+export type { ConsumeTelemetryOutboxInput, ConsumeTelemetryOutboxResult } from './outbox.ts';

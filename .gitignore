@@ -25,6 +25,7 @@ node_modules/
 
 # Local agent/runtime state
 /.agent-learning/
+/.vcscore/
 /.codex/
 /.omx/
 /.agent-assets/

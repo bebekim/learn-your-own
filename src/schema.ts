@@ -110,6 +110,14 @@ export function initLedger(kernel: LearningKernel): LearningKernel {
       normalized_at text not null
     );
 
+    create table if not exists telemetry_cursors (
+      consumer_id text not null,
+      source_path text not null,
+      byte_offset integer not null default 0,
+      updated_at text not null,
+      primary key (consumer_id, source_path)
+    );
+
     create table if not exists agent_sessions (
       session_id text primary key,
       workspace_scope text not null default 'local',
