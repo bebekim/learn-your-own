@@ -43,6 +43,71 @@ test('lyo help lists effect reports and audits', () => {
   assert.match(output, /lyo audit \[--dir path\]/);
 });
 
+test('lyo telemetry inspect reads a canonical artifact without opening a ledger', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-telemetry-'));
+  try {
+    const path = join(dir, 'run.ndjson');
+    writeFileSync(path, [
+      JSON.stringify({
+        schema: 'lyo.telemetry.v1', eventId: 'native-1', runId: 'run-1', source: 'native',
+        kind: 'prompt', occurredAt: '2026-08-10T00:00:00.000Z', payload: {},
+      }),
+      JSON.stringify({
+        schema: 'lyo.telemetry.v1', eventId: 'shepherd-1', runId: 'run-1', source: 'shepherd',
+        kind: 'file', occurredAt: '2026-08-10T00:00:01.000Z', payload: {},
+      }),
+    ].join('\n'));
+
+    const parsed = runLyoJson(['telemetry', 'inspect', '--file', path]);
+    assert.deepEqual(parsed.summary, {
+      events: 2,
+      runs: 1,
+      bySource: { native: 1, shepherd: 1 },
+      byKind: { prompt: 1, file: 1 },
+    });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('lyo telemetry convert-shepherd converts a flat Shepherd export', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-shepherd-export-'));
+  try {
+    const input = join(dir, 'trajectory.json');
+    const output = join(dir, 'telemetry.ndjson');
+    writeFileSync(input, JSON.stringify({
+      total_effects: 1,
+      timeline: [{ effect_type: 'file_patch', path: 'src/main.ts', timestamp: 1_756_339_200 }],
+    }));
+
+    const parsed = runLyoJson([
+      'telemetry', 'convert-shepherd', '--file', input, '--run-id', 'run-1', '--output', output,
+    ]);
+    assert.equal(parsed.ok, true);
+    assert.equal(parsed.summary.events, 1);
+    assert.equal(JSON.parse(readFileSync(output, 'utf8')).source, 'shepherd');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('lyo telemetry compile runs the existing compiler on canonical telemetry', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-telemetry-compile-'));
+  try {
+    const path = join(dir, 'telemetry.ndjson');
+    writeFileSync(path, [
+      JSON.stringify({ schema: 'lyo.telemetry.v1', eventId: 'p', runId: 'run-1', source: 'shepherd', kind: 'prompt', occurredAt: '2026-08-10T00:00:00.000Z', payload: { user_prompt: 'fix it' } }),
+      JSON.stringify({ schema: 'lyo.telemetry.v1', eventId: 'f', runId: 'run-1', source: 'shepherd', kind: 'file', occurredAt: '2026-08-10T00:00:01.000Z', payload: { effect_type: 'file_patch', path: 'src/main.ts' } }),
+    ].join('\n'));
+    const parsed = runLyoJson(['telemetry', 'compile', '--file', path]);
+    assert.equal(parsed.ok, true);
+    assert.equal(parsed.runId, 'run-1');
+    assert.ok(parsed.telemetry.actions.length >= 1);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('lyo pipeline run refuses a plan that violates blindness', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-cli-pipeline-'));
   try {

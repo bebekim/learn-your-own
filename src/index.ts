@@ -354,3 +354,4 @@ export type * from './corpus/sync.ts';
 export type * from './corpus/git-import.ts';
 export type * from './corpus/pool.ts';
 export type * from './corpus/git-layer2.ts';
+export * from './telemetry/index.ts';

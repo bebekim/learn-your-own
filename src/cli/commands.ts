@@ -13,6 +13,7 @@ import { OBSERVATION_COMMANDS } from './commands/observation.ts';
 import { PIPELINE_COMMANDS } from './commands/pipeline.ts';
 import { RUN_COMMANDS } from './commands/runs.ts';
 import { TAPE_COMMANDS } from './commands/tape.ts';
+import { TELEMETRY_COMMANDS } from './commands/telemetry.ts';
 import { WORKSPACE_COMMANDS } from './commands/workspace.ts';
 import { WORKTREE_COMMANDS } from './commands/worktree.ts';
 import { WRAP_COMMANDS } from './commands/wrap.ts';
@@ -27,6 +28,7 @@ const COMMAND_HANDLERS: Record<string, CommandHandler> = {
   ...OBSERVATION_COMMANDS,
   ...RUN_COMMANDS,
   ...TAPE_COMMANDS,
+  ...TELEMETRY_COMMANDS,
   ...WORKSPACE_COMMANDS,
   ...WORKTREE_COMMANDS,
   ...ACTIVATION_COMMANDS,

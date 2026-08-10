@@ -397,6 +397,8 @@ console.log(getObserverSummary(kernel));
 
 ## Documentation
 
+- [Lyo–Shepherd Boundary](docs/lyo-shepherd-boundary.md)
+
 - [Deterministic Classification](docs/deterministic-classification.md)
 - [Behavior As Code](docs/behavior-as-code.md)
 - [Learned Context As Thermodynamic Control](docs/learned-context-thermodynamics.md)
