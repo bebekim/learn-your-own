@@ -144,6 +144,23 @@ lesson이 쌓일 때 Thompson sampling의 탐색 공간이 failure_class 내 전
 
 ## Feature 3: Within-Run Credit Decomposition (Direct vs Indirect Cause)
 
+> **State: implemented (2026-08-15, v0.3).** `src/lyo/credit/ratio-lift.ts`가
+> per-injection weight `w_i = ĥ(ℓ_i|s_i,u')/ρ_i − 1`을 계산하고
+> `applyValidationOutcome`이 fractional counter로 반영. ĥ는 add-one smoothed
+> stratified rates (stratum = failure_class, 과거 resolved receipts만 사용).
+> Sign semantics: positive w = observed outcome에 대한 contribution (pass면
+> helpful, fail이면 harmful), w ≈ 0이면 counter 이동 없이 receipt만 resolve
+> (multiplicative gating). MARK_* delta payload에 `weight` + `estimator` 기록,
+> replay는 fractional weight를 fold (없으면 pre-v0.3 ±1). Fallback 규칙:
+> stratum cell이 `MIN_STRATUM_DECISIONS`(5) 미만이거나 propensity가 없거나
+> ρ ≥ 1 (inclusion certain — contrast 없음, §3.5 identification 조건)이면
+> uniform ±1 (`uniform-fallback@1`). Weight는 [-1, MAX_WEIGHT=4]로 clip.
+> Tests: `tests/lyo-ratio-lift.test.js`.
+>
+> **범위 note**: file-based `trace-consumer.ts` credit 경로는 propensity를
+> 기록하지 않아 ratio-lift가 identify 불가 — 이 spec의 F3 범위는 LessonStore
+> 경로 (logged-bandit dataset이 존재하는 유일한 경로).
+
 ### 개념
 
 강연에서 LLM이 "X causes Y?"에 Yes라고 답하지만 실제 구조가 `X → Z → Y`일 때
@@ -181,18 +198,19 @@ counter 이동 없음.
   lesson_application의 `counted` flag로 outcome을 lesson counter에 반영.
   역시 binary +1.
 
-### 갭
+### 갭 (2026-08-15 v0.3으로 1-4 해소; 5는 의도적 defer)
 
-1. **Hindsight classifier 미구현**: `ĥ(ℓ_i | s_i, u')`를 추정하는 classifier가
-   없다. §3.1의 "start: stratified rates instead of a learned classifier" 단계도
-   구현되지 않음.
-2. **Fractional Beta counts 미구현**: `w_i`를 Beta posterior의 fractional count로
-   사용하는 메커니즘이 없다. 현재는 정수 `+1`만 가능.
-3. **Propensity data 미사용**: `lesson_decision.candidates` JSON에 propensity가
-   기록되어 있지만(`schema.ts:99`), 이를 읽어 IPW/ratio-lift에 사용하는 코드가
-   없다. 데이터는 수집되고 있지만 소비되지 않음.
-4. **Outcome encoding 미정식화**: §3.1이 제안한 `u' = (failure_class, pass)` encoding
-   가 구현에 반영되지 않음. 현재 outcome은 binary `passed | failed`뿐.
+1. ~~Hindsight classifier 미구현~~ → stratified rates로 구현 (§3.1의 "coarser ĥ"
+   시작 단계). Learned classifier로의 upgrade는 receipts가 더 쌓이면 검토.
+2. ~~Fractional Beta counts 미구현~~ → MARK_* payload의 `weight`가 fractional
+   counter로 반영됨 (SQLite REAL storage).
+3. ~~Propensity data 미사용~~ → `computeInjectionWeights`가 decision log의
+   propensity를 소비.
+4. ~~Outcome encoding 미정식화~~ → stratum = failure_class × outcome =
+   pass/fail cell이 `u' = (failure_class, pass)` encoding에 해당.
+5. **Cycle stratification deferred** (§3.5): 같은 run의 여러 cycle이 scenario를
+   공유하지만 현재 estimator는 decision 단위로 count. `cycle_index`는 로깅되어
+   있으므로 후속 작업 가능.
 
 ### 관련 문헌
 

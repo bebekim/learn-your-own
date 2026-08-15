@@ -186,6 +186,8 @@ test('LYO lesson store: moves counters only through application rows, grounded i
   assert.deepStrictEqual(JSON.parse(helpfulDelta.payload), {
     application_id: passApp.application_id,
     outcome: 'passed',
+    weight: 1,
+    estimator: 'uniform-fallback@1',
   });
 
   const countedApp = store.db

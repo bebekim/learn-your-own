@@ -8,7 +8,11 @@
  * - §4.1 v_lesson_library view + §4.2 selection under a PLUGGABLE policy
  *   (see selection-policies.ts; lesson_decision.policy records which policy
  *   logged each decision — logged-bandit provenance for off-policy eval)
- * - §5.1 validation-grounded counter rule + §5.2 Wilson status rules
+ * - §5.1 validation-grounded counter rule + §5.2 Wilson status rules.
+ *   v0.3 (Specs/6 Feature 3): per-injection ratio-lift credit
+ *   w_i = ĥ(ℓ_i|s_i,u')/ρ_i − 1 (lyo/credit/ratio-lift.ts) replaces the
+ *   uniform ±1; MARK_* delta payloads carry weight + estimator, and replay
+ *   folds fractional weights (missing weight = the pre-v0.3 ±1).
  * - §5.3 lesson_decision log: per-decision candidate snapshot (alpha/beta at
  *   decision time) + Monte-Carlo selection propensities (v0.2). This is the
  *   logged-bandit data the ratio-lift estimator joins against outcomes.
@@ -34,6 +38,10 @@
 
 import crypto from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
+import {
+  computeInjectionWeights,
+  UNIFORM_FALLBACK_ESTIMATOR_ID,
+} from '../credit/ratio-lift.ts';
 import { normalizeCue } from '../selection/failure-classifier.ts';
 import { DEFAULT_POLICY_ID, policyId, resolvePolicy } from '../selection/selection-policies.ts';
 import type {
@@ -137,6 +145,11 @@ interface MergeDeltaPayload {
 
 interface ReinstateDeltaPayload {
   to_status?: string;
+}
+
+interface MarkDeltaPayload {
+  /** Fractional ratio-lift credit (v0.3); absent on pre-v0.3 uniform ±1 deltas. */
+  weight?: number;
 }
 
 function randomId(prefix: string): string {
@@ -709,10 +722,19 @@ export class LessonStore {
   }
 
   /**
-   * §5.1 the validation-grounded counter rule. Counters move ONLY through
-   * actual injection rows (lesson_application); a lesson with no application
-   * row for the run never moves (Huang et al. 2023: self-assessment proposes,
-   * the environment counts).
+   * §5.1 the validation-grounded counter rule, revised by Specs/6 Feature 3:
+   * counters move ONLY through actual injection rows (lesson_application); a
+   * lesson with no application row for the run never moves (Huang et al. 2023:
+   * self-assessment proposes, the environment counts).
+   *
+   * Credit per injection is the ratio-lift weight w_i = ĥ(ℓ_i|s_i,u')/ρ_i − 1
+   * (see lyo/credit/ratio-lift.ts), replacing the uniform ±1. Positive w is
+   * evidence FOR the observed outcome: helpful on a pass, harmful on a fail;
+   * negative w moves the opposite counter. w ≈ 0 (lesson uninformative about
+   * this outcome) flips the receipt to counted WITHOUT moving any counter —
+   * this is the over-crediting fix. Sparse strata fall back to uniform ±1.
+   * Weights are REAL; SQLite stores fractional values in the INTEGER-affinity
+   * counter columns losslessly (only integral values are converted).
    */
   applyValidationOutcome({ run_id, outcome }: { run_id: string; outcome: string }): {
     run_id: string;
@@ -724,6 +746,8 @@ export class LessonStore {
       throw new Error(`LessonStore.applyValidationOutcome: outcome must be 'passed' or 'failed'`);
     }
 
+    const weights = computeInjectionWeights(this.db, run_id, outcome);
+
     const affectedLessonIds: string[] = [];
     let countedApplications = 0;
     withTransaction(this.db, () => {
@@ -732,18 +756,33 @@ export class LessonStore {
         .all(run_id) as unknown as ApplicationRow[];
 
       for (const application of applications) {
+        const injection = weights.get(application.application_id) ?? {
+          weight: 1,
+          estimator: UNIFORM_FALLBACK_ESTIMATOR_ID,
+        };
         const isPassed = outcome === 'passed';
-        const counterColumn = isPassed ? 'helpful_count' : 'harmful_count';
-        this._emitDelta({
-          lesson_id: application.lesson_id,
-          run_id,
-          actor: 'validator-rule',
-          delta_type: isPassed ? 'MARK_HELPFUL' : 'MARK_HARMFUL',
-          payload: { application_id: application.application_id, outcome },
-        });
-        this.db
-          .prepare(`UPDATE lesson SET ${counterColumn} = ${counterColumn} + 1 WHERE lesson_id = ?`)
-          .run(application.lesson_id);
+        const magnitude = Math.abs(injection.weight);
+        // Positive weight = contribution to the OBSERVED outcome.
+        const helpfulDirection = isPassed ? injection.weight > 0 : injection.weight < 0;
+
+        if (magnitude > 0) {
+          const counterColumn = helpfulDirection ? 'helpful_count' : 'harmful_count';
+          this._emitDelta({
+            lesson_id: application.lesson_id,
+            run_id,
+            actor: 'validator-rule',
+            delta_type: helpfulDirection ? 'MARK_HELPFUL' : 'MARK_HARMFUL',
+            payload: {
+              application_id: application.application_id,
+              outcome,
+              weight: magnitude,
+              estimator: injection.estimator,
+            },
+          });
+          this.db
+            .prepare(`UPDATE lesson SET ${counterColumn} = ${counterColumn} + ? WHERE lesson_id = ?`)
+            .run(magnitude, application.lesson_id);
+        }
         this.db
           .prepare(
             'UPDATE lesson_application SET counted = 1, outcome = ? WHERE application_id = ?'
@@ -1089,7 +1128,8 @@ export class LessonStore {
       const payload = JSON.parse(delta.payload) as CreateDeltaPayload &
         EditDeltaPayload &
         MergeDeltaPayload &
-        ReinstateDeltaPayload;
+        ReinstateDeltaPayload &
+        MarkDeltaPayload;
       switch (delta.delta_type) {
         case 'CREATE':
           state = {
@@ -1113,12 +1153,14 @@ export class LessonStore {
           break;
         case 'MARK_HELPFUL':
           if (!state) break;
-          state.helpful_count += 1;
+          // v0.3 (Specs/6 F3): fractional ratio-lift weights; pre-v0.3 MARK
+          // deltas carry no weight and count as the uniform ±1 they were.
+          state.helpful_count += payload.weight ?? 1;
           foldStatusRules(state);
           break;
         case 'MARK_HARMFUL':
           if (!state) break;
-          state.harmful_count += 1;
+          state.harmful_count += payload.weight ?? 1;
           foldStatusRules(state);
           break;
         case 'QUARANTINE':
