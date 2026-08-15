@@ -20,6 +20,13 @@
  * v_lesson_library.posterior_mean stay pure-data: LLM proposes, the
  * environment counts (deterministic-classification.md; Wu et al. 2025 —
  * LLMs in a non-decisional auxiliary role).
+ *
+ * Specs/6 Feature 6 adds the probabilistic CONTROLLER (prior-controller@1,
+ * see priorCalibration below): the fusion weight itself is data-controlled.
+ * The controller measures how well the LLM's confidences have predicted
+ * grounded rates across the library and tempers every prior's pseudo-counts
+ * by that reliability γ — the data correcting the LLM's wrong predictions
+ * (SciNO's controller structure), with γ = 1 at cold start.
  */
 
 /** Pseudo-count strength when the reflector gives confidence but no strength. */
@@ -82,11 +89,80 @@ export function parsePriorJson(priorJson: string | null | undefined): Normalized
 /**
  * The π pseudo-counts added to the Beta posterior at selection time.
  * No prior -> { alpha: 0, beta: 0 }, leaving the pure-data posterior intact.
+ * `gamma` is the prior-controller's global tempering factor (see
+ * priorCalibration); it defaults to 1 (full strength, cold start).
  */
-export function priorPseudoCounts(prior: NormalizedPrior | null): { alpha: number; beta: number } {
+export function priorPseudoCounts(
+  prior: NormalizedPrior | null,
+  gamma = 1
+): { alpha: number; beta: number } {
   if (!prior) return { alpha: 0, beta: 0 };
   return {
-    alpha: prior.strength * prior.confidence,
-    beta: prior.strength * (1 - prior.confidence),
+    alpha: prior.strength * gamma * prior.confidence,
+    beta: prior.strength * gamma * (1 - prior.confidence),
   };
+}
+
+/* ── Specs/6 Feature 6: the probabilistic controller (prior-controller@1) ── */
+
+export const PRIOR_CONTROLLER_ID = 'prior-controller@1';
+/** A lesson needs this many grounded outcomes before it can judge the LLM. */
+export const MIN_CALIBRATION_SAMPLES = 5;
+
+export interface PriorCalibrationEntry {
+  lesson_id: string;
+  /** The confidence the reflector claimed. */
+  confidence: number;
+  /** The grounded success rate helpful / (helpful + harmful) — data only. */
+  rate: number;
+  /** Grounded outcomes behind the rate. */
+  samples: number;
+  /** 1 − |rate − confidence| ∈ [0, 1]. */
+  agreement: number;
+}
+
+export interface PriorCalibration {
+  /**
+   * The controller's tempering factor γ ∈ [0, 1]: mean agreement between the
+   * LLM's confidences and the grounded rates, over lessons with enough
+   * evidence to judge. γ = 1 at cold start (no evidence against the LLM
+   * yet); γ → 0 as the data shows the LLM's priors carry no signal, and the
+   * fused posterior falls back to pure data — the data has corrected the
+   * LLM's wrong predictions (SciNO's controller structure:
+   * P(π | D, text) ∝ P(D | π) · P_LLM(π | text), with P_LLM itself weighted
+   * by the LLM's observed reliability).
+   */
+  gamma: number;
+  /** Per-lesson agreement behind γ, for inspection. */
+  lessons: PriorCalibrationEntry[];
+}
+
+/**
+ * Compute the controller state from library rows. Rows without a usable
+ * prior or with fewer than MIN_CALIBRATION_SAMPLES grounded outcomes do not
+ * vote — their own priors are still tempered by the global γ at selection.
+ */
+export function priorCalibration(
+  rows: Array<{ lesson_id: string; helpful_count: number; harmful_count: number; prior_json: string | null }>
+): PriorCalibration {
+  const lessons: PriorCalibrationEntry[] = [];
+  for (const row of rows) {
+    const prior = parsePriorJson(row.prior_json);
+    if (!prior) continue;
+    const samples = row.helpful_count + row.harmful_count;
+    if (samples < MIN_CALIBRATION_SAMPLES) continue;
+    const rate = row.helpful_count / samples;
+    lessons.push({
+      lesson_id: row.lesson_id,
+      confidence: prior.confidence,
+      rate,
+      samples,
+      agreement: 1 - Math.abs(rate - prior.confidence),
+    });
+  }
+  const gamma =
+    lessons.length === 0
+      ? 1
+      : lessons.reduce((sum, entry) => sum + entry.agreement, 0) / lessons.length;
+  return { gamma, lessons };
 }

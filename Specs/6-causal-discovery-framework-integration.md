@@ -1,6 +1,6 @@
 # Causal Discovery Framework Integration — 임성빈 교수 강연에서 Lyo로
 
-Date: 2026-08-11. State: draft.
+Date: 2026-08-11. State: all six features implemented (2026-08-15).
 
 ## 배경
 
@@ -435,6 +435,24 @@ Lyo에서 대응되는 구조: **"run이 통과했다" ≠ "lesson이 통과를 
 ---
 
 ## Feature 6: Probabilistic Controller for LLM + Data Fusion
+
+> **State: implemented (2026-08-15, v0.7).** F1이 fusion 자체
+> (`P(π|D,text) ∝ P(D|π)·P_LLM(π|text)`의 conjugate Beta 형태)를 구현했고,
+> 이 feature는 **fusion weight 자체를 data가 제어하는 controller**를 추가한다.
+> `src/lyo/selection/semantic-prior.ts`의 `priorCalibration`
+> (prior-controller@1): grounded outcome이 `MIN_CALIBRATION_SAMPLES`(5) 이상인
+> prior 보유 lesson마다 `agreement = 1 − |rate − confidence|`를 계산하고,
+> 그 평균 γ로 모든 prior의 pseudo-count를 tempering. LLM의 confidence가
+> 실제 성공률을 예측하지 못하면 γ → 0, fused posterior는 pure-data로
+> 회귀 — **data가 LLM의 잘못된 prediction을 교정**하는 SciNO controller
+> 구조. Cold start (calibratable lesson 없음)에는 γ = 1로 F1과 동일.
+> 감사: `store.getPriorCalibration()`이 γ와 per-lesson agreement를 노출.
+> Tempered candidate는 decision log에 기록된 값 그대로 재현 가능
+> (counts → γ deterministic).
+> **범위 note (갭 3)**: rung-3 counterfactual ("다른 prompt를 썼다면?")은
+> 설계상 범위 밖 유지 — F4의 run_randomness record가 미래의 rung-3
+> 데이터 기반이고, §3.1이 rung-2 (COCOA)를 honest target으로 확정.
+> Tests: `tests/lyo-prior-controller.test.js`.
 
 ### 개념
 

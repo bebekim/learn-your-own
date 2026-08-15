@@ -18,6 +18,10 @@
  *   v6); selection fuses it as conjugate Beta pseudo-counts
  *   (lyo/selection/semantic-prior.ts) so the prior biases exploration while
  *   counts, Wilson gating, and posterior_mean stay pure-data.
+ *   v0.7 (Specs/6 Feature 6): the probabilistic controller (prior-controller@
+ *   1) tempers every prior's pseudo-counts by the LLM's observed calibration
+ *   γ (semantic-prior.ts#priorCalibration) — the data corrects the LLM's
+ *   wrong predictions; γ = 1 at cold start. Inspect via getPriorCalibration.
  * - §5.1 validation-grounded counter rule + §5.2 Wilson status rules.
  *   v0.3 (Specs/6 Feature 3): per-injection ratio-lift credit
  *   w_i = ĥ(ℓ_i|s_i,u')/ρ_i − 1 (lyo/credit/ratio-lift.ts) replaces the
@@ -60,8 +64,10 @@ import type { CandidateScope } from '../selection/pipeline-order.ts';
 import {
   normalizePrior,
   parsePriorJson,
+  priorCalibration,
   priorPseudoCounts,
 } from '../selection/semantic-prior.ts';
+import type { PriorCalibration } from '../selection/semantic-prior.ts';
 import { DEFAULT_POLICY_ID, policyId, resolvePolicy } from '../selection/selection-policies.ts';
 import type {
   ScoredSelection,
@@ -552,14 +558,35 @@ export class LessonStore {
    * Specs/6 F1: Beta parameters for the selection policy = data counts fused
    * with the LLM semantic prior's pseudo-counts (BEL ∝ λ·π, semantic-prior.ts).
    * No prior -> alpha = helpful+1, beta = harmful+1 exactly as pre-v0.5.
+   * F6: `gamma` is the prior-controller's tempering factor (1 = cold start).
    */
-  private candidateParams(row: LibraryRow): SelectionCandidate {
-    const prior = priorPseudoCounts(parsePriorJson(row.prior_json));
+  private candidateParams(row: LibraryRow, gamma = 1): SelectionCandidate {
+    const prior = priorPseudoCounts(parsePriorJson(row.prior_json), gamma);
     return {
       lesson_id: row.lesson_id,
       alpha: row.helpful_count + 1 + prior.alpha,
       beta: row.harmful_count + 1 + prior.beta,
     };
+  }
+
+  /**
+   * Specs/6 Feature 6 (prior-controller@1): the controller state — the
+   * global tempering factor γ and the per-lesson prior/rate agreements
+   * behind it. Computed from CURRENT counts, so the tempered candidates that
+   * reach the decision log are reproducible from the logged snapshot.
+   */
+  getPriorCalibration(): PriorCalibration {
+    const rows = this.db
+      .prepare(
+        'SELECT lesson_id, helpful_count, harmful_count, prior_json FROM v_lesson_library WHERE prior_json IS NOT NULL'
+      )
+      .all() as unknown as Array<{
+      lesson_id: string;
+      helpful_count: number;
+      harmful_count: number;
+      prior_json: string | null;
+    }>;
+    return priorCalibration(rows);
   }
 
   /**
@@ -572,7 +599,8 @@ export class LessonStore {
    */
   selectLessons({ failure_class, limit = 2, rng = Math.random, scope = 'exact' }: SelectLessonsInput): SelectedLesson[] {
     const rows = this.candidateRows(failure_class, scope);
-    const candidates = rows.map((row) => this.candidateParams(row));
+    const gamma = this.getPriorCalibration().gamma;
+    const candidates = rows.map((row) => this.candidateParams(row, gamma));
     return resolvePolicy(null)
       .sampleSelection(candidates, limit, rng)
       .map(({ index, score }: ScoredSelection) => ({ ...rows[index], sampled_score: score }));
@@ -610,7 +638,8 @@ export class LessonStore {
       return { selected: [], candidates: [], null_arm: 1, policy: policyId(policy), scope };
     }
 
-    const baseCandidates = rows.map((row) => this.candidateParams(row));
+    const gamma = this.getPriorCalibration().gamma;
+    const baseCandidates = rows.map((row) => this.candidateParams(row, gamma));
 
     const inclusionCertain = rows.length <= limit;
     const replicates = Math.max(0, propensityReplicates);
