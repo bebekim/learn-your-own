@@ -52,6 +52,8 @@ import {
   computeInjectionWeights,
   UNIFORM_FALLBACK_ESTIMATOR_ID,
 } from '../credit/ratio-lift.ts';
+import { computeCreditFidelity } from '../credit/fidelity.ts';
+import type { CreditFidelityReport } from '../credit/fidelity.ts';
 import { normalizeCue } from '../selection/failure-classifier.ts';
 import { stageDistance, upstreamClosure } from '../selection/pipeline-order.ts';
 import type { CandidateScope } from '../selection/pipeline-order.ts';
@@ -356,6 +358,17 @@ export class LessonStore {
     return this.db
       .prepare('SELECT * FROM v_lyo_pair_stats ORDER BY pair_posterior_mean DESC, lessons DESC')
       .all() as unknown as PairStatsRow[];
+  }
+
+  /**
+   * Specs/6 Feature 5 (derivative-level fidelity, "delivery ≠ learning"):
+   * quantify the gap between function-value matching (the legacy uniform ±1
+   * rule) and derivative estimation (ratio-lift weights) from the RECORDED
+   * MARK_* receipts — derivative error, gated receipts, and sign flips per
+   * failure-class stratum. See lyo/credit/fidelity.ts.
+   */
+  getCreditFidelityReport(): CreditFidelityReport {
+    return computeCreditFidelity(this.db);
   }
 
   private _getMeta(key: string): string | null {

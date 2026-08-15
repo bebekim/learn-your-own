@@ -349,6 +349,23 @@ decisions, (3) decision-point context, (4) bandit posterior snapshot id,
 
 ## Feature 5: Derivative-Level Fidelity (Delivery ≠ Learning)
 
+> **State: implemented (2026-08-15, v0.6).** F3가 estimator 자체(미분값 추정)를
+> 제공하고, 이 feature는 그 **derivative error의 정량화**를 추가한다.
+> `src/lyo/credit/fidelity.ts`의 `computeCreditFidelity` (store method
+> `getCreditFidelityReport`)가 기록된 MARK_* receipt에서 uniform ±1 rule
+> (함수값 matching)과 ratio-lift weight (미분값 추정)의 gap을 측정:
+> outcome-signed 단위에서 uniform은 항상 w ≡ +1이므로 per-receipt derivative
+> error = `|w_signed − 1|`. Report는 stratum(failure_class)별 + overall로
+> receipts / legacy (pre-F3 delta, weight 없음) / uniformFallback /
+> ratioLift / **gated** (w ≈ 0 — counter 이동 없이 resolve된 receipt, uniform
+> rule이 over-credit했을 것) / **signFlips** (w_signed < 0 — uniform과 반대
+> counter로 이동) / meanAbsDerivativeError / meanAbsWeight를 제공.
+> 데이터 소스는 재계산이 아니라 credit 시점에 기록된 delta payload 자체
+> (weight + estimator)이므로 store가 실제로 한 일을 측정한다.
+> "배달 ≠ 학습"이 이제 쿼리 가능한 수치: uniform rule은 N개 receipt 전부에
+> counter를 움직였을 것이고, ratio-lift는 gated + signFlips만큼 다르게 행동.
+> Tests: `tests/lyo-credit-fidelity.test.js`.
+
 ### 개념
 
 강연의 가장 기술적인 통찰: standard diffusion model이 score `ŝ ≈ s`를 잘
