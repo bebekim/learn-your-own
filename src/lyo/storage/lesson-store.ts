@@ -7,7 +7,12 @@
  *   join table lesson_application)
  * - §4.1 v_lesson_library view + §4.2 selection under a PLUGGABLE policy
  *   (see selection-policies.ts; lesson_decision.policy records which policy
- *   logged each decision — logged-bandit provenance for off-policy eval)
+ *   logged each decision — logged-bandit provenance for off-policy eval).
+ *   v0.4 (Specs/6 Feature 2): optional 'upstream' candidate scope restricts
+ *   the candidate set to the upstream closure of the observed failure class
+ *   in PIPELINE_ORDER (lyo/selection/pipeline-order.ts) — causal-ordering
+ *   search-space reduction; candidates carry stage_distance in the decision
+ *   row. Default 'exact' scope is byte-identical to pre-v0.4 behavior.
  * - §5.1 validation-grounded counter rule + §5.2 Wilson status rules.
  *   v0.3 (Specs/6 Feature 3): per-injection ratio-lift credit
  *   w_i = ĥ(ℓ_i|s_i,u')/ρ_i − 1 (lyo/credit/ratio-lift.ts) replaces the
@@ -43,6 +48,8 @@ import {
   UNIFORM_FALLBACK_ESTIMATOR_ID,
 } from '../credit/ratio-lift.ts';
 import { normalizeCue } from '../selection/failure-classifier.ts';
+import { stageDistance, upstreamClosure } from '../selection/pipeline-order.ts';
+import type { CandidateScope } from '../selection/pipeline-order.ts';
 import { DEFAULT_POLICY_ID, policyId, resolvePolicy } from '../selection/selection-policies.ts';
 import type {
   ScoredSelection,
@@ -473,6 +480,26 @@ export class LessonStore {
   }
 
   /**
+   * Specs/6 F2: candidate rows for a selection. 'exact' scope keeps the
+   * historical single-class filter; 'upstream' widens to the upstream
+   * closure of the observed class in PIPELINE_ORDER (pipeline-order.ts) —
+   * classes that can causally produce a failure observed at that stage.
+   * Downstream classes stay excluded either way.
+   */
+  private candidateRows(failureClass: string, scope: CandidateScope): LibraryRow[] {
+    if (scope === 'upstream') {
+      const closure = upstreamClosure(failureClass);
+      const placeholders = closure.map(() => '?').join(', ');
+      return this.db
+        .prepare(`SELECT * FROM v_lesson_library WHERE failure_class IN (${placeholders})`)
+        .all(...closure) as unknown as LibraryRow[];
+    }
+    return this.db
+      .prepare('SELECT * FROM v_lesson_library WHERE failure_class = ?')
+      .all(failureClass) as unknown as LibraryRow[];
+  }
+
+  /**
    * §4.2 retrieval + selection under the DEFAULT policy (Thompson-Beta).
    * Thin wrapper kept for callers that only need selected lessons; new code
    * should use selectWithDecision. Delegates to the same policy sampler so
@@ -480,10 +507,8 @@ export class LessonStore {
    * the original inline implementation: candidate order, alpha gamma then
    * beta gamma — seeded draws are unchanged).
    */
-  selectLessons({ failure_class, limit = 2, rng = Math.random }: SelectLessonsInput): SelectedLesson[] {
-    const rows = this.db
-      .prepare('SELECT * FROM v_lesson_library WHERE failure_class = ?')
-      .all(failure_class) as unknown as LibraryRow[];
+  selectLessons({ failure_class, limit = 2, rng = Math.random, scope = 'exact' }: SelectLessonsInput): SelectedLesson[] {
+    const rows = this.candidateRows(failure_class, scope);
     const candidates = rows.map((row) => ({
       lesson_id: row.lesson_id,
       alpha: row.helpful_count + 1,
@@ -517,14 +542,13 @@ export class LessonStore {
     rng = Math.random,
     propensityReplicates = 1000,
     policy: policyRef = null,
+    scope = 'exact',
   }: SelectWithDecisionInput): SelectWithDecisionResult {
     const policy = resolvePolicy(policyRef);
-    const rows = this.db
-      .prepare('SELECT * FROM v_lesson_library WHERE failure_class = ?')
-      .all(failure_class) as unknown as LibraryRow[];
+    const rows = this.candidateRows(failure_class, scope);
 
     if (rows.length === 0) {
-      return { selected: [], candidates: [], null_arm: 1, policy: policyId(policy) };
+      return { selected: [], candidates: [], null_arm: 1, policy: policyId(policy), scope };
     }
 
     const baseCandidates = rows.map((row) => ({
@@ -547,6 +571,11 @@ export class LessonStore {
     const candidates = baseCandidates.map((candidate, index) => ({
       ...candidate,
       propensity: inclusionCertain ? 1 : replicates > 0 ? tallies[index] / replicates : 0,
+      // F2: annotate the causal distance only under 'upstream' scope so the
+      // 'exact' decision rows stay byte-identical to pre-F2 logging.
+      ...(scope === 'upstream'
+        ? { stage_distance: stageDistance(failure_class, rows[index].failure_class) }
+        : {}),
     }));
 
     // The real selection draw (independent of the MC replicates).
@@ -554,7 +583,7 @@ export class LessonStore {
       .sampleSelection(baseCandidates, limit, rng)
       .map(({ index, score }) => ({ ...rows[index], sampled_score: score }));
 
-    return { selected, candidates, null_arm: 0, policy: policyId(policy) };
+    return { selected, candidates, null_arm: 0, policy: policyId(policy), scope };
   }
 
   /**

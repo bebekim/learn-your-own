@@ -3,6 +3,7 @@
  */
 
 import type { SelectionCandidate, SelectionPolicyRef } from '../selection/selection-policies.ts';
+import type { CandidateScope } from '../selection/pipeline-order.ts';
 
 export interface LessonRow {
   lesson_id: string;
@@ -126,6 +127,12 @@ export interface PreferencePairRow {
 
 export interface DecisionCandidate extends SelectionCandidate {
   propensity: number;
+  /**
+   * Specs/6 F2: stageDistance(observed, candidate) from pipeline-order.ts;
+   * present only when the decision was made under 'upstream' scope. >= 0
+   * means the candidate's class is at or upstream of the observed class.
+   */
+  stage_distance?: number | null;
 }
 
 export type SelectedLesson = LibraryRow & { sampled_score: number | null };
@@ -135,6 +142,8 @@ export interface SelectWithDecisionResult {
   candidates: DecisionCandidate[];
   null_arm: number;
   policy: string;
+  /** Specs/6 F2: the candidate scope the selection ran under. */
+  scope: CandidateScope;
 }
 
 export interface CreateLessonInput {
@@ -153,6 +162,13 @@ export interface SelectLessonsInput {
   failure_class: string;
   limit?: number;
   rng?: () => number;
+  /**
+   * Specs/6 F2: 'exact' (default) keeps the historical behavior — candidates
+   * from the observed failure class only. 'upstream' widens to the upstream
+   * closure of the observed class in PIPELINE_ORDER: classes that can
+   * causally produce the observed failure. Downstream classes stay excluded.
+   */
+  scope?: CandidateScope;
 }
 
 export interface SelectWithDecisionInput extends SelectLessonsInput {

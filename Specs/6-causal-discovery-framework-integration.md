@@ -79,6 +79,24 @@ belief propagation에서 prior 메시지 π가 LLM의 semantic confidence를 받
 
 ## Feature 2: Causal Ordering as Lesson Selection Search Space Reduction
 
+> **State: implemented (2026-08-15, v0.4).** `src/lyo/selection/pipeline-order.ts`가
+> 6개 failure class의 pipeline topological order를 정의
+> (`goal_deviation ≺ context_handling ≺ tool_selection ≺ orchestration ≺
+> output_generation ≺ system_execution`). 핵심 설계 결정: 새 artifact-stage
+> 메타데이터를 도입하는 대신 기존 TRAIL taxonomy가 이미 pipeline stage를
+> 라벨링한다는 점을 이용 — observed class k의 실패는 stage 0..k의 원인만
+> 가질 수 있으므로 upstream closure가 causally compatible candidate set.
+> `selectLessons`/`selectWithDecision`에 `scope: 'exact' | 'upstream'` 추가
+> (default 'exact' = pre-v0.4와 byte-identical). 'upstream' 시
+> `WHERE failure_class IN (closure)` + candidate마다 `stage_distance` 기록
+> (decision row의 candidates JSON에 persist → F3 ratio-lift의 stratification
+> 입력으로 사용 가능). replay는 `options.scope`를 받아 decision context에
+> `scope` 기록. Ordering은 hand-specified domain prior (deterministic —
+> deterministic-classification.md 원칙); closure 내 data-driven pruning은
+> Thompson posterior와 ratio-lift가 담당. File-based `lesson-library.ts`
+> 경로는 selection 시점에 failure_class가 없어 범위 밖.
+> Tests: `tests/lyo-pipeline-order.test.js`.
+
 ### 개념
 
 강연의 핵심 통찰: 완벽한 causal graph를 찾는 대신 **causal topological ordering**만

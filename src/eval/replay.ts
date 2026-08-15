@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 import { LessonStore } from '../lyo/storage/lesson-store.ts';
+import type { CandidateScope } from '../lyo/selection/pipeline-order.ts';
 import type {
   DecisionCandidate,
   LessonRow,
@@ -63,6 +64,8 @@ export function replayTrace(
   options: {
     seed?: number;
     limit?: number;
+    /** Specs/6 F2: 'upstream' selects from the causal closure of the observed class. */
+    scope?: CandidateScope;
   } = {}
 ): ReplayTraceReport {
   // v5 (Specs/6 Feature 4): record the run's exogenous noise BEFORE any
@@ -86,6 +89,7 @@ export function replayTrace(
     limit: options.limit ?? 2,
     rng: seededRng(options.seed ?? 1),
     propensityReplicates: 0,
+    scope: options.scope ?? 'exact',
   });
   const decision = store.recordDecision({
     run_id: trace.run_id,
@@ -98,6 +102,9 @@ export function replayTrace(
     policy: selection.policy,
     context: {
       source: 'eval/offline-replay',
+      // F2: record the causal scope only when the caller opted in, so
+      // default replay decision rows stay identical to pre-F2 logging.
+      ...(options.scope ? { scope: selection.scope } : {}),
     },
   });
 
