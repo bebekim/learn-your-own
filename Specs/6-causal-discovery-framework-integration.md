@@ -17,6 +17,26 @@ causal topological ordering을 발견하는 프레임워크를 제시한다. 핵
 
 ## Feature 1: LLM Semantic Prior in Belief Propagation (π_LLM)
 
+> **State: implemented (2026-08-15, v0.5 / schema v6).**
+> `src/lyo/selection/semantic-prior.ts`가 conjugate Beta fusion을 구현:
+> `alpha = helpful + 1 + κ·c`, `beta = harmful + 1 + κ·(1−c)` — Pearl의
+> `BEL(H) ∝ λ(H)·π(H)`에서 λ = data counts, π = LLM prior pseudo-counts.
+> Reflector elicitation contract에 `confidence` 추가 (elaborator@1 프롬프트가
+> [0,1] calibrated self-rating 요구, parser는 clamp + missing/garbage →
+> no-prior로 degrade). `createLesson`이 `prior`를 받아 `lesson.prior_json`에
+> 저장 (migration v6, pre-v6 row는 NULL = no prior). CREATE/EDIT delta
+> payload에도 기록. EDIT merge는 첫 prior를 유지, 없을 때만 adopt.
+> **의도적 분리**: prior는 selection(탐색)에만 들어가고 helpful/harmful
+> counts, Wilson promotion gate, `posterior_mean`은 pure-data 유지 —
+> "LLM proposes, environment counts". κ는 고정이고 counts는 증가하므로
+> prior는 데이터 축적과 함께 washout. κ default 2, cap 10. Decision log
+> candidates는 fused alpha/beta를 기록 (logging policy의 실제 선택 확률이
+> fused이므로 off-policy 평가에 정확). Judge(file-based trace-consumer)의
+> disagreement classification confidence는 F3와 같은 이유로 범위 밖.
+> Full explanation graph(`buildExplanationGraphReport`)는 여전히 미구현 —
+> 이 feature는 π_LLM 주입 지점만 확립.
+> Tests: `tests/lyo-semantic-prior.test.js`.
+
 ### 개념
 
 강연에서 LLM은 broad domain knowledge를 제공하지만 direct/indirect cause 구별에

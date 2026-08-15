@@ -65,9 +65,11 @@ export function buildPrompt({ message, failure_class, cue }: BuildPromptInput): 
         "the agent's work. Your job: distill WHY it failed (one level above the specific incident) " +
         'and WHAT TO DO DIFFERENTLY (a transferable rule, not a restatement of the error). ' +
         'Respond with a single JSON object and nothing else: ' +
-        '{"explanation": string, "intervention": string}. ' +
+        '{"explanation": string, "intervention": string, "confidence": number}. ' +
         `Rules: explanation must cite the specific evidence from the feedback it rests on and stay under ${EXPLANATION_MAX_CHARS} chars; ` +
         `intervention must be imperative, standalone, and under ${INTERVENTION_MAX_CHARS} chars. ` +
+        'confidence is your calibrated self-rating in [0, 1] that the intervention addresses the failure class — ' +
+        'use LOW values (<= 0.4) when the evidence is thin or the abstraction is speculative. ' +
         'No markdown fences, no commentary.',
     },
     {
@@ -95,13 +97,21 @@ export function parseReflectionJson(text: unknown): Reflection {
   const parsed = JSON.parse(candidate.slice(start, end + 1)) as {
     explanation?: unknown;
     intervention?: unknown;
+    confidence?: unknown;
   };
   if (typeof parsed.explanation !== 'string' || typeof parsed.intervention !== 'string') {
     throw new Error('elaborator: JSON output missing explanation/intervention strings');
   }
+  // F1: confidence is optional (older models omit it) and clamped to [0, 1];
+  // a non-numeric value degrades to "no prior" rather than failing the parse.
+  const confidence =
+    typeof parsed.confidence === 'number' && !Number.isNaN(parsed.confidence)
+      ? Math.min(Math.max(parsed.confidence, 0), 1)
+      : undefined;
   return {
     explanation: parsed.explanation.slice(0, EXPLANATION_MAX_CHARS),
     intervention: parsed.intervention.slice(0, INTERVENTION_MAX_CHARS),
+    ...(confidence !== undefined ? { confidence } : {}),
   };
 }
 

@@ -13,6 +13,11 @@
  *   in PIPELINE_ORDER (lyo/selection/pipeline-order.ts) — causal-ordering
  *   search-space reduction; candidates carry stage_distance in the decision
  *   row. Default 'exact' scope is byte-identical to pre-v0.4 behavior.
+ *   v0.5 (Specs/6 Feature 1): the LLM semantic prior π_LLM. createLesson
+ *   accepts a reflector confidence, stored on lesson.prior_json (migration
+ *   v6); selection fuses it as conjugate Beta pseudo-counts
+ *   (lyo/selection/semantic-prior.ts) so the prior biases exploration while
+ *   counts, Wilson gating, and posterior_mean stay pure-data.
  * - §5.1 validation-grounded counter rule + §5.2 Wilson status rules.
  *   v0.3 (Specs/6 Feature 3): per-injection ratio-lift credit
  *   w_i = ĥ(ℓ_i|s_i,u')/ρ_i − 1 (lyo/credit/ratio-lift.ts) replaces the
@@ -50,6 +55,11 @@ import {
 import { normalizeCue } from '../selection/failure-classifier.ts';
 import { stageDistance, upstreamClosure } from '../selection/pipeline-order.ts';
 import type { CandidateScope } from '../selection/pipeline-order.ts';
+import {
+  normalizePrior,
+  parsePriorJson,
+  priorPseudoCounts,
+} from '../selection/semantic-prior.ts';
 import { DEFAULT_POLICY_ID, policyId, resolvePolicy } from '../selection/selection-policies.ts';
 import type {
   ScoredSelection,
@@ -296,6 +306,15 @@ export class LessonStore {
     if (!lessonColumns.includes('executor_model')) {
       this.db.exec('ALTER TABLE lesson ADD COLUMN executor_model TEXT');
     }
+    // v6 (Specs/6 Feature 1): the LLM semantic prior π_LLM. NULL on pre-v6
+    // rows = no prior (honest: the reflector never rated them). The library
+    // view must be recreated to expose the column — CREATE VIEW IF NOT
+    // EXISTS would keep the pre-v6 shape.
+    if (!lessonColumns.includes('prior_json')) {
+      this.db.exec('ALTER TABLE lesson ADD COLUMN prior_json TEXT');
+      this.db.exec('DROP VIEW IF EXISTS v_lesson_library');
+      this.db.exec(LYO_LESSON_DDL);
+    }
     // v5 (Specs/6 Feature 4): per-run exogenous-noise record. Immutable once
     // written (INSERT OR IGNORE): the first record of a run's randomness is
     // the only trustworthy one.
@@ -309,7 +328,7 @@ export class LessonStore {
         recorded_at       TEXT NOT NULL DEFAULT (datetime('now'))
       )
     `);
-    this._setMeta('schema_version', '5');
+    this._setMeta('schema_version', '6');
   }
 
   close(): void {
@@ -391,6 +410,7 @@ export class LessonStore {
     reflector,
     reflector_model,
     executor_model,
+    prior,
   }: CreateLessonInput): LessonRow | null {
     if (!failure_class) {
       throw new Error('LessonStore.createLesson: failure_class is required');
@@ -398,6 +418,9 @@ export class LessonStore {
     const cue = normalizeCue(trigger_cue);
     const now = nowIso();
     const lessonActor = actor || 'reflector';
+    // F1: a malformed LLM confidence degrades to "no prior", never an error.
+    const normalizedPrior = normalizePrior(prior);
+    const priorJson = normalizedPrior ? JSON.stringify(normalizedPrior) : null;
 
     return withTransaction(this.db, (): LessonRow | null => {
       const existing = this.db
@@ -412,6 +435,10 @@ export class LessonStore {
         // intervention / trigger_cue text is NEVER rewritten (ACE
         // brevity-bias/context-collapse rule, design doc §7); the reflector's
         // proposed text is kept in the delta payload for audit only.
+        // F1: the FIRST prior wins — it is the semantic assessment of the
+        // lesson as authored. A prior is adopted here only when the existing
+        // lesson has none (e.g. a template@1 lesson later re-proposed by an
+        // LLM reflector).
         this._emitDelta({
           lesson_id: existing.lesson_id,
           run_id,
@@ -425,13 +452,20 @@ export class LessonStore {
             reflector: reflector ?? null, // authoring reflector id, e.g. 'template@1' (A/B provenance)
             reflector_model: reflector_model ?? null,
             executor_model: executor_model ?? null,
+            prior: normalizedPrior,
           },
         });
         const provenance = unionProvenance(JSON.parse(existing.provenance) as string[], run_id);
+        const adoptPrior = existing.prior_json === null && priorJson !== null;
         this.db
-          .prepare('UPDATE lesson SET provenance = ?, updated_at = ? WHERE lesson_id = ?')
-          .run(JSON.stringify(provenance), now, existing.lesson_id);
-        return { ...existing, provenance: JSON.stringify(provenance), updated_at: now };
+          .prepare('UPDATE lesson SET provenance = ?, updated_at = ?, prior_json = COALESCE(prior_json, ?) WHERE lesson_id = ?')
+          .run(JSON.stringify(provenance), now, priorJson, existing.lesson_id);
+        return {
+          ...existing,
+          provenance: JSON.stringify(provenance),
+          updated_at: now,
+          prior_json: adoptPrior ? priorJson : existing.prior_json,
+        };
       }
 
       const lessonId = randomId('les');
@@ -452,6 +486,7 @@ export class LessonStore {
           reflector: reflector ?? null, // authoring reflector id, e.g. 'template@1' (A/B provenance)
           reflector_model: reflector_model ?? null,
           executor_model: executor_model ?? null,
+          prior: normalizedPrior,
         },
       });
       this.db
@@ -459,8 +494,8 @@ export class LessonStore {
           `INSERT INTO lesson (
              lesson_id, status, failure_class, trigger_cue, explanation, intervention,
              helpful_count, harmful_count, uses, created_at, updated_at, provenance,
-             reflector_policy, reflector_model, executor_model
-           ) VALUES (?, 'candidate', ?, ?, ?, ?, 0, 0, 0, ?, ?, ?, ?, ?, ?)`
+             reflector_policy, reflector_model, executor_model, prior_json
+           ) VALUES (?, 'candidate', ?, ?, ?, ?, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?)`
         )
         .run(
           lessonId,
@@ -473,7 +508,8 @@ export class LessonStore {
           JSON.stringify(provenance),
           reflector ?? null,
           reflector_model ?? null,
-          executor_model ?? null
+          executor_model ?? null,
+          priorJson
         );
       return this.getLesson(lessonId);
     });
@@ -500,6 +536,20 @@ export class LessonStore {
   }
 
   /**
+   * Specs/6 F1: Beta parameters for the selection policy = data counts fused
+   * with the LLM semantic prior's pseudo-counts (BEL ∝ λ·π, semantic-prior.ts).
+   * No prior -> alpha = helpful+1, beta = harmful+1 exactly as pre-v0.5.
+   */
+  private candidateParams(row: LibraryRow): SelectionCandidate {
+    const prior = priorPseudoCounts(parsePriorJson(row.prior_json));
+    return {
+      lesson_id: row.lesson_id,
+      alpha: row.helpful_count + 1 + prior.alpha,
+      beta: row.harmful_count + 1 + prior.beta,
+    };
+  }
+
+  /**
    * §4.2 retrieval + selection under the DEFAULT policy (Thompson-Beta).
    * Thin wrapper kept for callers that only need selected lessons; new code
    * should use selectWithDecision. Delegates to the same policy sampler so
@@ -509,11 +559,7 @@ export class LessonStore {
    */
   selectLessons({ failure_class, limit = 2, rng = Math.random, scope = 'exact' }: SelectLessonsInput): SelectedLesson[] {
     const rows = this.candidateRows(failure_class, scope);
-    const candidates = rows.map((row) => ({
-      lesson_id: row.lesson_id,
-      alpha: row.helpful_count + 1,
-      beta: row.harmful_count + 1,
-    }));
+    const candidates = rows.map((row) => this.candidateParams(row));
     return resolvePolicy(null)
       .sampleSelection(candidates, limit, rng)
       .map(({ index, score }: ScoredSelection) => ({ ...rows[index], sampled_score: score }));
@@ -551,11 +597,7 @@ export class LessonStore {
       return { selected: [], candidates: [], null_arm: 1, policy: policyId(policy), scope };
     }
 
-    const baseCandidates = rows.map((row) => ({
-      lesson_id: row.lesson_id,
-      alpha: row.helpful_count + 1,
-      beta: row.harmful_count + 1,
-    }));
+    const baseCandidates = rows.map((row) => this.candidateParams(row));
 
     const inclusionCertain = rows.length <= limit;
     const replicates = Math.max(0, propensityReplicates);

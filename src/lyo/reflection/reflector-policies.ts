@@ -57,6 +57,12 @@ export interface ReflectionInput {
 export interface Reflection {
   explanation: string;
   intervention: string;
+  /**
+   * Specs/6 F1: the reflector's self-rated confidence in [0, 1] that this
+   * lesson addresses the failure — the LLM semantic prior π_LLM. Optional:
+   * template@1 and pre-F1 models never set it, which stores no prior.
+   */
+  confidence?: number;
 }
 
 export interface Reflector {

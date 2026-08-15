@@ -13,6 +13,8 @@ export interface ReplayCandidateLesson {
   trigger_cue: string;
   explanation: string;
   intervention: string;
+  /** Specs/6 F1: optional LLM semantic prior carried into createLesson. */
+  prior?: { confidence: number; strength?: number; source?: string };
 }
 
 export interface ReplayTrace {
@@ -191,8 +193,32 @@ function candidateLessonsField(value: Record<string, unknown>, errors: string[])
       trigger_cue: stringField(item, 'trigger_cue', errors, `candidate_lessons[${index}].trigger_cue`),
       explanation: stringField(item, 'explanation', errors, `candidate_lessons[${index}].explanation`),
       intervention: stringField(item, 'intervention', errors, `candidate_lessons[${index}].intervention`),
+      ...priorField(item, errors, `candidate_lessons[${index}].prior`),
     };
   });
+}
+
+// F1: prior is optional; when present it must be an object with a numeric
+// confidence in [0, 1] (strength/source optional, store-side normalization
+// applies its own defaults and caps).
+function priorField(
+  value: Record<string, unknown>,
+  errors: string[],
+  label: string
+): { prior?: { confidence: number; strength?: number; source?: string } } {
+  const raw = value.prior;
+  if (raw === undefined || raw === null) return {};
+  if (!isObject(raw) || typeof raw.confidence !== 'number' || Number.isNaN(raw.confidence) || raw.confidence < 0 || raw.confidence > 1) {
+    errors.push(`${label} must be an object with a numeric confidence in [0, 1]`);
+    return {};
+  }
+  return {
+    prior: {
+      confidence: raw.confidence,
+      ...(typeof raw.strength === 'number' ? { strength: raw.strength } : {}),
+      ...(typeof raw.source === 'string' ? { source: raw.source } : {}),
+    },
+  };
 }
 
 function outcomeField(value: Record<string, unknown>, errors: string[]): 'passed' | 'failed' {

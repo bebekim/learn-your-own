@@ -6,6 +6,8 @@
  * Migration v5 adds lesson_decision.posterior_snapshot_id and the
  * run_randomness table via LessonStore._migrate (fresh and old databases
  * converge through that one path; the DDL below keeps its original shapes).
+ * Migration v6 (Specs/6 Feature 1) adds lesson.prior_json (the LLM semantic
+ * prior π_LLM) and recreates v_lesson_library with the column.
  *
  * DEVIATION 1 (see lesson-store.ts header): lesson_application carries
  * trigger_message_id and is UNIQUE(lesson_id, run_id, trigger_message_id)
@@ -113,9 +115,13 @@ CREATE INDEX IF NOT EXISTS idx_decision_run   ON lesson_decision(run_id);
 CREATE INDEX IF NOT EXISTS idx_decision_class ON lesson_decision(failure_class);
 
 -- §4.1 the library view. Candidates stay retrievable for exploration.
+-- posterior_mean stays DATA-ONLY: the v6 prior_json column is carried through
+-- for selection-time fusion but never enters the reported posterior (the
+-- Wilson gate and this mean are grounded evidence; LLM proposes, the
+-- environment counts).
 CREATE VIEW IF NOT EXISTS v_lesson_library AS
 SELECT lesson_id, failure_class, trigger_cue, explanation, intervention,
-  helpful_count, harmful_count, uses,
+  helpful_count, harmful_count, uses, prior_json,
   CAST(helpful_count + 1 AS REAL) / (helpful_count + harmful_count + 2) AS posterior_mean
 FROM lesson
 WHERE status IN ('active', 'candidate');

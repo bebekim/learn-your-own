@@ -834,7 +834,7 @@ test('LYO decision log (v0.2): migrates a pre-v0.2 store: adds decision_id and p
     assert.ok(lessonColumns.includes('reflector_policy'), 'migration adds reflector_policy');
     assert.ok(lessonColumns.includes('reflector_model'), 'migration adds reflector_model');
     assert.ok(lessonColumns.includes('executor_model'), 'migration adds executor_model');
-    assert.strictEqual(store._getMeta('schema_version'), '5');
+    assert.strictEqual(store._getMeta('schema_version'), '6');
 
     // Pre-existing data untouched: receipt still counted, decision_id NULL.
     const receipt = store.db
@@ -1176,7 +1176,7 @@ test('LYO decision log (v5): migrates a v4 store: snapshot column NULL on old ro
       .all()
       .map((row) => row.name);
     assert.ok(tables.includes('run_randomness'), 'migration creates run_randomness');
-    assert.strictEqual(store._getMeta('schema_version'), '5');
+    assert.strictEqual(store._getMeta('schema_version'), '6');
 
     // Pre-v5 rows: decision-time state is unrecoverable -> NULL, not a guess.
     assert.strictEqual(store.getDecision('dec_v4').posterior_snapshot_id, null);

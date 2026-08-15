@@ -4,6 +4,7 @@
 
 import type { SelectionCandidate, SelectionPolicyRef } from '../selection/selection-policies.ts';
 import type { CandidateScope } from '../selection/pipeline-order.ts';
+import type { LessonPrior } from '../selection/semantic-prior.ts';
 
 export interface LessonRow {
   lesson_id: string;
@@ -21,6 +22,8 @@ export interface LessonRow {
   reflector_policy: string | null;
   reflector_model: string | null;
   executor_model: string | null;
+  /** Specs/6 F1: JSON NormalizedPrior; NULL = no LLM prior (pre-v6 rows). */
+  prior_json: string | null;
 }
 
 export interface DeltaRow {
@@ -101,6 +104,8 @@ export interface LibraryRow {
   harmful_count: number;
   uses: number;
   posterior_mean: number;
+  /** Specs/6 F1: JSON NormalizedPrior; NULL = no LLM prior. */
+  prior_json: string | null;
 }
 
 export interface TraceRow {
@@ -156,6 +161,8 @@ export interface CreateLessonInput {
   reflector?: string | null;
   reflector_model?: string | null;
   executor_model?: string | null;
+  /** Specs/6 F1: LLM semantic prior π_LLM (semantic-prior.ts). */
+  prior?: LessonPrior | null;
 }
 
 export interface SelectLessonsInput {
