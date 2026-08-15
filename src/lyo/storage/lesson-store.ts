@@ -12,6 +12,10 @@
  * - §5.3 lesson_decision log: per-decision candidate snapshot (alpha/beta at
  *   decision time) + Monte-Carlo selection propensities (v0.2). This is the
  *   logged-bandit data the ratio-lift estimator joins against outcomes.
+ * - v5 (Specs/6 Feature 4): lesson_decision.posterior_snapshot_id (MAX(delta_id)
+ *   at decision time — replay up to that id reconstructs the decision-time
+ *   posterior) + the run_randomness table (per-run exogenous-noise record:
+ *   seeds, temperature, model ids, tool-trace hashes).
  * - §6 replay (fold deltas back into state)
  * - §7 curator (merge / prune, watermark-driven)
  *
@@ -57,8 +61,10 @@ import type {
   RecordApplicationInput,
   RecordDecisionInput,
   RecordPreferencePairInput,
+  RecordRunRandomnessInput,
   RecordTraceInput,
   ReplayState,
+  RunRandomnessRow,
   SelectLessonsInput,
   SelectedLesson,
   SelectWithDecisionInput,
@@ -79,8 +85,10 @@ export type {
   RecordApplicationInput,
   RecordDecisionInput,
   RecordPreferencePairInput,
+  RecordRunRandomnessInput,
   RecordTraceInput,
   ReplayState,
+  RunRandomnessRow,
   SelectLessonsInput,
   SelectedLesson,
   SelectWithDecisionInput,
@@ -227,9 +235,15 @@ export class LessonStore {
   // gains policy, the id of the selection policy that logged the decision —
   // logged-bandit provenance. The DEFAULT is factually correct for existing
   // rows: they were all logged by thompson-beta@1, the only policy that
-  // existed then. The DDL intentionally keeps the original table shapes so
-  // fresh and old databases converge through this ONE path. schema_version
-  // is upserted every open.
+  // existed then. v5 (Specs/6 Feature 4): lesson_decision gains
+  // posterior_snapshot_id (MAX(delta_id) at decision time — replay of deltas
+  // up to that id reconstructs the exact posterior landscape the decision was
+  // drawn from; NULL on pre-v5 rows, whose decision-time state is
+  // unrecoverable) and the run_randomness table (the exogenous-noise record
+  // {N}: seeds, temperature, model ids, tool-trace hashes — cheap to log at
+  // run time, impossible to reconstruct later). The DDL intentionally keeps
+  // the original table shapes so fresh and old databases converge through
+  // this ONE path. schema_version is upserted every open.
   private _migrate(): void {
     const applicationColumns = (this.db.prepare('PRAGMA table_info(lesson_application)').all() as unknown as TableInfoRow[]).map(
       (column) => column.name
@@ -245,6 +259,9 @@ export class LessonStore {
         `ALTER TABLE lesson_decision ADD COLUMN policy TEXT NOT NULL DEFAULT '${DEFAULT_POLICY_ID}'`
       );
     }
+    if (!decisionColumns.includes('posterior_snapshot_id')) {
+      this.db.exec('ALTER TABLE lesson_decision ADD COLUMN posterior_snapshot_id INTEGER');
+    }
     // v4 (model inversion): pair provenance columns on lesson. NULL on
     // pre-v4 rows — pair stats aggregate those under '(unknown)'.
     const lessonColumns = (this.db.prepare('PRAGMA table_info(lesson)').all() as unknown as TableInfoRow[]).map(
@@ -259,7 +276,20 @@ export class LessonStore {
     if (!lessonColumns.includes('executor_model')) {
       this.db.exec('ALTER TABLE lesson ADD COLUMN executor_model TEXT');
     }
-    this._setMeta('schema_version', '4');
+    // v5 (Specs/6 Feature 4): per-run exogenous-noise record. Immutable once
+    // written (INSERT OR IGNORE): the first record of a run's randomness is
+    // the only trustworthy one.
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS run_randomness (
+        run_id            TEXT PRIMARY KEY,
+        seed              TEXT,
+        temperature       REAL,
+        model_ids         TEXT NOT NULL DEFAULT '{}',
+        tool_trace_hashes TEXT NOT NULL DEFAULT '[]',
+        recorded_at       TEXT NOT NULL DEFAULT (datetime('now'))
+      )
+    `);
+    this._setMeta('schema_version', '5');
   }
 
   close(): void {
@@ -573,6 +603,13 @@ export class LessonStore {
    * where no lesson was injected). `policy` is the logging policy of record
    * (name@version, e.g. 'thompson-beta@1'); pass the value returned by
    * selectWithDecision. decision_id is dec_<16 hex>.
+   *
+   * posterior_snapshot_id (v5, Specs/6 Feature 4) is stamped automatically:
+   * MAX(delta_id) at decision time. Since §6 replay folds deltas in delta_id
+   * order and recomputes status deterministically from counters, the fold of
+   * all deltas with delta_id <= posterior_snapshot_id reconstructs the exact
+   * posterior landscape the decision was drawn from — old receipts stay
+   * interpretable as the bandit posterior drifts.
    */
   recordDecision({
     run_id,
@@ -593,12 +630,15 @@ export class LessonStore {
       throw new Error('LessonStore.recordDecision: candidates and selected must be arrays');
     }
     const decisionId = randomId('dec');
+    const posteriorSnapshotId = (
+      this.db.prepare('SELECT MAX(delta_id) AS maxId FROM lesson_delta').get() as unknown as MaxDeltaRow
+    ).maxId ?? 0;
     this.db
       .prepare(
         `INSERT INTO lesson_decision
            (decision_id, run_id, trigger_message_id, cycle_index, failure_class, task_cue,
-            candidates, selected, null_arm, context, policy, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            candidates, selected, null_arm, context, policy, posterior_snapshot_id, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         decisionId,
@@ -612,6 +652,7 @@ export class LessonStore {
         null_arm ? 1 : 0,
         JSON.stringify(context ?? {}),
         policy ?? DEFAULT_POLICY_ID,
+        posteriorSnapshotId,
         nowIso()
       );
     return this.getDecision(decisionId);
@@ -621,6 +662,48 @@ export class LessonStore {
     return (
       (this.db.prepare('SELECT * FROM lesson_decision WHERE decision_id = ?').get(decisionId) as
         | DecisionRow
+        | undefined) || null
+    );
+  }
+
+  /**
+   * v5 (Specs/6 Feature 4): the per-run exogenous-noise record {N} — seeds,
+   * temperature, model ids, tool-trace hashes. This is the down payment for
+   * any future rung-3 replay ("replay this exact run without the lesson";
+   * WCS abduction requires the noise). Immutable once written: INSERT OR
+   * IGNORE returns the existing row on a repeated run_id, because the first
+   * record of a run's randomness is the only trustworthy one.
+   */
+  recordRunRandomness({
+    run_id,
+    seed = null,
+    temperature = null,
+    model_ids = {},
+    tool_trace_hashes = [],
+  }: RecordRunRandomnessInput): RunRandomnessRow {
+    if (!run_id) {
+      throw new Error('LessonStore.recordRunRandomness: run_id is required');
+    }
+    this.db
+      .prepare(
+        `INSERT OR IGNORE INTO run_randomness
+           (run_id, seed, temperature, model_ids, tool_trace_hashes)
+         VALUES (?, ?, ?, ?, ?)`
+      )
+      .run(
+        run_id,
+        seed ?? null,
+        temperature ?? null,
+        JSON.stringify(model_ids ?? {}),
+        JSON.stringify(tool_trace_hashes ?? [])
+      );
+    return this.getRunRandomness(run_id)!;
+  }
+
+  getRunRandomness(runId: string): RunRandomnessRow | null {
+    return (
+      (this.db.prepare('SELECT * FROM run_randomness WHERE run_id = ?').get(runId) as
+        | RunRandomnessRow
         | undefined) || null
     );
   }

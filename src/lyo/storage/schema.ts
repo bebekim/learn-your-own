@@ -3,6 +3,9 @@
  * inspectable without reading the class implementation. The kernel's own
  * 27-table schema lives in src/schema.ts; this is the LYO lesson store's
  * separate schema (design doc §3 + §5.3 decision log + v4 pair stats).
+ * Migration v5 adds lesson_decision.posterior_snapshot_id and the
+ * run_randomness table via LessonStore._migrate (fresh and old databases
+ * converge through that one path; the DDL below keeps its original shapes).
  *
  * DEVIATION 1 (see lesson-store.ts header): lesson_application carries
  * trigger_message_id and is UNIQUE(lesson_id, run_id, trigger_message_id)

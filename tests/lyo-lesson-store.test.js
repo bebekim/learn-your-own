@@ -60,6 +60,7 @@ test('LYO lesson store: creates the schema: tables, indexes, library view, and m
   assert.ok(tables.includes('lesson_delta'));
   assert.ok(tables.includes('lesson_application'));
   assert.ok(tables.includes('lyo_meta'));
+  assert.ok(tables.includes('run_randomness'));
 
   const views = store.db
     .prepare("SELECT name FROM sqlite_master WHERE type = 'view'")
@@ -831,7 +832,7 @@ test('LYO decision log (v0.2): migrates a pre-v0.2 store: adds decision_id and p
     assert.ok(lessonColumns.includes('reflector_policy'), 'migration adds reflector_policy');
     assert.ok(lessonColumns.includes('reflector_model'), 'migration adds reflector_model');
     assert.ok(lessonColumns.includes('executor_model'), 'migration adds executor_model');
-    assert.strictEqual(store._getMeta('schema_version'), '4');
+    assert.strictEqual(store._getMeta('schema_version'), '5');
 
     // Pre-existing data untouched: receipt still counted, decision_id NULL.
     const receipt = store.db
@@ -1020,4 +1021,175 @@ test('LYO failure classifier: builds the cue from the first error line, normaliz
     content: { text: 'x'.repeat(500), data: { approved: false } },
   });
   assert.ok(longCue.cue.length <= 120);
+});
+
+test('LYO decision log (v5): recordDecision stamps posterior_snapshot_id = MAX(delta_id) at decision time', () => {
+  const store = new LessonStore(':memory:');
+  const first = makeLesson(store, { trigger_cue: 'snapshot cue a' }); // CREATE -> delta_id 1
+
+  const d1 = store.recordDecision({
+    run_id: 'run-snap-1',
+    failure_class: 'output_generation',
+    candidates: [],
+    selected: [],
+  });
+  assert.strictEqual(d1.posterior_snapshot_id, 1);
+
+  // A new delta lands (second CREATE) -> the next decision sees the drifted posterior.
+  makeLesson(store, { trigger_cue: 'snapshot cue b' }); // CREATE -> delta_id 2
+  const d2 = store.recordDecision({
+    run_id: 'run-snap-2',
+    failure_class: 'output_generation',
+    candidates: [],
+    selected: [],
+  });
+  assert.strictEqual(d2.posterior_snapshot_id, 2);
+
+  // Decision rows are immutable: d1 keeps the snapshot it was drawn from.
+  assert.strictEqual(store.getDecision(d1.decision_id).posterior_snapshot_id, 1);
+
+  // The snapshot is sound: folding deltas with delta_id <= snapshot reproduces
+  // exactly the lessons that existed at decision time.
+  const replayableAtD1 = store
+    .getDeltas(first.lesson_id)
+    .filter((delta) => delta.delta_id <= d1.posterior_snapshot_id);
+  assert.strictEqual(replayableAtD1.length, 1);
+  assert.strictEqual(replayableAtD1[0].delta_type, 'CREATE');
+
+  store.close();
+});
+
+test('LYO run randomness (v5): records the exogenous-noise log once, immutably', () => {
+  const store = new LessonStore(':memory:');
+
+  const record = store.recordRunRandomness({
+    run_id: 'run-rand',
+    seed: '42',
+    temperature: 0.7,
+    model_ids: { executor: 'claude:level2', reflector: 'openai/gpt-4o-mini' },
+    tool_trace_hashes: ['deadbeef'],
+  });
+  assert.strictEqual(record.run_id, 'run-rand');
+  assert.strictEqual(record.seed, '42');
+  assert.strictEqual(record.temperature, 0.7);
+  assert.deepStrictEqual(JSON.parse(record.model_ids), {
+    executor: 'claude:level2',
+    reflector: 'openai/gpt-4o-mini',
+  });
+  assert.deepStrictEqual(JSON.parse(record.tool_trace_hashes), ['deadbeef']);
+  assert.ok(record.recorded_at);
+
+  // Immutable: a second write for the same run is ignored, first record wins.
+  const again = store.recordRunRandomness({ run_id: 'run-rand', seed: '99' });
+  assert.strictEqual(again.seed, '42');
+  assert.strictEqual(store.getRunRandomness('run-rand').seed, '42');
+
+  // Defaults: omitted fields land as NULL / empty JSON.
+  const minimal = store.recordRunRandomness({ run_id: 'run-minimal' });
+  assert.strictEqual(minimal.seed, null);
+  assert.strictEqual(minimal.temperature, null);
+  assert.deepStrictEqual(JSON.parse(minimal.model_ids), {});
+  assert.deepStrictEqual(JSON.parse(minimal.tool_trace_hashes), []);
+
+  assert.strictEqual(store.getRunRandomness('run-missing'), null);
+  assert.throws(() => store.recordRunRandomness({}), /run_id is required/);
+
+  store.close();
+});
+
+test('LYO decision log (v5): migrates a v4 store: snapshot column NULL on old rows, run_randomness created', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lyo-migrate-v5-'));
+  const dbPath = path.join(tempDir, 'v4-lessons.db');
+  try {
+    // Hand-build the v4 shape: lesson_decision WITHOUT posterior_snapshot_id,
+    // no run_randomness table, one logged decision row.
+    const raw = new DatabaseSync(dbPath);
+    raw.exec(`
+      CREATE TABLE lesson_delta (
+        delta_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        lesson_id TEXT NOT NULL,
+        run_id TEXT,
+        ts TEXT NOT NULL DEFAULT (datetime('now')),
+        actor TEXT NOT NULL,
+        delta_type TEXT NOT NULL,
+        payload TEXT NOT NULL
+      );
+      CREATE TABLE lesson (
+        lesson_id TEXT PRIMARY KEY,
+        status TEXT NOT NULL DEFAULT 'candidate',
+        failure_class TEXT NOT NULL,
+        trigger_cue TEXT NOT NULL,
+        explanation TEXT NOT NULL,
+        intervention TEXT NOT NULL,
+        helpful_count INTEGER NOT NULL DEFAULT 0,
+        harmful_count INTEGER NOT NULL DEFAULT 0,
+        uses INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        provenance TEXT NOT NULL DEFAULT '[]'
+      );
+      CREATE TABLE lesson_application (
+        application_id TEXT PRIMARY KEY,
+        lesson_id TEXT NOT NULL,
+        run_id TEXT NOT NULL,
+        trigger_message_id TEXT,
+        task_cue TEXT,
+        sampled_score REAL,
+        outcome TEXT NOT NULL DEFAULT 'pending',
+        counted INTEGER NOT NULL DEFAULT 0,
+        decision_id TEXT,
+        UNIQUE(lesson_id, run_id, trigger_message_id)
+      );
+      CREATE TABLE lyo_meta (key TEXT PRIMARY KEY, value TEXT);
+      CREATE TABLE lesson_decision (
+        decision_id TEXT PRIMARY KEY,
+        run_id TEXT NOT NULL,
+        trigger_message_id TEXT,
+        cycle_index INTEGER,
+        failure_class TEXT NOT NULL,
+        task_cue TEXT,
+        candidates TEXT NOT NULL,
+        selected TEXT NOT NULL,
+        null_arm REAL NOT NULL DEFAULT 0,
+        context TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        policy TEXT NOT NULL DEFAULT 'thompson-beta@1'
+      );
+      INSERT INTO lesson_delta (lesson_id, run_id, actor, delta_type, payload)
+        VALUES ('les_v4', 'run-v4', 'reflector', 'CREATE', '{}');
+      INSERT INTO lesson_decision (decision_id, run_id, failure_class, candidates, selected)
+        VALUES ('dec_v4', 'run-v4', 'output_generation', '[]', '[]');
+    `);
+    raw.close();
+
+    const store = new LessonStore(dbPath);
+
+    const decisionColumns = store.db
+      .prepare('PRAGMA table_info(lesson_decision)')
+      .all()
+      .map((column) => column.name);
+    assert.ok(decisionColumns.includes('posterior_snapshot_id'), 'migration adds posterior_snapshot_id');
+    const tables = store.db
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+      .all()
+      .map((row) => row.name);
+    assert.ok(tables.includes('run_randomness'), 'migration creates run_randomness');
+    assert.strictEqual(store._getMeta('schema_version'), '5');
+
+    // Pre-v5 rows: decision-time state is unrecoverable -> NULL, not a guess.
+    assert.strictEqual(store.getDecision('dec_v4').posterior_snapshot_id, null);
+
+    // New decisions get the live snapshot (one CREATE delta exists).
+    const fresh = store.recordDecision({
+      run_id: 'run-new',
+      failure_class: 'output_generation',
+      candidates: [],
+      selected: [],
+    });
+    assert.strictEqual(fresh.posterior_snapshot_id, 1);
+
+    store.close();
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
 });

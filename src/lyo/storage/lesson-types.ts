@@ -57,6 +57,25 @@ export interface DecisionRow {
   context: string;
   created_at: string;
   policy: string;
+  /** MAX(delta_id) at decision time; NULL on pre-v5 rows (state unrecoverable). */
+  posterior_snapshot_id: number | null;
+}
+
+export interface RunRandomnessRow {
+  run_id: string;
+  seed: string | null;
+  temperature: number | null;
+  model_ids: string;
+  tool_trace_hashes: string;
+  recorded_at: string;
+}
+
+export interface RecordRunRandomnessInput {
+  run_id: string;
+  seed?: string | null;
+  temperature?: number | null;
+  model_ids?: Record<string, string>;
+  tool_trace_hashes?: string[];
 }
 
 export interface PairStatsRow {

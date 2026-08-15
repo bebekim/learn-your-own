@@ -65,6 +65,14 @@ export function replayTrace(
     limit?: number;
   } = {}
 ): ReplayTraceReport {
+  // v5 (Specs/6 Feature 4): record the run's exogenous noise BEFORE any
+  // decision so every replayed run joins to its randomness record.
+  store.recordRunRandomness({
+    run_id: trace.run_id,
+    seed: String(options.seed ?? 1),
+    model_ids: { actor: 'eval-replay' },
+  });
+
   const created = trace.candidate_lessons.map((lesson) =>
     store.createLesson({
       ...lesson,
