@@ -1,9 +1,15 @@
 #!/usr/bin/env node
 /**
- * Session-start hook: print grounded LYO lessons for hook-capable agents.
+ * Session lesson banner: print grounded LYO lessons for hook-capable agents.
  *
  * Read-only and fail-open by design. Cluster runs write lessons; interactive
  * agent hooks only consume the existing lesson library.
+ *
+ * When the hook payload carries a session id (e.g. kimi-code UserPromptSubmit,
+ * which fires on every prompt), the banner prints at most once per session;
+ * the marker is only written when lessons were actually printed, so a session
+ * that starts with an empty library can still receive lessons on a later
+ * prompt. Without a session id (e.g. `--cwd` manual runs) it always prints.
  */
 
 import fs from 'node:fs';
@@ -28,6 +34,8 @@ interface LessonRow {
 
 export interface SessionHookPayload {
   cwd?: string | null;
+  session_id?: string | null;
+  sessionId?: string | null;
 }
 
 export function resolveSessionLessonStorePath(cwd?: string | null): string | null {
@@ -91,10 +99,29 @@ export function renderSessionLessons(payload: SessionHookPayload = {}): string |
   }
 }
 
+function claimSessionBanner(sessionId: string): boolean {
+  const safe = sessionId.replace(/[^A-Za-z0-9_-]/g, '_');
+  if (!safe) return true;
+  const dir = path.join(os.tmpdir(), 'lyo-lesson-banner');
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    const marker = path.join(dir, safe);
+    if (fs.existsSync(marker)) return false;
+    fs.writeFileSync(marker, new Date().toISOString());
+    return true;
+  } catch {
+    // fail-open: if the marker store is unusable, print rather than suppress
+    return true;
+  }
+}
+
 export function emitSessionLessons(payload: SessionHookPayload = {}): void {
   try {
     const text = renderSessionLessons(payload);
-    if (text) process.stdout.write(text);
+    if (!text) return;
+    const sessionId = payload.session_id ?? payload.sessionId;
+    if (sessionId && !claimSessionBanner(sessionId)) return;
+    process.stdout.write(text);
   } catch {
     // fail-open: never block the session
   }

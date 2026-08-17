@@ -16,7 +16,7 @@ export function buildHookBlock(): string {
   return [
     '# lyo-wrap-begin',
     '[[hooks]]',
-    'event = "SessionStart"',
+    'event = "UserPromptSubmit"',
     `command = "node ${sessionHookPath}"`,
     'timeout = 5',
     '',

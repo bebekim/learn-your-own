@@ -51,3 +51,38 @@ test('LYO session hook: missing store fails open', () => {
   assert.equal(result.stdout, '');
   assert.equal(result.stderr, '');
 });
+
+test('LYO session hook: prints at most once per session id', () => {
+  const cwd = tempDir();
+  const tmp = tempDir();
+  const storeDir = path.join(cwd, '.zeroshot');
+  fs.mkdirSync(storeDir);
+  const store = new LessonStore(path.join(storeDir, 'lyo-lessons.db'));
+  store.createLesson({
+    failure_class: 'output_generation',
+    trigger_cue: 'tests failed',
+    explanation: 'tests failed',
+    intervention: 'Run the narrow test before reporting done.',
+  });
+  store.close();
+
+  const runHook = (sessionId) =>
+    spawnSync(process.execPath, ['src/lyo/selection/session-hook.ts'], {
+      cwd: path.join(import.meta.dirname, '..'),
+      encoding: 'utf8',
+      input: JSON.stringify({ cwd, session_id: sessionId }),
+      env: { ...process.env, TMPDIR: tmp },
+    });
+
+  const first = runHook('session-a');
+  assert.equal(first.status, 0);
+  assert.match(first.stdout, /LYO lessons from your past runs/);
+
+  const repeat = runHook('session-a');
+  assert.equal(repeat.status, 0);
+  assert.equal(repeat.stdout, '');
+
+  const other = runHook('session-b');
+  assert.equal(other.status, 0);
+  assert.match(other.stdout, /LYO lessons from your past runs/);
+});

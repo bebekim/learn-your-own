@@ -19,17 +19,18 @@ test('buildHookBlock produces 8 hooks with correct markers and paths', () => {
   const hookCount = (block.match(/\[\[hooks\]\]/g) || []).length;
   assert.equal(hookCount, 8);
 
-  // Two SessionStart hooks (lesson delivery + ingestion)
+  // One SessionStart hook (ingestion); lesson delivery moved to UserPromptSubmit
+  // because kimi-code treats SessionStart as observation-only and discards stdout
   const sessionStartCount = (block.match(/event = "SessionStart"/g) || []).length;
-  assert.equal(sessionStartCount, 2);
+  assert.equal(sessionStartCount, 1);
 
   // Other events present
   for (const event of ['UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'Stop', 'SessionEnd']) {
     assert.ok(block.includes(`event = "${event}"`), `missing event: ${event}`);
   }
 
-  // First SessionStart uses session-hook.ts (lesson delivery)
-  assert.match(block, /session-hook\.ts/);
+  // Lesson delivery runs on UserPromptSubmit with session-hook.ts
+  assert.match(block, /event = "UserPromptSubmit"\ncommand = "node [^"]+session-hook\.ts"/);
 
   // Other hooks use claude-hook with flags
   assert.ok(block.includes('claude-hook --db-from-event-cwd --spool-dir-from-event-cwd'));
