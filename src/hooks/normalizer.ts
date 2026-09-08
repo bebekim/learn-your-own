@@ -135,6 +135,7 @@ function isShellTool(toolName: string): boolean {
   const normalized = toolName.toLowerCase();
   return normalized === 'bash'
     || normalized === 'shell'
+    || normalized === 'eca__shell_command'
     || normalized === 'exec_command'
     || normalized.endsWith('.exec_command');
 }
@@ -288,7 +289,7 @@ function patchOperationKind(operation: string): PathActivationKind {
 function runtimeFromPayload(payload: Record<string, unknown>): HookRuntime {
   const metadata = objectValue(payload._lyo);
   const runtime = stringValue(metadata?.runtime);
-  if (runtime === 'codex' || runtime === 'gemini' || runtime === 'claude') return runtime;
+  if (runtime === 'codex' || runtime === 'gemini' || runtime === 'claude' || runtime === 'eca') return runtime;
   return 'codex';
 }
 

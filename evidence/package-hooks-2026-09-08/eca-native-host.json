@@ -1,0 +1,14 @@
+{
+  "kind": "eca-native-host-smoke",
+  "version": "0.158.0",
+  "modelCalls": 0,
+  "displayCommand": "/hooks",
+  "sessions": [
+    [
+      "eca",
+      1
+    ]
+  ],
+  "bridgeTraces": 1,
+  "deliveryTraces": 1
+}

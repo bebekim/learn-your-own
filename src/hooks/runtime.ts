@@ -70,7 +70,7 @@ interface HookNormalizationPolicy {
 
 const CODEX_NORMALIZATION_POLICY: HookNormalizationPolicy = {
   toolUseEvents: ['PostToolUse'],
-  stopEvents: ['Stop'],
+  stopEvents: ['Stop', 'SessionEnd'],
 };
 
 const CLAUDE_NORMALIZATION_POLICY: HookNormalizationPolicy = {

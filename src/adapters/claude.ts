@@ -1,3 +1,4 @@
+import { getLyoVersion } from '../version.ts';
 import type { CanonicalHookEventName, HookObservation } from '../hooks/events.ts';
 import {
   createHookEventId,
@@ -22,6 +23,7 @@ import type {
 } from '../types/observation.ts';
 
 export interface ClaudeHookInput {
+  platform?: 'eca';
   session_id?: string;
   transcript_path?: string | null;
   cwd?: string;
@@ -55,6 +57,7 @@ export function claudeHookObservation(
   event: ClaudeHookInput,
   options: { promptDir?: string; includeRawPrompt: boolean }
 ): HookObservation {
+  const runtime = event.platform === 'eca' ? 'eca' : 'claude';
   const runtimeEventName = event.hook_event_name ?? 'Unknown';
   const canonicalEventName = canonicalClaudeEventName(runtimeEventName);
   const sessionId = event.session_id ?? 'unknown-session';
@@ -66,6 +69,7 @@ export function claudeHookObservation(
     eventName: canonicalEventName,
     cwd,
     model: event.model ?? null,
+    lyoVersion: getLyoVersion(),
     payload: redactClaudeHookEvent(event, {
       runtimeEventName,
       canonicalEventName,
@@ -78,11 +82,11 @@ export function claudeHookObservation(
   let promptBoundary: RecordPromptBoundaryInput | null = null;
 
   if (runtimeEventName === 'SessionStart') {
-    session = buildSession({ sessionId, repoPath: cwd, platform: 'claude', model: event.model ?? null });
+    session = buildSession({ sessionId, repoPath: cwd, platform: runtime, model: event.model ?? null });
   } else if (runtimeEventName === 'SessionEnd') {
     sessionEnd = { sessionId };
   } else if (runtimeEventName === 'UserPromptSubmit' && typeof event.prompt === 'string' && event.prompt) {
-    session = buildSession({ sessionId, repoPath: cwd, platform: 'claude', model: event.model ?? null });
+    session = buildSession({ sessionId, repoPath: cwd, platform: runtime, model: event.model ?? null });
     promptBoundary = buildUserPromptBoundary({
       sessionId,
       turnId,
@@ -93,7 +97,7 @@ export function claudeHookObservation(
       promptDir: options.promptDir,
     });
   } else if (runtimeEventName === 'Stop' && typeof event.last_assistant_message === 'string' && event.last_assistant_message) {
-    session = buildSession({ sessionId, repoPath: cwd, platform: 'claude', model: event.model ?? null });
+    session = buildSession({ sessionId, repoPath: cwd, platform: runtime, model: event.model ?? null });
     promptBoundary = buildAssistantPromptBoundary({
       sessionId,
       turnId,
@@ -103,7 +107,7 @@ export function claudeHookObservation(
   }
 
   return {
-    runtime: 'claude',
+    runtime,
     runtimeEventName,
     canonicalEventName,
     sessionId,
@@ -153,7 +157,8 @@ function redactClaudeHookEvent(
   const redacted: Record<string, unknown> = {
     ...event,
     _lyo: {
-      runtime: 'claude',
+      runtime: event.platform === 'eca' ? 'eca' : 'claude',
+      lyo_version: getLyoVersion(),
       runtime_event_name: names.runtimeEventName,
       canonical_event_name: names.canonicalEventName,
     },

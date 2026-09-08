@@ -6,6 +6,7 @@ import {
   runClaudeHookCommand,
   runCodexHookCommand,
   runDcodeHookCommand,
+  runEcaHookCommand,
   runGeminiHookCommand,
 } from '../hooks.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
@@ -17,6 +18,7 @@ export const HOOK_COMMANDS: Record<string, CommandHandler> = {
   'gemini-hook': runGeminiHookCommand,
   'agy-hook': runAgyHookCommand,
   'dcode-hook': runDcodeHookCommand,
+  'eca-hook': runEcaHookCommand,
   'normalize hooks': normalizeHooksCommand,
 };
 

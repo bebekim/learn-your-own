@@ -129,13 +129,16 @@ function claimSessionBanner(sessionId: string, storePath: string): boolean {
   }
 }
 
-export function emitSessionLessons(payload: SessionHookPayload = {}): void {
+export function emitSessionLessons(
+  payload: SessionHookPayload = {},
+  write: (text: string) => void = text => { process.stdout.write(text); },
+): void {
   try {
     const selection = selectSessionLessons(payload);
     if (!selection) return;
     const sessionId = payload.session_id ?? payload.sessionId;
     if (sessionId && !claimSessionBanner(sessionId, selection.storePath)) return;
-    process.stdout.write(selection.text);
+    write(selection.text);
     if (sessionId) {
       const store = new LessonStore(selection.storePath);
       try {
@@ -174,6 +177,6 @@ function runCli(): void {
   setTimeout(() => process.exit(0), STDIN_GUARD_MS).unref();
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && fs.existsSync(process.argv[1]) && import.meta.url === pathToFileURL(fs.realpathSync(process.argv[1])).href) {
   runCli();
 }

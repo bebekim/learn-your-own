@@ -15,10 +15,7 @@ mkdirSync(join(staging, 'docs'), { recursive: true });
 
 const publishedPackageJson = {
   ...packageJson,
-  bin: {
-    lyo: './src/cli.js',
-    'lyo-session-hook': './src/lyo/session-hook.js',
-  },
+  bin: Object.fromEntries(Object.entries(packageJson.bin).map(([name, path]) => [name, path.replace(/\.ts$/, '.js')])),
   exports: {
     '.': './src/index.js',
   },

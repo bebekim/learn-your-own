@@ -87,6 +87,8 @@ export function codexHookObservation(
 
   if (runtimeEventName === 'SessionStart') {
     session = buildSession({ sessionId, repoPath: cwd, platform: 'codex', model: event.model ?? null });
+  } else if (runtimeEventName === 'SessionEnd') {
+    session = buildSession({ sessionId, repoPath: cwd, platform: 'codex', model: event.model ?? null });
   } else if (runtimeEventName === 'UserPromptSubmit' && typeof event.prompt === 'string' && event.prompt) {
     session = buildSession({ sessionId, repoPath: cwd, platform: 'codex', model: event.model ?? null });
     promptBoundary = buildUserPromptBoundary({
@@ -117,7 +119,7 @@ export function codexHookObservation(
     cwd,
     hookEvent,
     session,
-    sessionEnd: null,
+    sessionEnd: runtimeEventName === 'SessionEnd' ? { sessionId } : null,
     promptBoundary,
   };
 }
@@ -158,6 +160,7 @@ export function codexHookOutput(eventName: string, output: CodexHookOutput): Cod
 
 function canonicalCodexEventName(eventName: string): CanonicalHookEventName {
   if (eventName === 'SessionStart') return 'session.start';
+  if (eventName === 'SessionEnd') return 'session.end';
   if (eventName === 'UserPromptSubmit') return 'prompt.submit';
   if (eventName === 'PreToolUse' || eventName === 'PermissionRequest') return 'tool.before';
   if (eventName === 'PostToolUse') return 'tool.after';

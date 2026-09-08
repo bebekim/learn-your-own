@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, isAbsolute, join } from 'node:path';
+import { dirname, extname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CommandArgs, CommandHandler } from './context.ts';
 import { closeKernel, createKernel } from '../../ledger.ts';
@@ -44,7 +44,7 @@ export function projectRoot(): string {
 }
 
 export function sessionHookAbsolutePath(): string {
-  return join(projectRoot(), 'src', 'lyo', 'selection', 'session-hook.ts');
+  return join(projectRoot(), 'src', 'lyo', 'selection', `session-hook${extname(import.meta.filename)}`);
 }
 
 function writeFileSafe(filePath: string, content: string): void {

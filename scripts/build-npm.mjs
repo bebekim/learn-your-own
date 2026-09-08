@@ -32,7 +32,7 @@ for (const sourcePath of sourceFiles(join(root, 'src'))) {
     'from $1$2.js$1'
   );
   writeFileSync(outputPath, output);
-  if (relativePath === 'cli.ts' || relativePath === 'lyo/session-hook.ts') {
+  if (source.startsWith('#!')) {
     chmodSync(outputPath, 0o755);
   }
 }

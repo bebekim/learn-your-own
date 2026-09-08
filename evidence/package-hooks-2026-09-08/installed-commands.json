@@ -1,0 +1,39 @@
+{
+  "version": "0.4.0",
+  "kind": "installed-hook-fixture",
+  "liveModelCalls": 0,
+  "agents": {
+    "codex": {
+      "configuredEventsInvoked": 6,
+      "deliveryBanners": 1
+    },
+    "claude": {
+      "configuredEventsInvoked": 6,
+      "deliveryBanners": 1
+    },
+    "eca": {
+      "configuredEventsInvoked": 6,
+      "deliveryBanners": 1
+    }
+  },
+  "sessions": [
+    {
+      "platform": "claude",
+      "ended": 1
+    },
+    {
+      "platform": "codex",
+      "ended": 1
+    },
+    {
+      "platform": "eca",
+      "ended": 1
+    }
+  ],
+  "bridgeTraces": 3,
+  "recordedVersions": [
+    {
+      "lyo_version": "0.4.0"
+    }
+  ]
+}

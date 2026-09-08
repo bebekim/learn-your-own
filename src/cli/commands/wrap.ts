@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, extname, join } from 'node:path';
 import { homedir } from 'node:os';
 import { projectRoot, sessionHookAbsolutePath } from './init.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
@@ -10,7 +10,7 @@ import type { CommandArgs, CommandHandler } from './context.ts';
 export function buildHookBlock(): string {
   const root = projectRoot();
   const sessionHookPath = sessionHookAbsolutePath();
-  const cliPath = join(root, 'src', 'cli.ts');
+  const cliPath = join(root, 'src', `cli${extname(import.meta.filename)}`);
   const hookCmd = `node ${cliPath} claude-hook --db-from-event-cwd --spool-dir-from-event-cwd`;
 
   return [

@@ -1,4 +1,6 @@
 import { join } from 'node:path';
+import { translateEcaEvent } from '../adapters/eca.ts';
+import { emitSessionLessons } from '../lyo/selection/session-hook.ts';
 import {
   closeKernel,
   createKernel,
@@ -39,7 +41,7 @@ export async function runCodexHookCommand(
       spoolDir: effectiveSpoolDir,
       promptDir: effectivePromptDir,
     });
-    if (event.hook_event_name === 'Stop' && args.env.LEARNLOOP_DRAIN_SPOOL_ON_STOP !== '0') {
+    if ((event.hook_event_name === 'Stop' || event.hook_event_name === 'SessionEnd') && args.env.LEARNLOOP_DRAIN_SPOOL_ON_STOP !== '0') {
       tryDrainSpool(args, effectiveDbPath, effectiveSpoolDir);
     }
     return emptyHookOutput(event.hook_event_name ?? 'Unknown');
@@ -68,6 +70,23 @@ export async function runClaudeHookCommand(
   const input = await readStdin(stdin);
   const event = input.trim() ? JSON.parse(input) : {};
   return runClaudeStyleHook(args, event);
+}
+
+export async function runEcaHookCommand(
+  args: CliArgs,
+  stdin: AsyncIterable<string | Buffer>
+): Promise<unknown> {
+  const input = await readStdin(stdin);
+  const payload = input.trim() ? JSON.parse(input) : {};
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return {};
+  const event = translateEcaEvent(payload);
+  if (!event) return {};
+  await runClaudeStyleHook(args, event);
+  let additionalContext = '';
+  if (payload.hook_type === 'chatStart' || payload.hook_type === 'preRequest') {
+    emitSessionLessons(event, text => { additionalContext = text; });
+  }
+  return additionalContext ? { additionalContext } : {};
 }
 
 export async function runGeminiHookCommand(
