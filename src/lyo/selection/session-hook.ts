@@ -168,7 +168,8 @@ function runCli(): void {
   });
   process.stdin.on('end', () => {
     try {
-      emitSessionLessons(JSON.parse(input || '{}') as SessionHookPayload);
+      const payload = JSON.parse(input || '{}') as SessionHookPayload;
+      emitSessionLessons({ ...payload, cwd: payload.cwd || process.cwd() });
     } catch {
       // fail-open: never block the session
     }

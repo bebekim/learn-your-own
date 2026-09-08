@@ -1,0 +1,46 @@
+{
+  "date": "2026-09-08",
+  "package": {
+    "name": "lyo-kernel",
+    "version": "0.4.0",
+    "sha256": "2c625e95c608864397e80c758a8cd7fae0b87f93d4eec877f9a2ef11a423d38c",
+    "matchedInstalledFiles": 170
+  },
+  "bob": {
+    "shell": "2.0.2",
+    "ide": "2.1.0",
+    "settings": "/Users/marcus.kim/.bob/settings/settings.json",
+    "handlers": 7,
+    "events": [
+      "SessionStart",
+      "UserPromptSubmit",
+      "PreToolUse",
+      "PostToolUse",
+      "Stop"
+    ],
+    "unrelatedSettingsPreserved": true,
+    "backup": "/Users/marcus.kim/.local/state/lyo/install-backups/bob-20260908-205519"
+  },
+  "nativeProbe": {
+    "transport": "Bob Shell ACP",
+    "workspace": "/private/tmp/lyo-bob-native-70gs0pvb",
+    "sessionId": "697f870642032180e2183bee4795b553",
+    "capturedEvents": [
+      "prompt.submit",
+      "session.start"
+    ],
+    "platform": "bob",
+    "endedAt": null,
+    "deliveryReceipt": true,
+    "lessonText": "LYO_BOB_NATIVE_PROBE: validate the hook connection.",
+    "stoppedBeforeModelByWorkspaceHook": true,
+    "stopAndToolsVerifiedBy": "compiled package fixtures, not a live model run"
+  },
+  "checks": {
+    "tests": 560,
+    "passed": 559,
+    "skipped": 1,
+    "failed": 0,
+    "typecheck": "passed"
+  }
+}

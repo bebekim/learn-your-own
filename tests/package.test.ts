@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, symlinkSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -11,7 +11,7 @@ const ROOT = new URL('..', import.meta.url).pathname;
 
 test('packed executables and generated hooks run the installed learning loop', async () => {
   execFileSync(process.execPath, ['scripts/pack-npm.mjs'], { cwd: ROOT, encoding: 'utf8' });
-  const dir = mkdtempSync(join(tmpdir(), 'lyo-package-'));
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'lyo-package-')));
   const staging = join(ROOT, 'dist/npm/package');
   const manifest = JSON.parse(readFileSync(join(staging, 'package.json'), 'utf8'));
   const sourceManifest = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
@@ -74,6 +74,28 @@ test('packed executables and generated hooks run the installed learning loop', a
       assert.deepEqual(rows.map(r => JSON.parse(String(r.payload_json)).tool_response.exit_code).sort(), [0, 1]);
       assert.ok(rows.every(r => r.lyo_version === manifest.version));
       assert.ok(rows.every(r => !String(r.payload_json).includes('private tool output')));
+      assert.equal(db.prepare("select count(*) as n from learning_traces where trace_id like 'session-outcome:%'").get()?.n, 2);
+
+      // Documented Bob payloads omit cwd; the host runs hooks in the workspace.
+      const bob = { session_id: 'bob-package' };
+      run('lyo', ['bob-hook', ...flags], { ...bob, event: 'SessionStart' });
+      assert.match(run('lyo-session-hook', [], bob), /Run the narrow test/);
+      const delivery = store.getTrace('session-delivery:bob-package');
+      assert.ok(delivery);
+      assert.equal(JSON.parse(delivery.payload_json!).cwd, dir);
+      assert.equal(run('lyo-session-hook', [], bob), '');
+      run('lyo', ['bob-hook', ...flags], { ...bob, event: 'PostToolUse', tool: 'execute_command',
+        input: { command: 'npm test' }, output: 'Exit code: 0\nprivate Bob output' });
+      run('lyo', ['bob-hook', ...flags], { ...bob, event: 'Stop' });
+      // The installed Shell contract can resume this same task on a later turn.
+      run('lyo', ['bob-hook', ...flags], { ...bob, cwd: dir, hook_event_name: 'UserPromptSubmit', prompt: 'Continue' });
+      run('lyo', ['bob-hook', ...flags], { ...bob, cwd: dir, hook_event_name: 'Stop' });
+      assert.equal(db.prepare("select ended_at from agent_sessions where platform = 'bob'").get()?.ended_at, null);
+      const captured = db.prepare('select payload_json, cwd from hook_events where session_id = ? and event_name = ?')
+        .get(bob.session_id, 'tool.after');
+      assert.equal(captured?.cwd, dir);
+      assert.doesNotMatch(String(captured?.payload_json), /private Bob output/);
+      assert.equal(JSON.parse(String(captured?.payload_json)).tool_response.exit_code, undefined);
       assert.equal(db.prepare("select count(*) as n from learning_traces where trace_id like 'session-outcome:%'").get()?.n, 2);
     } finally { db.close(); }
   } finally {

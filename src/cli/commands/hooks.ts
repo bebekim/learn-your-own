@@ -3,6 +3,7 @@ import { normalizeHooks } from '../../hooks/normalization-runner.ts';
 import { normalizeOutcome } from '../coercion.ts';
 import {
   runAgyHookCommand,
+  runBobHookCommand,
   runClaudeHookCommand,
   runCodexHookCommand,
   runDcodeHookCommand,
@@ -19,6 +20,7 @@ export const HOOK_COMMANDS: Record<string, CommandHandler> = {
   'agy-hook': runAgyHookCommand,
   'dcode-hook': runDcodeHookCommand,
   'eca-hook': runEcaHookCommand,
+  'bob-hook': runBobHookCommand,
   'normalize hooks': normalizeHooksCommand,
 };
 

@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { translateBobEvent } from '../adapters/bob.ts';
 import { translateEcaEvent } from '../adapters/eca.ts';
 import { emitSessionLessons } from '../lyo/selection/session-hook.ts';
 import {
@@ -70,6 +71,17 @@ export async function runClaudeHookCommand(
   const input = await readStdin(stdin);
   const event = input.trim() ? JSON.parse(input) : {};
   return runClaudeStyleHook(args, event);
+}
+
+export async function runBobHookCommand(
+  args: CliArgs,
+  stdin: AsyncIterable<string | Buffer>
+): Promise<unknown> {
+  const input = await readStdin(stdin);
+  const payload = input.trim() ? JSON.parse(input) : {};
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return {};
+  const event = translateBobEvent(payload);
+  return event ? runClaudeStyleHook(args, event) : {};
 }
 
 export async function runEcaHookCommand(

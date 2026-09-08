@@ -137,6 +137,7 @@ function isShellTool(toolName: string): boolean {
     || normalized === 'shell'
     || normalized === 'eca__shell_command'
     || normalized === 'exec_command'
+    || normalized === 'execute_command'
     || normalized.endsWith('.exec_command');
 }
 
@@ -152,7 +153,8 @@ function inferHookCommandStatus(eventName: string, payload: Record<string, unkno
   if (eventName === 'PreToolUse' || eventName === 'tool.before') return 'attempted';
   if (eventName === 'PostToolUseFailure' || eventName === 'tool.failure') return 'failed';
   if (eventName !== 'PostToolUse' && eventName !== 'tool.after') return 'unknown';
-  return hookStatusSignal(payload) ?? 'succeeded';
+  // Bob emits PostToolUse for timeouts too, without a separate failure event.
+  return hookStatusSignal(payload) ?? (runtimeFromPayload(payload) === 'bob' ? 'unknown' : 'succeeded');
 }
 
 function hookStatusSignal(value: unknown): CommandStatus | null {
@@ -289,7 +291,7 @@ function patchOperationKind(operation: string): PathActivationKind {
 function runtimeFromPayload(payload: Record<string, unknown>): HookRuntime {
   const metadata = objectValue(payload._lyo);
   const runtime = stringValue(metadata?.runtime);
-  if (runtime === 'codex' || runtime === 'gemini' || runtime === 'claude' || runtime === 'eca') return runtime;
+  if (runtime === 'codex' || runtime === 'gemini' || runtime === 'claude' || runtime === 'eca' || runtime === 'bob') return runtime;
   return 'codex';
 }
 

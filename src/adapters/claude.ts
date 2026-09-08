@@ -23,7 +23,7 @@ import type {
 } from '../types/observation.ts';
 
 export interface ClaudeHookInput {
-  platform?: 'eca';
+  platform?: 'eca' | 'bob';
   session_id?: string;
   transcript_path?: string | null;
   cwd?: string;
@@ -57,7 +57,7 @@ export function claudeHookObservation(
   event: ClaudeHookInput,
   options: { promptDir?: string; includeRawPrompt: boolean }
 ): HookObservation {
-  const runtime = event.platform === 'eca' ? 'eca' : 'claude';
+  const runtime = event.platform === 'eca' || event.platform === 'bob' ? event.platform : 'claude';
   const runtimeEventName = event.hook_event_name ?? 'Unknown';
   const canonicalEventName = canonicalClaudeEventName(runtimeEventName);
   const sessionId = event.session_id ?? 'unknown-session';
@@ -157,7 +157,7 @@ function redactClaudeHookEvent(
   const redacted: Record<string, unknown> = {
     ...event,
     _lyo: {
-      runtime: event.platform === 'eca' ? 'eca' : 'claude',
+      runtime: event.platform === 'eca' || event.platform === 'bob' ? event.platform : 'claude',
       lyo_version: getLyoVersion(),
       runtime_event_name: names.runtimeEventName,
       canonical_event_name: names.canonicalEventName,
