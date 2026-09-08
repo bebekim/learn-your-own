@@ -1,0 +1,102 @@
+{
+  "version": "lyo/eval-report/v1",
+  "task_split_hash": "346581fca2e42f2e9c8e49021c0678df18309dfcd4396d2642b96fb7d8eb1b51",
+  "baseline_scores": [
+    {
+      "baseline_id": "B0",
+      "episodes": 6,
+      "verified_success_rate": 0,
+      "verified_success_interval": [
+        0,
+        0.3903
+      ],
+      "false_gate_rate": 1,
+      "regression_rate": 1,
+      "token_cost": 10235,
+      "context_overhead_tokens": 0,
+      "avg_wall_time_ms": 12220,
+      "rule_applications": 0
+    },
+    {
+      "baseline_id": "B1",
+      "episodes": 6,
+      "verified_success_rate": 0,
+      "verified_success_interval": [
+        0,
+        0.3903
+      ],
+      "false_gate_rate": 1,
+      "regression_rate": 1,
+      "token_cost": 11895,
+      "context_overhead_tokens": 126,
+      "avg_wall_time_ms": 14925,
+      "rule_applications": 0
+    },
+    {
+      "baseline_id": "B4",
+      "episodes": 6,
+      "verified_success_rate": 0,
+      "verified_success_interval": [
+        0,
+        0.3903
+      ],
+      "false_gate_rate": 1,
+      "regression_rate": 1,
+      "token_cost": 11414,
+      "context_overhead_tokens": 264,
+      "avg_wall_time_ms": 16040,
+      "rule_applications": 6
+    }
+  ],
+  "worst_regressions": [
+    {
+      "episode_id": "semver-suite-0-B0",
+      "task_id": "semver-suite-0",
+      "baseline_id": "B0",
+      "verifier_command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stderr": ""
+    },
+    {
+      "episode_id": "semver-suite-0-B1",
+      "task_id": "semver-suite-0",
+      "baseline_id": "B1",
+      "verifier_command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stderr": ""
+    },
+    {
+      "episode_id": "semver-suite-0-B4",
+      "task_id": "semver-suite-0",
+      "baseline_id": "B4",
+      "verifier_command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stderr": ""
+    },
+    {
+      "episode_id": "semver-suite-1-B1",
+      "task_id": "semver-suite-1",
+      "baseline_id": "B1",
+      "verifier_command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stderr": ""
+    },
+    {
+      "episode_id": "semver-suite-1-B4",
+      "task_id": "semver-suite-1",
+      "baseline_id": "B4",
+      "verifier_command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stderr": ""
+    }
+  ],
+  "gate": {
+    "rule_id": "5fdd8af252da911aa07e186c6734e30d1ffd91671c540af54e30c3800801bcff",
+    "baseline_id": "B1",
+    "treatment_id": "B4",
+    "decision": "inconclusive",
+    "reasons": [
+      "no supported success or cost improvement"
+    ]
+  }
+}

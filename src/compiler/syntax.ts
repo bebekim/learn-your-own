@@ -20,6 +20,7 @@ export interface TokenProvenance {
   createdAt: string;
   ordinal: number;
   toolUseId?: string | null;
+  toolName?: string | null;
 }
 
 export interface TelemetryToken {

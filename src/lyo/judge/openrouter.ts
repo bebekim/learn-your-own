@@ -17,8 +17,8 @@ export function createDefaultJudge(model?: string): JudgeFn {
     const resolvedModel =
       model || process.env.OPENROUTER_LYO_JUDGE_MODEL || DEFAULT_JUDGE_MODEL;
     const { messages } = buildJudgePrompt(input);
-    const content = await openRouterChat({ model: resolvedModel, messages });
-    return parseJudgeResponse(content);
+    const result = await openRouterChat({ model: resolvedModel, messages });
+    return { ...parseJudgeResponse(result.content), usage: result.usage };
   };
 }
 
@@ -28,7 +28,7 @@ export async function openRouterChat({
 }: {
   model: string;
   messages: Array<{ role: 'system' | 'user'; content: string }>;
-}): Promise<string> {
+}): Promise<{ content: string; usage?: { totalTokens: number; cost?: number } }> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new Error('OPENROUTER_API_KEY is not set');
@@ -51,12 +51,17 @@ export async function openRouterChat({
     }
     const data = (await response.json()) as {
       choices?: Array<{ message?: { content?: unknown } }>;
+      usage?: { total_tokens?: number; cost?: number };
     };
     const content = data?.choices?.[0]?.message?.content;
     if (typeof content !== 'string' || content.trim() === '') {
       throw new Error('OpenRouter: empty completion');
     }
-    return content;
+    return {
+      content,
+      usage: typeof data.usage?.total_tokens === 'number'
+        ? { totalTokens: data.usage.total_tokens, cost: data.usage.cost } : undefined,
+    };
   } finally {
     clearTimeout(timer);
   }

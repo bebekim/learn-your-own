@@ -338,38 +338,18 @@ The next rigorous implementation path is:
 7. Keep all beliefs derived and reproducible.
 ```
 
-## Implemented v0 Surface
+## Historical prototype; currently absent
 
-Lyo now includes a small, read-only explanation-graph kernel:
+A read-only prototype once exposed `buildExplanationGraphReport`,
+`computeRivalOutcomeMessage`, and `lyo learn explanation --dry-run`.
+Commit `c92958e` removed that implementation. Those functions, the module
+`src/compiler/explanation-graph.ts`, and the CLI command do not exist in the
+current tree. The algorithm below is a design proposal, not a current capability.
 
-```text
-src/compiler/explanation-graph.ts
-```
-
-It implements:
-
-```text
-buildExplanationGraphReport(input)
-  normalizes the binary prior
-  projects observed factor-matrix columns into messages
-  multiplies prior and factor messages elementwise
-  normalizes the result into provisional belief
-
-computeRivalOutcomeMessage(input)
-  sums over rival explanations before converting an observed outcome into a
-  message for H vs not H
-```
-
-The CLI exposes the same dry-run surface:
-
-```bash
-lyo learn explanation --dry-run --input explanation.json
-```
-
-The input JSON is intentionally explicit: hypothesis, prior, factor matrices,
-observed factor states, and optional rival-outcome data should be supplied by
-the caller or by a later deterministic graph emitter. This command does not
-persist hypotheses, messages, beliefs, artifacts, or policies.
+The current learning paths use scoped lesson selection and observation receipts.
+See [the evidence-loop scope](../Specs/8-learning-evidence-loop.md) for the
+implemented slice and [the controlled experiment](../evidence/learning-loop-2026-09-08-r2/assessment.md)
+for its empirical limits.
 
 ## Algorithm v0: One Hypothesis, Message Vectors
 

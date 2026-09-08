@@ -1,0 +1,94 @@
+{
+  "version": "lyo/eval-report/v1",
+  "task_split_hash": "18c98967b1e2666131c363bda5955e4edcaa52ed6a9ab836da97c52b506001a8",
+  "baseline_scores": [
+    {
+      "baseline_id": "B0",
+      "episodes": 2,
+      "verified_success_rate": 0,
+      "verified_success_interval": [
+        0,
+        0.6576
+      ],
+      "false_gate_rate": 1,
+      "regression_rate": 1,
+      "token_cost": 3623,
+      "context_overhead_tokens": 0,
+      "avg_wall_time_ms": 14665,
+      "rule_applications": 0
+    },
+    {
+      "baseline_id": "B1",
+      "episodes": 2,
+      "verified_success_rate": 0,
+      "verified_success_interval": [
+        0,
+        0.6576
+      ],
+      "false_gate_rate": 1,
+      "regression_rate": 1,
+      "token_cost": 3823,
+      "context_overhead_tokens": 42,
+      "avg_wall_time_ms": 14068,
+      "rule_applications": 0
+    },
+    {
+      "baseline_id": "B4",
+      "episodes": 2,
+      "verified_success_rate": 0,
+      "verified_success_interval": [
+        0,
+        0.6576
+      ],
+      "false_gate_rate": 1,
+      "regression_rate": 1,
+      "token_cost": 3896,
+      "context_overhead_tokens": 88,
+      "avg_wall_time_ms": 9116,
+      "rule_applications": 2
+    }
+  ],
+  "worst_regressions": [
+    {
+      "episode_id": "semver-suite-6-B0",
+      "task_id": "semver-suite-6",
+      "baseline_id": "B0",
+      "verifier_command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stderr": ""
+    },
+    {
+      "episode_id": "semver-suite-6-B1",
+      "task_id": "semver-suite-6",
+      "baseline_id": "B1",
+      "verifier_command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stderr": ""
+    },
+    {
+      "episode_id": "semver-suite-6-B4",
+      "task_id": "semver-suite-6",
+      "baseline_id": "B4",
+      "verifier_command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stderr": ""
+    },
+    {
+      "episode_id": "semver-suite-7-B1",
+      "task_id": "semver-suite-7",
+      "baseline_id": "B1",
+      "verifier_command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stderr": ""
+    },
+    {
+      "episode_id": "semver-suite-7-B4",
+      "task_id": "semver-suite-7",
+      "baseline_id": "B4",
+      "verifier_command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stderr": ""
+    }
+  ],
+  "gate": null
+}

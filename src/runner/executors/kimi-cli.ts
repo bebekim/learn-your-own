@@ -31,8 +31,9 @@ const DEFAULT_RETRY_DELAY_MS = 5000;
 /**
  * Agentic executor: runs `kimi -p` headless (auto permission mode) with the
  * sandbox as working directory. The agent writes outputs into the sandbox
- * directly; the sandbox only contains the stage's declared reads, so the
- * filesystem view IS the blindness boundary.
+ * directly. Declared inputs are staged locally, but cwd does not enforce
+ * filesystem isolation for the CLI. Usage is unknown unless the CLI exposes
+ * a supported usage record; do not count this path as zero-cost.
  *
  * A single retry guards against transient mid-request deaths (dropped
  * connection, momentary rate limit): the stage is stateless, so a fresh

@@ -214,7 +214,7 @@ export function buildCandidateAtBatReport(
     verifierFailures: verifierFailures.length,
     verifierPassesAfterFailure: hasVerifierPassAfterVerifierFailure(actions),
   });
-  const riskControl = classifyRiskControl(actions, unsafeWrite);
+  const riskControl = classifyRiskControl(actions, unsafeWrite, taskContext.allowedTools);
   const outcome = classifyOutcome({
     verifiedProgress,
     stoppedAfterEditWithoutVerification,
@@ -278,6 +278,8 @@ export function buildCandidateAtBatReport(
       verifiedProgress,
       debugging,
       unsafeWrite,
+      verifierBeforeEdit: actions.findIndex(isTestAction) !== -1 &&
+        (actions.findIndex(isEditAction) === -1 || actions.findIndex(isTestAction) < actions.findIndex(isEditAction)),
       verifierRuns: verifierActions.length,
       edits: editActions.length,
       commandCountsByKind,
@@ -316,11 +318,12 @@ function techniqueSignatures(input: {
   debugging: boolean;
   unsafeWrite: boolean;
   verifierRuns: number;
+  verifierBeforeEdit: boolean;
   edits: number;
   commandCountsByKind: CandidateAtBatReport['resourceChurn']['commandCountsByKind'];
 }): CandidateAtBatTechniqueSignature[] {
   const signatures: CandidateAtBatTechniqueSignature[] = [];
-  if (input.verifierRuns > 0 && input.verifiedProgress) signatures.push('verifier-first');
+  if (input.verifierBeforeEdit && input.verifiedProgress) signatures.push('verifier-first');
   if (input.inspectBeforeEdit && input.commandCountsByKind.inspect > input.edits) signatures.push('explorer');
   if (input.debugging) signatures.push('debugger');
   if (input.unsafeWrite) signatures.push('risky-shipper');

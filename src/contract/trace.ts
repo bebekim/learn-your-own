@@ -17,6 +17,7 @@ export const traceStageSchema = z.object({
   // Iteration number for stages re-run under the feedback loop.
   round: z.number().int().min(1).optional(),
   inputs: z.array(artifactRefSchema),
+  deliveries: z.array(z.object({ lessonPath: z.string().min(1), artifactRef: artifactRefSchema })).optional(),
   outputs: z.array(artifactRefSchema),
   model: z.string().optional(),
   promptSha256: z.string().regex(SHA256_PATTERN).optional(),

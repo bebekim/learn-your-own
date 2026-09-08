@@ -7,7 +7,8 @@
  * 2023), it has broad semantic knowledge but its judgment is not grounded in
  * this system's outcomes, so it must act as a PRIOR SOURCE, never a decider.
  *
- * The fusion is conjugate Beta, exactly Pearl's BEL(H) ∝ λ(H)·π(H):
+ * Selection uses conjugate Beta pseudo-counts; there is no explanation-graph
+ * message-passing runtime:
  *
  *   alpha = helpful_count + 1 + κ·c        λ = data counts (helpful/harmful)
  *   beta  = harmful_count + 1 + κ·(1−c)    π = prior pseudo-counts κ·c, κ·(1−c)
@@ -23,10 +24,10 @@
  *
  * Specs/6 Feature 6 adds the probabilistic CONTROLLER (prior-controller@1,
  * see priorCalibration below): the fusion weight itself is data-controlled.
- * The controller measures how well the LLM's confidences have predicted
- * grounded rates across the library and tempers every prior's pseudo-counts
- * by that reliability γ — the data correcting the LLM's wrong predictions
- * (SciNO's controller structure), with γ = 1 at cold start.
+ * The controller tempers priors by agreement with observed feedback rates.
+ * Agreement is descriptive, not held-out predictive skill: a neutral prior
+ * and a 50% observed rate have perfect agreement. No benefit claim follows.
+
  */
 
 /** Pseudo-count strength when the reflector gives confidence but no strength. */
@@ -123,14 +124,8 @@ export interface PriorCalibrationEntry {
 
 export interface PriorCalibration {
   /**
-   * The controller's tempering factor γ ∈ [0, 1]: mean agreement between the
-   * LLM's confidences and the grounded rates, over lessons with enough
-   * evidence to judge. γ = 1 at cold start (no evidence against the LLM
-   * yet); γ → 0 as the data shows the LLM's priors carry no signal, and the
-   * fused posterior falls back to pure data — the data has corrected the
-   * LLM's wrong predictions (SciNO's controller structure:
-   * P(π | D, text) ∝ P(D | π) · P_LLM(π | text), with P_LLM itself weighted
-   * by the LLM's observed reliability).
+   * Mean agreement in [0, 1], with 1 at cold start. This is a heuristic
+   * tempering factor, not a measure of discrimination or causal reliability.
    */
   gamma: number;
   /** Per-lesson agreement behind γ, for inspection. */

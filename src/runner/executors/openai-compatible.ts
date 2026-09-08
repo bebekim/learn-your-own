@@ -115,15 +115,6 @@ async function postChat({
       };
     };
     const choice = data?.choices?.[0];
-    if (choice?.finish_reason === 'length') {
-      throw new Error(
-        `completion truncated (finish_reason=length, max_tokens=${maxTokens})`
-      );
-    }
-    const content = choice?.message?.content;
-    if (typeof content !== 'string' || content.trim() === '') {
-      throw new Error('empty completion');
-    }
     const raw = data.usage;
     const usage: StageUsage | undefined =
       raw?.prompt_tokens !== undefined
@@ -134,6 +125,13 @@ async function postChat({
             cost: raw.cost,
           }
         : undefined;
+    if (choice?.finish_reason === 'length') {
+      throw Object.assign(new Error(`completion truncated (finish_reason=length, max_tokens=${maxTokens})`), { transcript: choice.message?.content, usage });
+    }
+    const content = choice?.message?.content;
+    if (typeof content !== 'string' || content.trim() === '') {
+      throw Object.assign(new Error('empty completion'), { usage });
+    }
     return { content, usage };
   } finally {
     clearTimeout(timer);

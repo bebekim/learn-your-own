@@ -23,6 +23,10 @@ export const lyoUpdateSchema = z.object({
   basedOnTraces: z.array(artifactRefSchema).min(1),
   promotions: z.array(lyoUpdatePromotionSchema),
   beliefUpdates: z.array(lyoUpdateBeliefSchema).optional(),
+  usage: z.object({
+    judgeTokens: z.number().nonnegative().nullable(),
+    judgeCost: z.number().nonnegative().nullable(),
+  }).optional(),
   // Judge hygiene: every verdict is only comparable within one judge +
   // rubric version, so the artifact pins both.
   producer: z

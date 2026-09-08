@@ -1,33 +1,8 @@
 /**
- * credit-fidelity report (Specs/6 Feature 5: derivative-level fidelity —
- * "delivery ≠ learning").
- *
- * The diffusion-model lesson: matching the function VALUE does not guarantee
- * matching its DERIVATIVE (‖ŝ−s‖ small ⇏ ‖∇ŝ−∇s‖ small). Lyo's analog:
- *
- *   function value  ≈ "the run passed"                 (observed outcome)
- *   derivative      ≈ "the lesson CAUSED the pass"     (per-injection credit)
- *
- * The legacy uniform ±1 rule credits every injection with the full outcome —
- * pure function-value matching. The ratio-lift estimator (F3) estimates the
- * derivative instead: w_i = ĥ(ℓ_i|s_i,u')/ρ_i − 1, signed wrt the observed
- * outcome. This report quantifies the gap between the two FROM THE RECORDED
- * RECEIPTS (MARK_* delta payloads), i.e. the derivative error the uniform
- * rule would have committed on the same data:
- *
- *   derivative error per ratio-credited receipt = |w_signed − 1|
- *
- * (the uniform rule is exactly w ≡ +1 in outcome-signed units). It also
- * counts the two over-crediting symptoms the derivative view predicts:
- *   gated      — w ≈ 0: receipt resolved with NO counter movement (the
- *                uniform rule would have moved a full ±1 on zero evidence)
- *   sign flips — w_signed < 0: credit moved the counter OPPOSITE to where
- *                the uniform rule would have put it
- *
- * Data source is the delta log, not a recomputation: weights and estimator
- * ids are read from the MARK_* payloads written at credit time, so the
- * report reflects what the store ACTUALLY did (pre-F3 deltas lack the
- * weight field and are reported as 'legacy').
+ * Descriptive comparison of recorded ratio-lift weights with uniform credit.
+ * |w - 1| is estimator disagreement, not error against a known causal effect.
+ * It cannot establish whether either estimator is correct. No external
+ * intervention ground truth is available to this report.
  */
 
 import type { DatabaseSync } from 'node:sqlite';
@@ -48,7 +23,7 @@ export interface CreditFidelityRow {
   /** Ratio-lift receipts whose signed weight moved the opposite counter. */
   signFlips: number;
   /** mean |w_signed − 1| over ratio-lift receipts; null when none. */
-  meanAbsDerivativeError: number | null;
+  meanAbsWeightDifference: number | null;
   /** mean |w_signed| over ratio-lift receipts; null when none. */
   meanAbsWeight: number | null;
 }
@@ -147,7 +122,7 @@ function emptyRow(stratum: string): RunningRow {
     ratioLift: 0,
     gated: 0,
     signFlips: 0,
-    meanAbsDerivativeError: null,
+    meanAbsWeightDifference: null,
     meanAbsWeight: null,
     _errorSum: 0,
     _weightSum: 0,
@@ -187,7 +162,7 @@ function accumulate(
 
 function finalize(row: RunningRow): void {
   if (row.ratioLift > 0) {
-    row.meanAbsDerivativeError = (row._errorSum ?? 0) / row.ratioLift;
+    row.meanAbsWeightDifference = (row._errorSum ?? 0) / row.ratioLift;
     row.meanAbsWeight = (row._weightSum ?? 0) / row.ratioLift;
   }
   delete row._errorSum;

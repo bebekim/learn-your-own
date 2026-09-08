@@ -85,6 +85,13 @@ export async function runWriterStage({
           'File blocks only — no prose.',
         sandboxDir,
       });
+      usage = usage && corrective.usage ? {
+        promptTokens: usage.promptTokens + corrective.usage.promptTokens,
+        completionTokens: usage.completionTokens + corrective.usage.completionTokens,
+        totalTokens: usage.totalTokens + corrective.usage.totalTokens,
+        ...(usage.cost !== undefined && corrective.usage.cost !== undefined
+          ? { cost: usage.cost + corrective.usage.cost } : {}),
+      } : undefined;
       transcript = `${transcript}\n\n--- corrective retry ---\n\n${corrective.transcript}`;
     }
   } catch (error) {

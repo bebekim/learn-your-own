@@ -1,0 +1,87 @@
+{
+  "id": "semver-suite-6-B0",
+  "model": "openai/gpt-4o-mini",
+  "promptSha256": "847dcae6a921d076a5e746c88ac87cd0f0788ad9bb9c50ba3bfb119079f5b760",
+  "outputSha256": "4cb2728b72c50bbc32ad6411dee5411eebb6980cb05ca9155bfe4305080144e8",
+  "result": {
+    "transcript": "Here's a Node.js test suite using the `node:test` module to test the `compareSemver` function imported from `./semver.cjs`. This suite covers various invariants, examples, and additional cases as specified:\n\n```javascript\n// test.js\nconst { test, expect } = require('node:test');\nconst { compareSemver } = require('./semver.cjs');\n\ntest('compareSemver function', () => {\n    // Invariants\n    expect(compareSemver('1.2.3', '1.2.4')).toBe(-1);\n    expect(compareSemver('2.0.0', '10.0.0')).toBe(-1);\n    expect(compareSemver('1.0.0-alpha', '1.0.0')).toBe(-1);\n    expect(compareSemver('1.0.0-alpha', '1.0.0-alpha.1')).toBe(-1);\n    expect(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.beta')).toBe(-1);\n    expect(compareSemver('1.0.0-beta.2', '1.0.0-beta.11')).toBe(-1);\n    expect(compareSemver('1.0.0-rc.1', '1.0.0')).toBe(-1);\n    expect(compareSemver('1.0.0+build.5', '1.0.0')).toBe(0);\n    \n    // Edge cases\n    expect(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.1')).toBe(0);\n    expect(compareSemver('1.0.0-alpha', '1.0.0-alpha.0')).toBe(-1);\n    expect(compareSemver('1.0.0-alpha.0', '1.0.0-alpha.1')).toBe(-1);\n    expect(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.1.1')).toBe(-1);\n    expect(compareSemver('1.0.0-alpha.1.1', '1.0.0-alpha.1')).toBe(1);\n    \n    // Custom cases\n    expect(compareSemver('8.0.0', '8.0.0')).toBe(0);\n    expect(compareSemver('8.0.0', '8.0.1')).toBe(-1);\n    expect(compareSemver('8.1.0', '8.0.1')).toBe(1);\n    expect(compareSemver('8.0.0-beta.8', '8.0.0-beta.18')).toBe(-1);\n    expect(compareSemver('8.0.0-beta.18', '8.0.0-beta.8')).toBe(1);\n    expect(compareSemver('8.0.0-beta.8', '8.0.0')).toBe(-1);\n    expect(compareSemver('8.0.0', '8.0.0-beta.8')).toBe(1);\n    expect(compareSemver('8.0.0+build.1', '8.0.0')).toBe(0);\n    expect(compareSemver('8.0.0+build.1', '8.0.0+build.2')).toBe(0);\n    expect(compareSemver('8.0.0-beta', '8.0.0-beta.1')).toBe(-1);\n    expect(compareSemver('8.0.0-beta.1', '8.0.0-beta')).toBe(1);\n    expect(compareSemver('8.0.0-beta.1', '8.0.0-beta.1.0')).toBe(-1);\n    expect(compareSemver('8.0.0-beta.1.0', '8.0.0-beta.1')).toBe(1);\n    \n    // Testing with mixed numeric and alphanumeric prerelease identifiers\n    expect(compareSemver('8.0.0-beta.1', '8.0.0-beta.1-alpha')).toBe(-1);\n    expect(compareSemver('8.0.0-beta.1-alpha', '8.0.0-beta.1')).toBe(1);\n});\n```\n\n### Explanation:\n- The test suite uses `node:test` to define a series of tests for the `compareSemver` function.\n- Each test checks the output of `compareSemver` against expected results based on the provided specification, covering both standard cases and edge cases.\n- Custom cases include versions with major version `8`, minor version `18`, and various prerelease identifiers to ensure thorough testing of the function's behavior.\n- The tests are structured to ensure clarity and maintainability, making it easy to add or modify tests in the future.",
+    "usage": {
+      "promptTokens": 654,
+      "completionTokens": 1030,
+      "totalTokens": 1684,
+      "cost": 0.0007161
+    }
+  },
+  "error": null,
+  "verification": {
+    "success": false,
+    "falseGate": true,
+    "missedBug": true,
+    "cases": [
+      {
+        "name": "correct",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-nM5gS6/suite.test.cjs:1\nHere's a Node.js test suite using the `node:test` module to test the `compareSemver` function imported from `./semver.cjs`. This suite covers various invariants, examples, and additional cases as specified:\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nSyntaxError: Invalid or unexpected token\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "negative-zero",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-nM5gS6/suite.test.cjs:1\nHere's a Node.js test suite using the `node:test` module to test the `compareSemver` function imported from `./semver.cjs`. This suite covers various invariants, examples, and additional cases as specified:\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nSyntaxError: Invalid or unexpected token\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "numeric-core",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-nM5gS6/suite.test.cjs:1\nHere's a Node.js test suite using the `node:test` module to test the `compareSemver` function imported from `./semver.cjs`. This suite covers various invariants, examples, and additional cases as specified:\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nSyntaxError: Invalid or unexpected token\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "prerelease-ignored",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-nM5gS6/suite.test.cjs:1\nHere's a Node.js test suite using the `node:test` module to test the `compareSemver` function imported from `./semver.cjs`. This suite covers various invariants, examples, and additional cases as specified:\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nSyntaxError: Invalid or unexpected token\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "numeric-prerelease",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-nM5gS6/suite.test.cjs:1\nHere's a Node.js test suite using the `node:test` module to test the `compareSemver` function imported from `./semver.cjs`. This suite covers various invariants, examples, and additional cases as specified:\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nSyntaxError: Invalid or unexpected token\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "numeric-vs-text",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-nM5gS6/suite.test.cjs:1\nHere's a Node.js test suite using the `node:test` module to test the `compareSemver` function imported from `./semver.cjs`. This suite covers various invariants, examples, and additional cases as specified:\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nSyntaxError: Invalid or unexpected token\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "identifier-length",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-nM5gS6/suite.test.cjs:1\nHere's a Node.js test suite using the `node:test` module to test the `compareSemver` function imported from `./semver.cjs`. This suite covers various invariants, examples, and additional cases as specified:\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nSyntaxError: Invalid or unexpected token\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "metadata-compared",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-nM5gS6/suite.test.cjs:1\nHere's a Node.js test suite using the `node:test` module to test the `compareSemver` function imported from `./semver.cjs`. This suite covers various invariants, examples, and additional cases as specified:\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nSyntaxError: Invalid or unexpected token\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      }
+    ]
+  }
+}

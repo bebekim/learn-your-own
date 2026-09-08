@@ -73,6 +73,7 @@ export interface Judgment {
   falsifiableBy?: string;
   /** 'mechanical' when decided by deterministic rules, 'judge' when LLM-judged. */
   source?: 'mechanical' | 'judge';
+  usage?: { totalTokens: number; cost?: number };
 }
 
 export type JudgeFn = (input: DisagreementInput) => Promise<Judgment>;
@@ -86,6 +87,8 @@ export interface RunAnalysis {
   runDir: string;
   specId: string;
   testWriterModel?: string;
+  startedAt: string;
+  finishedAt: string;
   disagreements: AnalyzedDisagreement[];
   /** Lesson paths recorded as stage inputs in this run's trace. */
   deliveredLessonPaths: string[];
@@ -286,8 +289,15 @@ export async function consumeTraces({  runDirs,
   const judgeFn = judge ?? createDefaultJudge(judgeModel);
   const gateRules = GATE_PRESETS[gate?.mode ?? 'permissive'];
   const analyses: RunAnalysis[] = [];
+  const seenRuns = new Map<string, string>();
   for (const runDir of runDirs) {
     const evidence = await loadRunEvidence(runDir);
+    const fingerprint = hashValue(evidence.trace);
+    if (seenRuns.has(evidence.runId)) {
+      if (seenRuns.get(evidence.runId) !== fingerprint) throw new Error('conflicting traces share a runId');
+      continue;
+    }
+    seenRuns.set(evidence.runId, fingerprint);
     const disagreements: AnalyzedDisagreement[] = [];
     for (const disagreement of extractDisagreements(evidence)) {
       // Deterministic first pass: mechanical failures never reach the judge.
@@ -299,19 +309,19 @@ export async function consumeTraces({  runDirs,
       runId: evidence.runId,
       runDir,
       specId: evidence.spec.specId,
+      startedAt: evidence.trace.startedAt,
+      finishedAt: evidence.trace.finishedAt,
       testWriterModel: evidence.plan.stages.find((stage) => stage.role === 'test-writer')?.executor
         ?.model,
       disagreements,
-      deliveredLessonPaths: evidence.trace.stages.flatMap((stage) =>
-        stage.inputs.map((input) => input.path)
-      ),
+      deliveredLessonPaths: [...new Set(evidence.trace.stages.flatMap((stage) =>
+        stage.deliveries ? stage.deliveries.map(d => d.lessonPath) : stage.inputs.map(input => input.path)
+      ))],
     });
   }
 
-  // Credibility gate: group lessons by classification (a lesson's phrasing
-  // drifts between judge calls; its KIND is the stable signal), then apply
-  // the gate preset — run count, cross-spec spread, Wilson floor, and
-  // weaken-event blocking in strict mode.
+  // Recurrence is scoped to the same intervention and falsifier.
+  // ponytail: exact normalized text splits paraphrases; merge only with reviewed identity evidence.
   const lessonGroups = new Map<
     string,
     { judgment: Judgment; runIds: string[]; specIds: Set<string>; models: Set<string>; testNames: string[] }
@@ -319,7 +329,13 @@ export async function consumeTraces({  runDirs,
   for (const analysis of analyses) {
     const seenInRun = new Set<string>();
     for (const disagreement of analysis.disagreements) {
-      const signature = disagreement.judgment.classification;
+      const signature = hashValue({
+        classification: disagreement.judgment.classification,
+        lesson: disagreement.judgment.lesson.trim().toLowerCase().replace(/\s+/g, ' '),
+        falsifier: disagreement.judgment.falsifiableBy?.trim().toLowerCase().replace(/\s+/g, ' ') ?? '',
+        vehicle: disagreement.judgment.vehicle ?? 'prose',
+        patch: disagreement.judgment.promptPatch ?? '',
+      });
       const group = lessonGroups.get(signature) ?? {
         judgment: disagreement.judgment,
         runIds: [],
@@ -367,12 +383,12 @@ export async function consumeTraces({  runDirs,
     const promoted =
       evidence > evidenceThreshold(gateRules.alpha) && group.specIds.size >= gateRules.minSpecs;
     const gateStats =
-      `${signature}: E=${evidence.toFixed(1)} (threshold ${evidenceThreshold(gateRules.alpha).toFixed(0)}), ` +
+      `${group.judgment.classification}: E=${evidence.toFixed(1)} (threshold ${evidenceThreshold(gateRules.alpha).toFixed(0)}), ` +
       `runs=${helpful}, clean=${harmful}, specs=${group.specIds.size}`;
     // An arm must be able to pay out: lessons with no falsifying observation
     // are recorded but never delivered.
     const deliverable = Boolean(group.judgment.falsifiableBy);
-    const lessonPath = join(lessonsDir, `lesson-${lessonIndex}-${signature.replace(/[^a-z0-9-]/gi, '-').slice(0, 60)}.md`);
+    const lessonPath = join(lessonsDir, `lesson-${group.judgment.classification}-${signature.slice(0, 20)}.md`);
     writeFileSync(
       lessonPath,
       [
@@ -436,6 +452,14 @@ export async function consumeTraces({  runDirs,
     }),
     promotions,
     beliefUpdates,
+    usage: {
+      judgeTokens: analyses.flatMap(a => a.disagreements).filter(d => d.judgment.source !== 'mechanical')
+        .every(d => d.judgment.usage !== undefined)
+        ? analyses.flatMap(a => a.disagreements).reduce((sum, d) => sum + (d.judgment.usage?.totalTokens ?? 0), 0) : null,
+      judgeCost: analyses.flatMap(a => a.disagreements).filter(d => d.judgment.source !== 'mechanical')
+        .every(d => d.judgment.usage?.cost !== undefined)
+        ? analyses.flatMap(a => a.disagreements).reduce((sum, d) => sum + (d.judgment.usage?.cost ?? 0), 0) : null,
+    },
     producer: {
       judgeModel: judgeModel ?? process.env.OPENROUTER_LYO_JUDGE_MODEL ?? DEFAULT_JUDGE_MODEL,
       judgePromptSha256: judgeRubricSha256(),
@@ -460,38 +484,40 @@ export async function consumeTraces({  runDirs,
     : [];
 
   // Credit assignment: for each lesson delivered in a run, charge harmful
-  // when its failure class recurred anyway; credit helpful when the class
-  // was expected (seen before with the same spec + writer model) but did
-  // not recur. Absence without expectation earns nothing.
+  // when the same intervention's failure recurs; credit helpful only after
+  // two earlier recurrences with the same spec and writer. These are
+  // observational feedback counters; the controlled eval gate establishes benefit.
   const appliedCredits: LessonCredit[] = [];
   if (libraryDir) {
-    const libraryLessons = loadLessons(libraryDir);
+    const libraryLessons = loadLessons(libraryDir, { includeQuarantined: true });
     for (const analysis of analyses) {
-      const classesPresent = new Set(
-        analysis.disagreements.map((d) => d.judgment.classification)
-      );
       for (const lessonPath of analysis.deliveredLessonPaths) {
         const lesson = libraryLessons.find((entry) => entry.path === lessonPath);
         if (!lesson) {
           continue;
         }
         let outcome: LessonCredit['outcome'] | undefined;
-        if (classesPresent.has(lesson.classification)) {
+        const matches = (d: RunAnalysis['disagreements'][number]) =>
+          d.judgment.classification === lesson.classification &&
+          d.judgment.lesson.trim().toLowerCase().replace(/\s+/g, ' ') === lesson.title.trim().toLowerCase().replace(/\s+/g, ' ') &&
+          d.judgment.falsifiableBy === lesson.falsifiableBy;
+        if (analysis.disagreements.some(matches)) {
           outcome = 'harmful';
         } else {
-          const expected = analyses.some(
+          const expected = analyses.filter(
             (other) =>
+              Date.parse(other.finishedAt) < Date.parse(analysis.startedAt) &&
               other.runId !== analysis.runId &&
               other.specId === analysis.specId &&
               other.testWriterModel === analysis.testWriterModel &&
-              other.disagreements.some((d) => d.judgment.classification === lesson.classification)
-          );
+              other.disagreements.some(matches)
+          ).length >= 2;
           if (expected) {
             outcome = 'helpful';
           }
         }
         if (outcome) {
-          recordLessonOutcome({ lessonPath, outcome });
+          recordLessonOutcome({ lessonPath, outcome, runId: analysis.runId, evidenceRef: join(analysis.runDir, 'trace.json') });
           appliedCredits.push({ lessonPath, outcome, runId: analysis.runId });
         }
       }

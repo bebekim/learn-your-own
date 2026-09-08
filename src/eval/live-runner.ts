@@ -32,7 +32,15 @@ export interface EvalEpisodeResult {
   diff_ref: string | null;
   touched_paths: string[];
   verifier_evidence: VerifierEvidence;
-  token_usage: null;
+  episode_kind?: 'agent' | 'verifier-smoke';
+  split?: 'train' | 'selection' | 'test';
+  task_fingerprint?: string;
+  pair_id?: string;
+  verifier_sha256?: string;
+  false_gate?: boolean;
+  regression?: boolean;
+  context_overhead_tokens?: number | null;
+  token_usage: { total_tokens: number; estimated_cost?: number } | null;
   wall_time_ms: number;
   injected_context: {
     static_skill: string | null;
@@ -73,12 +81,16 @@ export function runLocalEpisode(input: RunLocalEpisodeInput): EvalEpisodeResult 
     cwd: input.cwd,
     shell: true,
     encoding: 'utf8',
+    timeout: input.task.budget.max_wall_time_seconds * 1000,
   });
   const wallTimeMs = Math.round(performance.now() - started);
   const exitCode = verifier.status;
 
   return {
     episode_id: episodeId,
+    episode_kind: 'verifier-smoke',
+    split: input.task.split,
+    task_fingerprint: crypto.createHash('sha256').update(JSON.stringify(input.task)).digest('hex'),
     task_id: input.task.task_id,
     baseline_id: input.baselineId,
     model: input.model,
@@ -87,7 +99,7 @@ export function runLocalEpisode(input: RunLocalEpisodeInput): EvalEpisodeResult 
     allowed_tools: input.task.allowed_tools,
     trace_ref: null,
     diff_ref: null,
-    touched_paths: input.task.expected_touched_paths,
+    touched_paths: [],
     verifier_evidence: {
       kind: 'command',
       command: input.task.success_check.command,

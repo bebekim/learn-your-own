@@ -1,3 +1,5 @@
+import { bridgeSessionOnEnd } from '../lyo/bridge/session-bridge.ts';
+import { resolveSessionLessonStorePath } from '../lyo/selection/session-hook.ts';
 import {
   claudeHookObservation,
   emptyClaudeHookOutput,
@@ -177,6 +179,10 @@ function persistHookObservation(
   }
   if (observation.sessionEnd) {
     recordSessionEnded(kernel, observation.sessionEnd);
+    try {
+      const storePath = resolveSessionLessonStorePath(observation.hookEvent.cwd);
+      if (storePath) bridgeSessionOnEnd(kernel, observation.sessionEnd.sessionId, storePath);
+    } catch { /* fail-open: telemetry capture does not depend on learning */ }
   }
   if (observation.promptBoundary) {
     recordPromptBoundary(kernel, observation.promptBoundary);

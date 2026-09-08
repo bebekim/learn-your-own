@@ -2,6 +2,7 @@ import type { CanonicalHookEventName, HookObservation } from '../hooks/events.ts
 import {
   createHookEventId,
   fingerprintHookValue,
+  safeToolStatusSignals,
   sha256,
 } from './runtime.ts';
 import {
@@ -177,6 +178,7 @@ function redactClaudeHookEvent(
         output_size: fingerprint.outputSize,
         truncated: fingerprint.truncated,
         recorded: false,
+        ...safeToolStatusSignals(event[key]),
       };
     }
   }

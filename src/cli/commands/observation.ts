@@ -24,6 +24,8 @@ import {
 } from '../presenters/observation.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
 import { withKernel } from './context.ts';
+import { bridgeSessionOnEnd } from '../../lyo/bridge/session-bridge.ts';
+import { resolveSessionLessonStorePath } from '../../lyo/selection/session-hook.ts';
 
 export const OBSERVATION_COMMANDS: Record<string, CommandHandler> = {
   'session-start': sessionStartCommand,
@@ -33,7 +35,23 @@ export const OBSERVATION_COMMANDS: Record<string, CommandHandler> = {
   'backfill-prompt-kind': backfillPromptKindCommand,
   report: reportCommand,
   audit: auditCommand,
+  bridge: bridgeCommand,
 };
+
+function bridgeCommand(args: CommandArgs): unknown {
+  const storePath = args.flagValue('--store') ?? resolveSessionLessonStorePath(args.cwd);
+  if (!storePath) throw new Error('bridge requires an existing lesson store or --store path');
+  if (args.hasFlag('--all') === Boolean(args.flagValue('--session')))
+    throw new Error('bridge requires exactly one of --all or --session');
+  return withKernel(args, kernel => {
+    const sessions = args.hasFlag('--all')
+      ? (kernel.db.prepare('SELECT session_id FROM agent_sessions WHERE ended_at IS NOT NULL ORDER BY started_at, session_id').all() as unknown as Array<{ session_id: string }>).map(row => row.session_id)
+      : [args.requiredFlag('--session')];
+    return { ok: true, sessions: sessions.map(sessionId => ({
+      sessionId, ...bridgeSessionOnEnd(kernel, sessionId, storePath),
+    })) };
+  });
+}
 
 function sessionEndCommand(args: CommandArgs): unknown {
   return withKernel(args, (kernel) => ({

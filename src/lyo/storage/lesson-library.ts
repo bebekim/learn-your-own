@@ -9,10 +9,10 @@
  * rule, never the evidence.
  */
 
-import { cpSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { hashFile } from '../../contract/refs.ts';
+import { hashFile, hashValue } from '../../contract/refs.ts';
 import type { LyoUpdate } from '../../contract/index.ts';
 import { sampleGamma } from '../selection/selection-policies.ts';
 import type { JudgeClassification } from '../judge/trace-consumer.ts';
@@ -31,6 +31,7 @@ export interface Lesson {
   vehicle: LessonVehicle;
   promptPatch?: string;
   falsifiableBy?: string;
+  status?: string;
 }
 
 const ROLE_BY_CLASSIFICATION: Partial<Record<JudgeClassification, 'code-writer' | 'test-writer'>> = {
@@ -41,7 +42,7 @@ const ROLE_BY_CLASSIFICATION: Partial<Record<JudgeClassification, 'code-writer' 
 
 export const DEFAULT_LESSON_LIMIT = 3;
 
-export function loadLessons(libraryDir: string): Lesson[] {
+export function loadLessons(libraryDir: string, { includeQuarantined = false } = {}): Lesson[] {
   let entries: string[] = [];
   try {
     entries = readdirSync(libraryDir);
@@ -53,7 +54,7 @@ export function loadLessons(libraryDir: string): Lesson[] {
       .filter((entry) => entry.endsWith('.md'))
       .sort()
       .map((entry) => join(libraryDir, entry))
-  );
+  ).filter(lesson => includeQuarantined || !isDemoted(lesson));
 }
 
 export function loadLessonsFromFiles(paths: string[]): Lesson[] {
@@ -66,6 +67,11 @@ export function loadLessonsFromFiles(paths: string[]): Lesson[] {
       continue;
     }
     const runList = content.match(/^- observed in runs: (.+)$/m)?.[1];
+    const receiptsDir = `${path}.outcomes`;
+    const receipts = existsSync(receiptsDir)
+      ? readdirSync(receiptsDir).filter(name => name.endsWith('.json')).map(name =>
+          JSON.parse(readFileSync(join(receiptsDir, name), 'utf8')) as { outcome: string })
+      : [];
     lessons.push({
       title,
       classification: classification as JudgeClassification,
@@ -73,8 +79,9 @@ export function loadLessonsFromFiles(paths: string[]): Lesson[] {
       sha256: hashFile(path).sha256,
       content,
       evidenceRuns: runList ? runList.split(',').filter((run) => run.trim() !== '').length : 0,
-      helpful: parseCounter(content, 'helpful'),
-      harmful: parseCounter(content, 'harmful'),
+      helpful: parseCounter(content, 'helpful') + receipts.filter(r => r.outcome === 'helpful').length,
+      harmful: parseCounter(content, 'harmful') + receipts.filter(r => r.outcome === 'harmful').length,
+      status: content.match(/^- status: (.+)$/m)?.[1],
       vehicle: parseVehicle(content),
       promptPatch: parsePromptPatch(content),
       falsifiableBy: content.match(/^- falsifiable_by: (.+)$/m)?.[1],
@@ -126,25 +133,40 @@ export function selectLessons(
 
 /** v1 demotion rule: failed at least twice, never once helped. */
 export function isDemoted(lesson: Lesson): boolean {
-  return lesson.harmful >= 2 && lesson.helpful === 0;
+  return lesson.status === 'quarantined' || (lesson.harmful >= 2 && lesson.helpful === 0);
 }
 
-/** The write path for outcome credit: bumps the lesson file's counters. */
+/** Immutable per-run receipts; original counters remain legacy evidence. */
 export function recordLessonOutcome({
   lessonPath,
   outcome,
+  runId,
+  evidenceRef,
 }: {
   lessonPath: string;
   outcome: 'helpful' | 'harmful';
+  runId: string;
+  evidenceRef?: string;
 }): Lesson {
-  const content = readFileSync(lessonPath, 'utf8');
-  const field = outcome === 'helpful' ? 'helpful' : 'harmful';
-  const current = parseCounter(content, field);
-  const updated = content.match(new RegExp(`^- ${field}: \\d+$`, 'm'))
-    ? content.replace(new RegExp(`^(- ${field}: )\\d+$`, 'm'), `$1${current + 1}`)
-    : content.replace(/^(- classification: .+)$/m, `$1\n- ${field}: ${current + 1}`);
-  writeFileSync(lessonPath, updated);
+  if (!runId || !['helpful', 'harmful'].includes(outcome)) throw new Error('lesson credit requires runId and a valid outcome');
+  const receiptsDir = `${lessonPath}.outcomes`;
+  mkdirSync(receiptsDir, { recursive: true });
+  const receipt = join(receiptsDir, `${hashValue(runId)}.json`);
+  try {
+    writeFileSync(receipt, JSON.stringify({ runId, outcome, evidenceRef: evidenceRef ?? null }), { flag: 'wx' });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+    const previous = JSON.parse(readFileSync(receipt, 'utf8')) as { runId: string; outcome: string };
+    if (previous.runId !== runId || previous.outcome !== outcome) throw new Error('conflicting lesson outcome for the same run');
+  }
   const [lesson] = loadLessonsFromFiles([lessonPath]);
+  if (isDemoted(lesson) && lesson.status !== 'quarantined') {
+    const content = lesson.content;
+    writeFileSync(lessonPath, /^- status: .+$/m.test(content)
+      ? content.replace(/^- status: .+$/m, '- status: quarantined')
+      : content + '\n- status: quarantined\n');
+    lesson.status = 'quarantined';
+  }
   return lesson;
 }
 
@@ -224,7 +246,9 @@ export function installPromotedLessons({
     }
     const source = join(sourceDir, promotion.artifactRef.path);
     const target = join(libraryDir, promotion.artifactRef.path.split('/').pop()!);
-    cpSync(source, target);
+    if (hashFile(source).sha256 !== promotion.artifactRef.sha256) throw new Error('lesson artifact hash mismatch');
+    // Never reset historical counters or overwrite an installed intervention.
+    if (!existsSync(target)) cpSync(source, target);
     installed.push(target);
   }
   return installed;

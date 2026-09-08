@@ -1,0 +1,87 @@
+{
+  "id": "semver-suite-0-B0",
+  "model": "openai/gpt-4o-mini",
+  "promptSha256": "ee7f18353241f5f9d89dfd2a4c8a12d78137594201898796495bc47e88bb161e",
+  "outputSha256": "7e7cd2405338f34c4ac061a85e290b88ada74ed087714ff0d0dbc08afb1dce95",
+  "result": {
+    "transcript": "Here's a CommonJS Node.js test suite for the `compareSemver` function, which you can save as `test-semver.js`. This suite covers the specified invariants, examples, and additional test cases using the core numbers 22, 32, and prerelease identifiers `beta.22`, `beta.32`.\n\n```javascript\nconst { test, expect } = require('node:test');\nconst { compareSemver } = require('./semver.cjs');\n\ntest('compareSemver tests', () => {\n    // Invariant tests\n    expect(compareSemver('1.2.3', '1.2.4')).toBe(-1);\n    expect(compareSemver('2.0.0', '10.0.0')).toBe(-1);\n    expect(compareSemver('1.0.0-alpha', '1.0.0')).toBe(-1);\n    expect(compareSemver('1.0.0-alpha', '1.0.0-alpha.1')).toBe(-1);\n    expect(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.beta')).toBe(-1);\n    expect(compareSemver('1.0.0-beta.2', '1.0.0-beta.11')).toBe(-1);\n    expect(compareSemver('1.0.0-rc.1', '1.0.0')).toBe(-1);\n    expect(compareSemver('1.0.0+build.5', '1.0.0')).toBe(0);\n\n    // Equal inputs\n    expect(compareSemver('1.2.3', '1.2.3')).toBe(0);\n    expect(compareSemver('1.0.0-alpha', '1.0.0-alpha')).toBe(0);\n    expect(compareSemver('1.0.0+build.5', '1.0.0+build.5')).toBe(0);\n\n    // Reverse order\n    expect(compareSemver('1.2.4', '1.2.3')).toBe(1);\n    expect(compareSemver('10.0.0', '2.0.0')).toBe(1);\n    expect(compareSemver('1.0.0', '1.0.0-alpha')).toBe(1);\n    expect(compareSemver('1.0.0-alpha.1', '1.0.0-alpha')).toBe(1);\n    expect(compareSemver('1.0.0-alpha.beta', '1.0.0-alpha.1')).toBe(1);\n    expect(compareSemver('1.0.0-beta.11', '1.0.0-beta.2')).toBe(1);\n    expect(compareSemver('1.0.0', '1.0.0-rc.1')).toBe(1);\n    expect(compareSemver('1.0.0', '1.0.0+build.5')).toBe(0);\n\n    // Additional test cases\n    expect(compareSemver('1.0.0-beta.22', '1.0.0-beta.32')).toBe(-1);\n    expect(compareSemver('1.0.0-beta.32', '1.0.0-beta.22')).toBe(1);\n    expect(compareSemver('1.0.0-beta.22', '1.0.0-beta')).toBe(-1);\n    expect(compareSemver('1.0.0-beta', '1.0.0-beta.22')).toBe(1);\n    expect(compareSemver('1.0.0-beta.1', '1.0.0-beta.1.1')).toBe(-1);\n    expect(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.1.0')).toBe(-1);\n    expect(compareSemver('1.0.0+build.1', '1.0.0+build.2')).toBe(0); // Build metadata ignored\n    expect(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.1')).toBe(0);\n    expect(compareSemver('1.0.0-alpha.1', '1.0.0-alpha')).toBe(1);\n    expect(compareSemver('1.0.0-alpha', '1.0.0-alpha.1')).toBe(-1);\n});\n```\n\n### Instructions to Run the Tests\n1. Ensure you have Node.js installed.\n2. Save the above code in a file named `test-semver.js`.\n3. Run the tests using the following command in your terminal:\n   ```bash\n   node test-semver.js\n   ```\n\nThis test suite will validate the behavior of the `compareSemver` function against the specified invariants and additional cases, ensuring comprehensive coverage of the semver comparison logic.",
+    "usage": {
+      "promptTokens": 654,
+      "completionTokens": 1040,
+      "totalTokens": 1694,
+      "cost": 0.0007221
+    }
+  },
+  "error": null,
+  "verification": {
+    "success": false,
+    "falseGate": true,
+    "missedBug": false,
+    "cases": [
+      {
+        "name": "correct",
+        "passed": false,
+        "executed": true,
+        "exitCode": 1,
+        "stdout": "TAP version 13\n# Subtest: compareSemver tests\nnot ok 1 - compareSemver tests\n  ---\n  duration_ms: 7.601333\n  type: 'test'\n  location: '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-npLI90/suite.test.cjs:4:1'\n  failureType: 'testCodeFailure'\n  error: 'expect is not a function'\n  code: 'ERR_TEST_FAILURE'\n  name: 'TypeError'\n  stack: |-\n    TestContext.<anonymous> (/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-npLI90/suite.test.cjs:6:5)\n    Test.runInAsyncScope (node:async_hooks:227:14)\n    Test.run (node:internal/test_runner/test:1201:25)\n    Test.start (node:internal/test_runner/test:1096:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 54.898459\n",
+        "stderr": ""
+      },
+      {
+        "name": "negative-zero",
+        "passed": false,
+        "executed": true,
+        "exitCode": 1,
+        "stdout": "TAP version 13\n# Subtest: compareSemver tests\nnot ok 1 - compareSemver tests\n  ---\n  duration_ms: 2.78775\n  type: 'test'\n  location: '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-npLI90/suite.test.cjs:4:1'\n  failureType: 'testCodeFailure'\n  error: 'expect is not a function'\n  code: 'ERR_TEST_FAILURE'\n  name: 'TypeError'\n  stack: |-\n    TestContext.<anonymous> (/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-npLI90/suite.test.cjs:6:5)\n    Test.runInAsyncScope (node:async_hooks:227:14)\n    Test.run (node:internal/test_runner/test:1201:25)\n    Test.start (node:internal/test_runner/test:1096:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 49.68125\n",
+        "stderr": ""
+      },
+      {
+        "name": "numeric-core",
+        "passed": false,
+        "executed": true,
+        "exitCode": 1,
+        "stdout": "TAP version 13\n# Subtest: compareSemver tests\nnot ok 1 - compareSemver tests\n  ---\n  duration_ms: 0.954084\n  type: 'test'\n  location: '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-npLI90/suite.test.cjs:4:1'\n  failureType: 'testCodeFailure'\n  error: 'expect is not a function'\n  code: 'ERR_TEST_FAILURE'\n  name: 'TypeError'\n  stack: |-\n    TestContext.<anonymous> (/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-npLI90/suite.test.cjs:6:5)\n    Test.runInAsyncScope (node:async_hooks:227:14)\n    Test.run (node:internal/test_runner/test:1201:25)\n    Test.start (node:internal/test_runner/test:1096:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 16.131667\n",
+        "stderr": ""
+      },
+      {
+        "name": "prerelease-ignored",
+        "passed": false,
+        "executed": true,
+        "exitCode": 1,
+        "stdout": "TAP version 13\n# Subtest: compareSemver tests\nnot ok 1 - compareSemver tests\n  ---\n  duration_ms: 0.814459\n  type: 'test'\n  location: '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-npLI90/suite.test.cjs:4:1'\n  failureType: 'testCodeFailure'\n  error: 'expect is not a function'\n  code: 'ERR_TEST_FAILURE'\n  name: 'TypeError'\n  stack: |-\n    TestContext.<anonymous> (/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-npLI90/suite.test.cjs:6:5)\n    Test.runInAsyncScope (node:async_hooks:227:14)\n    Test.run (node:internal/test_runner/test:1201:25)\n    Test.start (node:internal/test_runner/test:1096:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 7.310417\n",
+        "stderr": ""
+      },
+      {
+        "name": "numeric-prerelease",
+        "passed": false,
+        "executed": true,
+        "exitCode": 1,
+        "stdout": "TAP version 13\n# Subtest: compareSemver tests\nnot ok 1 - compareSemver tests\n  ---\n  duration_ms: 0.791792\n  type: 'test'\n  location: '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-npLI90/suite.test.cjs:4:1'\n  failureType: 'testCodeFailure'\n  error: 'expect is not a function'\n  code: 'ERR_TEST_FAILURE'\n  name: 'TypeError'\n  stack: |-\n    TestContext.<anonymous> (/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-npLI90/suite.test.cjs:6:5)\n    Test.runInAsyncScope (node:async_hooks:227:14)\n    Test.run (node:internal/test_runner/test:1201:25)\n    Test.start (node:internal/test_runner/test:1096:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 7.740583\n",
+        "stderr": ""
+      },
+      {
+        "name": "numeric-vs-text",
+        "passed": false,
+        "executed": true,
+        "exitCode": 1,
+        "stdout": "TAP version 13\n# Subtest: compareSemver tests\nnot ok 1 - compareSemver tests\n  ---\n  duration_ms: 1.187084\n  type: 'test'\n  location: '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-npLI90/suite.test.cjs:4:1'\n  failureType: 'testCodeFailure'\n  error: 'expect is not a function'\n  code: 'ERR_TEST_FAILURE'\n  name: 'TypeError'\n  stack: |-\n    TestContext.<anonymous> (/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-npLI90/suite.test.cjs:6:5)\n    Test.runInAsyncScope (node:async_hooks:227:14)\n    Test.run (node:internal/test_runner/test:1201:25)\n    Test.start (node:internal/test_runner/test:1096:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 10.848667\n",
+        "stderr": ""
+      },
+      {
+        "name": "identifier-length",
+        "passed": false,
+        "executed": true,
+        "exitCode": 1,
+        "stdout": "TAP version 13\n# Subtest: compareSemver tests\nnot ok 1 - compareSemver tests\n  ---\n  duration_ms: 0.827709\n  type: 'test'\n  location: '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-npLI90/suite.test.cjs:4:1'\n  failureType: 'testCodeFailure'\n  error: 'expect is not a function'\n  code: 'ERR_TEST_FAILURE'\n  name: 'TypeError'\n  stack: |-\n    TestContext.<anonymous> (/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-npLI90/suite.test.cjs:6:5)\n    Test.runInAsyncScope (node:async_hooks:227:14)\n    Test.run (node:internal/test_runner/test:1201:25)\n    Test.start (node:internal/test_runner/test:1096:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 8.265625\n",
+        "stderr": ""
+      },
+      {
+        "name": "metadata-compared",
+        "passed": false,
+        "executed": true,
+        "exitCode": 1,
+        "stdout": "TAP version 13\n# Subtest: compareSemver tests\nnot ok 1 - compareSemver tests\n  ---\n  duration_ms: 0.796584\n  type: 'test'\n  location: '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-npLI90/suite.test.cjs:4:1'\n  failureType: 'testCodeFailure'\n  error: 'expect is not a function'\n  code: 'ERR_TEST_FAILURE'\n  name: 'TypeError'\n  stack: |-\n    TestContext.<anonymous> (/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-npLI90/suite.test.cjs:6:5)\n    Test.runInAsyncScope (node:async_hooks:227:14)\n    Test.run (node:internal/test_runner/test:1201:25)\n    Test.start (node:internal/test_runner/test:1096:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 7.635375\n",
+        "stderr": ""
+      }
+    ]
+  }
+}

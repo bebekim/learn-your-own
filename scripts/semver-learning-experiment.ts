@@ -1,0 +1,192 @@
+#!/usr/bin/env node
+// ponytail: one task family and a fixed mutation panel; broaden only after this measures a benefit.
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { hashFile, hashValue } from '../src/contract/refs.ts';
+import { buildEvalReport, renderEvalReportMarkdown } from '../src/eval/report.ts';
+import type { EvalEpisodeResult } from '../src/eval/live-runner.ts';
+import { createOpenAiCompatibleExecutor } from '../src/runner/executors/openai-compatible.ts';
+import type { StageExecutionResult } from '../src/runner/executors/stage-executor.ts';
+import { DEFAULT_JUDGE_MODEL, OPENROUTER_URL } from '../src/lyo/judge/openrouter.ts';
+import { extractDisagreements, loadRunEvidence } from '../src/lyo/judge/trace-consumer.ts';
+import { classifyMechanically } from '../src/lyo/judge/mechanical-judge.ts';
+
+const root = resolve(import.meta.dirname, '..');
+const arms = ['B0', 'B1', 'B4'] as const;
+const mutations = ['numeric-core', 'prerelease-ignored', 'numeric-prerelease', 'numeric-vs-text', 'identifier-length', 'metadata-compared'] as const;
+const staticAdvice = 'Derive expectations from the written specification. Cover boundaries, equality and the stated algebraic properties.';
+const trainingRuns = ['run-20260727-033735-1d3ad0', 'run-20260727-034825-d5ff86'];
+const budget = { max_turns: 1, max_wall_time_seconds: 120, max_tokens: 4096 };
+
+// Also used by the self-check. The mutation is embedded, never read from an agent-visible environment variable.
+export function referenceSource(mutation = 'correct'): string {
+  return `const mutation = ${JSON.stringify(mutation)};
+exports.compareSemver = (a, b) => {
+  const parse = s => { const [v, meta = ''] = s.split('+'); const i = v.indexOf('-');
+    return { core: (i < 0 ? v : v.slice(0,i)).split('.'), pre: i < 0 ? [] : v.slice(i+1).split('.'), meta }; };
+  const x = parse(a), y = parse(b), cmp = (a,b) => a < b ? -1 : a > b ? 1 : 0;
+  for (let i = 0; i < 3; i++) { const c = mutation === 'numeric-core' ? cmp(x.core[i],y.core[i]) : cmp(Number(x.core[i]), Number(y.core[i])); if (c) return c; }
+  if (mutation !== 'prerelease-ignored') {
+    if (!x.pre.length && y.pre.length) return 1;
+    if (x.pre.length && !y.pre.length) return -1;
+    for (let i = 0; i < Math.min(x.pre.length,y.pre.length); i++) {
+      const a = x.pre[i], b = y.pre[i], an = /^\\d+$/.test(a), bn = /^\\d+$/.test(b);
+      let c = 0;
+      if (an && bn) c = mutation === 'numeric-prerelease' ? cmp(a,b) : cmp(Number(a),Number(b));
+      else if (an !== bn) c = (an ? -1 : 1) * (mutation === 'numeric-vs-text' ? -1 : 1);
+      else c = cmp(a,b);
+      if (c) return c;
+    }
+    if (mutation !== 'identifier-length' && x.pre.length !== y.pre.length) return cmp(x.pre.length,y.pre.length);
+  }
+  if (mutation === 'metadata-compared') return cmp(x.meta,y.meta);
+  return mutation === 'negative-zero' ? -0 : 0;
+};\n`;
+}
+
+export function extractSuite(transcript: string): string {
+  const blocks = [...transcript.matchAll(/```(?:javascript|js|cjs)?[ \t]*\n([\s\S]*?)```/g)];
+  return blocks.length === 1 ? blocks[0][1].trim() : transcript.trim();
+}
+
+export function verifySuite(source: string) {
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'lyo-semver-verifier-')));
+  try {
+    writeFileSync(join(dir, 'suite.test.cjs'), source);
+    const cases = ['correct', 'negative-zero', ...mutations].map(name => {
+      writeFileSync(join(dir, 'semver.cjs'), referenceSource(name));
+      const result = spawnSync(process.execPath, ['--permission', `--allow-fs-read=${dir}`, '--test-reporter=tap', join(dir, 'suite.test.cjs')], {
+        cwd: dir, encoding: 'utf8', timeout: 5000, maxBuffer: 1024 * 1024,
+        env: { PATH: process.env.PATH, TZ: 'UTC', NODE_NO_WARNINGS: '1' },
+      });
+      return { name, passed: result.status === 0 && /# tests [1-9]\d*/.test(result.stdout),
+        executed: result.status !== null && /# tests [1-9]\d*/.test(result.stdout),
+        exitCode: result.status, stdout: result.stdout, stderr: result.stderr };
+    });
+    const falseGate = cases.slice(0, 2).some(c => !c.passed);
+    const missedBug = falseGate || cases.slice(2).some(c => c.passed || !c.executed);
+    return { success: !falseGate && !missedBug, falseGate, missedBug, cases };
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+
+export function selfCheck(): void {
+  const pairs = [
+    ['2.0.0','10.0.0'], ['1.0.0-a','1.0.0'], ['1.0.0-a.2','1.0.0-a.11'],
+    ['1.0.0-1','1.0.0-a'], ['1.0.0-a','1.0.0-a.1'], ['1.0.0','1.0.0+z'],
+  ];
+  const suite = `const test=require('node:test'), assert=require('node:assert/strict'), {compareSemver:f}=require('./semver.cjs');
+    test('fixed cases',()=>{ const pairs=${JSON.stringify(pairs)};
+      for(const [i,[a,b]] of pairs.entries()) assert.ok(f(a,b) === (i===5?0:-1)); });`;
+  assert.equal(verifySuite(extractSuite('Here is the suite:\n```js\n' + suite + '\n```\nDone.')).success, true);
+  assert.equal(verifySuite("const test=require('node:test');test('empty',()=>{});").success, false);
+  const trap = suite + "\ntest('equality',()=>assert.equal(f('1.0.0','1.0.0'),-f('1.0.0','1.0.0')));";
+  assert.equal(verifySuite(trap).falseGate, true);
+  assert.equal(verifySuite(trap).missedBug, true, 'invalid suites cannot receive mutation-detection credit');
+}
+
+async function run(outDir: string, model: string): Promise<void> {
+  mkdirSync(outDir, { recursive: true });
+  const save = (name: string, value: unknown) => writeFileSync(join(outDir, name), JSON.stringify(value, null, 2) + '\n');
+  const learned = [];
+  for (const runId of trainingRuns) {
+    const evidence = await loadRunEvidence(join(root, 'dogfood/semver-task/runs', runId));
+    const match = extractDisagreements(evidence).map(classifyMechanically).find(j => j?.lesson.includes('negation-based'));
+    if (!match) throw new Error(`training evidence did not contain the frozen failure signature: ${runId}`);
+    learned.push({ runId, trace: evidence.trace, judgment: match });
+  }
+  assert.equal(learned[0].judgment.lesson, learned[1].judgment.lesson);
+  const lesson = learned[0].judgment.lesson;
+  const ruleId = hashValue(lesson);
+  save('learning.json', { learned, ruleId, lesson, extraction: 'mechanical; zero new model calls',
+    historicalAcquisitionTokens: null, historicalAcquisitionCost: null });
+  const spec = JSON.parse(readFileSync(join(root, 'dogfood/semver-task/spec.json'), 'utf8'));
+  // Freeze all conditions before the first call; selection outcomes never alter test tasks or advice.
+  const tasks = Array.from({ length: 8 }, (_, i) => ({
+    task_id: `semver-suite-${i}`, split: i < 6 ? 'selection' : 'test',
+    prompt: `Write an executable CommonJS node:test suite for compareSemver. Import it from './semver.cjs'. Return only JavaScript, optionally fenced. Cover every invariant, examples, both orders and equal-precedence inputs. Include your own cases using core numbers ${i+22}, ${i+32} and prerelease identifiers beta.${i+22}, beta.${i+32}.\nSpecification:\n${JSON.stringify(spec)}`,
+  }));
+  const verifierHash = hashFile(new URL(import.meta.url).pathname).sha256;
+  const registration = { version: 2, model, temperature: 0.4, budget, tasks, arms, ruleId, lesson, staticAdvice,
+    verifierHash, mutations, order: 'rotate B0/B1/B4 by pair index',
+    gate: 'selection only; paired Wilson lower bound above 0.5 on success wins, or cost wins without success losses',
+    metrics: { falseGate: 'suite rejects either valid reference', regression: 'suite misses any seeded bug',
+      contextOverhead: 'provider prompt-token difference from B0 within each pair' },
+    limitations: ['One family; seeded mutation coverage is not exhaustive.', 'Revision 2 fixes fenced-output extraction; revision 1 is retained as an invalid measurement. Advice and reference implementations are unchanged.', 'Historical training cost is unknown; total lifecycle efficiency cannot be claimed.',
+      'Task variants share a spec; held-out cases measure within-family replication, not transfer.'],
+  };
+  const registrationPath = join(outDir, 'registration.json');
+  writeFileSync(registrationPath, JSON.stringify(registration, null, 2) + '\n', { flag: 'wx' });
+  const executor = createOpenAiCompatibleExecutor({ baseUrl: OPENROUTER_URL, apiKeyEnv: 'OPENROUTER_API_KEY', model,
+    temperature: 0.4, maxTokens: budget.max_tokens, timeoutMs: budget.max_wall_time_seconds * 1000 });
+  const episodes: EvalEpisodeResult[] = [];
+  for (const [index, task] of tasks.entries()) {
+    const pair: Array<{ episode: EvalEpisodeResult; promptTokens: number | undefined }> = [];
+    for (let offset = 0; offset < arms.length; offset++) {
+      const arm = arms[(index + offset) % arms.length];
+      const id = `${task.task_id}-${arm}`;
+      const episodeDir = join(outDir, id);
+      mkdirSync(episodeDir);
+      const prompt = task.prompt + (arm === 'B0' ? '' : `\nGuidance:\n${arm === 'B1' ? staticAdvice : lesson}`);
+      writeFileSync(join(episodeDir, 'prompt.txt'), prompt);
+      const start = Date.now();
+      let result: StageExecutionResult;
+      let error: string | null = null;
+      try { result = await executor({ prompt, sandboxDir: episodeDir }); }
+      catch (e) { const failure = e as Error & Partial<StageExecutionResult>; error = failure.message;
+        result = { transcript: failure.transcript ?? '', usage: failure.usage }; }
+      const source = extractSuite(result.transcript);
+      writeFileSync(join(episodeDir, 'suite.test.cjs'), source);
+      const verification = verifySuite(source);
+      const trace = { id, model, promptSha256: hashValue(prompt), outputSha256: hashValue(source), result, error, verification };
+      writeFileSync(join(episodeDir, 'trace.json'), JSON.stringify(trace, null, 2));
+      const episode: EvalEpisodeResult = {
+        episode_id: id, episode_kind: 'agent', task_id: task.task_id, split: task.split as 'selection' | 'test',
+        baseline_id: arm, pair_id: task.task_id, task_fingerprint: hashValue(task), verifier_sha256: verifierHash,
+        model, harness: 'semver-mutation-panel@1', budget, allowed_tools: [],
+        trace_ref: `${id}/trace.json`, diff_ref: `${id}/suite.test.cjs`, touched_paths: ['suite.test.cjs'],
+        verifier_evidence: { kind: 'command', command: 'fixed valid-reference and mutation panel',
+          exit_code: verification.success && !error ? 0 : 1, stdout: JSON.stringify(verification.cases.map(c => ({name:c.name,passed:c.passed}))), stderr: error ?? '' },
+        token_usage: result.usage ? { total_tokens: result.usage.totalTokens, estimated_cost: result.usage.cost } : null,
+        wall_time_ms: Date.now() - start, false_gate: verification.falseGate, regression: verification.missedBug,
+        injected_context: { static_skill: arm === 'B1' ? staticAdvice : null, observe_only: false,
+          rule_gates: arm === 'B4' ? [{ ruleId, command: 'fixed panel', requireBeforeDone: true, matchedPaths: ['suite.test.cjs'], applicationId: id }] : [] },
+        outcome: { verified_success: verification.success && !error },
+      };
+      pair.push({ episode, promptTokens: result.usage?.promptTokens });
+      episodes.push(episode);
+      save('episodes.json', episodes);
+      process.stdout.write(`${id}: ${episode.outcome.verified_success ? 'pass' : 'fail'}, tokens=${episode.token_usage?.total_tokens ?? 'unknown'}\n`);
+      if (error && !result.usage) throw new Error(`unmeasured provider failure; stopped without retry: ${error}`);
+    }
+    const baselineTokens = pair.find(p => p.episode.baseline_id === 'B0')!.promptTokens;
+    for (const row of pair) row.episode.context_overhead_tokens = baselineTokens !== undefined && row.promptTokens !== undefined
+      ? row.promptTokens - baselineTokens : null;
+    save('episodes.json', episodes);
+  }
+  const selection = buildEvalReport(episodes.filter(e => e.split === 'selection'), { baselineId: 'B0', treatmentId: 'B4', ruleId });
+  const staticComparison = buildEvalReport(episodes.filter(e => e.split === 'selection'), { baselineId: 'B1', treatmentId: 'B4', ruleId });
+  save('static-comparison.json', staticComparison);
+  const heldOut = buildEvalReport(episodes.filter(e => e.split === 'test'));
+  save('selection-report.json', selection); save('test-report.json', heldOut);
+  const cost = episodes.every(e => e.token_usage?.estimated_cost !== undefined)
+    ? episodes.reduce((sum, e) => sum + e.token_usage!.estimated_cost!, 0) : null;
+  save('cost.json', { currentExperimentUsd: cost, currentExperimentTokens: episodes.every(e => e.token_usage)
+    ? episodes.reduce((sum,e) => sum + e.token_usage!.total_tokens, 0) : null,
+    historicalAcquisitionUsd: null, historicalAcquisitionTokens: null, totalLifecycleCost: null });
+  writeFileSync(join(outDir, 'report.md'), renderEvalReportMarkdown(selection) + '\n## Comparison with static guidance\n\n' + renderEvalReportMarkdown(staticComparison) + '\n## Frozen test split\n\n' +
+    renderEvalReportMarkdown(heldOut) + `\nCurrent experiment cost: ${cost ?? 'unknown'} USD. Historical learning acquisition cost: unknown.\n\n` +
+    registration.limitations.map(l => `- ${l}`).join('\n') + '\n');
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  if (process.argv.includes('--self-check')) { selfCheck(); process.stdout.write('SemVer verifier self-check passed.\n'); }
+  else {
+    const outDir = process.argv[2];
+    if (!outDir) throw new Error('usage: node scripts/semver-learning-experiment.ts OUTPUT_DIR [MODEL] | --self-check');
+    await run(resolve(outDir), process.argv[3] ?? DEFAULT_JUDGE_MODEL);
+  }
+}

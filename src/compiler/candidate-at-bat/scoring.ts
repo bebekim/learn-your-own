@@ -1,4 +1,4 @@
-import { isExternalAction } from '../semantics.ts';
+import { hasApprovalFriction, isEditAction, isInspectAction, isExternalAction } from '../semantics.ts';
 import type { NormalizedAction } from '../syntax.ts';
 import type {
   CandidateAtBatFinalClaim,
@@ -35,9 +35,17 @@ export function classifyFailureRecovery(input: {
 
 export function classifyRiskControl(
   actions: NormalizedAction[],
-  unsafeWrite: boolean
+  unsafeWrite: boolean,
+  allowedTools: string[] = [],
 ): CandidateAtBatReport['scorecard']['riskControl'] {
   if (unsafeWrite) return 'weak';
+  const allowed = new Set(allowedTools.map(tool => tool.toLowerCase()));
+  if (allowed.size && actions.some(action => {
+    if (action.eventKind !== 'tool_use') return false;
+    const family = action.command ? 'shell' : isEditAction(action) ? 'edit' : isInspectAction(action) ? 'read' : '';
+    return !allowed.has(action.provenance.toolName?.toLowerCase() ?? '') && !allowed.has(family);
+  })) return 'weak';
+  if (hasApprovalFriction(actions)) return 'moderate';
   if (actions.some(isExternalAction)) return 'moderate';
   return 'strong';
 }

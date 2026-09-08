@@ -38,7 +38,23 @@ The compiler analogy is explicit:
 
 The first version should be part of Lyo, but not inside the durable kernel alone. The kernel remains responsible for evidence and reducer grammar. The learning compiler should live as a bounded module that consumes kernel records and emits typed artifacts. Benchmark execution and agent launching should remain outside the kernel as orchestration.
 
-## Current Implementation Status
+## Implementation status: 2026-09-08
+
+The telemetry compiler is implemented. A narrower lesson/verifier path now has
+scoped session advice, delivery and observation receipts, immutable pipeline
+lesson snapshots, idempotent feedback, and a repeated fixed-verifier experiment.
+This does **not** complete the five-artifact learning compiler described above.
+
+The benchmark covers SemVer test authoring with no guidance, static guidance and
+learned guidance. It records selection and frozen test splits, actual usage and
+an explicit inconclusive gate. It does not establish cross-family transfer,
+database milestone learning, or total lifecycle savings: historical acquisition
+costs are unknown. Session outcomes are observational and award no causal credit.
+
+See [the current acceptance scope](../Specs/8-learning-evidence-loop.md) and
+[the measured result](../evidence/learning-loop-2026-09-08-r2/assessment.md).
+
+## Historical implementation status (0.2.1)
 
 As of `0.2.1`, the first read-only compiler layer exists.
 

@@ -2,8 +2,8 @@
 /**
  * Session lesson banner: print grounded LYO lessons for hook-capable agents.
  *
- * Read-only and fail-open by design. Cluster runs write lessons; interactive
- * agent hooks only consume the existing lesson library.
+ * Read-only rendering; emitted banners record delivery receipts when a session
+ * id is available. Hook failures never block the agent.
  *
  * When the hook payload carries a session id (e.g. kimi-code UserPromptSubmit,
  * which fires on every prompt), the banner prints at most once per session;
@@ -17,7 +17,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { pathToFileURL } from 'node:url';
+import { hashValue } from '../../contract/refs.ts';
 import { resolvePolicy } from './selection-policies.ts';
+import { LessonStore } from '../storage/lesson-store.ts';
+import { sessionVerifier } from '../bridge/session-bridge.ts';
+import { parsePriorJson, priorCalibration, priorPseudoCounts } from './semantic-prior.ts';
 
 const LIMIT = 5;
 const MAX_TEXT = 220;
@@ -30,6 +34,8 @@ interface LessonRow {
   helpful_count: number;
   harmful_count: number;
   posterior_mean: number;
+  explanation: string;
+  prior_json: string | null;
 }
 
 export interface SessionHookPayload {
@@ -66,6 +72,10 @@ function formatLesson(row: LessonRow): string {
 }
 
 export function renderSessionLessons(payload: SessionHookPayload = {}): string | null {
+  return selectSessionLessons(payload)?.text ?? null;
+}
+
+function selectSessionLessons(payload: SessionHookPayload): { text: string; selected: LessonRow[]; storePath: string } | null {
   const storePath = resolveSessionLessonStorePath(payload.cwd);
   if (!storePath) return null;
 
@@ -73,41 +83,45 @@ export function renderSessionLessons(payload: SessionHookPayload = {}): string |
   try {
     const rows = db
       .prepare(
-        `SELECT lesson_id, failure_class, intervention,
-                helpful_count, harmful_count, posterior_mean
-         FROM v_lesson_library`
+        `SELECT * FROM v_lesson_library`
       )
       .all() as unknown as LessonRow[];
-    if (rows.length === 0) return null;
-
-    const candidates = rows.map((row) => ({
+    const scoped = rows.filter(row => {
+      if (!row.intervention.trim()) return false;
+      const verifier = sessionVerifier(row.explanation);
+      return !verifier || verifier.repoPath === payload.cwd;
+    });
+    if (scoped.length === 0) return null;
+    const gamma = priorCalibration(scoped).gamma;
+    const candidates = scoped.map((row) => ({
       lesson_id: row.lesson_id,
-      alpha: Number(row.helpful_count) + 1,
-      beta: Number(row.harmful_count) + 1,
+      alpha: Number(row.helpful_count) + 1 + priorPseudoCounts(parsePriorJson(row.prior_json), gamma).alpha,
+      beta: Number(row.harmful_count) + 1 + priorPseudoCounts(parsePriorJson(row.prior_json), gamma).beta,
     }));
     const picks = resolvePolicy(null).sampleSelection(candidates, LIMIT);
-    const lines = picks.map(({ index }) => formatLesson(rows[index])).filter(Boolean);
+    const selected = picks.map(({ index }) => scoped[index]);
+    const lines = selected.map(formatLesson);
     if (lines.length === 0) return null;
 
-    return (
-      `LYO lessons from your past runs (${rows.length} in library, Thompson-sampled top ${lines.length}; ` +
+    return { selected, storePath, text:
+      `LYO lessons from your past runs (${scoped.length} in library, Thompson-sampled top ${lines.length}; ` +
       `score = posterior mean, ✓/✗ = validated outcomes; apply when relevant):\n` +
       `${lines.join('\n')}\n`
-    );
+    };
   } finally {
     db.close();
   }
 }
 
-function claimSessionBanner(sessionId: string): boolean {
-  const safe = sessionId.replace(/[^A-Za-z0-9_-]/g, '_');
+function claimSessionBanner(sessionId: string, storePath: string): boolean {
+  const safe = hashValue([storePath, sessionId]);
   if (!safe) return true;
   const dir = path.join(os.tmpdir(), 'lyo-lesson-banner');
   try {
     fs.mkdirSync(dir, { recursive: true });
     const marker = path.join(dir, safe);
-    if (fs.existsSync(marker)) return false;
-    fs.writeFileSync(marker, new Date().toISOString());
+    try { fs.writeFileSync(marker, new Date().toISOString(), { flag: 'wx' }); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code === 'EEXIST') return false; throw error; }
     return true;
   } catch {
     // fail-open: if the marker store is unusable, print rather than suppress
@@ -117,11 +131,22 @@ function claimSessionBanner(sessionId: string): boolean {
 
 export function emitSessionLessons(payload: SessionHookPayload = {}): void {
   try {
-    const text = renderSessionLessons(payload);
-    if (!text) return;
+    const selection = selectSessionLessons(payload);
+    if (!selection) return;
     const sessionId = payload.session_id ?? payload.sessionId;
-    if (sessionId && !claimSessionBanner(sessionId)) return;
-    process.stdout.write(text);
+    if (sessionId && !claimSessionBanner(sessionId, selection.storePath)) return;
+    process.stdout.write(selection.text);
+    if (sessionId) {
+      const store = new LessonStore(selection.storePath);
+      try {
+        for (const row of selection.selected) store.recordApplication({ lesson_id: row.lesson_id,
+          run_id: sessionId, trigger_message_id: 'session-banner', task_cue: payload.cwd ?? null });
+        const traceId = `session-delivery:${sessionId}`;
+        if (!store.getTrace(traceId)) store.recordTrace({ trace_id: traceId, run_id: sessionId,
+          kind: 'protocol_application', summary: 'Session banner emitted.',
+          payload: { cwd: payload.cwd, lessons: selection.selected, evidenceKind: 'delivery-only' } });
+      } finally { store.close(); }
+    }
   } catch {
     // fail-open: never block the session
   }

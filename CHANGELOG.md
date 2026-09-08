@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Connect recovered session verifier failures to scoped advice and delivery/outcome receipts; retain numeric tool status through redaction and recognize RTK verifier commands.
+- Block duplicate promotion/credit, unrelated lesson grouping, future-to-past credit, quarantined delivery, incomparable run comparisons and missing-cost eval wins. Snapshot all lesson delivery vehicles and include judge/corrective-retry usage.
+- Distinguish real agent evaluation from verifier smoke checks. Add repeated matched-pair gates and an explicit inconclusive result, plus the recorded SemVer experiment (no demonstrated benefit).
+- Correct removed explanation-graph capability claims and distinguish estimator disagreement from causal error.
+- API changes: `recordLessonOutcome` requires `runId`; `loadLessons` excludes quarantined lessons unless `includeQuarantined` is set. Eval summary measurements can be `null`, comparisons can be `incomparable`, and gates can be `inconclusive`. Credit diagnostics rename `meanAbsDerivativeError` to `meanAbsWeightDifference`.
+
 ## 0.4.0
 
 This minor release adds the workspace scaffolding and wrap commands, new

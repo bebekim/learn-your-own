@@ -1,0 +1,87 @@
+{
+  "id": "semver-suite-2-B4",
+  "model": "openai/gpt-4o-mini",
+  "promptSha256": "1c4edcbe4ea0539b1f93183ec8d85ee41dd27728b83e37a24b476d1b7027daaa",
+  "outputSha256": "1098debf1a1dbbf9787cc61c17535f5c8dec9668f864081b50ed5095a3e53593",
+  "result": {
+    "transcript": "Here is an executable CommonJS Node.js test suite for the `compareSemver` function, which is imported from `./semver.cjs`. The suite covers all specified invariants, examples, and additional test cases.\n\n```javascript\n// test-semver.js\nconst assert = require('assert');\nconst { compareSemver } = require('./semver.cjs');\n\ndescribe('compareSemver', () => {\n    // Invariants\n    it('should return -1 for lower precedence versions', () => {\n        assert.strictEqual(compareSemver('1.2.3', '1.2.4'), -1);\n        assert.strictEqual(compareSemver('2.0.0', '10.0.0'), -1);\n        assert.strictEqual(compareSemver('1.0.0-alpha', '1.0.0'), -1);\n        assert.strictEqual(compareSemver('1.0.0-alpha', '1.0.0-alpha.1'), -1);\n        assert.strictEqual(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.beta'), -1);\n        assert.strictEqual(compareSemver('1.0.0-beta.2', '1.0.0-beta.11'), -1);\n        assert.strictEqual(compareSemver('1.0.0-rc.1', '1.0.0'), -1);\n    });\n\n    it('should return 0 for equal versions', () => {\n        assert.strictEqual(compareSemver('1.0.0+build.5', '1.0.0'), 0);\n        assert.strictEqual(compareSemver('1.0.0', '1.0.0'), 0);\n    });\n\n    it('should return 1 for higher precedence versions', () => {\n        assert.strictEqual(compareSemver('1.2.4', '1.2.3'), 1);\n        assert.strictEqual(compareSemver('10.0.0', '2.0.0'), 1);\n        assert.strictEqual(compareSemver('1.0.0', '1.0.0-alpha'), 1);\n        assert.strictEqual(compareSemver('1.0.0-alpha.1', '1.0.0-alpha'), 1);\n        assert.strictEqual(compareSemver('1.0.0-alpha.beta', '1.0.0-alpha.1'), 1);\n        assert.strictEqual(compareSemver('1.0.0-beta.11', '1.0.0-beta.2'), 1);\n        assert.strictEqual(compareSemver('1.0.0', '1.0.0-rc.1'), 1);\n    });\n\n    // Edge cases\n    it('should handle multi-digit numeric identifiers in prerelease', () => {\n        assert.strictEqual(compareSemver('1.0.0-beta.4', '1.0.0-beta.14'), -1);\n        assert.strictEqual(compareSemver('1.0.0-beta.14', '1.0.0-beta.4'), 1);\n    });\n\n    it('should handle mixed numeric and alphanumeric prerelease identifiers', () => {\n        assert.strictEqual(compareSemver('1.0.0-beta.2', '1.0.0-beta.alpha'), -1);\n        assert.strictEqual(compareSemver('1.0.0-beta.alpha', '1.0.0-beta.2'), 1);\n    });\n\n    it('should handle prerelease chains of different lengths', () => {\n        assert.strictEqual(compareSemver('1.0.0-alpha', '1.0.0-alpha.1'), -1);\n        assert.strictEqual(compareSemver('1.0.0-alpha.1', '1.0.0-alpha'), 1);\n    });\n\n    it('should ignore build metadata', () => {\n        assert.strictEqual(compareSemver('1.0.0+build.5', '1.0.0+build.6'), 0);\n        assert.strictEqual(compareSemver('1.0.0+build.5', '1.0.0'), 0);\n    });\n\n    // Negation-based properties\n    it('should satisfy compareSemver(a, b) === -compareSemver(b, a)', () => {\n        const versions = [\n            '1.0.0', '1.0.0-alpha', '1.0.0-alpha.1',\n            '1.0.0-beta.2', '1.0.0-beta.11', '1.2.3', '1.2.4',\n            '2.0.0', '10.0.0', '1.0.0+build.5'\n        ];\n        for (const a of versions) {\n            for (const b of versions) {\n                const result = compareSemver(a, b);\n                assert.strictEqual(result + compareSemver(b, a), 0);\n            }\n        }\n    });\n\n    // Equality property\n    it('should satisfy compareSemver(a, a) === 0', () => {\n        const versions = [\n            '1.0.0', '1.0.0-alpha', '1.0.0-alpha.1',\n            '1.0.0-beta.2', '1.0.0-beta.11', '1.2.3', '1.2.4',\n            '2.0.0', '10.0.0', '1.0.0+build.5'\n        ];\n        for (const version of versions) {\n            assert.strictEqual(compareSemver(version, version), 0);\n        }\n    });\n});\n```\n\n### Explanation:\n- The test suite uses the `assert` module to check the output of the `compareSemver` function against expected values.\n- It covers all specified invariants, including precedence rules, equality checks, and negation properties.\n- Additional test cases are included to handle edge cases, such as multi-digit prerelease identifiers and mixed types.\n- The suite can be executed in a Node.js environment using a test runner like Mocha.",
+    "usage": {
+      "promptTokens": 698,
+      "completionTokens": 1287,
+      "totalTokens": 1985,
+      "cost": 0.0008769
+    }
+  },
+  "error": null,
+  "verification": {
+    "success": false,
+    "falseGate": true,
+    "missedBug": true,
+    "cases": [
+      {
+        "name": "correct",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-kFXwNk/suite.test.cjs:1\nHere is an executable CommonJS Node.js test suite for the `compareSemver` function, which is imported from `./semver.cjs`. The suite covers all specified invariants, examples, and additional test cases.\n     ^^\n\nSyntaxError: Unexpected identifier 'is'\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "negative-zero",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-kFXwNk/suite.test.cjs:1\nHere is an executable CommonJS Node.js test suite for the `compareSemver` function, which is imported from `./semver.cjs`. The suite covers all specified invariants, examples, and additional test cases.\n     ^^\n\nSyntaxError: Unexpected identifier 'is'\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "numeric-core",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-kFXwNk/suite.test.cjs:1\nHere is an executable CommonJS Node.js test suite for the `compareSemver` function, which is imported from `./semver.cjs`. The suite covers all specified invariants, examples, and additional test cases.\n     ^^\n\nSyntaxError: Unexpected identifier 'is'\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "prerelease-ignored",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-kFXwNk/suite.test.cjs:1\nHere is an executable CommonJS Node.js test suite for the `compareSemver` function, which is imported from `./semver.cjs`. The suite covers all specified invariants, examples, and additional test cases.\n     ^^\n\nSyntaxError: Unexpected identifier 'is'\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "numeric-prerelease",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-kFXwNk/suite.test.cjs:1\nHere is an executable CommonJS Node.js test suite for the `compareSemver` function, which is imported from `./semver.cjs`. The suite covers all specified invariants, examples, and additional test cases.\n     ^^\n\nSyntaxError: Unexpected identifier 'is'\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "numeric-vs-text",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-kFXwNk/suite.test.cjs:1\nHere is an executable CommonJS Node.js test suite for the `compareSemver` function, which is imported from `./semver.cjs`. The suite covers all specified invariants, examples, and additional test cases.\n     ^^\n\nSyntaxError: Unexpected identifier 'is'\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "identifier-length",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-kFXwNk/suite.test.cjs:1\nHere is an executable CommonJS Node.js test suite for the `compareSemver` function, which is imported from `./semver.cjs`. The suite covers all specified invariants, examples, and additional test cases.\n     ^^\n\nSyntaxError: Unexpected identifier 'is'\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "metadata-compared",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-kFXwNk/suite.test.cjs:1\nHere is an executable CommonJS Node.js test suite for the `compareSemver` function, which is imported from `./semver.cjs`. The suite covers all specified invariants, examples, and additional test cases.\n     ^^\n\nSyntaxError: Unexpected identifier 'is'\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      }
+    ]
+  }
+}

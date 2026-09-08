@@ -32,6 +32,7 @@ import {
   renderLessonsBlock,
   renderPatchBlock,
   selectLessons,
+  DEFAULT_LESSON_LIMIT,
   type Lesson,
 } from '../lyo/storage/lesson-library.ts';
 import type { FileBlock } from './files.ts';
@@ -158,7 +159,7 @@ export async function runPipeline({
     const patches = lessons.filter((lesson) => lesson.vehicle === 'skeleton-patch');
     return renderLessonsBlock(prose) + renderPatchBlock(patches);
   };
-  const specConstraints = library.filter((lesson) => lesson.vehicle === 'spec-constraint');
+  const specConstraints = library.filter((lesson) => lesson.vehicle === 'spec-constraint').slice(0, DEFAULT_LESSON_LIMIT);
   if (specConstraints.length > 0) {
     const addendum =
       '\n\nSpec addendum (promoted constraints — treat as part of the specification):\n' +
@@ -169,8 +170,17 @@ export async function runPipeline({
   }
   prompts.codeWriter += deliver(stageLessons['code-writer']);
   prompts.testWriter += deliver(stageLessons['test-writer']);
+  const deliveries = (role: 'code-writer' | 'test-writer') =>
+    [...new Map([...stageLessons[role], ...specConstraints].map(lesson => [lesson.path, lesson])).values()]
+      .map(lesson => {
+        const snapshot = join(runDir, 'lessons', `${lesson.sha256}.md`);
+        mkdirSync(dirname(snapshot), { recursive: true });
+        writeFileSync(snapshot, lesson.content);
+        return { lessonPath: lesson.path, artifactRef: runRef(snapshot) };
+      });
+  const delivered = { 'code-writer': deliveries('code-writer'), 'test-writer': deliveries('test-writer') };
   const lessonRefs = (role: 'code-writer' | 'test-writer'): ArtifactRef[] =>
-    stageLessons[role].map((lesson) => ({ path: lesson.path, sha256: lesson.sha256 }));
+    delivered[role].map(d => d.artifactRef);
 
   const pipelineStartedAt = now().toISOString();
   const maxRounds = plan.feedbackPolicy.maxRounds ?? 1;
@@ -212,6 +222,8 @@ export async function runPipeline({
       stageId: outcome.stage.stageId,
       round,
       inputs: [specRef, ...extraInputs],
+      deliveries: outcome.stage.role === 'code-writer' || outcome.stage.role === 'test-writer'
+        ? delivered[outcome.stage.role] : [],
       outputs: [manifestRef ?? outcome.manifestRef],
       model: outcome.stage.executor?.model,
       promptSha256: outcome.promptSha256,

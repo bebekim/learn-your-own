@@ -148,6 +148,7 @@ export function tokenizeTelemetryActions(
       cwd: event.cwd,
       createdAt: event.created_at,
       ordinal: ordinal++,
+      toolName: extracted.toolName,
     };
 
     if (extracted.payload.tool_use_id) {

@@ -1,0 +1,87 @@
+{
+  "id": "semver-suite-2-B1",
+  "model": "openai/gpt-4o-mini",
+  "promptSha256": "b34473fe5d1d14e880ccf79fdb5a0789f63f5538f2e1b6164f7395e0d7e8e6d7",
+  "outputSha256": "6d9915be49bb592d7253b366c18ede407adefdc37ab57c27f94552f0f6fbf1a7",
+  "result": {
+    "transcript": "Here's a complete CommonJS test suite for the `compareSemver` function, importing it from `./semver.cjs`. This suite covers various invariants, examples, and additional cases as specified.\n\n```javascript\n// test.js\nconst { strictEqual } = require('assert');\nconst compareSemver = require('./semver.cjs').compareSemver;\n\ndescribe('compareSemver', () => {\n    // Invariants\n    it('should compare major, minor, and patch versions numerically', () => {\n        strictEqual(compareSemver('1.2.3', '1.2.4'), -1);\n        strictEqual(compareSemver('1.2.4', '1.2.3'), 1);\n        strictEqual(compareSemver('2.0.0', '10.0.0'), -1);\n    });\n\n    it('should consider prerelease versions lower than the same version without one', () => {\n        strictEqual(compareSemver('1.0.0-alpha', '1.0.0'), -1);\n        strictEqual(compareSemver('1.0.0-rc.1', '1.0.0'), -1);\n    });\n\n    it('should compare prerelease identifiers left to right', () => {\n        strictEqual(compareSemver('1.0.0-alpha', '1.0.0-alpha.1'), -1);\n        strictEqual(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.beta'), -1);\n        strictEqual(compareSemver('1.0.0-beta.2', '1.0.0-beta.11'), -1);\n    });\n\n    it('should consider numeric prerelease identifiers lower than alphanumeric ones', () => {\n        strictEqual(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.beta'), -1);\n    });\n\n    it('should consider shorter prerelease identifiers lower than longer ones', () => {\n        strictEqual(compareSemver('1.0.0-alpha', '1.0.0-alpha.beta'), -1);\n    });\n\n    it('should ignore build metadata for precedence', () => {\n        strictEqual(compareSemver('1.0.0+build.5', '1.0.0'), 0);\n    });\n\n    // Algebraic properties\n    it('should satisfy compareSemver(a, b) === -compareSemver(b, a)', () => {\n        strictEqual(compareSemver('1.2.3', '1.2.4'), -compareSemver('1.2.4', '1.2.3'));\n        strictEqual(compareSemver('1.0.0-alpha', '1.0.0'), -compareSemver('1.0.0', '1.0.0-alpha'));\n    });\n\n    it('should satisfy compareSemver(a, a) === 0', () => {\n        strictEqual(compareSemver('1.2.3', '1.2.3'), 0);\n        strictEqual(compareSemver('1.0.0-alpha', '1.0.0-alpha'), 0);\n        strictEqual(compareSemver('1.0.0+build.5', '1.0.0+build.5'), 0);\n    });\n\n    // Additional test cases\n    it('should handle custom cases with core numbers and prerelease identifiers', () => {\n        strictEqual(compareSemver('1.0.0-beta.24', '1.0.0-beta.34'), -1);\n        strictEqual(compareSemver('1.0.0-beta.34', '1.0.0-beta.24'), 1);\n        strictEqual(compareSemver('24.0.0', '34.0.0'), -1);\n        strictEqual(compareSemver('34.0.0', '24.0.0'), 1);\n        strictEqual(compareSemver('24.0.0-alpha', '24.0.0'), -1);\n        strictEqual(compareSemver('24.0.0-alpha.1', '24.0.0-alpha.2'), -1);\n        strictEqual(compareSemver('24.0.0-alpha.2', '24.0.0-alpha.1'), 1);\n    });\n\n    // Edge cases\n    it('should handle edge cases with multi-digit numeric identifiers', () => {\n        strictEqual(compareSemver('1.0.0-beta.2', '1.0.0-beta.11'), -1);\n        strictEqual(compareSemver('1.0.0-beta.11', '1.0.0-beta.2'), 1);\n    });\n\n    it('should handle mixed numeric and alphanumeric prerelease identifiers', () => {\n        strictEqual(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.beta'), -1);\n        strictEqual(compareSemver('1.0.0-alpha.beta', '1.0.0-alpha.1'), 1);\n    });\n\n    it('should handle prerelease chains of different lengths', () => {\n        strictEqual(compareSemver('1.0.0-alpha', '1.0.0-alpha.beta'), -1);\n        strictEqual(compareSemver('1.0.0-alpha.beta', '1.0.0-alpha'), 1);\n    });\n\n    it('should handle build metadata on versions with and without prerelease', () => {\n        strictEqual(compareSemver('1.0.0-alpha+build.1', '1.0.0-alpha'), 0);\n        strictEqual(compareSemver('1.0.0+build.1', '1.0.0'), 0);\n    });\n});\n```\n\n### Explanation\n- The suite uses the `assert` module to verify the expected outcomes of the `compareSemver` function.\n- Each test case corresponds to the invariants, examples, and additional cases specified in the requirements.\n- The tests cover both the basic functionality and edge cases, ensuring comprehensive coverage of the function's behavior.",
+    "usage": {
+      "promptTokens": 675,
+      "completionTokens": 1278,
+      "totalTokens": 1953,
+      "cost": 0.00086805
+    }
+  },
+  "error": null,
+  "verification": {
+    "success": false,
+    "falseGate": true,
+    "missedBug": true,
+    "cases": [
+      {
+        "name": "correct",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-lSwwF2/suite.test.cjs:5\ndescribe('compareSemver', () => {\n^\n\nReferenceError: describe is not defined\n    at Object.<anonymous> (/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-lSwwF2/suite.test.cjs:5:1)\n    at Module._compile (node:internal/modules/cjs/loader:1830:14)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "negative-zero",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-lSwwF2/suite.test.cjs:5\ndescribe('compareSemver', () => {\n^\n\nReferenceError: describe is not defined\n    at Object.<anonymous> (/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-lSwwF2/suite.test.cjs:5:1)\n    at Module._compile (node:internal/modules/cjs/loader:1830:14)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "numeric-core",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-lSwwF2/suite.test.cjs:5\ndescribe('compareSemver', () => {\n^\n\nReferenceError: describe is not defined\n    at Object.<anonymous> (/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-lSwwF2/suite.test.cjs:5:1)\n    at Module._compile (node:internal/modules/cjs/loader:1830:14)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "prerelease-ignored",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-lSwwF2/suite.test.cjs:5\ndescribe('compareSemver', () => {\n^\n\nReferenceError: describe is not defined\n    at Object.<anonymous> (/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-lSwwF2/suite.test.cjs:5:1)\n    at Module._compile (node:internal/modules/cjs/loader:1830:14)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "numeric-prerelease",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-lSwwF2/suite.test.cjs:5\ndescribe('compareSemver', () => {\n^\n\nReferenceError: describe is not defined\n    at Object.<anonymous> (/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-lSwwF2/suite.test.cjs:5:1)\n    at Module._compile (node:internal/modules/cjs/loader:1830:14)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "numeric-vs-text",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-lSwwF2/suite.test.cjs:5\ndescribe('compareSemver', () => {\n^\n\nReferenceError: describe is not defined\n    at Object.<anonymous> (/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-lSwwF2/suite.test.cjs:5:1)\n    at Module._compile (node:internal/modules/cjs/loader:1830:14)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "identifier-length",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-lSwwF2/suite.test.cjs:5\ndescribe('compareSemver', () => {\n^\n\nReferenceError: describe is not defined\n    at Object.<anonymous> (/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-lSwwF2/suite.test.cjs:5:1)\n    at Module._compile (node:internal/modules/cjs/loader:1830:14)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "metadata-compared",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-lSwwF2/suite.test.cjs:5\ndescribe('compareSemver', () => {\n^\n\nReferenceError: describe is not defined\n    at Object.<anonymous> (/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-lSwwF2/suite.test.cjs:5:1)\n    at Module._compile (node:internal/modules/cjs/loader:1830:14)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      }
+    ]
+  }
+}

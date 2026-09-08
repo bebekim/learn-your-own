@@ -1,0 +1,1186 @@
+[
+  {
+    "episode_id": "semver-suite-0-B0",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-0",
+    "split": "selection",
+    "baseline_id": "B0",
+    "pair_id": "semver-suite-0",
+    "task_fingerprint": "752d216d30ed714a33dcba1c6b94d34584e5c9941e9b72c00b8cf8dd6b8b0df1",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-0-B0/trace.json",
+    "diff_ref": "semver-suite-0-B0/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1694,
+      "estimated_cost": 0.0007221
+    },
+    "wall_time_ms": 10476,
+    "false_gate": true,
+    "regression": false,
+    "injected_context": {
+      "static_skill": null,
+      "observe_only": false,
+      "rule_gates": []
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 0
+  },
+  {
+    "episode_id": "semver-suite-0-B1",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-0",
+    "split": "selection",
+    "baseline_id": "B1",
+    "pair_id": "semver-suite-0",
+    "task_fingerprint": "752d216d30ed714a33dcba1c6b94d34584e5c9941e9b72c00b8cf8dd6b8b0df1",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-0-B1/trace.json",
+    "diff_ref": "semver-suite-0-B1/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1766,
+      "estimated_cost": 0.00075585
+    },
+    "wall_time_ms": 8600,
+    "false_gate": true,
+    "regression": false,
+    "injected_context": {
+      "static_skill": "Derive expectations from the written specification. Cover boundaries, equality and the stated algebraic properties.",
+      "observe_only": false,
+      "rule_gates": []
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 21
+  },
+  {
+    "episode_id": "semver-suite-0-B4",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-0",
+    "split": "selection",
+    "baseline_id": "B4",
+    "pair_id": "semver-suite-0",
+    "task_fingerprint": "752d216d30ed714a33dcba1c6b94d34584e5c9941e9b72c00b8cf8dd6b8b0df1",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-0-B4/trace.json",
+    "diff_ref": "semver-suite-0-B4/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1976,
+      "estimated_cost": 0.0008715
+    },
+    "wall_time_ms": 8784,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": null,
+      "observe_only": false,
+      "rule_gates": [
+        {
+          "ruleId": "5fdd8af252da911aa07e186c6734e30d1ffd91671c540af54e30c3800801bcff",
+          "command": "fixed panel",
+          "requireBeforeDone": true,
+          "matchedPaths": [
+            "suite.test.cjs"
+          ],
+          "applicationId": "semver-suite-0-B4"
+        }
+      ]
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 44
+  },
+  {
+    "episode_id": "semver-suite-1-B1",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-1",
+    "split": "selection",
+    "baseline_id": "B1",
+    "pair_id": "semver-suite-1",
+    "task_fingerprint": "b0850df677827703ee1113e3bcc97f19117162a2ae900fde03573cf83757414c",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-1-B1/trace.json",
+    "diff_ref": "semver-suite-1-B1/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 2094,
+      "estimated_cost": 0.00095265
+    },
+    "wall_time_ms": 9705,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": "Derive expectations from the written specification. Cover boundaries, equality and the stated algebraic properties.",
+      "observe_only": false,
+      "rule_gates": []
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 21
+  },
+  {
+    "episode_id": "semver-suite-1-B4",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-1",
+    "split": "selection",
+    "baseline_id": "B4",
+    "pair_id": "semver-suite-1",
+    "task_fingerprint": "b0850df677827703ee1113e3bcc97f19117162a2ae900fde03573cf83757414c",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-1-B4/trace.json",
+    "diff_ref": "semver-suite-1-B4/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 2101,
+      "estimated_cost": 0.0009465
+    },
+    "wall_time_ms": 8989,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": null,
+      "observe_only": false,
+      "rule_gates": [
+        {
+          "ruleId": "5fdd8af252da911aa07e186c6734e30d1ffd91671c540af54e30c3800801bcff",
+          "command": "fixed panel",
+          "requireBeforeDone": true,
+          "matchedPaths": [
+            "suite.test.cjs"
+          ],
+          "applicationId": "semver-suite-1-B4"
+        }
+      ]
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 44
+  },
+  {
+    "episode_id": "semver-suite-1-B0",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-1",
+    "split": "selection",
+    "baseline_id": "B0",
+    "pair_id": "semver-suite-1",
+    "task_fingerprint": "b0850df677827703ee1113e3bcc97f19117162a2ae900fde03573cf83757414c",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-1-B0/trace.json",
+    "diff_ref": "semver-suite-1-B0/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1848,
+      "estimated_cost": 0.0008145
+    },
+    "wall_time_ms": 8225,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": null,
+      "observe_only": false,
+      "rule_gates": []
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 0
+  },
+  {
+    "episode_id": "semver-suite-2-B4",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-2",
+    "split": "selection",
+    "baseline_id": "B4",
+    "pair_id": "semver-suite-2",
+    "task_fingerprint": "d2d929c5d3f1582119437c4da059bbc5a250eb5ef80ecc1bd0c6759e1091d2d0",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-2-B4/trace.json",
+    "diff_ref": "semver-suite-2-B4/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 2037,
+      "estimated_cost": 0.0009081
+    },
+    "wall_time_ms": 16218,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": null,
+      "observe_only": false,
+      "rule_gates": [
+        {
+          "ruleId": "5fdd8af252da911aa07e186c6734e30d1ffd91671c540af54e30c3800801bcff",
+          "command": "fixed panel",
+          "requireBeforeDone": true,
+          "matchedPaths": [
+            "suite.test.cjs"
+          ],
+          "applicationId": "semver-suite-2-B4"
+        }
+      ]
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 44
+  },
+  {
+    "episode_id": "semver-suite-2-B0",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-2",
+    "split": "selection",
+    "baseline_id": "B0",
+    "pair_id": "semver-suite-2",
+    "task_fingerprint": "d2d929c5d3f1582119437c4da059bbc5a250eb5ef80ecc1bd0c6759e1091d2d0",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-2-B0/trace.json",
+    "diff_ref": "semver-suite-2-B0/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1711,
+      "estimated_cost": 0.0007323
+    },
+    "wall_time_ms": 7451,
+    "false_gate": true,
+    "regression": false,
+    "injected_context": {
+      "static_skill": null,
+      "observe_only": false,
+      "rule_gates": []
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 0
+  },
+  {
+    "episode_id": "semver-suite-2-B1",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-2",
+    "split": "selection",
+    "baseline_id": "B1",
+    "pair_id": "semver-suite-2",
+    "task_fingerprint": "d2d929c5d3f1582119437c4da059bbc5a250eb5ef80ecc1bd0c6759e1091d2d0",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-2-B1/trace.json",
+    "diff_ref": "semver-suite-2-B1/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1953,
+      "estimated_cost": 0.00086805
+    },
+    "wall_time_ms": 7895,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": "Derive expectations from the written specification. Cover boundaries, equality and the stated algebraic properties.",
+      "observe_only": false,
+      "rule_gates": []
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 21
+  },
+  {
+    "episode_id": "semver-suite-3-B0",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-3",
+    "split": "selection",
+    "baseline_id": "B0",
+    "pair_id": "semver-suite-3",
+    "task_fingerprint": "700c0fd4d23c63c923faa568beb609e73f7f1ec2617776391f2de9e371d0d54d",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-3-B0/trace.json",
+    "diff_ref": "semver-suite-3-B0/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1919,
+      "estimated_cost": 0.0008571
+    },
+    "wall_time_ms": 9481,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": null,
+      "observe_only": false,
+      "rule_gates": []
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 0
+  },
+  {
+    "episode_id": "semver-suite-3-B1",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-3",
+    "split": "selection",
+    "baseline_id": "B1",
+    "pair_id": "semver-suite-3",
+    "task_fingerprint": "700c0fd4d23c63c923faa568beb609e73f7f1ec2617776391f2de9e371d0d54d",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-3-B1/trace.json",
+    "diff_ref": "semver-suite-3-B1/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1907,
+      "estimated_cost": 0.00084045
+    },
+    "wall_time_ms": 19787,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": "Derive expectations from the written specification. Cover boundaries, equality and the stated algebraic properties.",
+      "observe_only": false,
+      "rule_gates": []
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 21
+  },
+  {
+    "episode_id": "semver-suite-3-B4",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-3",
+    "split": "selection",
+    "baseline_id": "B4",
+    "pair_id": "semver-suite-3",
+    "task_fingerprint": "700c0fd4d23c63c923faa568beb609e73f7f1ec2617776391f2de9e371d0d54d",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-3-B4/trace.json",
+    "diff_ref": "semver-suite-3-B4/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1836,
+      "estimated_cost": 0.0007875
+    },
+    "wall_time_ms": 18136,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": null,
+      "observe_only": false,
+      "rule_gates": [
+        {
+          "ruleId": "5fdd8af252da911aa07e186c6734e30d1ffd91671c540af54e30c3800801bcff",
+          "command": "fixed panel",
+          "requireBeforeDone": true,
+          "matchedPaths": [
+            "suite.test.cjs"
+          ],
+          "applicationId": "semver-suite-3-B4"
+        }
+      ]
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 44
+  },
+  {
+    "episode_id": "semver-suite-4-B1",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-4",
+    "split": "selection",
+    "baseline_id": "B1",
+    "pair_id": "semver-suite-4",
+    "task_fingerprint": "3efa7c5efdb3bfe4790702701e97d4c5969a979bf4478ba5a55ac9648ad5fd5b",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-4-B1/trace.json",
+    "diff_ref": "semver-suite-4-B1/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1846,
+      "estimated_cost": 0.00080385
+    },
+    "wall_time_ms": 7798,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": "Derive expectations from the written specification. Cover boundaries, equality and the stated algebraic properties.",
+      "observe_only": false,
+      "rule_gates": []
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 21
+  },
+  {
+    "episode_id": "semver-suite-4-B4",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-4",
+    "split": "selection",
+    "baseline_id": "B4",
+    "pair_id": "semver-suite-4",
+    "task_fingerprint": "3efa7c5efdb3bfe4790702701e97d4c5969a979bf4478ba5a55ac9648ad5fd5b",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-4-B4/trace.json",
+    "diff_ref": "semver-suite-4-B4/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 2068,
+      "estimated_cost": 0.0009267
+    },
+    "wall_time_ms": 9093,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": null,
+      "observe_only": false,
+      "rule_gates": [
+        {
+          "ruleId": "5fdd8af252da911aa07e186c6734e30d1ffd91671c540af54e30c3800801bcff",
+          "command": "fixed panel",
+          "requireBeforeDone": true,
+          "matchedPaths": [
+            "suite.test.cjs"
+          ],
+          "applicationId": "semver-suite-4-B4"
+        }
+      ]
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 44
+  },
+  {
+    "episode_id": "semver-suite-4-B0",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-4",
+    "split": "selection",
+    "baseline_id": "B0",
+    "pair_id": "semver-suite-4",
+    "task_fingerprint": "3efa7c5efdb3bfe4790702701e97d4c5969a979bf4478ba5a55ac9648ad5fd5b",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-4-B0/trace.json",
+    "diff_ref": "semver-suite-4-B0/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1710,
+      "estimated_cost": 0.0007317
+    },
+    "wall_time_ms": 7027,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": null,
+      "observe_only": false,
+      "rule_gates": []
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 0
+  },
+  {
+    "episode_id": "semver-suite-5-B4",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-5",
+    "split": "selection",
+    "baseline_id": "B4",
+    "pair_id": "semver-suite-5",
+    "task_fingerprint": "ffc7d5568fa8dbdf0c5f7ffbd40ba2335a200467dd4385b10ea33cec48949320",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-5-B4/trace.json",
+    "diff_ref": "semver-suite-5-B4/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 2021,
+      "estimated_cost": 0.0008985
+    },
+    "wall_time_ms": 9140,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": null,
+      "observe_only": false,
+      "rule_gates": [
+        {
+          "ruleId": "5fdd8af252da911aa07e186c6734e30d1ffd91671c540af54e30c3800801bcff",
+          "command": "fixed panel",
+          "requireBeforeDone": true,
+          "matchedPaths": [
+            "suite.test.cjs"
+          ],
+          "applicationId": "semver-suite-5-B4"
+        }
+      ]
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 44
+  },
+  {
+    "episode_id": "semver-suite-5-B0",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-5",
+    "split": "selection",
+    "baseline_id": "B0",
+    "pair_id": "semver-suite-5",
+    "task_fingerprint": "ffc7d5568fa8dbdf0c5f7ffbd40ba2335a200467dd4385b10ea33cec48949320",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-5-B0/trace.json",
+    "diff_ref": "semver-suite-5-B0/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1710,
+      "estimated_cost": 0.0007317
+    },
+    "wall_time_ms": 14134,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": null,
+      "observe_only": false,
+      "rule_gates": []
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 0
+  },
+  {
+    "episode_id": "semver-suite-5-B1",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-5",
+    "split": "selection",
+    "baseline_id": "B1",
+    "pair_id": "semver-suite-5",
+    "task_fingerprint": "ffc7d5568fa8dbdf0c5f7ffbd40ba2335a200467dd4385b10ea33cec48949320",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-5-B1/trace.json",
+    "diff_ref": "semver-suite-5-B1/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1892,
+      "estimated_cost": 0.00083145
+    },
+    "wall_time_ms": 8566,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": "Derive expectations from the written specification. Cover boundaries, equality and the stated algebraic properties.",
+      "observe_only": false,
+      "rule_gates": []
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 21
+  },
+  {
+    "episode_id": "semver-suite-6-B0",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-6",
+    "split": "test",
+    "baseline_id": "B0",
+    "pair_id": "semver-suite-6",
+    "task_fingerprint": "39779d3adf12cd5bf287dbf065898bf1f96edd078ef86d577048f93fe758ddf6",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-6-B0/trace.json",
+    "diff_ref": "semver-suite-6-B0/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1772,
+      "estimated_cost": 0.0007689
+    },
+    "wall_time_ms": 6760,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": null,
+      "observe_only": false,
+      "rule_gates": []
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 0
+  },
+  {
+    "episode_id": "semver-suite-6-B1",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-6",
+    "split": "test",
+    "baseline_id": "B1",
+    "pair_id": "semver-suite-6",
+    "task_fingerprint": "39779d3adf12cd5bf287dbf065898bf1f96edd078ef86d577048f93fe758ddf6",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-6-B1/trace.json",
+    "diff_ref": "semver-suite-6-B1/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1815,
+      "estimated_cost": 0.00078525
+    },
+    "wall_time_ms": 23311,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": "Derive expectations from the written specification. Cover boundaries, equality and the stated algebraic properties.",
+      "observe_only": false,
+      "rule_gates": []
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 21
+  },
+  {
+    "episode_id": "semver-suite-6-B4",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-6",
+    "split": "test",
+    "baseline_id": "B4",
+    "pair_id": "semver-suite-6",
+    "task_fingerprint": "39779d3adf12cd5bf287dbf065898bf1f96edd078ef86d577048f93fe758ddf6",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-6-B4/trace.json",
+    "diff_ref": "semver-suite-6-B4/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1941,
+      "estimated_cost": 0.0008505
+    },
+    "wall_time_ms": 8021,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": null,
+      "observe_only": false,
+      "rule_gates": [
+        {
+          "ruleId": "5fdd8af252da911aa07e186c6734e30d1ffd91671c540af54e30c3800801bcff",
+          "command": "fixed panel",
+          "requireBeforeDone": true,
+          "matchedPaths": [
+            "suite.test.cjs"
+          ],
+          "applicationId": "semver-suite-6-B4"
+        }
+      ]
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 44
+  },
+  {
+    "episode_id": "semver-suite-7-B1",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-7",
+    "split": "test",
+    "baseline_id": "B1",
+    "pair_id": "semver-suite-7",
+    "task_fingerprint": "dd924964f9b18bc83334416a9f0d1455afa725b9f9488e6d91e811fae9976aa2",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-7-B1/trace.json",
+    "diff_ref": "semver-suite-7-B1/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1614,
+      "estimated_cost": 0.00066465
+    },
+    "wall_time_ms": 14063,
+    "false_gate": true,
+    "regression": false,
+    "injected_context": {
+      "static_skill": "Derive expectations from the written specification. Cover boundaries, equality and the stated algebraic properties.",
+      "observe_only": false,
+      "rule_gates": []
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 21
+  },
+  {
+    "episode_id": "semver-suite-7-B4",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-7",
+    "split": "test",
+    "baseline_id": "B4",
+    "pair_id": "semver-suite-7",
+    "task_fingerprint": "dd924964f9b18bc83334416a9f0d1455afa725b9f9488e6d91e811fae9976aa2",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-7-B4/trace.json",
+    "diff_ref": "semver-suite-7-B4/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1822,
+      "estimated_cost": 0.0007791
+    },
+    "wall_time_ms": 15565,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": null,
+      "observe_only": false,
+      "rule_gates": [
+        {
+          "ruleId": "5fdd8af252da911aa07e186c6734e30d1ffd91671c540af54e30c3800801bcff",
+          "command": "fixed panel",
+          "requireBeforeDone": true,
+          "matchedPaths": [
+            "suite.test.cjs"
+          ],
+          "applicationId": "semver-suite-7-B4"
+        }
+      ]
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 44
+  },
+  {
+    "episode_id": "semver-suite-7-B0",
+    "episode_kind": "agent",
+    "task_id": "semver-suite-7",
+    "split": "test",
+    "baseline_id": "B0",
+    "pair_id": "semver-suite-7",
+    "task_fingerprint": "dd924964f9b18bc83334416a9f0d1455afa725b9f9488e6d91e811fae9976aa2",
+    "verifier_sha256": "2a76aeba25c067957bc0798d9e5275947182bc69cd78a370c49bc47855f95f43",
+    "model": "openai/gpt-4o-mini",
+    "harness": "semver-mutation-panel@1",
+    "budget": {
+      "max_turns": 1,
+      "max_wall_time_seconds": 120,
+      "max_tokens": 4096
+    },
+    "allowed_tools": [],
+    "trace_ref": "semver-suite-7-B0/trace.json",
+    "diff_ref": "semver-suite-7-B0/suite.test.cjs",
+    "touched_paths": [
+      "suite.test.cjs"
+    ],
+    "verifier_evidence": {
+      "kind": "command",
+      "command": "fixed valid-reference and mutation panel",
+      "exit_code": 1,
+      "stdout": "[{\"name\":\"correct\",\"passed\":false},{\"name\":\"negative-zero\",\"passed\":false},{\"name\":\"numeric-core\",\"passed\":false},{\"name\":\"prerelease-ignored\",\"passed\":false},{\"name\":\"numeric-prerelease\",\"passed\":false},{\"name\":\"numeric-vs-text\",\"passed\":false},{\"name\":\"identifier-length\",\"passed\":false},{\"name\":\"metadata-compared\",\"passed\":false}]",
+      "stderr": ""
+    },
+    "token_usage": {
+      "total_tokens": 1805,
+      "estimated_cost": 0.0007887
+    },
+    "wall_time_ms": 15596,
+    "false_gate": true,
+    "regression": true,
+    "injected_context": {
+      "static_skill": null,
+      "observe_only": false,
+      "rule_gates": []
+    },
+    "outcome": {
+      "verified_success": false
+    },
+    "context_overhead_tokens": 0
+  }
+]

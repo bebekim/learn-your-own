@@ -367,11 +367,8 @@ export class LessonStore {
   }
 
   /**
-   * Specs/6 Feature 5 (derivative-level fidelity, "delivery ≠ learning"):
-   * quantify the gap between function-value matching (the legacy uniform ±1
-   * rule) and derivative estimation (ratio-lift weights) from the RECORDED
-   * MARK_* receipts — derivative error, gated receipts, and sign flips per
-   * failure-class stratum. See lyo/credit/fidelity.ts.
+   * Descriptive receipt coverage and disagreement between ratio-lift and
+   * uniform credit. Neither estimator is known causal ground truth.
    */
   getCreditFidelityReport(): CreditFidelityReport {
     return computeCreditFidelity(this.db);
@@ -674,8 +671,7 @@ export class LessonStore {
    * §2/§4.2 step 4: one application row per injected lesson (outcome pending).
    * INSERT OR IGNORE on UNIQUE(lesson_id, run_id, trigger_message_id); uses is
    * bumped only when a row was actually inserted. Returns the application row
-   * (new or existing). NOTE: NULL trigger_message_id never dedupes (SQLite
-   * treats NULLs as distinct); callers should always pass the trigger id.
+   * (new or existing). NULL trigger ids are deduplicated inside the transaction.
    * decision_id (v0.2) joins the application to its lesson_decision row.
    */
   recordApplication({
@@ -688,6 +684,12 @@ export class LessonStore {
   }: RecordApplicationInput): ApplicationRow | undefined {
     const applicationId = randomId('app');
     return withTransaction(this.db, (): ApplicationRow | undefined => {
+      // SQLite UNIQUE permits repeated NULL trigger ids; serialize the lookup
+      // with the insert so run-level deliveries are idempotent as well.
+      const existing = this.db.prepare(
+        'SELECT * FROM lesson_application WHERE lesson_id = ? AND run_id = ? AND trigger_message_id IS ?'
+      ).get(lesson_id, run_id, trigger_message_id ?? null) as ApplicationRow | undefined;
+      if (existing) return existing;
       const info = this.db
         .prepare(
           `INSERT OR IGNORE INTO lesson_application

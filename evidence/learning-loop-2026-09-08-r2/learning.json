@@ -1,0 +1,261 @@
+{
+  "learned": [
+    {
+      "runId": "run-20260727-033735-1d3ad0",
+      "trace": {
+        "version": "lyo.trace.v1",
+        "runId": "run-20260727-033735-1d3ad0",
+        "planRef": {
+          "path": "plan.json",
+          "sha256": "1febbcad7f08c959d40de327a068ace9dcf9956378da448d8b48fe107320d8bc"
+        },
+        "stages": [
+          {
+            "stageId": "stage-code",
+            "round": 1,
+            "inputs": [
+              {
+                "path": "spec.json",
+                "sha256": "2002309fe6620f1fe9ab8390e6329365ffa3503585290e59292c96c2b80b1b77"
+              }
+            ],
+            "outputs": [
+              {
+                "path": "artifacts/code/manifest.round-1.json",
+                "sha256": "74484fcbf9dbc2859dfeb9e7af819049d1f627adc0c2418eb189640320c09691"
+              }
+            ],
+            "model": "solar-open2",
+            "promptSha256": "2e2ca2bcebc7c982a89b374a79072dc9ed3b531f55416499a2491d103b8ce776",
+            "startedAt": "2026-07-27T03:37:35.693Z",
+            "finishedAt": "2026-07-27T03:38:03.432Z"
+          },
+          {
+            "stageId": "stage-test",
+            "round": 1,
+            "inputs": [
+              {
+                "path": "spec.json",
+                "sha256": "2002309fe6620f1fe9ab8390e6329365ffa3503585290e59292c96c2b80b1b77"
+              }
+            ],
+            "outputs": [
+              {
+                "path": "artifacts/tests/manifest.json",
+                "sha256": "d3eca33a221ae300c3d26fad8bbdb54fa9bb8d766bd51dfc475be2fdf947c004"
+              }
+            ],
+            "model": "z-ai/glm-5.2",
+            "promptSha256": "ac6b422bf97475a5e6881ee7c1baa8fcc6ff42f9b6933aa47f70230e3b10e3a8",
+            "startedAt": "2026-07-27T03:37:35.733Z",
+            "finishedAt": "2026-07-27T03:37:59.758Z"
+          },
+          {
+            "stageId": "stage-verify",
+            "round": 1,
+            "inputs": [
+              {
+                "path": "artifacts/code/manifest.round-1.json",
+                "sha256": "74484fcbf9dbc2859dfeb9e7af819049d1f627adc0c2418eb189640320c09691"
+              },
+              {
+                "path": "artifacts/tests/manifest.json",
+                "sha256": "d3eca33a221ae300c3d26fad8bbdb54fa9bb8d766bd51dfc475be2fdf947c004"
+              }
+            ],
+            "outputs": [],
+            "startedAt": "2026-07-27T03:38:03.458Z",
+            "finishedAt": "2026-07-27T03:38:03.598Z"
+          },
+          {
+            "stageId": "stage-code",
+            "round": 2,
+            "inputs": [
+              {
+                "path": "spec.json",
+                "sha256": "2002309fe6620f1fe9ab8390e6329365ffa3503585290e59292c96c2b80b1b77"
+              }
+            ],
+            "outputs": [
+              {
+                "path": "artifacts/code/manifest.round-2.json",
+                "sha256": "74484fcbf9dbc2859dfeb9e7af819049d1f627adc0c2418eb189640320c09691"
+              }
+            ],
+            "model": "solar-open2",
+            "promptSha256": "0dc37efb9696c4cfb39388c0c5924d5d705a0eb8d6d01d5757507feb65d848d3",
+            "startedAt": "2026-07-27T03:38:03.600Z",
+            "finishedAt": "2026-07-27T03:38:59.659Z"
+          },
+          {
+            "stageId": "stage-verify",
+            "round": 2,
+            "inputs": [
+              {
+                "path": "artifacts/code/manifest.round-2.json",
+                "sha256": "74484fcbf9dbc2859dfeb9e7af819049d1f627adc0c2418eb189640320c09691"
+              },
+              {
+                "path": "artifacts/tests/manifest.json",
+                "sha256": "d3eca33a221ae300c3d26fad8bbdb54fa9bb8d766bd51dfc475be2fdf947c004"
+              }
+            ],
+            "outputs": [
+              {
+                "path": "verifier-report.json",
+                "sha256": "1f33f8c00b5c63c84da4e03fff36ddfa575d68b0d013a6eb6833cc3bd8a5a42d"
+              }
+            ],
+            "startedAt": "2026-07-27T03:38:59.675Z",
+            "finishedAt": "2026-07-27T03:38:59.777Z"
+          }
+        ],
+        "feedback": {
+          "rounds": 2,
+          "stopReason": "no_change"
+        },
+        "startedAt": "2026-07-27T03:37:35.692Z",
+        "finishedAt": "2026-07-27T03:38:59.782Z"
+      },
+      "judgment": {
+        "classification": "test-hallucination",
+        "rationale": "The -0 trap: assert/strict uses Object.is, which treats -0 and 0 as different; the test manufactured -0 by negating, so it fails against mathematically correct code.",
+        "evidence": "not ok 17 - antisymmetry holds for ordered pairs\n  ---\n  duration_ms: 0.494833",
+        "lesson": "For negation-based properties, avoid creating -0: assert the sum (f(a,b) + f(b,a) === 0) or normalize with (x + 0) after all negation.",
+        "falsifiableBy": "an antisymmetry test that passes against code returning plain 0",
+        "source": "mechanical"
+      }
+    },
+    {
+      "runId": "run-20260727-034825-d5ff86",
+      "trace": {
+        "version": "lyo.trace.v1",
+        "runId": "run-20260727-034825-d5ff86",
+        "planRef": {
+          "path": "plan.json",
+          "sha256": "1febbcad7f08c959d40de327a068ace9dcf9956378da448d8b48fe107320d8bc"
+        },
+        "stages": [
+          {
+            "stageId": "stage-code",
+            "round": 1,
+            "inputs": [
+              {
+                "path": "spec.json",
+                "sha256": "2002309fe6620f1fe9ab8390e6329365ffa3503585290e59292c96c2b80b1b77"
+              }
+            ],
+            "outputs": [
+              {
+                "path": "artifacts/code/manifest.round-1.json",
+                "sha256": "2692a5d0d04db6e6bc57e6977812001380b1ef62113f3efe484c29d41fe48602"
+              }
+            ],
+            "model": "solar-open2",
+            "promptSha256": "2e2ca2bcebc7c982a89b374a79072dc9ed3b531f55416499a2491d103b8ce776",
+            "startedAt": "2026-07-27T03:48:25.588Z",
+            "finishedAt": "2026-07-27T03:48:47.721Z"
+          },
+          {
+            "stageId": "stage-test",
+            "round": 1,
+            "inputs": [
+              {
+                "path": "spec.json",
+                "sha256": "2002309fe6620f1fe9ab8390e6329365ffa3503585290e59292c96c2b80b1b77"
+              }
+            ],
+            "outputs": [
+              {
+                "path": "artifacts/tests/manifest.json",
+                "sha256": "0b5a553a25b4f7c6ef38c8410c2024f9238c0dc8e1ef23a182696d51679dab3a"
+              }
+            ],
+            "model": "z-ai/glm-5.2",
+            "promptSha256": "ac6b422bf97475a5e6881ee7c1baa8fcc6ff42f9b6933aa47f70230e3b10e3a8",
+            "startedAt": "2026-07-27T03:48:25.599Z",
+            "finishedAt": "2026-07-27T03:48:41.295Z"
+          },
+          {
+            "stageId": "stage-verify",
+            "round": 1,
+            "inputs": [
+              {
+                "path": "artifacts/code/manifest.round-1.json",
+                "sha256": "2692a5d0d04db6e6bc57e6977812001380b1ef62113f3efe484c29d41fe48602"
+              },
+              {
+                "path": "artifacts/tests/manifest.json",
+                "sha256": "0b5a553a25b4f7c6ef38c8410c2024f9238c0dc8e1ef23a182696d51679dab3a"
+              }
+            ],
+            "outputs": [],
+            "startedAt": "2026-07-27T03:48:47.760Z",
+            "finishedAt": "2026-07-27T03:48:47.864Z"
+          },
+          {
+            "stageId": "stage-code",
+            "round": 2,
+            "inputs": [
+              {
+                "path": "spec.json",
+                "sha256": "2002309fe6620f1fe9ab8390e6329365ffa3503585290e59292c96c2b80b1b77"
+              }
+            ],
+            "outputs": [
+              {
+                "path": "artifacts/code/manifest.round-2.json",
+                "sha256": "2692a5d0d04db6e6bc57e6977812001380b1ef62113f3efe484c29d41fe48602"
+              }
+            ],
+            "model": "solar-open2",
+            "promptSha256": "ecbe8f8ff7aa184d330668595b9a94c104fd2aace92fdf45f877d6b0bda58db5",
+            "startedAt": "2026-07-27T03:48:47.866Z",
+            "finishedAt": "2026-07-27T03:49:39.054Z"
+          },
+          {
+            "stageId": "stage-verify",
+            "round": 2,
+            "inputs": [
+              {
+                "path": "artifacts/code/manifest.round-2.json",
+                "sha256": "2692a5d0d04db6e6bc57e6977812001380b1ef62113f3efe484c29d41fe48602"
+              },
+              {
+                "path": "artifacts/tests/manifest.json",
+                "sha256": "0b5a553a25b4f7c6ef38c8410c2024f9238c0dc8e1ef23a182696d51679dab3a"
+              }
+            ],
+            "outputs": [
+              {
+                "path": "verifier-report.json",
+                "sha256": "ebfec4eeb68fb9ef030eb335c153f92cdc3d561070d63e0210ed87996afcfe48"
+              }
+            ],
+            "startedAt": "2026-07-27T03:49:39.062Z",
+            "finishedAt": "2026-07-27T03:49:39.154Z"
+          }
+        ],
+        "feedback": {
+          "rounds": 2,
+          "stopReason": "no_change"
+        },
+        "startedAt": "2026-07-27T03:48:25.587Z",
+        "finishedAt": "2026-07-27T03:49:39.164Z"
+      },
+      "judgment": {
+        "classification": "test-hallucination",
+        "rationale": "The -0 trap: assert/strict uses Object.is, which treats -0 and 0 as different; the test manufactured -0 by negating, so it fails against mathematically correct code.",
+        "evidence": "not ok 23 - antisymmetry: compareSemver(a, b) === -compareSemver(b, a)\n  ---\n  duration_ms: 0.465292",
+        "lesson": "For negation-based properties, avoid creating -0: assert the sum (f(a,b) + f(b,a) === 0) or normalize with (x + 0) after all negation.",
+        "falsifiableBy": "an antisymmetry test that passes against code returning plain 0",
+        "source": "mechanical"
+      }
+    }
+  ],
+  "ruleId": "5fdd8af252da911aa07e186c6734e30d1ffd91671c540af54e30c3800801bcff",
+  "lesson": "For negation-based properties, avoid creating -0: assert the sum (f(a,b) + f(b,a) === 0) or normalize with (x + 0) after all negation.",
+  "extraction": "mechanical; zero new model calls",
+  "historicalAcquisitionTokens": null,
+  "historicalAcquisitionCost": null
+}

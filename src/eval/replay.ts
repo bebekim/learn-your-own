@@ -90,7 +90,7 @@ export function replayTrace(
     failure_class: trace.failure_class,
     limit: options.limit ?? 2,
     rng: seededRng(options.seed ?? 1),
-    propensityReplicates: 0,
+    propensityReplicates: 1000,
     scope: options.scope ?? 'exact',
   });
   const decision = store.recordDecision({

@@ -2,15 +2,20 @@
 
 Lyo means **Learn Your Own**.
 
-Lyo treats learning as inference over a graph of explanations.
-Learning is not remembering; it is updating belief over explanations, changing
-future behavior, then testing whether that behavior improves outcomes.
+Lyo records agent work and delivers scoped lessons to later attempts. It has a
+local ledger, telemetry compiler, pipeline lesson delivery, and an experimental
+session bridge. A controlled benchmark checks whether delivered guidance helps.
+
+The longer-term design is inference over a graph of explanations. That graph
+runtime and the full learning compiler remain future work.
 
 To enable this, Lyo is a local learning ledger for AI-agent work. It records what happened in
 your own prompts, runs, repos, commands, verifiers, and outcomes so future runs
 can receive scoped, evidence-backed guidance.
 
 
+
+Target learning architecture (partially implemented):
 
 ```text
 attempt
@@ -80,7 +85,32 @@ lyo --help
 
 Requires Node.js 24+ for `node:sqlite`.
 
-Current package version: `0.3.0`.
+Current package version: `0.4.0`.
+
+## Evidence and limits (2026-09-08)
+
+| Surface | Implemented behavior | Evidence limit |
+| --- | --- | --- |
+| Session hooks | Recovered test/build/lint failures create repo-scoped verifier advice; banner deliveries and session outcomes get receipts | Observed passes never increment causal helpful counts |
+| Pipeline lessons | Distinct intervention identities, bounded delivery with content snapshots, per-run outcome receipts, quarantine | Recurrence and feedback are heuristics, not proof of benefit |
+| Evaluation | Matched agent episodes, frozen task/verifier hashes, repeated selection pairs and an inconclusive state | Verifier-only smoke runs cannot support a learning claim |
+| SemVer experiment | No-guidance, static and learned conditions; fixed valid references and mutation checks | One family; historical training cost is unknown |
+| Explanation graph / five artifact compiler | Design documents and partial telemetry lowering | Full runtime and general artifact replay are not implemented |
+
+Run `node scripts/semver-learning-experiment.ts --self-check` to check the fixed
+instrument. Run `node scripts/semver-learning-experiment.ts OUTPUT_DIR [MODEL]`
+with `OPENROUTER_API_KEY` to execute the registered experiment. Results and
+limitations are retained in [the experiment report](evidence/learning-loop-2026-09-08-r2/assessment.md).
+
+Native hook SessionEnd runs the bridge when a lesson store exists. To process
+older completed sessions explicitly:
+
+```sh
+lyo bridge --db .agent-learning/learning.sqlite --all --store .zeroshot/lyo-lessons.db
+```
+
+Legacy telemetry without numeric exit status remains unscorable. Manual banner
+runs without a session ID are previews and cannot receive outcome credit.
 
 ## What Works Now
 

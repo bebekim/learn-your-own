@@ -185,7 +185,7 @@ function stringValue(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
-function extractExitCode(value: unknown): number | null {
+export function extractExitCode(value: unknown): number | null {
   if (Array.isArray(value)) {
     for (const item of value) {
       const exitCode = extractExitCode(item);

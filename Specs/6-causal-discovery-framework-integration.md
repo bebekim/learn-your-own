@@ -1,6 +1,6 @@
 # Causal Discovery Framework Integration — 임성빈 교수 강연에서 Lyo로
 
-Date: 2026-08-11. State: all six features implemented (2026-08-15).
+Date: 2026-08-11. State: six component prototypes exist; integrated causal learning and empirical benefit are not established (reviewed 2026-09-08).
 
 ## 배경
 
@@ -48,7 +48,7 @@ Lyo에서 대응되는 구조: `docs/learning-as-explanation-graph.md`가 설계
 belief propagation에서 prior 메시지 π가 LLM의 semantic confidence를 받아야 한다.
 현재는 deterministic factor만으로 belief를 계산하도록 설계되어 있다.
 
-### 현재 구현 상태
+### Original assessment (historical)
 
 **설계만 존재, 코드 없음.**
 
@@ -132,7 +132,7 @@ Lyo에서 대응: artifact/lesson/trace event 간에 topological ordering이 없
 lesson이 쌓일 때 Thompson sampling의 탐색 공간이 failure_class 내 전체 후보로
 고정된다. Ordering이 있으면 탐색 공간을 순서 제약 하의 부분집합으로 줄일 수 있다.
 
-### 현재 구현 상태
+### Original assessment (historical)
 
 **미구현.**
 
@@ -220,7 +220,7 @@ w_i = ĥ(ℓ_i | s_i, u') / ρ_i - 1
 classifier, ρ_i는 selection propensity. Lesson이 outcome에 무관하면 w ≈ 0 →
 counter 이동 없음.
 
-### 현재 구현 상태
+### Original assessment (historical)
 
 **Over-crediting 구현만 존재. Ratio-lift 미구현.**
 
@@ -288,7 +288,7 @@ COCOA와 WCS 모두 propensity 기반 identification을 요구한다. §3.4는 6
 decisions, (3) decision-point context, (4) bandit posterior snapshot id,
 (5) run randomness record, (6) per-candidate (α, β).
 
-### 현재 구현 상태
+### Original assessment (historical)
 
 **부분 구현. 핵심 schema는 존재하나 2개 항목 미구현.**
 
@@ -349,22 +349,12 @@ decisions, (3) decision-point context, (4) bandit posterior snapshot id,
 
 ## Feature 5: Derivative-Level Fidelity (Delivery ≠ Learning)
 
-> **State: implemented (2026-08-15, v0.6).** F3가 estimator 자체(미분값 추정)를
-> 제공하고, 이 feature는 그 **derivative error의 정량화**를 추가한다.
-> `src/lyo/credit/fidelity.ts`의 `computeCreditFidelity` (store method
-> `getCreditFidelityReport`)가 기록된 MARK_* receipt에서 uniform ±1 rule
-> (함수값 matching)과 ratio-lift weight (미분값 추정)의 gap을 측정:
-> outcome-signed 단위에서 uniform은 항상 w ≡ +1이므로 per-receipt derivative
-> error = `|w_signed − 1|`. Report는 stratum(failure_class)별 + overall로
-> receipts / legacy (pre-F3 delta, weight 없음) / uniformFallback /
-> ratioLift / **gated** (w ≈ 0 — counter 이동 없이 resolve된 receipt, uniform
-> rule이 over-credit했을 것) / **signFlips** (w_signed < 0 — uniform과 반대
-> counter로 이동) / meanAbsDerivativeError / meanAbsWeight를 제공.
-> 데이터 소스는 재계산이 아니라 credit 시점에 기록된 delta payload 자체
-> (weight + estimator)이므로 store가 실제로 한 일을 측정한다.
-> "배달 ≠ 학습"이 이제 쿼리 가능한 수치: uniform rule은 N개 receipt 전부에
-> counter를 움직였을 것이고, ratio-lift는 gated + signFlips만큼 다르게 행동.
-> Tests: `tests/lyo-credit-fidelity.test.js`.
+> **Reviewed 2026-09-08: descriptive estimator diagnostics only.**
+> `getCreditFidelityReport()` measures receipt coverage, fallback use, sign flips,
+> `meanAbsWeightDifference = mean |w_signed - 1|`, and mean absolute weight.
+> This compares ratio-lift with uniform assignment. Neither is known causal
+> ground truth, so the difference is not derivative error or fidelity proof.
+> A held-out intervention experiment is still needed to validate the estimator.
 
 ### 개념
 
@@ -389,7 +379,7 @@ Lyo에서 대응되는 구조: **"run이 통과했다" ≠ "lesson이 통과를 
 `docs/learned-context-thermodynamics.md`가 "delivery ≠ learning"을 개념적으로
 설명하지만, 정량화 메커니즘이 없다.
 
-### 현재 구현 상태
+### Original assessment (historical)
 
 **개념만 존재, 정량화 미구현.**
 
@@ -476,7 +466,7 @@ propagation에 대응된다:
 - DAG mathematics: 순환 금지, topological consistency, reachability
 - Probabilistic controller: LLM의 자신감과 실행 데이터를 조정
 
-### 현재 구현 상태
+### Original assessment (historical)
 
 **미구현. 설계만 존재.**
 

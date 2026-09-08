@@ -13,7 +13,7 @@ const NPM_COMMAND_RULES: Array<{
   { argvPatterns: ['test'], classification: 'test' },
   { argvPatterns: ['run lint', 'lint'], classification: 'lint' },
   { argvPatterns: ['run format', 'format'], classification: 'format' },
-  { argvPatterns: ['run build', 'build'], classification: 'build' },
+  { argvPatterns: ['run build', 'build', 'run typecheck', 'typecheck'], classification: 'build' },
   { argvPatterns: ['install'], classification: 'package' },
 ];
 
@@ -108,6 +108,11 @@ function extractPassthroughCommand(argv: string, prefix: string): string | null 
 export function classifyCommand(commandName: string, argv: string): CommandClassification {
   const normalizedCommand = commandName.toLowerCase();
   const normalizedArgv = argv.toLowerCase();
+  if (normalizedCommand === 'rtk') {
+    const inner = argv.trim().replace(/^rtk\s+(?:(?:proxy|test)\s+)?/i, '');
+    if (inner !== argv.trim()) return classifyCommand(inner.split(/\s+/)[0], inner);
+  }
+  if (normalizedCommand === 'node' && /^node\s+--test(?:\s|$)/i.test(argv.trim())) return 'test';
 
   for (const rule of CLASSIFICATION_RULES) {
     if (rule.commandFamily.includes(normalizedCommand)) {

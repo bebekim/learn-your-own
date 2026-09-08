@@ -1,0 +1,87 @@
+{
+  "id": "semver-suite-2-B0",
+  "model": "openai/gpt-4o-mini",
+  "promptSha256": "60f375b583de55763bf1838689cc3f81ad42dd059cb40586490af2e78bb76764",
+  "outputSha256": "4157887aafa40249a1d4d2f94ac030a202de0966171e86fc473946fd39a3cb86",
+  "result": {
+    "transcript": "Here's an executable CommonJS test suite for the `compareSemver` function, which you'll import from `./semver.cjs`. This suite covers all specified invariants, examples, and additional cases using the core numbers 4 and 14, as well as prerelease identifiers `beta.4` and `beta.14`.\n\n```javascript\nconst { test } = require('node:test');\nconst assert = require('node:assert');\nconst compareSemver = require('./semver.cjs').compareSemver;\n\ntest('compareSemver', () => {\n    // Invariants\n    assert.strictEqual(compareSemver('1.2.3', '1.2.4'), -1);\n    assert.strictEqual(compareSemver('2.0.0', '10.0.0'), -1);\n    assert.strictEqual(compareSemver('1.0.0-alpha', '1.0.0'), -1);\n    assert.strictEqual(compareSemver('1.0.0-alpha', '1.0.0-alpha.1'), -1);\n    assert.strictEqual(compareSemver('1.0.0-alpha.1', '1.0.0-alpha.beta'), -1);\n    assert.strictEqual(compareSemver('1.0.0-beta.2', '1.0.0-beta.11'), -1);\n    assert.strictEqual(compareSemver('1.0.0-rc.1', '1.0.0'), -1);\n    assert.strictEqual(compareSemver('1.0.0+build.5', '1.0.0'), 0);\n\n    // Equal precedence inputs\n    assert.strictEqual(compareSemver('1.0.0', '1.0.0'), 0);\n    assert.strictEqual(compareSemver('1.2.3', '1.2.3'), 0);\n    assert.strictEqual(compareSemver('1.0.0-alpha', '1.0.0-alpha'), 0);\n    \n    // Additional cases\n    assert.strictEqual(compareSemver('4.0.0', '4.0.0'), 0);\n    assert.strictEqual(compareSemver('4.0.0-beta.4', '4.0.0-beta.14'), -1);\n    assert.strictEqual(compareSemver('4.0.0-beta.14', '4.0.0-beta.4'), 1);\n    assert.strictEqual(compareSemver('4.0.0', '4.0.1'), -1);\n    assert.strictEqual(compareSemver('4.1.0', '4.0.1'), 1);\n    assert.strictEqual(compareSemver('14.0.0', '14.0.0'), 0);\n    assert.strictEqual(compareSemver('14.0.0-alpha', '14.0.0'), -1);\n    assert.strictEqual(compareSemver('14.0.0-alpha.1', '14.0.0-alpha.2'), -1);\n    assert.strictEqual(compareSemver('14.0.0-alpha.2', '14.0.0-alpha.1'), 1);\n    assert.strictEqual(compareSemver('14.0.0-alpha.1', '14.0.0-beta.1'), -1);\n    assert.strictEqual(compareSemver('14.0.0-beta.1', '14.0.0-beta.2'), -1);\n    assert.strictEqual(compareSemver('14.0.0-beta.2', '14.0.0-beta.1'), 1);\n    assert.strictEqual(compareSemver('14.0.0+build.1', '14.0.0'), 0);\n    assert.strictEqual(compareSemver('14.0.0+build.1', '14.0.0+build.2'), 0);\n    assert.strictEqual(compareSemver('14.0.0+build.2', '14.0.0+build.1'), 0);\n});\n```\n\n### Explanation:\n- The test suite uses Node.js's built-in `node:test` module for structuring the tests and `node:assert` for assertions.\n- Each test checks the expected output of the `compareSemver` function against various semver strings, covering all specified invariants and additional cases.\n- The cases include comparisons of versions with and without prerelease identifiers, as well as examples that utilize the core numbers 4 and 14.\n- This suite should be run in a Node.js environment where the `compareSemver` function is properly implemented and exported from `./semver.cjs`.",
+    "usage": {
+      "promptTokens": 654,
+      "completionTokens": 971,
+      "totalTokens": 1625,
+      "cost": 0.0006807
+    }
+  },
+  "error": null,
+  "verification": {
+    "success": false,
+    "falseGate": true,
+    "missedBug": true,
+    "cases": [
+      {
+        "name": "correct",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-KrhMaA/suite.test.cjs:1\nHere's an executable CommonJS test suite for the `compareSemver` function, which you'll import from `./semver.cjs`. This suite covers all specified invariants, examples, and additional cases using the core numbers 4 and 14, as well as prerelease identifiers `beta.4` and `beta.14`.\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nSyntaxError: Unexpected string\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "negative-zero",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-KrhMaA/suite.test.cjs:1\nHere's an executable CommonJS test suite for the `compareSemver` function, which you'll import from `./semver.cjs`. This suite covers all specified invariants, examples, and additional cases using the core numbers 4 and 14, as well as prerelease identifiers `beta.4` and `beta.14`.\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nSyntaxError: Unexpected string\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "numeric-core",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-KrhMaA/suite.test.cjs:1\nHere's an executable CommonJS test suite for the `compareSemver` function, which you'll import from `./semver.cjs`. This suite covers all specified invariants, examples, and additional cases using the core numbers 4 and 14, as well as prerelease identifiers `beta.4` and `beta.14`.\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nSyntaxError: Unexpected string\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "prerelease-ignored",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-KrhMaA/suite.test.cjs:1\nHere's an executable CommonJS test suite for the `compareSemver` function, which you'll import from `./semver.cjs`. This suite covers all specified invariants, examples, and additional cases using the core numbers 4 and 14, as well as prerelease identifiers `beta.4` and `beta.14`.\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nSyntaxError: Unexpected string\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "numeric-prerelease",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-KrhMaA/suite.test.cjs:1\nHere's an executable CommonJS test suite for the `compareSemver` function, which you'll import from `./semver.cjs`. This suite covers all specified invariants, examples, and additional cases using the core numbers 4 and 14, as well as prerelease identifiers `beta.4` and `beta.14`.\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nSyntaxError: Unexpected string\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "numeric-vs-text",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-KrhMaA/suite.test.cjs:1\nHere's an executable CommonJS test suite for the `compareSemver` function, which you'll import from `./semver.cjs`. This suite covers all specified invariants, examples, and additional cases using the core numbers 4 and 14, as well as prerelease identifiers `beta.4` and `beta.14`.\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nSyntaxError: Unexpected string\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "identifier-length",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-KrhMaA/suite.test.cjs:1\nHere's an executable CommonJS test suite for the `compareSemver` function, which you'll import from `./semver.cjs`. This suite covers all specified invariants, examples, and additional cases using the core numbers 4 and 14, as well as prerelease identifiers `beta.4` and `beta.14`.\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nSyntaxError: Unexpected string\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      },
+      {
+        "name": "metadata-compared",
+        "passed": false,
+        "executed": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-semver-verifier-KrhMaA/suite.test.cjs:1\nHere's an executable CommonJS test suite for the `compareSemver` function, which you'll import from `./semver.cjs`. This suite covers all specified invariants, examples, and additional cases using the core numbers 4 and 14, as well as prerelease identifiers `beta.4` and `beta.14`.\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nSyntaxError: Unexpected string\n    at wrapSafe (node:internal/modules/cjs/loader:1763:18)\n    at Module._compile (node:internal/modules/cjs/loader:1804:20)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n"
+      }
+    ]
+  }
+}
