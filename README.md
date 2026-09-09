@@ -2,6 +2,9 @@
 
 Lyo means **Learn Your Own**.
 
+See the [development status](docs/development-status.md) for implemented
+capabilities, retained evidence, remaining development, and release status.
+
 Lyo records agent work and delivers scoped lessons to later attempts. It has a
 local ledger, telemetry compiler, pipeline lesson delivery, and an experimental
 session bridge. A controlled benchmark checks whether delivered guidance helps.

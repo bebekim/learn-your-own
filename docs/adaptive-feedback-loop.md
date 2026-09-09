@@ -1,6 +1,8 @@
 # Adaptive feedback loop: first implemented increment
 
-Status: experimental, on `feat/adaptive-feedback-loop`, 2026-09-09.
+Status: experimental; implemented on `main` in `v0.4.2`, 2026-09-09.
+See the [development status](development-status.md) for the broader roadmap,
+evidence limits, and rollout state.
 
 Lyo can now record a decision, receive a measured consequence, and change a
 later decision from that evidence. The records survive process restarts.
