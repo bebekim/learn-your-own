@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 export const AGENT_LEARNING_LEDGER_DISCOVERY_SKIPPED_DIRECTORIES = [
@@ -7,6 +7,7 @@ export const AGENT_LEARNING_LEDGER_DISCOVERY_SKIPPED_DIRECTORIES = [
   '.next',
   '.turbo',
   '.venv',
+  '.vcscore',
   'build',
   'coverage',
   'dist',
@@ -29,23 +30,19 @@ export function discoverAgentLearningLedgers(root: string): AgentLearningLedgerL
 
   const found: AgentLearningLedgerLocation[] = [];
   const visit = (dir: string) => {
-    for (const entry of readdirSync(dir)) {
+    for (const item of readdirSync(dir, { withFileTypes: true })) {
+      const entry = item.name;
       if (SKIPPED_DIRECTORY_NAMES.has(entry)) continue;
       if (isAgentLearningArchiveDirectory(dir, entry)) continue;
       const fullPath = join(dir, entry);
-      let stats;
-      try {
-        stats = statSync(fullPath);
-      } catch {
-        continue;
-      }
-
-      if (stats.isDirectory()) {
+      // Do not follow symlinks out of the configured repository forest or cycle.
+      if (item.isDirectory()) {
+        if (dir.split(/[\\/]/).at(-1) === '.agent-learning') continue;
         visit(fullPath);
         continue;
       }
 
-      if (stats.isFile() && isAgentLearningDatabasePath(fullPath, entry)) {
+      if (item.isFile() && isAgentLearningDatabasePath(fullPath, entry)) {
         found.push(ledgerLocation(root, fullPath));
       }
     }

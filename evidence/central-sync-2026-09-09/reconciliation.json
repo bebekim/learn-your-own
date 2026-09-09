@@ -1,0 +1,373 @@
+{
+  "checkedLedgers": 60,
+  "sourceEvents": 76362,
+  "centralEvents": 84640,
+  "missingEvents": 0,
+  "ledgers": [
+    {
+      "workspace": "/Users/marcus.kim/repositories/work",
+      "sourceEvents": 2037,
+      "centralEvents": 2037,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nao",
+      "sourceEvents": 105,
+      "centralEvents": 105,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr_data_eng",
+      "sourceEvents": 3530,
+      "centralEvents": 7330,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-621",
+      "sourceEvents": 1426,
+      "centralEvents": 5106,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+      "sourceEvents": 15584,
+      "centralEvents": 15584,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-697",
+      "sourceEvents": 245,
+      "centralEvents": 1043,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake",
+      "sourceEvents": 4718,
+      "centralEvents": 4718,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/gastown",
+      "sourceEvents": 0,
+      "centralEvents": 0,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/jira-exceptions.backup",
+      "sourceEvents": 74,
+      "centralEvents": 74,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/jiraexceptions-cni-tender-feedback",
+      "sourceEvents": 143,
+      "centralEvents": 143,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/jiraexceptions-plan-switch-validation",
+      "sourceEvents": 0,
+      "centralEvents": 0,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/jiraexceptions",
+      "sourceEvents": 922,
+      "centralEvents": 922,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/launchd",
+      "sourceEvents": 0,
+      "centralEvents": 0,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr_data_eng-bc-refactor",
+      "sourceEvents": 982,
+      "centralEvents": 982,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr_data_eng-billing-checks.archived",
+      "sourceEvents": 1076,
+      "centralEvents": 1076,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr_data_eng-ci-docker-image",
+      "sourceEvents": 57,
+      "centralEvents": 57,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr_data_eng-comms",
+      "sourceEvents": 422,
+      "centralEvents": 422,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr_data_eng-crystalbrooks-env",
+      "sourceEvents": 4180,
+      "centralEvents": 4180,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr_data_eng-crystalbrooks-migration",
+      "sourceEvents": 221,
+      "centralEvents": 221,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr_data_eng-crystalbrooks",
+      "sourceEvents": 0,
+      "centralEvents": 0,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr_data_eng-nsw-social-program",
+      "sourceEvents": 1190,
+      "centralEvents": 1190,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr_data_eng-odbc-connector",
+      "sourceEvents": 2,
+      "centralEvents": 2,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr_data_eng-overdue-accounts",
+      "sourceEvents": 235,
+      "centralEvents": 235,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr_data_eng-testing-merge-staging",
+      "sourceEvents": 311,
+      "centralEvents": 311,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr_data_eng-wholesale",
+      "sourceEvents": 4413,
+      "centralEvents": 4413,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr_databricks_asset_bundle",
+      "sourceEvents": 0,
+      "centralEvents": 0,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-crm",
+      "sourceEvents": 0,
+      "centralEvents": 0,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-billing-checks",
+      "sourceEvents": 7698,
+      "centralEvents": 7698,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-ml-ops",
+      "sourceEvents": 1652,
+      "centralEvents": 1652,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-600-overdue-accounts",
+      "sourceEvents": 700,
+      "centralEvents": 700,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-640",
+      "sourceEvents": 0,
+      "centralEvents": 0,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-648",
+      "sourceEvents": 0,
+      "centralEvents": 0,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655-cover-invoice",
+      "sourceEvents": 46,
+      "centralEvents": 46,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-670",
+      "sourceEvents": 1050,
+      "centralEvents": 1050,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+      "sourceEvents": 1084,
+      "centralEvents": 1084,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+      "sourceEvents": 1821,
+      "centralEvents": 1821,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+      "sourceEvents": 2120,
+      "centralEvents": 2120,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-676",
+      "sourceEvents": 1,
+      "centralEvents": 1,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-678",
+      "sourceEvents": 937,
+      "centralEvents": 937,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-693-hardship-dashboard",
+      "sourceEvents": 0,
+      "centralEvents": 0,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-705-onboarding-customer-margin",
+      "sourceEvents": 348,
+      "centralEvents": 348,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-709",
+      "sourceEvents": 448,
+      "centralEvents": 448,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-727",
+      "sourceEvents": 3768,
+      "centralEvents": 3768,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-741-ci-tender-feedback-dashboard",
+      "sourceEvents": 1320,
+      "centralEvents": 1320,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-741",
+      "sourceEvents": 60,
+      "centralEvents": 60,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-744",
+      "sourceEvents": 1725,
+      "centralEvents": 1725,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-759",
+      "sourceEvents": 302,
+      "centralEvents": 302,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-777",
+      "sourceEvents": 304,
+      "centralEvents": 304,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-778",
+      "sourceEvents": 759,
+      "centralEvents": 759,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-781",
+      "sourceEvents": 1200,
+      "centralEvents": 1200,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-803-google-analytics-ingestion",
+      "sourceEvents": 4308,
+      "centralEvents": 4308,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-815",
+      "sourceEvents": 924,
+      "centralEvents": 924,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-836",
+      "sourceEvents": 1910,
+      "centralEvents": 1910,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-emailed-reports",
+      "sourceEvents": 0,
+      "centralEvents": 0,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr-kraken-sql",
+      "sourceEvents": 0,
+      "centralEvents": 0,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/nectr",
+      "sourceEvents": 0,
+      "centralEvents": 0,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/outputs",
+      "sourceEvents": 0,
+      "centralEvents": 0,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/persona",
+      "sourceEvents": 0,
+      "centralEvents": 0,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/scripts",
+      "sourceEvents": 4,
+      "centralEvents": 4,
+      "missing": 0
+    },
+    {
+      "workspace": "/Users/marcus.kim/repositories/work/Specs",
+      "sourceEvents": 0,
+      "centralEvents": 0,
+      "missing": 0
+    }
+  ],
+  "scheduler": [
+    "runs = 4",
+    "last exit code = 0",
+    "run interval = 60 seconds"
+  ]
+}

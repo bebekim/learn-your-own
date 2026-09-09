@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, symlinkSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -20,7 +20,7 @@ test('packed executables and generated hooks run the installed learning loop', a
   const store = new LessonStore(storePath);
   store.createLesson({ failure_class: 'output_generation', trigger_cue: 'tests failed',
     explanation: 'tests failed', intervention: 'Run the narrow test before reporting done.' });
-  const env = { ...process.env, ZEROSHOT_LYO_STORE_PATH: storePath, TMPDIR: dir };
+  const env: NodeJS.ProcessEnv = { ...process.env, ZEROSHOT_LYO_STORE_PATH: storePath, TMPDIR: dir };
   const run = (bin: string, args: string[], event?: unknown) => execFileSync(process.execPath,
     [join(dir, bin), ...args], { cwd: dir, env, encoding: 'utf8', input: JSON.stringify(event ?? {}) });
   try {
@@ -97,6 +97,17 @@ test('packed executables and generated hooks run the installed learning loop', a
       assert.doesNotMatch(String(captured?.payload_json), /private Bob output/);
       assert.equal(JSON.parse(String(captured?.payload_json)).tool_response.exit_code, undefined);
       assert.equal(db.prepare("select count(*) as n from learning_traces where trace_id like 'session-outcome:%'").get()?.n, 2);
+
+      const corpusPath = join(dir, 'central/corpus.sqlite');
+      env.LYO_CONFIG_FILE = join(dir, 'central-config.json');
+      writeFileSync(env.LYO_CONFIG_FILE, JSON.stringify({ rootDir: dir, corpusPath }));
+      assert.equal(JSON.parse(run('lyo', ['connect', '--path', dir])).connected, true);
+      run('lyo', ['bob-hook', ...flags], { cwd: dir, session_id: 'bob-central-package', event: 'SessionStart' });
+      const corpus = new DatabaseSync(corpusPath, { readOnly: true });
+      try {
+        assert.equal(corpus.prepare("select count(*) n from corpus_events where session_id='bob-central-package'").get()?.n, 1);
+        assert.equal(JSON.parse(run('lyo', ['sync', 'connected'])).workspaces, 1);
+      } finally { corpus.close(); }
     } finally { db.close(); }
   } finally {
     store.close();

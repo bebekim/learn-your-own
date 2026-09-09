@@ -1,0 +1,28 @@
+{
+  "archive": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/dist/lyo-kernel-0.4.1.tgz",
+  "sha256": "891f4b3373f152d4b8fdfefa94616510fbee0408a84dd764807fffabafd352ef",
+  "matchedInstalledFiles": 171,
+  "backup": "/Users/marcus.kim/.local/state/lyo/install-backups/central-20260909-113422",
+  "config": "/Users/marcus.kim/.lyo/config.json",
+  "shell": "/Users/marcus.kim/.lyo/workspaces.zsh",
+  "launchAgent": "/Users/marcus.kim/Library/LaunchAgents/com.lyo.workspace-sync.plist",
+  "initialSyncExit": 0,
+  "initialSync": {
+    "ok": true,
+    "corpusPath": "/Users/marcus.kim/.lyo/corpus.sqlite",
+    "workspaces": 60,
+    "hookEvents": 58452
+  },
+  "initialLog": "/Users/marcus.kim/.lyo/workspace-sync-initial.log",
+  "launchAgentLoaded": true,
+  "initialArtifactSha256": "02b4518a63cafd604997ea3384fb511779639eae639df1457262cd0b9686ed1b",
+  "version": "0.4.1",
+  "checks": {
+    "tests": 562,
+    "passed": 561,
+    "skipped": 1,
+    "failed": 0,
+    "typecheck": "passed"
+  },
+  "installedFrom": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/workspace-central-sync/dist/lyo-kernel-0.4.1.tgz"
+}

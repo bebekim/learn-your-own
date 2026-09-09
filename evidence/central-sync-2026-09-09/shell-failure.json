@@ -1,0 +1,6 @@
+{
+  "shellFailureVisible": true,
+  "cdSucceedsDuringCentralFailure": true,
+  "existingZshrcPreserved": true,
+  "lyoSourceEntries": 1
+}

@@ -19,6 +19,7 @@ import {
 } from '../hooks/runtime.ts';
 import { CliArgs, readStdin } from './args.ts';
 import { normalizeOutcome } from './coercion.ts';
+import { autoConnectWorkspace } from '../corpus/workspace-sync.ts';
 
 export async function runCodexHookCommand(
   args: CliArgs,
@@ -45,6 +46,7 @@ export async function runCodexHookCommand(
     if ((event.hook_event_name === 'Stop' || event.hook_event_name === 'SessionEnd') && args.env.LEARNLOOP_DRAIN_SPOOL_ON_STOP !== '0') {
       tryDrainSpool(args, effectiveDbPath, effectiveSpoolDir);
     }
+    syncHookWorkspace(args, event.hook_event_name, eventCwd);
     return emptyHookOutput(event.hook_event_name ?? 'Unknown');
   }
 
@@ -61,6 +63,7 @@ export async function runCodexHookCommand(
     });
   } finally {
     closeKernel(kernel);
+    syncHookWorkspace(args, event.hook_event_name, eventCwd);
   }
 }
 
@@ -164,6 +167,7 @@ async function runClaudeStyleHook(
     if ((event.hook_event_name === 'Stop' || event.hook_event_name === 'SessionEnd') && args.env.LEARNLOOP_DRAIN_SPOOL_ON_STOP !== '0') {
       tryDrainSpool(args, effectiveDbPath, effectiveSpoolDir);
     }
+    syncHookWorkspace(args, event.hook_event_name, eventCwd);
     return {};
   }
 
@@ -179,6 +183,13 @@ async function runClaudeStyleHook(
     });
   } finally {
     closeKernel(kernel);
+    syncHookWorkspace(args, event.hook_event_name, eventCwd);
+  }
+}
+
+function syncHookWorkspace(args: CliArgs, eventName: unknown, cwd: string): void {
+  if (args.hasFlag('--db-from-event-cwd') && ['SessionStart', 'UserPromptSubmit', 'Stop', 'SessionEnd'].includes(String(eventName))) {
+    autoConnectWorkspace(cwd, args.env);
   }
 }
 

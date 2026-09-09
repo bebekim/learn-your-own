@@ -6,13 +6,67 @@ Build and install the same artifact you tested:
 rtk npm test
 rtk npm run typecheck
 rtk npm run pack:local
-rtk npm install -g ./dist/lyo-kernel-0.4.0.tgz
+rtk npm install -g ./dist/lyo-kernel-0.4.1.tgz
 ```
 
 Use one Node 24+ installation for both npm and the hooks. GUI applications may
 have a different PATH: configure absolute paths to that Node executable and its
 installed `bin/lyo` / `bin/lyo-session-hook`. Source checkout paths are unnecessary.
 The package retains `lyo`, `awok`, `wok`, and `lyo-session-hook` executables.
+
+## Automatic central collection
+
+`~/.lyo/config.json` selects the directory tree and the central corpus:
+
+```json
+{
+  "rootDir": "/Users/marcus.kim/repositories/work",
+  "corpusPath": "/Users/marcus.kim/.lyo/corpus.sqlite"
+}
+```
+
+With this config, the installed Codex, Claude, ECA, and Bob capture commands
+connect workspaces on SessionStart/UserPromptSubmit and sync again on Stop or
+SessionEnd. ECA's translated chat events use the same path. Hooks retain local
+capture if the central database is unavailable and report the sync error on
+stderr. Directories outside the configured root are untouched.
+
+Create and connect an ordinary worktree in one command (no pipeline spec needed):
+
+```sh
+rtk lyo worktree add ../billing-fix --branch fix/billing
+```
+
+The existing `--spec` pipeline workflow remains available. Connection failure
+reports the worktree that Git created and the retry command; it does not remove
+your worktree. Reconnect an existing checkout or ordinary directory with:
+
+```sh
+rtk lyo connect --path ~/repositories/work/nectr-data-lake-billing-checks
+rtk lyo sync connected --discover
+rtk lyo corpus report --db ~/.lyo/corpus.sqlite
+```
+
+The local setup sources `~/.lyo/workspaces.zsh` from `.zshrc`. Its `chpwd` hook
+connects directories under the configured work tree, including the initial
+directory of a new terminal. A cd into a Git subdirectory connects the Git root.
+Existing terminals can load it with `source ~/.lyo/workspaces.zsh`.
+Agent session startup covers agent use from editors; simply browsing a folder in
+Finder or Emacs does not itself fire an agent hook.
+
+The user LaunchAgent `com.lyo.workspace-sync` runs `lyo sync connected --discover`
+every 60 seconds and at login. It drains pending hook packets, discovers existing
+workspace ledgers, and retries connections without requiring a final session
+event. Logs live in `~/.lyo/workspace-sync.log` and `workspace-sync.err.log`.
+Inspect it with `launchctl print gui/$(id -u)/com.lyo.workspace-sync`.
+
+Central imports compare event identities and contents, refresh changed runs, and
+commit each ledger atomically. Hash IDs and resumed runs cannot strand later
+events behind a cursor. Existing worktree and repository databases stay separate;
+central rows retain their source path. The corpus contains telemetry and derived
+actions/effects; the session learning bridge still uses repository ledgers and
+the lesson store described below. Collection alone does not grant learning credit.
+`LYO_CONFIG_FILE` overrides the config path for isolated verification.
 
 | Host | Capture command | Delivery | Completion |
 | --- | --- | --- | --- |

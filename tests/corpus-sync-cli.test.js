@@ -6,8 +6,44 @@ import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 
 import { initCorpusDb } from '../src/corpus/schema.ts';
+import { syncCorpusOnce } from '../src/corpus/sync.ts';
+import { createKernel, closeKernel } from '../src/ledger.ts';
+import { initLedger } from '../src/schema.ts';
+import { recordHookEvent } from '../src/hooks/ingestion.ts';
 import { runLyoJson } from './helpers/cli.js';
 import { seedEditThenVerifierLedger } from './helpers/ledger-fixtures.js';
+
+test('central sync imports later hash IDs, refreshes an ongoing run, and retries atomically', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-corpus-late-event-'));
+  const source = createKernel({ dbPath: join(dir, 'repos/project/.agent-learning/learning.sqlite') });
+  initLedger(source);
+  const input = { rootDir: join(dir, 'repos'), corpusPath: join(dir, 'corpus.sqlite') };
+  const event = { sessionId: 'same-session', turnId: 'same-turn', cwd: dir, eventName: 'tool.after' };
+  try {
+    recordHookEvent(source, { ...event, eventId: 'z-first', payload: { tool_name: 'apply_patch',
+      tool_input: { patch: '*** Begin Patch\n*** Update File: src/a.ts\n*** End Patch' }, tool_response: { exit_code: 0 } } });
+    syncCorpusOnce(input);
+    recordHookEvent(source, { ...event, eventId: 'a-later', payload: { tool_name: 'Bash',
+      tool_input: { command: 'npm test' }, tool_response: { exit_code: 0 } } });
+    const result = syncCorpusOnce(input);
+    assert.equal(result.imported.hookEvents, 1);
+    const central = new DatabaseSync(input.corpusPath);
+    try {
+      assert.equal(central.prepare('select count(*) n from corpus_events').get().n, 2);
+      assert.equal(central.prepare('select count(*) n from corpus_actions').get().n, 2);
+      assert.equal(JSON.parse(central.prepare('select predicates_json from corpus_effects').get().predicates_json).hasVerifiedCompletion, true);
+      assert.equal(syncCorpusOnce(input).imported.hookEvents, 0);
+      recordHookEvent(source, { ...event, eventId: 'a-later', payload: { tool_name: 'Bash',
+        tool_input: { command: 'npm test' }, tool_response: { exit_code: 1 } } });
+      central.exec("create trigger reject_action before insert on corpus_actions begin select raise(abort, 'probe failure'); end");
+      assert.throws(() => syncCorpusOnce(input), /probe failure/);
+      assert.equal(JSON.parse(central.prepare("select payload_json from corpus_events where event_id='a-later'").get().payload_json).tool_response.exit_code, 0);
+      central.exec('drop trigger reject_action');
+      assert.equal(syncCorpusOnce(input).imported.hookEvents, 1);
+      assert.equal(JSON.parse(central.prepare('select predicates_json from corpus_effects').get().predicates_json).hasVerifiedCompletion, false);
+    } finally { central.close(); }
+  } finally { closeKernel(source); rmSync(dir, { recursive: true, force: true }); }
+});
 
 test('sync once imports discovered repo ledgers into a local corpus', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-corpus-sync-'));

@@ -1,0 +1,9 @@
+{
+  "nativeTerminalHook": true,
+  "hookRegistrations": 1,
+  "workspace": "/Users/marcus.kim/repositories/work/nectr-data-lake-billing-checks",
+  "beforeLastSeen": "2026-09-09T01:36:41.757Z",
+  "afterLastSeen": "2026-09-09T01:37:32.221Z",
+  "sourceEvents": 7698,
+  "centralEvents": 7698
+}

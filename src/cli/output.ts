@@ -32,6 +32,8 @@ export function usage(exitCode = 0): never {
 	  lyo import git --repo path --corpus path [--tag project] [--limit n] [--json]
 	  lyo pool collect --pool path --source path --tag project [--source path --tag project ...] [--json]
 	  lyo sync once --dir path --corpus path [--json]
+	  lyo connect [--path directory]
+	  lyo sync connected [--discover]
 	  lyo corpus report [--db path] [--json]
 	  lyo workspace register [--db path] --root path [--workspace-id id] [--name name]
 	  lyo workspace init-nectr [--db path] --root path [--workspace-id id] [--name name]
@@ -66,7 +68,7 @@ export function usage(exitCode = 0): never {
 	  lyo pipeline proposals --run dir
 	  lyo pipeline proposal-review --run dir --id id --status accepted|rejected
 	  lyo pipeline init --spec path [--task-dir dir]
-	  lyo worktree add --spec path --branch name [--path dir] [--task-dir dir] [--base ref] [--force]
+	  lyo worktree add [directory] --branch name [--spec path] [--path dir] [--task-dir dir] [--base ref] [--force]
 	  lyo pipeline apply --run dir --target dir [--force]
 	  lyo pipeline calibrate --cases path [--judge-model model]
 	  lyo eval validate [--dir path]

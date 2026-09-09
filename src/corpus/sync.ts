@@ -1,4 +1,6 @@
-import { basename } from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { mkdirSync } from 'node:fs';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
 import {
@@ -134,6 +136,18 @@ export function syncCorpusOnce(input: SyncCorpusOnceInput): SyncCorpusOnceResult
   }
 }
 
+export function syncWorkspaceToCorpus(input: SyncCorpusOnceInput & { workspaceRoot: string }): SyncCorpusLedgerSummary {
+  const workspaceRoot = resolve(input.workspaceRoot);
+  const dbPath = join(workspaceRoot, '.agent-learning', 'learning.sqlite');
+  if (resolve(input.corpusPath) === dbPath) throw new Error('The central corpus must be separate from the workspace ledger');
+  const corpus = openWritableCorpus(input.corpusPath);
+  try {
+    const relativeWorkspace = relative(input.rootDir, workspaceRoot) || '.';
+    return importLedger(corpus, { dbPath, workspaceRoot, relativeWorkspace,
+      depth: relativeWorkspace === '.' ? 0 : relativeWorkspace.split(/[\\/]/).length });
+  } finally { corpus.close(); }
+}
+
 export function corpusReport(input: CorpusReportInput): CorpusReport {
   const corpus = new DatabaseSync(input.corpusPath, { readOnly: true });
   try {
@@ -196,7 +210,9 @@ export function corpusReport(input: CorpusReportInput): CorpusReport {
 }
 
 function openWritableCorpus(corpusPath: string): DatabaseSync {
+  mkdirSync(dirname(corpusPath), { recursive: true });
   const db = new DatabaseSync(corpusPath);
+  db.exec('PRAGMA busy_timeout = 5000');
   db.exec('PRAGMA foreign_keys = ON');
   db.exec('PRAGMA journal_mode = WAL');
   db.exec('PRAGMA synchronous = NORMAL');
@@ -207,24 +223,35 @@ function openWritableCorpus(corpusPath: string): DatabaseSync {
 function importLedger(corpus: DatabaseSync, ledger: AgentLearningLedgerLocation): SyncCorpusLedgerSummary {
   const ledgerId = ledgerIdForPath(ledger.dbPath);
   const now = new Date().toISOString();
-  const batchId = `${ledgerId}:${now}`;
+  const batchId = `${ledgerId}:${randomUUID()}`;
   const source = new DatabaseSync(ledger.dbPath, { readOnly: true });
 
   try {
+    source.exec('BEGIN');
+    corpus.exec('BEGIN IMMEDIATE');
     upsertLedger(corpus, ledger, ledgerId, now);
     startBatch(corpus, batchId, ledgerId, now);
     const runs = importRuns(corpus, source, ledgerId, now);
-    const hookEvents = importHookEvents(corpus, source, ledgerId, now);
-    const compiled = importCompiledTelemetry(corpus, source, ledgerId, batchId, now);
+    const events = importHookEvents(corpus, source, ledgerId, now);
+    // Repair projections left behind by the old hash-order cursor once.
+    const runIds = getCursor(corpus, ledgerId, 'identity-sync-v1') === 'complete' ? events.runIds
+      : tableExists(source, 'hook_events') ? (source.prepare('select distinct coalesce(turn_id, session_id) run_id from hook_events')
+        .all() as unknown as RunKeyRow[]).map(row => row.run_id) : [];
+    const compiled = importCompiledTelemetry(corpus, source, ledgerId, batchId, now, runIds);
+    updateCursor(corpus, ledgerId, 'identity-sync-v1', 'complete', now);
     finishBatch(corpus, batchId, now);
+    corpus.exec('COMMIT');
     return {
       ledgerId,
       dbPath: ledger.dbPath,
       workspaceRoot: ledger.workspaceRoot,
       relativeWorkspace: ledger.relativeWorkspace,
-      imported: { runs, hookEvents, ...compiled },
+      imported: { runs, hookEvents: events.imported, ...compiled },
     };
   } catch (error) {
+    if (corpus.isTransaction) corpus.exec('ROLLBACK');
+    upsertLedger(corpus, ledger, ledgerId, now);
+    startBatch(corpus, batchId, ledgerId, now);
     failBatch(corpus, batchId, new Date().toISOString(), error);
     throw error;
   } finally {
@@ -301,15 +328,13 @@ function importRuns(
   importedAt: string
 ): number {
   if (!tableExists(source, 'runs')) return 0;
-  const cursor = getCursor(corpus, ledgerId, 'runs');
   const rows = source.prepare(`
     select run_id, task_shape, channel, status, token_cost, created_at
     from runs
-    where (? is null or run_id > ?)
     order by created_at, run_id
-  `).all(cursor, cursor) as unknown as RunRow[];
+  `).all() as unknown as RunRow[];
   const insert = corpus.prepare(`
-    insert or ignore into corpus_runs (
+    insert into corpus_runs (
       source_ledger_id,
       run_id,
       task_shape,
@@ -319,6 +344,11 @@ function importRuns(
       created_at,
       imported_at
     ) values (?, ?, ?, ?, ?, ?, ?, ?)
+    on conflict(source_ledger_id, run_id) do update set
+      task_shape=excluded.task_shape, channel=excluded.channel, status=excluded.status,
+      token_cost=excluded.token_cost, created_at=excluded.created_at, imported_at=excluded.imported_at
+    where task_shape is not excluded.task_shape or channel is not excluded.channel
+      or status is not excluded.status or token_cost is not excluded.token_cost or created_at is not excluded.created_at
   `);
   let imported = 0;
   for (const row of rows) {
@@ -334,7 +364,6 @@ function importRuns(
     );
     imported += Number(result.changes);
   }
-  updateCursor(corpus, ledgerId, 'runs', rows.at(-1)?.run_id ?? null, importedAt);
   return imported;
 }
 
@@ -343,17 +372,22 @@ function importHookEvents(
   source: DatabaseSync,
   ledgerId: string,
   importedAt: string
-): number {
-  if (!tableExists(source, 'hook_events')) return 0;
-  const cursor = getCursor(corpus, ledgerId, 'hook_events');
+): { imported: number; runIds: string[] } {
+  if (!tableExists(source, 'hook_events')) return { imported: 0, runIds: [] };
+  // ponytail: scan each ledger and compare identities/content; a source change
+  // sequence can replace this if large ledgers make scanning expensive.
+  const columns = source.prepare('pragma table_info(hook_events)').all() as { name: string }[];
   const rows = source.prepare(`
-    select event_id, session_id, turn_id, event_name, cwd, model, lyo_version, payload_json, created_at
+    select event_id, session_id, turn_id, event_name, cwd, model,
+      ${columns.some(c => c.name === 'lyo_version') ? 'lyo_version' : 'null as lyo_version'}, payload_json, created_at
     from hook_events
-    where (? is null or event_id > ?)
-    order by created_at, event_id
-  `).all(cursor, cursor) as unknown as HookEventRow[];
+    order by created_at, rowid
+  `).all() as unknown as HookEventRow[];
+  const previous = new Map((corpus.prepare('select event_id, coalesce(turn_id, session_id) run_id from corpus_events where source_ledger_id=?')
+    .all(ledgerId) as unknown as Array<{ event_id: string; run_id: string }>).map(row => [row.event_id, row.run_id]));
+  const runIds = new Set<string>();
   const insert = corpus.prepare(`
-    insert or ignore into corpus_events (
+    insert into corpus_events (
       source_ledger_id,
       event_id,
       session_id,
@@ -366,6 +400,13 @@ function importHookEvents(
       created_at,
       imported_at
     ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    on conflict(source_ledger_id, event_id) do update set
+      session_id=excluded.session_id, turn_id=excluded.turn_id, event_name=excluded.event_name,
+      cwd=excluded.cwd, model=excluded.model, lyo_version=excluded.lyo_version,
+      payload_json=excluded.payload_json, created_at=excluded.created_at, imported_at=excluded.imported_at
+    where session_id is not excluded.session_id or turn_id is not excluded.turn_id
+      or event_name is not excluded.event_name or cwd is not excluded.cwd or model is not excluded.model
+      or lyo_version is not excluded.lyo_version or payload_json is not excluded.payload_json or created_at is not excluded.created_at
   `);
   let imported = 0;
   for (const row of rows) {
@@ -383,9 +424,13 @@ function importHookEvents(
       importedAt
     );
     imported += Number(result.changes);
+    if (result.changes) {
+      runIds.add(row.turn_id ?? row.session_id);
+      const oldRun = previous.get(row.event_id);
+      if (oldRun) runIds.add(oldRun);
+    }
   }
-  updateCursor(corpus, ledgerId, 'hook_events', rows.at(-1)?.event_id ?? null, importedAt);
-  return imported;
+  return { imported, runIds: [...runIds] };
 }
 
 function importCompiledTelemetry(
@@ -393,25 +438,19 @@ function importCompiledTelemetry(
   source: DatabaseSync,
   ledgerId: string,
   batchId: string,
-  importedAt: string
+  importedAt: string,
+  runIds: string[]
 ): { actions: number; effects: number } {
   if (!tableExists(source, 'hook_events')) return { actions: 0, effects: 0 };
-  const cursor = getCursor(corpus, ledgerId, 'corpus_effects');
-
-  const runRows = source.prepare(`
-    select distinct coalesce(turn_id, session_id) as run_id
-    from hook_events
-    where coalesce(turn_id, session_id) is not null
-      and (? is null or coalesce(turn_id, session_id) > ?)
-    order by run_id
-  `).all(cursor, cursor) as unknown as RunKeyRow[];
 
   const sourceKernel = { db: source, dbPath: 'source-ledger' };
   let actions = 0;
   let effects = 0;
 
-  for (const row of runRows) {
-    const ast = compileTelemetryRunAst(sourceKernel, { runId: row.run_id });
+  for (const runId of runIds) {
+    const ast = compileTelemetryRunAst(sourceKernel, { runId });
+    const oldActions = Number(corpus.prepare('delete from corpus_actions where source_ledger_id=? and run_id=?').run(ledgerId, runId).changes);
+    const oldEffects = Number(corpus.prepare("delete from corpus_effects where source_ledger_id=? and scope_kind='run' and scope_id=?").run(ledgerId, runId).changes);
     const actionInsert = corpus.prepare(`
       insert or ignore into corpus_actions (
         source_ledger_id,
@@ -465,6 +504,7 @@ function importCompiledTelemetry(
       actions += Number(result.changes);
     }
 
+    actions -= Math.min(oldActions, ast.actions.length);
     if (ast.actions.length === 0) continue;
 
     const effect = foldTrace(ast.actions);
@@ -498,23 +538,8 @@ function importCompiledTelemetry(
       batchId,
       importedAt
     );
-    effects += Number(effectResult.changes);
+    effects += Math.max(0, Number(effectResult.changes) - oldEffects);
   }
-
-  updateCursor(
-    corpus,
-    ledgerId,
-    'corpus_actions',
-    runRows.at(-1)?.run_id ?? null,
-    importedAt
-  );
-  updateCursor(
-    corpus,
-    ledgerId,
-    'corpus_effects',
-    runRows.at(-1)?.run_id ?? null,
-    importedAt
-  );
 
   return { actions, effects };
 }

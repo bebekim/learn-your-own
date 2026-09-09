@@ -5,13 +5,36 @@ import {
 import { importGitHistory } from '../../corpus/git-import.ts';
 import { collectGitCorpusPool } from '../../corpus/pool.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
+import { execFileSync } from 'node:child_process';
+import { resolve } from 'node:path';
+import { connectWorkspace, isWithinRoot, syncConnectedWorkspaces, workspaceSyncConfig } from '../../corpus/workspace-sync.ts';
 
 export const CORPUS_COMMANDS: Record<string, CommandHandler> = {
   'corpus report': corpusReportCommand,
   'import git': importGitCommand,
   'pool collect': poolCollectCommand,
   'sync once': syncOnceCommand,
+  'sync connected': syncConnectedCommand,
+  connect: connectCommand,
 };
+
+function connectCommand(args: CommandArgs): unknown {
+  const config = workspaceSyncConfig(args.env);
+  if (!config) throw new Error('Configure rootDir and corpusPath in ~/.lyo/config.json first');
+  let path = resolve(args.cwd, args.flagValue('--path') ?? '.');
+  // A shell cd into src/ should connect the Git workspace, not create src/.agent-learning.
+  try {
+    const gitRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: path, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 2000 }).trim();
+    if (isWithinRoot(config.rootDir, gitRoot)) path = gitRoot;
+  } catch { /* Ordinary directories are supported too. */ }
+  return connectWorkspace(path, config);
+}
+
+function syncConnectedCommand(args: CommandArgs): unknown {
+  const config = workspaceSyncConfig(args.env);
+  if (!config) throw new Error('Configure rootDir and corpusPath in ~/.lyo/config.json first');
+  return syncConnectedWorkspaces(config, args.hasFlag('--discover'));
+}
 
 function syncOnceCommand(args: CommandArgs): unknown {
   return syncCorpusOnce({
