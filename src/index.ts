@@ -1,6 +1,10 @@
 export { closeKernel, createKernel } from './ledger.ts';
 export type { CreateKernelInput, LearningKernel } from './ledger.ts';
 export { initLedger } from './schema.ts';
+export { FeedbackController } from './lyo/control/feedback-controller.ts';
+export type {
+  ControlSpecification, ControlRequest, ControlDecision, ControlFeedback, ActionEstimate,
+} from './lyo/control/feedback-controller.ts';
 export {
   deriveZoneActivationsForJob,
   deriveZoneCoactivationsForJob,

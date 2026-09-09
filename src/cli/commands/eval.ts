@@ -18,9 +18,12 @@ import {
   validateEvalTaskDirectory,
 } from '../../eval/tasks.ts';
 import { LessonStore } from '../../lyo/storage/lesson-store.ts';
+import { runControlExperiment } from '../../eval/control-experiment.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
 
 export const EVAL_COMMANDS: Record<string, CommandHandler> = {
+  'eval control': args => ({ ok: true,
+    report: runControlExperiment(resolve(args.cwd, args.requiredFlag('--dir')), args.optionalNumber('--seed') ?? 42) }),
   'eval report': evalReportCommand,
   'eval replay': evalReplayCommand,
   'eval run-local': evalRunLocalCommand,

@@ -61,6 +61,11 @@ export function usage(exitCode = 0): never {
 	  lyo demo fixture-replay [--db path]
 	  lyo eval report --episodes path [--baseline B0] [--treatment B4] [--rule-id id] [--markdown]
 	  lyo eval replay [--db path] --trace path [--seed n] [--limit n]
+	  lyo eval control --dir new-evidence-directory [--seed n]
+	  lyo control decide [--db path] --spec path --input path
+	  lyo control feedback [--db path] --spec path --input path
+	  lyo control inspect [--db path] --spec path --episode-id id
+	  lyo control status [--db path]
 	  lyo eval run-local [--db path] --task path --baseline B0|B1|B3|B4 [--model name] [--harness name] [--scope-kind kind] [--scope-value value] [--static-skill text]
 	  lyo pipeline run --plan path [--runs-root dir] [--lessons dir]
 	  lyo pipeline learn --run dir[,dir2] [--judge-model model] [--library dir] [--gate permissive|strict]

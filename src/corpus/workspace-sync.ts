@@ -7,16 +7,25 @@ import { initLedger } from '../schema.ts';
 import { drainHookSpool } from '../hooks/runtime.ts';
 import { discoverAgentLearningLedgers } from '../compiler/ledger-discovery.ts';
 import { syncWorkspaceToCorpus, type SyncCorpusOnceInput } from './sync.ts';
+import { z } from 'zod';
 
-export function workspaceSyncConfig(env = process.env): SyncCorpusOnceInput | null {
+const adaptiveFeedbackSchema = z.object({
+  mode: z.enum(['explore', 'evaluate']), revision: z.number().int().nonnegative().optional(),
+}).strict().refine(value => value.mode !== 'evaluate' || value.revision !== undefined,
+  'evaluation requires a frozen revision');
+
+export function workspaceSyncConfig(env = process.env): (SyncCorpusOnceInput & {
+  adaptiveFeedback?: z.infer<typeof adaptiveFeedbackSchema>;
+}) | null {
   const file = env.LYO_CONFIG_FILE ?? join(homedir(), '.lyo', 'config.json');
   if (!existsSync(file)) return null;
-  const config = JSON.parse(readFileSync(file, 'utf8')) as SyncCorpusOnceInput;
+  const config = JSON.parse(readFileSync(file, 'utf8'));
   if (!config || typeof config.rootDir !== 'string' || !isAbsolute(config.rootDir)
     || typeof config.corpusPath !== 'string' || !isAbsolute(config.corpusPath)) {
     throw new Error(`Expected absolute rootDir and corpusPath in ${file}`);
   }
-  return { rootDir: realpathSync(config.rootDir), corpusPath: resolve(config.corpusPath) };
+  return { rootDir: realpathSync(config.rootDir), corpusPath: resolve(config.corpusPath),
+    ...(config.adaptiveFeedback === undefined ? {} : { adaptiveFeedback: adaptiveFeedbackSchema.parse(config.adaptiveFeedback) }) };
 }
 
 export function isWithinRoot(root: string, path: string): boolean {

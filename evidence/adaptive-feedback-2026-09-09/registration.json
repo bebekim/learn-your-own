@@ -1,0 +1,24 @@
+{
+  "seed": 42,
+  "instrument": {
+    "path": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/adaptive-feedback-loop/src/eval/control-experiment.ts",
+    "sha256": "e1fde84b80cf3f01e4511ac2d923b53ff875313997f329d90ae7555cc8ee2bfc"
+  },
+  "nodeVersion": "v24.15.0",
+  "specification": {
+    "domain": "coding/javascript-execution",
+    "objective": "correct-output-within-2-seconds@1",
+    "evaluator": "node-output@1:v24.15.0:e1fde84b80cf3f01e4511ac2d923b53ff875313997f329d90ae7555cc8ee2bfc",
+    "stateSchema": "module-syntax@1",
+    "actions": [
+      "commonjs",
+      "module"
+    ],
+    "baselineAction": "commonjs"
+  },
+  "trainingCases": 32,
+  "testCases": 12,
+  "timeoutMs": 2000,
+  "claim": "mechanism-only",
+  "createdAt": "2026-09-09T04:50:36.802Z"
+}

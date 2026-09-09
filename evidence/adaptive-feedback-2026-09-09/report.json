@@ -1,0 +1,22 @@
+{
+  "claim": "mechanism-only",
+  "domain": "coding/javascript-execution",
+  "seed": 42,
+  "revision": 32,
+  "training": {
+    "episodes": 32,
+    "successes": 14,
+    "wallTimeMs": 1272.0623719999999
+  },
+  "baseline": {
+    "episodes": 12,
+    "successes": 6,
+    "wallTimeMs": 445.87862599999926
+  },
+  "learned": {
+    "episodes": 12,
+    "successes": 12,
+    "wallTimeMs": 461.8860420000001
+  },
+  "limitation": "Fixed JavaScript programs and two observed syntax states. No coding-agent or Go benefit demonstrated."
+}

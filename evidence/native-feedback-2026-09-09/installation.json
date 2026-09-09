@@ -1,0 +1,23 @@
+{
+  "backup": "/Users/marcus.kim/.local/state/lyo/install-backups/adaptive-20260909-053214",
+  "previousVersion": "0.4.1",
+  "hookHashes": {
+    "/Users/marcus.kim/.codex/hooks.json": "ab3cb3239546d1aec203ac73cbf356214b48200ce2428f4cca76417eaf20f57d",
+    "/Users/marcus.kim/.claude/settings.json": "aff1f37b52d93653783b2d83332086b6f7fc9c6c5fd4a15a080b2cac09c58b9c"
+  },
+  "version": "0.4.2-adaptive.0",
+  "verifiedInstalledSourceFiles": 171,
+  "packageSha256": "c0aacad60f13fbb8eb5dc048ddbf1b3bc29b093a249c8b34aa80ca18165c300e",
+  "codexVersion": "0.153.4",
+  "claudeVersion": "2.1.263",
+  "claim": "connection-only",
+  "hostProbePackageSha256": "01bb66e45bf14009c33ddf2291e78b8a39076e994a195b356378edf8307e41f5",
+  "finalValidation": {
+    "tests": 581,
+    "passed": 580,
+    "failed": 0,
+    "skipped": 1,
+    "typecheck": "passed",
+    "compiledNativeChecks": 3
+  }
+}

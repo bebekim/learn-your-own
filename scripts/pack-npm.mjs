@@ -27,13 +27,10 @@ writeFileSync(
   join(staging, 'package.json'),
   `${JSON.stringify(publishedPackageJson, null, 2)}\n`
 );
-for (const file of ['README.md', 'CHANGELOG.md', 'LICENSE.md']) {
+for (const file of ['README.md', 'CHANGELOG.md', 'LICENSE.md',
+  'docs/deterministic-classification.md', 'docs/adaptive-feedback-loop.md']) {
   writeFileSync(join(staging, file), readFileSync(join(root, file)));
 }
-writeFileSync(
-  join(staging, 'docs/deterministic-classification.md'),
-  readFileSync(join(root, 'docs/deterministic-classification.md'))
-);
 
 execFileSync(process.execPath, ['scripts/build-npm.mjs'], { cwd: root, stdio: 'inherit' });
 

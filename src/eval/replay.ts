@@ -243,7 +243,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function seededRng(seed: number): () => number {
+export function seededRng(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
     state = (1664525 * state + 1013904223) >>> 0;

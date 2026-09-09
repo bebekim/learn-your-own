@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.4.2
+
+- Add an opt-in persistent feedback controller, frozen evaluation, and a real-process calibration runner.
+- Connect Codex and Claude recovery experiments to the central ledger with decision, delivery, and measurement receipts.
+- Keep unfinished parallel retries unknown, isolate results by turn and working directory, and make prompt retries with a turn ID idempotent.
+- Allow one central evaluation cutoff across host controllers. Codex output without status remains unknown in telemetry.
+- Include the automatic workspace connection and IBM Bob hook support from the preceding local releases.
+- These changes establish measurement and evaluation; they do not demonstrate that recovery guidance improves real tasks.
+
+## 0.4.1
 
 - Connect recovered session verifier failures to scoped advice and delivery/outcome receipts; retain numeric tool status through redaction and recognize RTK verifier commands.
 - Block duplicate promotion/credit, unrelated lesson grouping, future-to-past credit, quarantined delivery, incomparable run comparisons and missing-cost eval wins. Snapshot all lesson delivery vehicles and include judge/corrective-retry usage.

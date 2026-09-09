@@ -187,6 +187,16 @@ test('hook normalizer records failed shell PostToolUse status', () => {
   }
 });
 
+test('Codex completion without a status signal remains unknown even when stdout says passed', () => {
+  for (const tool_response of ['', 'passed', { stdout: 'passed', stderr: '' }]) {
+    const facts = extractHookFacts({ eventId: 'stdout-only', sessionId: 'codex', turnId: null,
+      eventName: 'PostToolUse', cwd: '/tmp/demo', payloadJson: JSON.stringify({
+        _lyo: { runtime: 'codex' }, tool_name: 'Bash', tool_input: { command: 'npm test' }, tool_response,
+      }) });
+    assert.equal(facts.commands[0].status, 'unknown');
+  }
+});
+
 test('hook normalizer extracts patch file kinds and repeated paths without phase guessing', () => {
   const t = tempDb();
   try {

@@ -1,0 +1,226 @@
+{
+  "ok": true,
+  "dbPath": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/adaptive-feedback-loop/.agent-learning/experiments/native-connection-2026-09-09/central.sqlite",
+  "decisions": 2,
+  "observations": 10,
+  "sessions": 2,
+  "measured": 2,
+  "unknown": 0,
+  "pending": 0,
+  "recent": [
+    {
+      "decision": {
+        "episodeId": "native:codex:ebb880171a342c6479c15bb187313a82fb36165140c4b21f1a65872574a7f4b8",
+        "state": {
+          "verifier": "test",
+          "model": "gpt-6-astra"
+        },
+        "observationRef": "native-hook:6",
+        "mode": "explore",
+        "id": "7339f1b20ad96415714037c81dbffd7b967ee4cf2db893af24e2990e512e7e05",
+        "requestHash": "1dc5b1e0b575d71bfa99a1398c29ced14be92574f7c8c5166f411fe588699b7e",
+        "algorithm": "tabular-mean@1",
+        "controllerId": "d05827b36c6c803cb5f613e7593656b8ce8cf981fa8e4248f3f7cc1c72473c4e",
+        "specification": {
+          "domain": "coding/native-recovery/codex",
+          "objective": "same-check-last-result-passes-at-turn-stop@1",
+          "evaluator": "codex-foreground-check@1",
+          "stateSchema": "verifier-class-and-model@1",
+          "actions": [
+            "no-guidance",
+            "recovery-reminder"
+          ],
+          "baselineAction": "no-guidance"
+        },
+        "revision": 0,
+        "action": "recovery-reminder",
+        "propensity": 0.5,
+        "estimates": [
+          {
+            "action": "no-guidance",
+            "count": 0,
+            "mean": null
+          },
+          {
+            "action": "recovery-reminder",
+            "count": 0,
+            "mean": null
+          }
+        ],
+        "createdAt": "2026-09-09T05:35:42.865Z"
+      },
+      "observation": {
+        "runtime": "codex",
+        "sessionId": "01a084aa-02c8-7882-a2a0-4746b19036d8",
+        "cwd": "/private/tmp/lyo-native-connection-proof/work/codex",
+        "workdir": "/private/tmp/lyo-native-connection-proof/work/codex",
+        "name": "PostToolUse",
+        "toolUseId": "exec-f3476b81-c548-44a2-ab75-7f7e7595c82f",
+        "command": "rtk npm test --silent",
+        "classification": "test",
+        "id": "ebb880171a342c6479c15bb187313a82fb36165140c4b21f1a65872574a7f4b8",
+        "commandKey": "47bdee1f3a18f89b6f16d445810d0fcc229fd42675fb819b12d6412596856656",
+        "measurement": {
+          "status": "failed",
+          "basis": "command-receipt",
+          "exitCode": 1,
+          "cwd": "/private/tmp/lyo-native-connection-proof/work/codex"
+        },
+        "resultHash": {
+          "sha256": "97adce0fbfe9908018fbcd3aa636e3ab085b318e5609770344a5976adb6dbd83",
+          "outputSize": 26,
+          "truncated": false
+        },
+        "createdAt": "2026-09-09T05:35:42.864Z"
+      },
+      "feedback": [
+        {
+          "decisionId": "7339f1b20ad96415714037c81dbffd7b967ee4cf2db893af24e2990e512e7e05",
+          "executedAction": "recovery-reminder",
+          "evaluator": "codex-foreground-check@1",
+          "reward": 1,
+          "evidenceRef": "native-hook:10",
+          "evidence": {
+            "runtime": "codex",
+            "sessionId": "01a084aa-02c8-7882-a2a0-4746b19036d8",
+            "cwd": "/private/tmp/lyo-native-connection-proof/work/codex",
+            "name": "Stop",
+            "reason": "turn stopped",
+            "reward": 1,
+            "resultRef": "native-hook:9",
+            "createdAt": "2026-09-09T05:35:58.625Z",
+            "result": {
+              "runtime": "codex",
+              "sessionId": "01a084aa-02c8-7882-a2a0-4746b19036d8",
+              "cwd": "/private/tmp/lyo-native-connection-proof/work/codex",
+              "workdir": "/private/tmp/lyo-native-connection-proof/work/codex",
+              "name": "PostToolUse",
+              "toolUseId": "exec-97b9ef73-6f39-46d8-949c-7bc794af859a",
+              "command": "rtk npm test --silent",
+              "classification": "test",
+              "id": "e96ae13ad557156f7560af39e0ac5df98d01b87212299642b45e6ee52dbef110",
+              "commandKey": "47bdee1f3a18f89b6f16d445810d0fcc229fd42675fb819b12d6412596856656",
+              "measurement": {
+                "status": "passed",
+                "basis": "command-receipt",
+                "exitCode": 0,
+                "cwd": "/private/tmp/lyo-native-connection-proof/work/codex"
+              },
+              "resultHash": {
+                "sha256": "97adce0fbfe9908018fbcd3aa636e3ab085b318e5609770344a5976adb6dbd83",
+                "outputSize": 26,
+                "truncated": false
+              },
+              "createdAt": "2026-09-09T05:35:54.647Z"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "decision": {
+        "episodeId": "native:claude:07d6a8d92947fd51f4704126be99862dade3b07cd612267440188ad60c705ecd",
+        "state": {
+          "verifier": "test",
+          "model": "unknown"
+        },
+        "observationRef": "native-hook:2",
+        "mode": "explore",
+        "id": "cd8ef94cc86d581c174113c1774f579805a317c2acf70e1e7e68c3ede01eeacf",
+        "requestHash": "0b79e971339572a04937d391aba004be37c2ace9e438c7ebad47661fcab5dc62",
+        "algorithm": "tabular-mean@1",
+        "controllerId": "2715e600f5d608bb4114779268ad20a6bed3b90e269cd6444e89513e492d5d37",
+        "specification": {
+          "domain": "coding/native-recovery/claude",
+          "objective": "same-check-last-result-passes-at-turn-stop@1",
+          "evaluator": "claude-foreground-check@1",
+          "stateSchema": "verifier-class-and-model@1",
+          "actions": [
+            "no-guidance",
+            "recovery-reminder"
+          ],
+          "baselineAction": "no-guidance"
+        },
+        "revision": 0,
+        "action": "recovery-reminder",
+        "propensity": 0.5,
+        "estimates": [
+          {
+            "action": "no-guidance",
+            "count": 0,
+            "mean": null
+          },
+          {
+            "action": "recovery-reminder",
+            "count": 0,
+            "mean": null
+          }
+        ],
+        "createdAt": "2026-09-09T05:35:36.925Z"
+      },
+      "observation": {
+        "runtime": "claude",
+        "sessionId": "70956079-962d-469b-87b2-366ff00da9ab",
+        "cwd": "/private/tmp/lyo-native-connection-proof/work/claude",
+        "workdir": "/private/tmp/lyo-native-connection-proof/work/claude",
+        "name": "PostToolUseFailure",
+        "toolUseId": "toolu_01RSovQLPQFy7NpL9huVfeQY",
+        "command": "rtk npm test --silent",
+        "classification": "test",
+        "id": "07d6a8d92947fd51f4704126be99862dade3b07cd612267440188ad60c705ecd",
+        "commandKey": "c38c29b632cc09ba803dc9f88901bc9a03a683b321e0e287eebce9108e608104",
+        "measurement": {
+          "status": "failed",
+          "basis": "claude-bash-failure-envelope"
+        },
+        "resultHash": {
+          "sha256": "a6f36ef4c04c0daf6d42e059c84828dafb214b23854ab3c6402a5b6f2ff098c8",
+          "outputSize": 37,
+          "truncated": false
+        },
+        "createdAt": "2026-09-09T05:35:36.924Z"
+      },
+      "feedback": [
+        {
+          "decisionId": "cd8ef94cc86d581c174113c1774f579805a317c2acf70e1e7e68c3ede01eeacf",
+          "executedAction": "recovery-reminder",
+          "evaluator": "claude-foreground-check@1",
+          "reward": 1,
+          "evidenceRef": "native-hook:7",
+          "evidence": {
+            "runtime": "claude",
+            "sessionId": "70956079-962d-469b-87b2-366ff00da9ab",
+            "cwd": "/private/tmp/lyo-native-connection-proof/work/claude",
+            "name": "Stop",
+            "reason": "turn stopped",
+            "reward": 1,
+            "resultRef": "native-hook:5",
+            "createdAt": "2026-09-09T05:35:45.164Z",
+            "result": {
+              "runtime": "claude",
+              "sessionId": "70956079-962d-469b-87b2-366ff00da9ab",
+              "cwd": "/private/tmp/lyo-native-connection-proof/work/claude",
+              "workdir": "/private/tmp/lyo-native-connection-proof/work/claude",
+              "name": "PostToolUse",
+              "toolUseId": "toolu_01CuyfhAZuwDfuBr3uL91w3F",
+              "command": "rtk npm test --silent",
+              "classification": "test",
+              "id": "9139624dbd67bc436923d8dd01162f026a812f97e817284c5fedf6dbfa914e17",
+              "commandKey": "c38c29b632cc09ba803dc9f88901bc9a03a683b321e0e287eebce9108e608104",
+              "measurement": {
+                "status": "passed",
+                "basis": "claude-bash-foreground-success"
+              },
+              "resultHash": {
+                "sha256": "3e5fb8a30961c25175f378c77fb99c296e02365a4a896226323876d6f6b11e79",
+                "outputSize": 25,
+                "truncated": false
+              },
+              "createdAt": "2026-09-09T05:35:42.553Z"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

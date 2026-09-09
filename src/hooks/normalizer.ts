@@ -153,8 +153,8 @@ function inferHookCommandStatus(eventName: string, payload: Record<string, unkno
   if (eventName === 'PreToolUse' || eventName === 'tool.before') return 'attempted';
   if (eventName === 'PostToolUseFailure' || eventName === 'tool.failure') return 'failed';
   if (eventName !== 'PostToolUse' && eventName !== 'tool.after') return 'unknown';
-  // Bob emits PostToolUse for timeouts too, without a separate failure event.
-  return hookStatusSignal(payload) ?? (runtimeFromPayload(payload) === 'bob' ? 'unknown' : 'succeeded');
+  // Codex can emit stdout without status; Bob also uses PostToolUse for timeouts.
+  return hookStatusSignal(payload) ?? (['bob', 'codex'].includes(runtimeFromPayload(payload)) ? 'unknown' : 'succeeded');
 }
 
 function hookStatusSignal(value: unknown): CommandStatus | null {

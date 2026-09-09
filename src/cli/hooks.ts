@@ -20,6 +20,7 @@ import {
 import { CliArgs, readStdin } from './args.ts';
 import { normalizeOutcome } from './coercion.ts';
 import { autoConnectWorkspace } from '../corpus/workspace-sync.ts';
+import { nativeFeedback } from '../lyo/control/native-feedback.ts';
 
 export async function runCodexHookCommand(
   args: CliArgs,
@@ -27,6 +28,10 @@ export async function runCodexHookCommand(
 ): Promise<unknown> {
   const input = await readStdin(stdin);
   const event = input.trim() ? JSON.parse(input) : {};
+  return addNativeFeedback(await captureCodexHook(args, event), 'codex', event, args);
+}
+
+async function captureCodexHook(args: CliArgs, event: Record<string, any>): Promise<unknown> {
   const eventCwd = typeof event.cwd === 'string' && event.cwd ? event.cwd : args.cwd;
   const effectiveDbPath = args.hasFlag('--db-from-event-cwd')
     ? join(eventCwd, '.agent-learning', 'learning.sqlite')
@@ -73,7 +78,20 @@ export async function runClaudeHookCommand(
 ): Promise<unknown> {
   const input = await readStdin(stdin);
   const event = input.trim() ? JSON.parse(input) : {};
-  return runClaudeStyleHook(args, event);
+  return addNativeFeedback(await runClaudeStyleHook(args, event), 'claude', event, args);
+}
+
+function addNativeFeedback(output: any, runtime: 'codex' | 'claude', event: Record<string, any>, args: CliArgs): unknown {
+  try {
+    const native = nativeFeedback(runtime, { ...event, cwd: event.cwd || args.cwd }, args.env);
+    if (native) return { ...output, hookSpecificOutput: { ...output.hookSpecificOutput, ...native,
+      hookEventName: event.hook_event_name,
+      ...(native.additionalContext ? { additionalContext:
+        [output.hookSpecificOutput?.additionalContext, native.additionalContext].filter(Boolean).join('\n') } : {}) } };
+  } catch (error) {
+    process.stderr.write(`Lyo adaptive feedback: ${error instanceof Error ? error.message : String(error)}\n`);
+  }
+  return output;
 }
 
 export async function runBobHookCommand(

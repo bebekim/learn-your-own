@@ -1,0 +1,16 @@
+{
+  "config": {
+    "rootDir": "/Users/marcus.kim/repositories/work",
+    "corpusPath": "/Users/marcus.kim/.lyo/corpus.sqlite",
+    "adaptiveFeedback": {
+      "mode": "explore"
+    }
+  },
+  "production": {
+    "decisions": 0,
+    "measured": 0,
+    "pending": 0,
+    "unknown": 0
+  },
+  "snapshotAt": "2026-09-09T05:38:18.016Z"
+}

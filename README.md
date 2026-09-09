@@ -85,7 +85,19 @@ lyo --help
 
 Requires Node.js 24+ for `node:sqlite`.
 
-Current package version: `0.4.0`.
+Current package version: `0.4.2`.
+
+## Experimental adaptive controller (2026-09-09)
+
+Lyo includes a persistent decision/feedback controller and
+`lyo control decide`, `feedback`, `inspect`, and `status`. A real Node-process calibration
+trains action values, freezes the policy, and compares it with a fixed baseline
+on new inputs. Codex and Claude hooks can now run a bounded recovery-guidance
+experiment when `adaptiveFeedback` is enabled in the central workspace config.
+This is experimental; measured check recovery is not proof of task correctness.
+
+See the [architecture and incremental TDD walkthrough](docs/adaptive-feedback-loop.md)
+and [retained calibration evidence](evidence/adaptive-feedback-2026-09-09/assessment.md).
 
 ## Evidence and limits (2026-09-08)
 
