@@ -153,8 +153,8 @@ function inferHookCommandStatus(eventName: string, payload: Record<string, unkno
   if (eventName === 'PreToolUse' || eventName === 'tool.before') return 'attempted';
   if (eventName === 'PostToolUseFailure' || eventName === 'tool.failure') return 'failed';
   if (eventName !== 'PostToolUse' && eventName !== 'tool.after') return 'unknown';
-  // Codex can emit stdout without status; Bob also uses PostToolUse for timeouts.
-  return hookStatusSignal(payload) ?? (['bob', 'codex'].includes(runtimeFromPayload(payload)) ? 'unknown' : 'succeeded');
+  // These hosts can complete a callback without reporting a successful command.
+  return hookStatusSignal(payload) ?? (['bob', 'codex', 'kimi'].includes(runtimeFromPayload(payload)) ? 'unknown' : 'succeeded');
 }
 
 function hookStatusSignal(value: unknown): CommandStatus | null {
@@ -289,9 +289,11 @@ function patchOperationKind(operation: string): PathActivationKind {
 }
 
 function runtimeFromPayload(payload: Record<string, unknown>): HookRuntime {
+  // Older Claude-compatible capture labelled Kimi events as Claude.
+  if (payload.client_type === 'kimi_code_cli') return 'kimi';
   const metadata = objectValue(payload._lyo);
   const runtime = stringValue(metadata?.runtime);
-  if (runtime === 'codex' || runtime === 'gemini' || runtime === 'claude' || runtime === 'eca' || runtime === 'bob') return runtime;
+  if (runtime === 'codex' || runtime === 'gemini' || runtime === 'claude' || runtime === 'eca' || runtime === 'bob' || runtime === 'kimi') return runtime;
   return 'codex';
 }
 

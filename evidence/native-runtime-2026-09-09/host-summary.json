@@ -1,0 +1,36 @@
+{
+  "evidenceKind": "instrumentation-canary",
+  "productBenefitEstablished": false,
+  "hosts": [
+    {
+      "domain": "coding/native-recovery/claude",
+      "action": "recovery-reminder",
+      "initial": {
+        "status": "failed",
+        "basis": "claude-bash-failure-envelope"
+      },
+      "final": {
+        "status": "passed",
+        "basis": "claude-bash-foreground-success"
+      },
+      "reward": 1
+    },
+    {
+      "domain": "coding/native-recovery/codex",
+      "action": "no-guidance",
+      "initial": {
+        "status": "failed",
+        "basis": "command-receipt",
+        "exitCode": 1,
+        "cwd": "/private/tmp/lyo-runtime-identity-rollout-20260909/work/codex"
+      },
+      "final": {
+        "status": "passed",
+        "basis": "command-receipt",
+        "exitCode": 0,
+        "cwd": "/private/tmp/lyo-runtime-identity-rollout-20260909/work/codex"
+      },
+      "reward": 1
+    }
+  ]
+}

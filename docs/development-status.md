@@ -2,6 +2,12 @@
 
 Assessment: 2026-09-09. Implementation baseline: `61e81b0`, tag `v0.4.2`.
 
+Follow-up: the [runtime diagnosis and local rollout](../evidence/native-runtime-2026-09-09/assessment.md)
+installed `0.4.3-adaptive.0`, corrected Kimi events mislabelled as Claude, and
+verified both native hosts in an isolated database. The production native
+experiment still has zero decisions and rewards; collected telemetry alone
+does not demonstrate that the adaptive loop has run on everyday work.
+
 The first experimental adaptive feedback loop is implemented. LYO has progressed
 from collecting telemetry and candidate lessons to recording interventions,
 measuring consequences, and using that evidence in later decisions. Useful
@@ -91,9 +97,9 @@ As of this assessment:
 - Release source is pushed to `origin/main`; tag `v0.4.2` is also on `origin`.
 - The `lyo-kernel@0.4.2` tarball passes npm publish dry-run, isolated installation,
   and a CLI smoke check. Actual publication failed with `ENEEDAUTH` and is pending.
-- The inspected local installation remains `0.4.2-adaptive.0`. Updating that
-  installation and verifying live hook routing are rollout tasks; they can be
-  completed independently of registry publication.
+- The local installation now runs `0.4.3-adaptive.0`, with existing hooks retained
+  and actual Codex/Claude canaries verified. This local rollout is separate from
+  registry publication and does not establish useful learning on real tasks.
 
 See the [adaptive-loop architecture and TDD walkthrough](adaptive-feedback-loop.md)
 for implementation details and [Spec 8](../Specs/8-learning-evidence-loop.md)

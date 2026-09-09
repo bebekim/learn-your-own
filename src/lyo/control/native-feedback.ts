@@ -34,6 +34,8 @@ function specification(runtime: Runtime) {
 
 /** A hook emits context; the experiment measures the subsequent check, not whether advice was obeyed. */
 export function nativeFeedback(runtime: Runtime, event: Record<string, any>, env = process.env): NativeOutput | null {
+  // Kimi shares the hook command, but not Claude's measurement and delivery contract.
+  if (event.client_type === 'kimi_code_cli') return null;
   const name = event.hook_event_name;
   if (!['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'Stop', 'SessionEnd'].includes(name)) return null;
   const config = workspaceSyncConfig(env);

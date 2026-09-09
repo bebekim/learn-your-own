@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.3-adaptive.0
+
+- Preserve Kimi Code CLI identity when events arrive through the Claude-compatible hook command.
+- Keep Kimi completion without a status signal unknown, including when normalizing older Claude-labelled payloads.
+- Exclude Kimi from the native Claude recovery experiment; its measurement and delivery contract is not supported by that experiment.
+- Local prerelease for hook rollout, including the fixes in 0.4.2. No claim of useful learning from everyday tasks.
+
 ## 0.4.2
 
 - Add an opt-in persistent feedback controller, frozen evaluation, and a real-process calibration runner.

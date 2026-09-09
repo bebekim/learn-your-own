@@ -85,6 +85,21 @@ describe('adapter prompt boundary construction', () => {
   });
 
   describe('claude adapter', () => {
+    it('preserves Kimi host identity when it uses the Claude-compatible hook command', () => {
+      const obs = claudeHookObservation({
+        client_type: 'kimi_code_cli',
+        session_id: 'kimi-session',
+        cwd: '/tmp/test',
+        hook_event_name: 'UserPromptSubmit',
+        prompt: 'fix the test',
+      }, { includeRawPrompt: false });
+
+      assert.equal(obs.runtime, 'kimi');
+      assert.equal(obs.session.platform, 'kimi');
+      assert.equal(obs.hookEvent.payload._lyo.runtime, 'kimi');
+      assert.equal(obs.hookEvent.payload.client_type, 'kimi_code_cli');
+    });
+
     it('creates a user prompt boundary on UserPromptSubmit', () => {
       const obs = claudeHookObservation({
         session_id: 's1',

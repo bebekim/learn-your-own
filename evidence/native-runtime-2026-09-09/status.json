@@ -1,0 +1,228 @@
+{
+  "ok": true,
+  "dbPath": "/private/tmp/lyo-runtime-identity-rollout-20260909/canary.sqlite",
+  "decisions": 2,
+  "observations": 10,
+  "sessions": 2,
+  "measured": 2,
+  "unknown": 0,
+  "pending": 0,
+  "recent": [
+    {
+      "decision": {
+        "episodeId": "native:claude:ecc97ee53edc352f7ad66d709c4579ed4c17659a88dd8623bbdee278b4a256fd",
+        "state": {
+          "verifier": "test",
+          "model": "unknown"
+        },
+        "observationRef": "native-hook:7",
+        "mode": "explore",
+        "id": "d1b87abd841969ec5c54c0b890248e29b1656013ecb2e20443e4b3fd88a1a67d",
+        "requestHash": "81d8408f0257fc1a7149995c9c6873638b12de989955b7edf6be4a359b2efc01",
+        "algorithm": "tabular-mean@1",
+        "controllerId": "2715e600f5d608bb4114779268ad20a6bed3b90e269cd6444e89513e492d5d37",
+        "specification": {
+          "domain": "coding/native-recovery/claude",
+          "objective": "same-check-last-result-passes-at-turn-stop@1",
+          "evaluator": "claude-foreground-check@1",
+          "stateSchema": "verifier-class-and-model@1",
+          "actions": [
+            "no-guidance",
+            "recovery-reminder"
+          ],
+          "baselineAction": "no-guidance"
+        },
+        "revision": 0,
+        "action": "recovery-reminder",
+        "propensity": 0.5,
+        "estimates": [
+          {
+            "action": "no-guidance",
+            "count": 0,
+            "mean": null
+          },
+          {
+            "action": "recovery-reminder",
+            "count": 0,
+            "mean": null
+          }
+        ],
+        "createdAt": "2026-09-09T10:56:15.745Z"
+      },
+      "observation": {
+        "runtime": "claude",
+        "sessionId": "99778534-bb06-4328-8fbf-9149b6652935",
+        "cwd": "/private/tmp/lyo-runtime-identity-rollout-20260909/work/claude",
+        "workdir": "/private/tmp/lyo-runtime-identity-rollout-20260909/work/claude",
+        "name": "PostToolUseFailure",
+        "toolUseId": "toolu_01RXxKcY79yB9g2sp1ezVx1w",
+        "command": "rtk npm test --silent",
+        "classification": "test",
+        "id": "ecc97ee53edc352f7ad66d709c4579ed4c17659a88dd8623bbdee278b4a256fd",
+        "commandKey": "8c1dc6a1f943033bdeea7c6968bdd2935c8e13f9c1e28461db8be083934b1dfd",
+        "measurement": {
+          "status": "failed",
+          "basis": "claude-bash-failure-envelope"
+        },
+        "resultHash": {
+          "sha256": "e52cdd0ee97361e209ede988beb69a8b3a55e3b32a91d2bb49a9ee699abf5cc4",
+          "outputSize": 24,
+          "truncated": false
+        },
+        "createdAt": "2026-09-09T10:56:15.744Z"
+      },
+      "feedback": [
+        {
+          "decisionId": "d1b87abd841969ec5c54c0b890248e29b1656013ecb2e20443e4b3fd88a1a67d",
+          "executedAction": "recovery-reminder",
+          "evaluator": "claude-foreground-check@1",
+          "reward": 1,
+          "evidenceRef": "native-hook:10",
+          "evidence": {
+            "runtime": "claude",
+            "sessionId": "99778534-bb06-4328-8fbf-9149b6652935",
+            "cwd": "/private/tmp/lyo-runtime-identity-rollout-20260909/work/claude",
+            "name": "Stop",
+            "reason": "turn stopped",
+            "reward": 1,
+            "resultRef": "native-hook:9",
+            "pendingChecks": {},
+            "createdAt": "2026-09-09T10:56:29.110Z",
+            "result": {
+              "runtime": "claude",
+              "sessionId": "99778534-bb06-4328-8fbf-9149b6652935",
+              "cwd": "/private/tmp/lyo-runtime-identity-rollout-20260909/work/claude",
+              "workdir": "/private/tmp/lyo-runtime-identity-rollout-20260909/work/claude",
+              "name": "PostToolUse",
+              "toolUseId": "toolu_01SN9Tez4AwVFb6m9iszibCN",
+              "command": "rtk npm test --silent",
+              "classification": "test",
+              "id": "f89d79f08c72a52373d40413e68ef89ae8ca9edd2390af70c61224c56ee7603d",
+              "commandKey": "8c1dc6a1f943033bdeea7c6968bdd2935c8e13f9c1e28461db8be083934b1dfd",
+              "measurement": {
+                "status": "passed",
+                "basis": "claude-bash-foreground-success"
+              },
+              "resultHash": {
+                "sha256": "0771c91589e8678e4e35f3e5f5bdfdce4bda83ed6036c5deeef3d85780ddf590",
+                "outputSize": 12,
+                "truncated": false
+              },
+              "createdAt": "2026-09-09T10:56:24.606Z"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "decision": {
+        "episodeId": "native:codex:63945b5388a4d03bb1726257b4000ffff70eb734746291f82121529f2b7d5b7c",
+        "state": {
+          "verifier": "test",
+          "model": "gpt-6-astra"
+        },
+        "observationRef": "native-hook:2",
+        "mode": "explore",
+        "id": "f83ba4606cbdead64438897064371252f9f5715ae914b1b27b01447070cbae38",
+        "requestHash": "a495d28eca74c32be2c56aabfc6f6a851ff607af821015395a1e663c484bc99d",
+        "algorithm": "tabular-mean@1",
+        "controllerId": "d05827b36c6c803cb5f613e7593656b8ce8cf981fa8e4248f3f7cc1c72473c4e",
+        "specification": {
+          "domain": "coding/native-recovery/codex",
+          "objective": "same-check-last-result-passes-at-turn-stop@1",
+          "evaluator": "codex-foreground-check@1",
+          "stateSchema": "verifier-class-and-model@1",
+          "actions": [
+            "no-guidance",
+            "recovery-reminder"
+          ],
+          "baselineAction": "no-guidance"
+        },
+        "revision": 0,
+        "action": "no-guidance",
+        "propensity": 0.5,
+        "estimates": [
+          {
+            "action": "no-guidance",
+            "count": 0,
+            "mean": null
+          },
+          {
+            "action": "recovery-reminder",
+            "count": 0,
+            "mean": null
+          }
+        ],
+        "createdAt": "2026-09-09T10:55:05.193Z"
+      },
+      "observation": {
+        "runtime": "codex",
+        "sessionId": "01a085ce-75c9-77b0-af70-ce0c92e8e505",
+        "cwd": "/private/tmp/lyo-runtime-identity-rollout-20260909/work/codex",
+        "workdir": "/private/tmp/lyo-runtime-identity-rollout-20260909/work/codex",
+        "name": "PostToolUse",
+        "toolUseId": "exec-db08ef2e-82cc-4bcd-b2e1-d80f051553c6",
+        "command": "rtk npm test --silent",
+        "classification": "test",
+        "id": "63945b5388a4d03bb1726257b4000ffff70eb734746291f82121529f2b7d5b7c",
+        "commandKey": "bb1f4cd9e8768c5bdbf733196662dd6acfca16692713a19f9512430222df107c",
+        "measurement": {
+          "status": "failed",
+          "basis": "command-receipt",
+          "exitCode": 1,
+          "cwd": "/private/tmp/lyo-runtime-identity-rollout-20260909/work/codex"
+        },
+        "resultHash": {
+          "sha256": "4427a4a41243ed47a7d122171c9cbf7aa0e4ed94ee79db726260497253fe8636",
+          "outputSize": 13,
+          "truncated": false
+        },
+        "createdAt": "2026-09-09T10:55:05.192Z"
+      },
+      "feedback": [
+        {
+          "decisionId": "f83ba4606cbdead64438897064371252f9f5715ae914b1b27b01447070cbae38",
+          "executedAction": "no-guidance",
+          "evaluator": "codex-foreground-check@1",
+          "reward": 1,
+          "evidenceRef": "native-hook:5",
+          "evidence": {
+            "runtime": "codex",
+            "sessionId": "01a085ce-75c9-77b0-af70-ce0c92e8e505",
+            "cwd": "/private/tmp/lyo-runtime-identity-rollout-20260909/work/codex",
+            "name": "Stop",
+            "reason": "turn stopped",
+            "reward": 1,
+            "resultRef": "native-hook:4",
+            "pendingChecks": {},
+            "createdAt": "2026-09-09T10:55:17.895Z",
+            "result": {
+              "runtime": "codex",
+              "sessionId": "01a085ce-75c9-77b0-af70-ce0c92e8e505",
+              "cwd": "/private/tmp/lyo-runtime-identity-rollout-20260909/work/codex",
+              "workdir": "/private/tmp/lyo-runtime-identity-rollout-20260909/work/codex",
+              "name": "PostToolUse",
+              "toolUseId": "exec-50ae467c-ea80-4906-8aec-305cf54b825c",
+              "command": "rtk npm test --silent",
+              "classification": "test",
+              "id": "6d8a2a4673f08637035662d1e67bde27c2a19540090020474e28c9fcdfc2c19f",
+              "commandKey": "bb1f4cd9e8768c5bdbf733196662dd6acfca16692713a19f9512430222df107c",
+              "measurement": {
+                "status": "passed",
+                "basis": "command-receipt",
+                "exitCode": 0,
+                "cwd": "/private/tmp/lyo-runtime-identity-rollout-20260909/work/codex"
+              },
+              "resultHash": {
+                "sha256": "4427a4a41243ed47a7d122171c9cbf7aa0e4ed94ee79db726260497253fe8636",
+                "outputSize": 13,
+                "truncated": false
+              },
+              "createdAt": "2026-09-09T10:55:14.957Z"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

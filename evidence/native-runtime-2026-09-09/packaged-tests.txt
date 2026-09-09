@@ -1,0 +1,24 @@
+Lyo adaptive feedback: Measurement directory points outside the workspace
+✔ Codex hooks deliver a recovery decision and attach the later measurement in the central ledger (9674.970792ms)
+✔ Kimi remains captured without entering the native Claude experiment (3499.636541ms)
+✔ Claude native Bash failure and foreground completion close the same loop without inventing exit codes (5607.771875ms)
+✔ a measured outcome exposes its observation, turn boundary, and actual measurement basis (3416.769541ms)
+✔ an unfinished retry remains unknown at Stop and does not train a failure (2270.366917ms)
+✔ a completed retry cannot hide another retry that is still running at Stop (3531.5285ms)
+✔ repeating a prompt callback with the same turn ID preserves the recovery episode (2487.726709ms)
+✔ a late result from an earlier turn cannot interrupt or start a current recovery episode (5039.467333ms)
+✔ a check in another working directory cannot erase recovery or leave this episode pending (2613.370208ms)
+✔ Codex stdout-only hooks learn from the real command receipt while preserving output and exit status (3621.581166ms)
+✔ the Codex measurement wrapper preserves the actual tool working directory (3663.037084ms)
+✔ duplicate callbacks count once and a check begun before the intervention cannot earn recovery credit (2538.045291ms)
+✔ later repositories see prior measured evidence while an interrupted turn stays unknown (2365.464916ms)
+✔ background results, output text, and unsupported compound commands are not treated as verified recovery (1426.304125ms)
+✔ the measurement adapter refuses a workspace state symlink before creating receipt directories outside it (128.653417ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 51961.071708

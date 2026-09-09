@@ -50,6 +50,24 @@ function hookJobId(sessionId, turnId) {
   return `codex-job-${createHash('sha256').update(`${sessionId}:${turnId ?? 'session'}`).digest('hex').slice(0, 16)}`;
 }
 
+test('Kimi output without a status stays unknown even in previously Claude-labelled telemetry', () => {
+  for (const runtime of ['claude', 'kimi']) {
+    const facts = extractHookFacts({
+      eventId: 'kimi-result', sessionId: 'kimi-session', turnId: null,
+      cwd: '/tmp/test', eventName: 'tool.after',
+      payloadJson: JSON.stringify({
+        client_type: 'kimi_code_cli', hook_event_name: 'PostToolUse',
+        tool_call_id: 'call-1', tool_name: 'Bash', tool_input: { command: 'rtk npm test' },
+        tool_output: { recorded: false, output_size: 10 }, _lyo: { runtime },
+      }),
+    });
+    assert.equal(facts.runtime, 'kimi');
+    assert.match(facts.jobId, /^kimi-job-/);
+    assert.equal(facts.commands[0].classification, 'test');
+    assert.equal(facts.commands[0].status, 'unknown');
+  }
+});
+
 test('hook normalizer passively records raw command, path, and zone activations', () => {
   const t = tempDb();
   try {

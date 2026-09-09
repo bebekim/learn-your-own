@@ -5,7 +5,7 @@ import type {
   RecordSessionStartedInput,
 } from '../types/observation.ts';
 
-export type HookRuntime = 'codex' | 'gemini' | 'claude' | 'eca' | 'bob' | 'unknown';
+export type HookRuntime = 'codex' | 'gemini' | 'claude' | 'eca' | 'bob' | 'kimi' | 'unknown';
 
 export type CanonicalHookEventName =
   | 'session.start'

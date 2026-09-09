@@ -1,0 +1,35 @@
+{
+  "evidenceKind": "read-only-production-diagnosis",
+  "date": "2026-09-09",
+  "corpusPath": "/Users/marcus.kim/.lyo/corpus.sqlite",
+  "configuredRoot": "/Users/marcus.kim/repositories/work",
+  "installedVersionBefore": "0.4.2-adaptive.0",
+  "snapshot": {
+    "corpusEvents": 147831,
+    "sourceLedgers": 94,
+    "nativeControlSessions": 2,
+    "nativeControlEvents": 0,
+    "controlDecisions": 0,
+    "controlFeedback": 0
+  },
+  "recentWorkEvents": {
+    "selection": "lyo_version = 0.4.2-adaptive.0, cwd below configuredRoot",
+    "count": 89,
+    "clientType": "kimi_code_cli",
+    "recordedRuntime": "claude",
+    "promptSubmits": 9,
+    "toolBefore": 39,
+    "toolAfter": 35,
+    "toolFailure": 4,
+    "turnStop": 2,
+    "eligibleTestBuildLintCommands": 0,
+    "hostToolIdField": "tool_call_id",
+    "hostOutputField": "tool_output"
+  },
+  "conclusion": "Observed activity came from a different host contract and contained no eligible native checks. No evidence of native Codex or Claude intervention outcomes was present in this database.",
+  "limits": [
+    "Historical collected events and derived records were not rewritten.",
+    "A configured hook and accumulated telemetry do not establish useful learning.",
+    "The diagnosis does not invalidate the separately retained calibration and host canary evidence."
+  ]
+}

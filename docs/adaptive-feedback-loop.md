@@ -1,6 +1,11 @@
 # Adaptive feedback loop: first implemented increment
 
 Status: experimental; implemented on `main` in `v0.4.2`, 2026-09-09.
+
+Local `0.4.3-adaptive.0` also distinguishes Kimi Code CLI events received through
+`claude-hook`. Kimi telemetry retains its host identity and does not enter the
+native Claude experiment. A populated telemetry corpus is not evidence that
+eligible Codex or Claude checks have reached the adaptive controller.
 See the [development status](development-status.md) for the broader roadmap,
 evidence limits, and rollout state.
 

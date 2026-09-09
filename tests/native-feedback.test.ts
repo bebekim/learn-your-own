@@ -51,6 +51,17 @@ test('Codex hooks deliver a recovery decision and attach the later measurement i
   } finally { f.close(); }
 });
 
+test('Kimi remains captured without entering the native Claude experiment', () => {
+  const f = fixture();
+  try {
+    f.hook('claude', { client_type: 'kimi_code_cli', hook_event_name: 'UserPromptSubmit', prompt: 'Fix the test' });
+    const captured = f.run(['report', '--db', join(f.cwd, '.agent-learning', 'learning.sqlite')]);
+    assert.equal(captured.hookEvents, 1);
+    const { sessions, decisions } = f.status();
+    assert.deepEqual({ sessions, decisions }, { sessions: 0, decisions: 0 });
+  } finally { f.close(); }
+});
+
 test('Claude native Bash failure and foreground completion close the same loop without inventing exit codes', () => {
   const f = fixture();
   try {

@@ -1,5 +1,5 @@
 import { getLyoVersion } from '../version.ts';
-import type { CanonicalHookEventName, HookObservation } from '../hooks/events.ts';
+import type { CanonicalHookEventName, HookObservation, HookRuntime } from '../hooks/events.ts';
 import {
   createHookEventId,
   fingerprintHookValue,
@@ -24,6 +24,7 @@ import type {
 
 export interface ClaudeHookInput {
   platform?: 'eca' | 'bob';
+  client_type?: string;
   session_id?: string;
   transcript_path?: string | null;
   cwd?: string;
@@ -57,7 +58,8 @@ export function claudeHookObservation(
   event: ClaudeHookInput,
   options: { promptDir?: string; includeRawPrompt: boolean }
 ): HookObservation {
-  const runtime = event.platform === 'eca' || event.platform === 'bob' ? event.platform : 'claude';
+  const runtime = event.platform === 'eca' || event.platform === 'bob' ? event.platform
+    : event.client_type === 'kimi_code_cli' ? 'kimi' : 'claude';
   const runtimeEventName = event.hook_event_name ?? 'Unknown';
   const canonicalEventName = canonicalClaudeEventName(runtimeEventName);
   const sessionId = event.session_id ?? 'unknown-session';
@@ -71,6 +73,7 @@ export function claudeHookObservation(
     model: event.model ?? null,
     lyoVersion: getLyoVersion(),
     payload: redactClaudeHookEvent(event, {
+      runtime,
       runtimeEventName,
       canonicalEventName,
     }),
@@ -152,12 +155,12 @@ function canonicalClaudeEventName(eventName: string): CanonicalHookEventName {
 
 function redactClaudeHookEvent(
   event: ClaudeHookInput,
-  names: { runtimeEventName: string; canonicalEventName: CanonicalHookEventName }
+  names: { runtime: HookRuntime; runtimeEventName: string; canonicalEventName: CanonicalHookEventName }
 ): Record<string, unknown> {
   const redacted: Record<string, unknown> = {
     ...event,
     _lyo: {
-      runtime: event.platform === 'eca' || event.platform === 'bob' ? event.platform : 'claude',
+      runtime: names.runtime,
       lyo_version: getLyoVersion(),
       runtime_event_name: names.runtimeEventName,
       canonical_event_name: names.canonicalEventName,

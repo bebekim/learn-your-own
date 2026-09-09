@@ -1,0 +1,10 @@
+{
+  "checkedAt": "2026-09-09T10:58:05.900Z",
+  "evidenceKind": "read-only-production-snapshot",
+  "counts": {
+    "control_decisions": 0,
+    "control_feedback": 0,
+    "native_control_events": 0,
+    "native_control_sessions": 2
+  }
+}
