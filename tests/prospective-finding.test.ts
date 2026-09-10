@@ -10,6 +10,7 @@ import { captureFindingAction } from '../src/lyo/selection/session-finding-captu
 import { codexHookObservation } from '../src/adapters/codex.ts';
 import { spoolCodexHookEvent } from '../src/hooks/runtime.ts';
 import * as decisions from '../src/lyo/selection/finding-opportunities.ts';
+import { closeFindingTrialWindow } from '../src/lyo/selection/finding-trial-policy.ts';
 import { pendingFindingReviews } from '../src/lyo/selection/session-finding-workflow.ts';
 
 function prospectiveFixture() {
@@ -120,6 +121,14 @@ test('late assignments and deliveries are rejected, and withdrawn measurements l
     withdrawFindingEvidence(f.store, { evidenceRef: measured.id, author: 'reviewer', rationale: 'The evaluator missed a required case.' });
     assert.equal(resolveFindingEvidence(f.store.db, measured.id).observedOutcome, 'unknown');
     assert.equal(inspectFinding(f.store, f.findingId).deliveries.length, 0);
+  } finally { f.close(); }
+});
+
+test('an ended opportunity cannot be randomized after its empty outcome window closed', () => {
+  const f = prospectiveFixture();
+  try {
+    closeFindingTrialWindow(f.store, f.input.id, 'Stop');
+    assert.throws(() => decisions.assignFindingOpportunity(f.store, f.input.id), /closed/);
   } finally { f.close(); }
 });
 

@@ -22,7 +22,7 @@ import { resolvePolicy } from './selection-policies.ts';
 import { LessonStore } from '../storage/lesson-store.ts';
 import { sessionVerifier } from '../bridge/session-bridge.ts';
 import { parsePriorJson, priorCalibration, priorPseudoCounts } from './semantic-prior.ts';
-import { selectSessionFindings } from './session-findings.ts';
+import { selectSessionFindings, trialManagedFindings } from './session-findings.ts';
 import type { SessionFinding } from './session-findings.ts';
 import { emitFindingReviewQueue } from './session-finding-workflow.ts';
 
@@ -30,7 +30,7 @@ const LIMIT = 5;
 const MAX_TEXT = 220;
 const STDIN_GUARD_MS = 2500;
 
-function repositoryKey(cwd?: string | null): string | null {
+export function repositoryKey(cwd?: string | null): string | null {
   if (!cwd) return null;
   try {
     return fs.realpathSync(execFileSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'],
@@ -110,8 +110,9 @@ function selectSessionLessons(payload: SessionHookPayload): { selected: LessonRo
       )
       .all() as unknown as LessonRow[];
     const findings = selectSessionFindings(db, { ...payload, repository: () => repositoryKey(payload.cwd) });
+    const managedAdvice = new Set(trialManagedFindings(db).values());
     const scoped = rows.filter(row => {
-      if (!row.intervention.trim()) return false;
+      if (!row.intervention.trim() || managedAdvice.has(row.intervention.trim())) return false;
       const verifier = sessionVerifier(row.explanation);
       return !verifier || verifier.repoPath === payload.cwd;
     });

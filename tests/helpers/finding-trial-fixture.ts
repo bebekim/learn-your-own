@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fixture } from './session-finding-fixture.ts';
 import { inspectFinding } from '../../src/lyo/selection/session-findings.ts';
+import { spoolClaudeHookEvent, spoolCodexHookEvent } from '../../src/hooks/runtime.ts';
 
 export function trialFixture() {
   const f = fixture();
@@ -22,6 +23,13 @@ export function trialFixture() {
     return { cwd, source };
   };
   const target = workspace('first-task');
+  const complete = (runtime: 'codex' | 'claude', event: Parameters<typeof spoolCodexHookEvent>[0] & { cwd: string },
+    state: { applicable: boolean; followed: boolean; predicted: boolean }) => {
+    const hook = runtime === 'codex' ? spoolCodexHookEvent : spoolClaudeHookEvent;
+    hook({ ...event, hook_event_name: 'PreToolUse' }, { spoolDir: join(f.root, 'spool') });
+    writeFileSync(join(event.cwd, 'state.json'), JSON.stringify(state));
+    hook({ ...event, hook_event_name: 'PostToolUse' }, { spoolDir: join(f.root, 'spool') });
+  };
   const event = { cwd: target.cwd, session_id: 'ordinary-session', model: 'test-model', hook_event_name: 'PostToolUse',
     tool_use_id: 'diagnostic-1', tool_name: 'Bash', tool_input: { command: 'diagnose' }, tool_response: { exit_code: 1 } };
   const config = join(f.root, 'config.json');
@@ -29,5 +37,5 @@ export function trialFixture() {
   const cli = (args: string[], event: unknown = {}) => JSON.parse(execFileSync(process.execPath,
     [new URL('../../src/cli.ts', import.meta.url).pathname, ...args], {
       cwd: target.cwd, env: { ...process.env, LYO_CONFIG_FILE: config }, input: JSON.stringify(event), encoding: 'utf8' }));
-  return { ...f, trial, event, workspace, target, cli };
+  return { ...f, trial, event, workspace, target, cli, complete };
 }

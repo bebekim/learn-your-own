@@ -5,6 +5,11 @@ Lyo means **Learn Your Own**.
 See the [development status](docs/development-status.md) for implemented
 capabilities, retained evidence, remaining development, and release status.
 
+The unreleased [prospective finding trials](docs/prospective-finding-trials.md)
+connect reviewed Codex/Claude triggers to automatic enrollment, measured outcomes,
+scoped promotion, and later delivery pauses. Synthetic tests cover this loop;
+real-task benefit remains unproven and rollout is pending.
+
 Lyo records agent work and delivers scoped lessons to later attempts. It has a
 local ledger, telemetry compiler, pipeline lesson delivery, and an experimental
 session bridge. Registered comparisons check whether delivered guidance helps. The retained coding
@@ -91,7 +96,7 @@ lyo --help
 
 Requires Node.js 24+ for `node:sqlite`.
 
-Current development package: `0.4.3-adaptive.1` (local rollout; registry publication is separate).
+Current package version: `0.4.3-adaptive.6` (local rollout; registry publication is separate). The prospective trial changes above are unreleased.
 
 ## Experimental adaptive controller (2026-09-09)
 

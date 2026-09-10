@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Register reviewed reusable finding trials and enroll eligible ordinary Codex/Claude sessions before their next action.
+- Retain randomized advice/no-advice outcomes independently of adherence, with closed unknown outcomes and control-exposure guards.
+- Use fixed prospective comparisons to change scoped delivery, monitor promoted applications, and revoke decisions after corrected evidence.
+- Preserve trial, trigger, finding-version, measurement, and policy provenance; replacement scopes start with fresh evidence.
+- Implementation checks are synthetic; no production trial or demonstrated real-task benefit is claimed.
+
 ## 0.4.3-adaptive.6 (local feedback-loop rollout)
 
 - Reject new finding applications from suspended or superseded deliveries.

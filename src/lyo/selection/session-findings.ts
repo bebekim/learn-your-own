@@ -124,7 +124,10 @@ export function inspectFinding(store: LessonStore, id: string) {
 }
 
 export function trialManagedFindings(db: DatabaseSync) {
-  return new Set(records(db, 'session-finding-trial@1').map(row => (row.value as { content?: { input?: { findingId?: string } } }).content?.input?.findingId));
+  return new Map(records(db, 'session-finding-trial@1').map(row => {
+    const input = (row.value as { content?: { input?: { findingId?: string; measurement?: { claim?: { action?: string } } } } }).content?.input;
+    return [input?.findingId, input?.measurement?.claim?.action?.trim()] as const;
+  }));
 }
 
 export function selectSessionFindings(db: DatabaseSync, input: { repository: () => string | null; cwd?: string | null; prompt?: string | null }): SessionFinding[] {

@@ -18,7 +18,7 @@ export const inputSchema = z.object({
   capture: captureSchema.optional(),
   id: text, findingId: text, deliveryId: text.optional(), taskId: text, cwd: text,
   prospective: z.object({ sessionId: text, trialId: text, model: text, findingVersion: hash, context: contextSchema,
-    automatic: z.object({ trialHash: hash, trigger: z.object({ eventName: text, toolUseId: text, inputHash: hash, responseHash: hash }).strict() }).strict().optional(),
+    automatic: z.object({ trialHash: hash, unit: text, modelRef: text, trigger: z.object({ eventName: text, toolUseId: text, inputHash: hash, responseHash: hash }).strict() }).strict().optional(),
   }).strict().optional(),
   claim: z.object({ kind: z.enum(['deterministic', 'improvement', 'unspecified']).default('unspecified'),
     conditions: text, action: text, prediction: text, falsifiedBy: text }).strict(),
@@ -71,7 +71,8 @@ export function findingOpportunity(db: DatabaseSync, id: string) {
 
 const assignmentSchema = z.object({ source: z.literal('session-finding-assignment@1'),
   opportunityId: z.string(), opportunityHash: z.string(), action: z.enum(['advice', 'no-advice']),
-  probability: z.literal(0.5), hash: z.string() }).strict();
+  probability: z.union([z.literal(0.5), z.literal(1)]), policyRef: z.string().optional(), hash: z.string() }).strict()
+  .refine(value => value.probability === 0.5 || Boolean(value.policyRef), 'deterministic allocation requires a retained policy');
 
 export function findingAssignment(db: DatabaseSync, id: string) {
   const row = db.prepare('SELECT rowid, payload_json FROM learning_trace WHERE trace_id = ?').get(`finding-assignment:${id}`);

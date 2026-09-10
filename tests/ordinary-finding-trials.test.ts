@@ -23,9 +23,7 @@ test('a reviewed trigger automatically registers an ordinary session before its 
       hook(event, { spoolDir: join(f.root, 'spool') });
       assert.equal(f.store.getTrace(`finding-evidence:${entry.id}`), null, 'a duplicate diagnostic is not the later action');
       const action = { ...event, tool_use_id: 'repair-1', tool_input: { command: 'an action decided after receiving the hook context' } };
-      hook({ ...action, hook_event_name: 'PreToolUse' }, { spoolDir: join(f.root, 'spool') });
-      writeFileSync(f.target.source, JSON.stringify({ applicable: true, followed: advice, predicted: true }));
-      hook({ ...action, hook_event_name: 'PostToolUse', tool_response: { exit_code: 0 } }, { spoolDir: join(f.root, 'spool') });
+      f.complete(runtime, action, { applicable: true, followed: advice, predicted: true });
       const completed = inspectFinding(f.store, f.findingId).opportunities.find(row => row.id === entry.id)!;
       assert.equal(completed.evidence?.observedOutcome, 'pass');
       assert.equal(completed.evidence?.assignment?.action, advice ? 'advice' : 'no-advice');
@@ -43,7 +41,8 @@ test('configured CLI hooks recognize the trial and isolate it from the native re
       writeFileSync(definition, JSON.stringify(f.trial));
       f.cli(['finding', 'trial-register', '--input', definition, '--store', f.storePath]);
       assert.equal(f.cli(['finding', 'trials', '--store', f.storePath]).trials.length, 1);
-      const output = f.cli([`${runtime}-hook`, '--db-from-event-cwd', '--spool-dir-from-event-cwd'], f.event);
+      f.cli([`${runtime}-hook`, '--db-from-event-cwd', '--spool-dir-from-event-cwd'], { ...f.event, hook_event_name: 'SessionStart' });
+      const output = f.cli([`${runtime}-hook`, '--db-from-event-cwd', '--spool-dir-from-event-cwd'], { ...f.event, model: undefined });
       const entry = inspectFinding(f.store, f.findingId).opportunities.find(row => row.registered?.sessionId === f.event.session_id);
       assert.ok(entry, 'the configured CLI path must register the trial');
       assert.doesNotMatch(JSON.stringify(output), /LYO recovery experiment/);
@@ -77,7 +76,34 @@ test('ordinary banners cannot expose trial-managed advice before assignment', ()
   const f = trialFixture();
   try {
     trials.registerFindingTrial(f.store, f.trial);
+    f.store.createLesson({ failure_class: 'output_generation', trigger_cue: 'duplicate advice', intervention: f.trial.measurement.claim.action });
     measureFindingOpportunity(f.store, 'application-1');
     assert.doesNotMatch(f.deliver(f.target.cwd, 'fresh-session').output, /Check the target whitespace contract|Pending finding review/);
+  } finally { f.close(); }
+});
+
+test('one ordinary trial owns the session even when an earlier definition matches a later event', () => {
+  const f = trialFixture();
+  try {
+    trials.registerFindingTrial(f.store, { ...f.trial, trigger: { ...f.trial.trigger, toolInput: { command: 'other-diagnostic' } } });
+    const payload = JSON.parse(f.store.getTrace(f.findingId)!.payload_json!);
+    f.store.recordTrace({ trace_id: 'finding:second', kind: 'behavior', summary: 'Second synthetic finding', payload });
+    trials.registerFindingTrial(f.store, { ...f.trial, id: 'second-trial', findingId: 'finding:second',
+      findingVersion: inspectFinding(f.store, 'finding:second').version });
+    trials.ordinaryFindingTrialFeedback('codex', f.event, f.storePath, () => 0.9);
+    trials.ordinaryFindingTrialFeedback('codex', { ...f.event, tool_input: { command: 'other-diagnostic' } }, f.storePath, () => 0.1);
+    assert.equal(f.store.db.prepare("SELECT count(*) AS n FROM learning_trace WHERE run_id = ? AND json_extract(payload_json, '$.source') = 'session-finding-assignment@1'").get(f.event.session_id)!.n, 1);
+  } finally { f.close(); }
+});
+
+test('a model change at the measured action cannot supply an outcome for the original model', () => {
+  const f = trialFixture();
+  try {
+    trials.registerFindingTrial(f.store, f.trial);
+    trials.ordinaryFindingTrialFeedback('codex', f.event, f.storePath, () => 0.9);
+    f.complete('codex', { ...f.event, model: 'changed-model', tool_use_id: 'different-model-action' },
+      { applicable: true, followed: false, predicted: true });
+    const entry = inspectFinding(f.store, f.findingId).opportunities.find(row => row.registered?.sessionId === f.event.session_id)!;
+    assert.equal(entry.evidence?.observedOutcome, 'unknown');
   } finally { f.close(); }
 });

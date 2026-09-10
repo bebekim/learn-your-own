@@ -12,12 +12,26 @@ export const captureSchema = z.object({ runtime: z.enum(['codex', 'claude']), to
   toolInput: z.union([z.record(z.string(), z.unknown()), z.string()]).optional(), next: z.literal(true).optional() }).strict()
   .refine(value => (value.toolInput !== undefined) !== Boolean(value.next), 'declare an exact input or the next matching tool action');
 const filesSchema = z.array(z.object({ path: text, content: z.string().nullable() }).strict());
+const modelSchema = z.object({ source: z.literal('session-finding-model@1'), runtime: text, sessionId: text,
+  model: text, eventName: text, hash: text }).strict();
+
+export function findingSessionModel(db: DatabaseSync, runtime: string, sessionId: string) {
+  const row = db.prepare(`SELECT trace_id, payload_json FROM learning_trace WHERE run_id = ? AND kind = 'behavior'
+    AND CASE WHEN json_valid(payload_json) THEN json_extract(payload_json, '$.source') END = 'session-finding-model@1'
+    AND json_extract(payload_json, '$.runtime') = ? ORDER BY rowid DESC LIMIT 1`).get(sessionId, runtime);
+  if (!row) return null;
+  const receipt = modelSchema.parse(JSON.parse(String(row.payload_json))), { hash, ...content } = receipt;
+  if (hash !== hashValue(content) || content.sessionId !== sessionId) throw new Error('invalid session model observation');
+  return { id: String(row.trace_id), ...receipt };
+}
 const boundarySchema = z.object({ source: z.literal('session-finding-action@1'), opportunityId: text, opportunityHash: text,
   eventId: text, runtime: text, sessionId: text, cwd: text, toolUseId: text, toolName: text, toolInputHash: text,
   eventName: text, sourceFiles: filesSchema, verifierFiles: filesSchema, responseHash: text.nullable(), hash: text,
+  model: text.nullable().optional(),
   findingState: z.object({ version: text, validity: z.enum(['unvalidated', 'supported', 'needs-revision', 'needs-reassessment']) }).strict().optional() }).strict();
 type Registered = { content: { sessionId: string; version: string;
-  input: { id: string; findingId: string; cwd: string; sourceFiles: string[]; verifierFiles: string[]; capture?: z.infer<typeof captureSchema> };
+  input: { id: string; findingId: string; cwd: string; sourceFiles: string[]; verifierFiles: string[]; capture?: z.infer<typeof captureSchema>;
+    prospective?: { model: string; automatic?: unknown } };
   sourceBefore: z.infer<typeof filesSchema>; verifierFiles: z.infer<typeof filesSchema> };
   payload: { hash: string } };
 
@@ -33,6 +47,7 @@ function boundary(db: DatabaseSync, id: string, phase: 'before' | 'after') {
 
 export function captureFindingAction(store: LessonStore, registered: Registered, event: HookObservation) {
   const { input, sessionId } = registered.content, capture = input.capture;
+  if (store.getTrace(`finding-window:${input.id}`)) return;
   const payload = event.hookEvent.payload as Record<string, unknown>;
   if (!capture || event.runtime !== capture.runtime || event.sessionId !== sessionId || realpathSync(event.cwd) !== input.cwd
     || payload.tool_name !== capture.toolName || (capture.toolInput !== undefined && hashValue(payload.tool_input) !== hashValue(capture.toolInput))
@@ -47,6 +62,8 @@ export function captureFindingAction(store: LessonStore, registered: Registered,
   const content = { source: 'session-finding-action@1', opportunityId: input.id, opportunityHash: registered.payload.hash,
     eventId: event.hookEvent.eventId!, runtime: event.runtime, sessionId, cwd: input.cwd,
     toolUseId: payload.tool_use_id, toolName: capture.toolName, toolInputHash: hashValue(payload.tool_input),
+    ...(input.prospective?.automatic ? { model: typeof payload.model === 'string' ? payload.model
+      : findingSessionModel(store.db, event.runtime, sessionId)?.model ?? null } : {}),
     eventName: event.runtimeEventName, sourceFiles: findingFiles(input.sourceFiles), verifierFiles: findingFiles(input.verifierFiles),
     ...(current ? { findingState: { version: current.version, validity: current.validity } } : {}),
     responseHash: phase === 'after' ? hashValue(payload.tool_response ?? payload.error ?? null) : null };
@@ -68,6 +85,7 @@ export function findingActionEvidence(db: DatabaseSync, registered: Registered) 
       || receipt.toolName !== input.capture.toolName || (input.capture.toolInput !== undefined && receipt.toolInputHash !== hashValue(input.capture.toolInput)))
       problems.push('action belongs to another opportunity');
     if (hashValue(receipt.verifierFiles) !== hashValue(registered.content.verifierFiles)) problems.push('verifier changed at action boundary');
+    if (input.prospective?.automatic && receipt.model !== input.prospective.model) problems.push('model changed or became unknown at action boundary');
   }
   if (before && hashValue(before.sourceFiles) !== hashValue(registered.content.sourceBefore)) problems.push('source changed before the declared action');
   if (before?.findingState) {

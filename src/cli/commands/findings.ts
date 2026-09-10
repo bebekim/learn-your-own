@@ -8,6 +8,7 @@ import { reviewFindingSemantics } from '../../lyo/selection/session-finding-sema
 import { pendingFindingReviews } from '../../lyo/selection/session-finding-workflow.ts';
 import { assignFindingOpportunity } from '../../lyo/selection/finding-opportunities.ts';
 import { findingTrials, registerFindingTrial } from '../../lyo/selection/finding-trials.ts';
+import { reconcileFindingTrial } from '../../lyo/selection/finding-trial-policy.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
 
 export const FINDING_COMMANDS: Record<string, CommandHandler> = {
@@ -22,6 +23,7 @@ export const FINDING_COMMANDS: Record<string, CommandHandler> = {
   'finding assign': findingCommand,
   'finding trial-register': findingCommand,
   'finding trials': findingCommand,
+  'finding trial-report': findingCommand,
 };
 
 function findingCommand(args: CommandArgs) {
@@ -31,6 +33,11 @@ function findingCommand(args: CommandArgs) {
   const store = new LessonStore(storePath);
   try {
     if (args.subcommand === 'trials') return { ok: true, trials: findingTrials(store.db) };
+    if (args.subcommand === 'trial-report') {
+      const trial = findingTrials(store.db).find(trial => trial.id === args.requiredFlag('--trial-id'));
+      if (!trial) throw new Error('unknown finding trial');
+      return { ok: true, policy: reconcileFindingTrial(store, trial) };
+    }
     if (args.subcommand === 'pending') return { ok: true, pending: pendingFindingReviews(store, args.hasFlag('--all') ? undefined : args.cwd) };
     if (args.subcommand === 'inspect') return { ok: true, finding: inspectFinding(store, args.requiredFlag('--finding-id')) };
     if (args.subcommand === 'measure') return { ok: true, evidence: measureFindingOpportunity(store, args.requiredFlag('--opportunity-id')) };
