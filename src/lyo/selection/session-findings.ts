@@ -37,7 +37,7 @@ function checkedFeedback(db: DatabaseSync, row: Feedback): boolean {
   try {
     const evidence = resolveFindingEvidence(db, row.evidenceRef);
     return !evidence.withdrawn && row.evidenceHash === evidence.hash && row.opportunityId === evidence.opportunityId && row.observationId === evidence.observationId
-      && row.findingId === evidence.opportunity.input.findingId && row.deliveryId === evidence.opportunity.input.deliveryId
+      && row.findingId === evidence.opportunity.input.findingId && row.deliveryId === evidence.deliveryId
       && row.version === evidence.opportunity.version && hashValue(row.context) === hashValue(evidence.opportunity.context)
       && row.applicability === evidence.applicability && row.adherence === evidence.adherence && row.outcome === evidence.outcome;
   } catch { return false; }
@@ -97,9 +97,9 @@ export function inspectFinding(store: LessonStore, id: string) {
         ...Object.fromEntries(['applicability', 'adherence', 'prediction'].map(key => [key,
           { rationale: '', verifierPaths: entry.registered!.input.verifierFiles }])), limitations: '',
       } : null,
-      reviewTemplate: evidence ? {
+      reviewTemplate: evidence?.deliveryId ? {
         id: `review-${hashValue([entry.id, review?.id ?? null, evidence.hash]).slice(0, 20)}`, findingId: id,
-        deliveryId: evidence.opportunity.input.deliveryId, ...(review ? { supersedes: review.id } : {}),
+        deliveryId: evidence.deliveryId, ...(review ? { supersedes: review.id } : {}),
         applicability: evidence.applicability, adherence: evidence.adherence, outcome: evidence.outcome,
         verifier: `${evidence.opportunity.input.evaluator.id}@${evidence.opportunity.input.evaluator.version}`,
         evidenceRef: evidence.id, rationale: '',
@@ -153,7 +153,7 @@ export function recordFindingFeedback(store: LessonStore, value: unknown): Feedb
   store.db.exec('BEGIN IMMEDIATE');
   try {
     const evidence = resolveFindingEvidence(store.db, input.evidenceRef);
-    if (evidence.opportunity.input.deliveryId !== input.deliveryId || evidence.opportunity.input.findingId !== input.findingId
+    if (evidence.deliveryId !== input.deliveryId || evidence.opportunity.input.findingId !== input.findingId
       || evidence.opportunity.version !== finding.version) throw new Error('finding evidence belongs to another delivery or version');
     if (input.applicability !== evidence.applicability || input.adherence !== evidence.adherence || input.outcome !== evidence.outcome)
       throw new Error('review judgments must match registered finding evidence');

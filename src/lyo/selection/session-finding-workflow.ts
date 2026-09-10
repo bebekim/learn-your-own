@@ -4,7 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { hashValue } from '../../contract/refs.ts';
 import { LessonStore } from '../storage/lesson-store.ts';
 import { captureFindingAction, findingActionEvidence } from './session-finding-capture.ts';
-import { findingOpportunity, measureFindingOpportunity } from './session-finding-evidence.ts';
+import { findingOpportunity, measureFindingOpportunity, findingOpportunityDelivery } from './session-finding-evidence.ts';
 import { inspectFinding, recordFindingFeedback } from './session-findings.ts';
 import { findingSemanticReview } from './session-finding-semantics.ts';
 
@@ -66,7 +66,7 @@ export function observeSessionFindings(event: HookObservation, storePath: string
 function opportunityRows(store: Pick<LessonStore, 'db'>, cwd?: string) {
   const workspace = cwd ? realpathSync(cwd) : null;
   return store.db.prepare(`SELECT payload_json FROM learning_trace WHERE kind = 'behavior'
-    AND CASE WHEN json_valid(payload_json) THEN json_extract(payload_json, '$.source') END = 'session-finding-opportunity@1'
+    AND CASE WHEN json_valid(payload_json) THEN json_extract(payload_json, '$.source') END IN ('session-finding-opportunity@1', 'session-finding-opportunity@2')
     AND (? IS NULL OR json_extract(payload_json, '$.content.input.cwd') = ?) ORDER BY rowid`).all(workspace, workspace);
 }
 
@@ -82,6 +82,8 @@ export function pendingFindingReviews(store: LessonStore, cwd?: string) {
     const identity = { findingId: String(input.findingId), opportunityId: String(input.id), cwd: String(input.cwd) };
     try {
       const registered = findingOpportunity(store.db, input.id);
+      // A review prompt would expose advice withheld by the trial. Operators can still inspect the opportunity.
+      if (input.prospective && !findingOpportunityDelivery(store.db, input.id)) return [];
       const state = inspectFinding(store, input.findingId), entry = state.opportunities.find(item => item.id === input.id)!;
       const semantics = findingSemanticReview(store.db, input.id, registered.payload.hash);
       const status = entry.error ? 'invalid-evidence' : !entry.evidence ? 'awaiting-action'

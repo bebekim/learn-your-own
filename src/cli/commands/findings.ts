@@ -6,6 +6,7 @@ import { inspectFinding, recordFindingFeedback, reviseFinding } from '../../lyo/
 import { registerFindingOpportunity, measureFindingOpportunity, withdrawFindingEvidence } from '../../lyo/selection/session-finding-evidence.ts';
 import { reviewFindingSemantics } from '../../lyo/selection/session-finding-semantics.ts';
 import { pendingFindingReviews } from '../../lyo/selection/session-finding-workflow.ts';
+import { assignFindingOpportunity } from '../../lyo/selection/finding-opportunities.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
 
 export const FINDING_COMMANDS: Record<string, CommandHandler> = {
@@ -17,6 +18,7 @@ export const FINDING_COMMANDS: Record<string, CommandHandler> = {
   'finding withdraw': findingCommand,
   'finding semantics': findingCommand,
   'finding pending': findingCommand,
+  'finding assign': findingCommand,
 };
 
 function findingCommand(args: CommandArgs) {
@@ -28,6 +30,7 @@ function findingCommand(args: CommandArgs) {
     if (args.subcommand === 'pending') return { ok: true, pending: pendingFindingReviews(store, args.hasFlag('--all') ? undefined : args.cwd) };
     if (args.subcommand === 'inspect') return { ok: true, finding: inspectFinding(store, args.requiredFlag('--finding-id')) };
     if (args.subcommand === 'measure') return { ok: true, evidence: measureFindingOpportunity(store, args.requiredFlag('--opportunity-id')) };
+    if (args.subcommand === 'assign') return { ok: true, assignment: assignFindingOpportunity(store, args.requiredFlag('--opportunity-id')) };
     const input = JSON.parse(readFileSync(resolve(args.cwd, args.requiredFlag('--input')), 'utf8'));
     if (args.subcommand === 'semantics') return { ok: true, review: reviewFindingSemantics(store, input) };
     if (args.subcommand === 'register') return { ok: true, opportunity: registerFindingOpportunity(store, input) };

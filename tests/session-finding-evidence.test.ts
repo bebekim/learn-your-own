@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
-import { join } from 'node:path';
 import test from 'node:test';
 import { fixture } from './helpers/session-finding-fixture.ts';
 import { inspectFinding, recordFindingFeedback } from '../src/lyo/selection/session-findings.ts';
@@ -15,24 +14,11 @@ test('an unresolved evidence reference cannot change finding validity', () => {
   } finally { f.close(); }
 });
 
-test('registered checks bind a real application result to feedback and the next hook', async () => {
-  const { registerFindingOpportunity, measureFindingOpportunity } = await import('../src/lyo/selection/session-finding-evidence.ts');
+test('registered checks bind a real application result to feedback and the next hook', () => {
   const f = fixture();
   try {
     const delivery = f.deliver();
-    const source = join(f.root, 'state.json'), verifier = join(f.root, 'check.mjs');
-    writeFileSync(source, JSON.stringify({ applicable: true, followed: false, predicted: false }));
-    writeFileSync(verifier, "import fs from 'node:fs'; console.log(JSON.stringify({satisfied: JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))[process.argv[3]]}));");
-    const command = (key: string) => `'${process.execPath}' '${verifier}' '${source}' ${key}`;
-    registerFindingOpportunity(f.store, { id: 'application-1', findingId: f.findingId, deliveryId: delivery.deliveryId,
-      taskId: 'target-parser-contract', cwd: f.root,
-      claim: { kind: 'deterministic', conditions: 'Transferring a parser repair.', action: 'Check the target whitespace contract before reusing a repair.',
-        prediction: 'The target check succeeds.', falsifiedBy: 'The declared target check reports false.' },
-      checks: { applicability: command('applicable'), adherence: command('followed'), prediction: command('predicted') },
-      verifierFiles: [verifier], sourceFiles: [source], evaluator: { id: 'target-check', version: '1' } });
-    f.review('application-1');
-    writeFileSync(source, JSON.stringify({ applicable: true, followed: true, predicted: true }));
-    const evidence = measureFindingOpportunity(f.store, 'application-1');
+    const evidence = f.prepare(delivery.deliveryId).finish();
     recordFindingFeedback(f.store, { ...f.feedback, deliveryId: delivery.deliveryId, evidenceRef: evidence.id });
     const state = inspectFinding(f.store, f.findingId);
     assert.equal(state.validity, 'supported');

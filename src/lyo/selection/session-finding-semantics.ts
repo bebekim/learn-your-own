@@ -36,7 +36,7 @@ export function reviewFindingSemantics(store: LessonStore, value: unknown) {
   try {
     const opportunity = store.getTrace(`finding-opportunity:${input.opportunityId}`);
     const envelope = JSON.parse(opportunity?.payload_json ?? '{}');
-    if (envelope.source !== 'session-finding-opportunity@1' || envelope.hash !== hashValue(envelope.content)
+    if (!['session-finding-opportunity@1', 'session-finding-opportunity@2'].includes(envelope.source) || envelope.hash !== hashValue(envelope.content)
       || envelope.content.input.id !== input.opportunityId) throw new Error('unknown or invalid finding opportunity');
     if (input.claimKind !== envelope.content.input.claim.kind) throw new Error('review must preserve the prospectively declared claim kind');
     for (const check of [input.applicability, input.adherence, input.prediction]) {
