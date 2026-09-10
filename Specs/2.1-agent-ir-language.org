@@ -1,5 +1,9 @@
 * Agent IR: A Plan-Shaped Language For LLM Work
 
+State: deferred design (reviewed 2026-09-10). This IR is not implemented as the
+source of truth for the current task workflow. Plan/trace integration and
+sequence credit remain future work; see [[file:8-learning-evidence-loop.md][current acceptance]].
+
 This document sketches a Lisp-like intermediate representation (IR) for
 agent behavior, extending the argument in
 [[../docs/behavior-as-code.md][Behavior As Code]].

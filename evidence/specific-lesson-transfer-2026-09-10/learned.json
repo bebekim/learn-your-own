@@ -1,0 +1,234 @@
+{
+  "registration": {
+    "input": {
+      "attemptId": "transfer-20260910-catalog-learned",
+      "cwd": "/private/tmp/lyo-specific-transfer-20260910/learned",
+      "runtime": "codex",
+      "model": "gpt-6-astra",
+      "family": "lyo-eval-validation-pilot-20260909",
+      "condition": "learned",
+      "policyId": "a4eb087f4d2e9cbf395fffa6794d3e18d4e554f36aa3635f4ffeb711ff399a8b",
+      "pairId": "catalog-nonblank-transfer-20260910",
+      "criteria": [
+        "Reject whitespace-only isbn, title and author strings at the catalogue add-book request schema, including Unicode whitespace.",
+        "Preserve every accepted nonblank string exactly; retain existing empty/missing/non-string rejection and unknown-field stripping."
+      ],
+      "verifierFiles": [
+        "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs"
+      ],
+      "regressionCheck": {
+        "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs' regression",
+        "files": [
+          "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs"
+        ]
+      },
+      "task": {
+        "task_id": "CATALOG-NONBLANK-20260910",
+        "split": "selection",
+        "repo_ref": {
+          "kind": "git",
+          "ref": "3ce3438eba134cef4430dcecb6eadfce94b5a19a"
+        },
+        "prompt": "Reject whitespace-only isbn, title and author strings at the catalogue add-book request schema, including Unicode whitespace.\nPreserve every accepted nonblank string exactly; retain existing empty/missing/non-string rejection and unknown-field stripping.\nThis is a small ticket in an isolated experimental checkout. Relevant files: src/modules/catalog/infrastructure/nestjs/catalog.schemas.ts and src/modules/catalog/tests/unit/catalog-schemas.test.ts. Use TDD and the focused command: rtk proxy node node_modules/vitest/vitest.mjs run src/modules/catalog/tests/unit/catalog-schemas.test.ts. Keep changes to that schema and its tests. Group independent reads. Do not run unrelated suites. Do not create worktrees, commit, change configuration, or delegate. Do not inspect external verifiers, sibling checkouts, experiment artifacts or lesson libraries. Use the task criteria and any context delivered by the registered native hook. Prefix shell commands with rtk. Finish within 100,000 input-plus-output tokens and 180 seconds; report the changes and test result.",
+        "allowed_tools": [
+          "shell",
+          "edit"
+        ],
+        "budget": {
+          "max_turns": 10,
+          "max_wall_time_seconds": 180,
+          "max_tokens": 100000
+        },
+        "success_check": {
+          "kind": "command",
+          "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs' acceptance"
+        },
+        "expected_touched_paths": [
+          "src/modules/catalog/infrastructure/nestjs/catalog.schemas.ts",
+          "src/modules/catalog/tests/unit/catalog-schemas.test.ts"
+        ],
+        "tags": [
+          "cross-repository",
+          "nonblank-input",
+          "candidate-screen"
+        ]
+      }
+    },
+    "hash": "1c9668d8be840210394acbde1936ab73a6c957772cee2dc64b6b70b5ef5cf4c7",
+    "registeredAt": "2026-09-09T14:40:37.025Z",
+    "verifierFiles": [
+      {
+        "path": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs",
+        "sha256": "3b47e8873a844b93f08285248d559685f70be08464bf21e06631abb65b451b6e"
+      }
+    ],
+    "regressionFiles": [
+      {
+        "path": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs",
+        "sha256": "3b47e8873a844b93f08285248d559685f70be08464bf21e06631abb65b451b6e"
+      }
+    ],
+    "verifierHash": "db0d8cb7cc85726891403eb3d14476b87287be8e70561f01726326cd86e0b58d",
+    "startHead": "3ce3438eba134cef4430dcecb6eadfce94b5a19a",
+    "taskFingerprint": "a4a54a5ebcd20f8a971a88a98812e87923e47236683c9974cff1234e168f43a8"
+  },
+  "decision": {
+    "episodeId": "transfer-20260910-catalog-learned",
+    "state": {
+      "family": "lyo-eval-validation-pilot-20260909",
+      "model": "gpt-6-astra",
+      "budget": {
+        "max_turns": 10,
+        "max_wall_time_seconds": 180,
+        "max_tokens": 100000
+      },
+      "tools": [
+        "edit",
+        "shell"
+      ]
+    },
+    "observationRef": "task-registration:transfer-20260910-catalog-learned",
+    "mode": "evaluate",
+    "revision": 0,
+    "fixedAction": "77b7d36b8d920fa091db94920f615ad9bd589de3a615361cb03b8a72254d6de4",
+    "id": "f55dca01341744585cc8f6bb7ba1cd17e913ba0fa2ead4c4d23bd67cc210a85f",
+    "requestHash": "c7a94944e2b7252b6d97edfa21fdc46a26090ad8814a9ff9d61b0bde2051c15b",
+    "algorithm": "fixed-action@1",
+    "controllerId": "efa191942d7ed2fb40e4a4a7f00aa2446fc22e4dba019a57a6dd086f7c15d59e",
+    "specification": {
+      "domain": "coding/task-acceptance/codex",
+      "objective": "accepted-without-regression-within-declared-budget@1",
+      "evaluator": "registered-verifier-and-host-usage@1",
+      "stateSchema": "task-family-model-budget-tools@1:414332a3b033f87a0ad02575568928a0a7a6f6cabd05e978fcfc77b7eaacff64",
+      "actions": [
+        "no-guidance",
+        "77b7d36b8d920fa091db94920f615ad9bd589de3a615361cb03b8a72254d6de4"
+      ],
+      "baselineAction": "no-guidance"
+    },
+    "action": "77b7d36b8d920fa091db94920f615ad9bd589de3a615361cb03b8a72254d6de4",
+    "propensity": 1,
+    "estimates": [
+      {
+        "action": "no-guidance",
+        "count": 0,
+        "mean": null
+      },
+      {
+        "action": "77b7d36b8d920fa091db94920f615ad9bd589de3a615361cb03b8a72254d6de4",
+        "count": 0,
+        "mean": null
+      }
+    ],
+    "createdAt": "2026-09-09T14:47:30.011Z"
+  },
+  "delivery": {
+    "sessionId": "01a086a3-46fc-7240-aaef-f5357d0162ae",
+    "promptHash": "bc93d9b740d7348cd8422b4251e78cd61cf9418ef8415c4580e356a6596727ad",
+    "output": {
+      "additionalContext": "When a string must contain meaningful text, validate its trimmed length while preserving the original accepted value."
+    },
+    "createdAt": "2026-09-09T14:47:30.011Z"
+  },
+  "receipt": {
+    "attemptId": "transfer-20260910-catalog-learned",
+    "registrationHash": "1c9668d8be840210394acbde1936ab73a6c957772cee2dc64b6b70b5ef5cf4c7",
+    "measurement": {
+      "trace": {
+        "path": "/private/tmp/lyo-specific-transfer-20260910/learned.jsonl",
+        "sha256": "b4d216e7f3fe53dfc8ebb5f5e68afd536da478c9930d89e23c4212541756c5ce",
+        "content": "{\"type\":\"thread.started\",\"thread_id\":\"01a086a3-46fc-7240-aaef-f5357d0162ae\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"I’ll use TDD to add whitespace rejection tests, then update the schema to validate trimmed length while preserving accepted values.\\n\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk /Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node /Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/lyo-session-hook --cwd .'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk /Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node /Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/lyo-session-hook --cwd .'\",\"aggregated_output\":\"LYO lessons from your past runs (2 in library, Thompson-sampled top 2; score = posterior mean, ✓/✗ = validated outcomes; apply when relevant):\\n- [0.50 · 0✓/0✗ · goal_deviation] Design functions to be stateless when multiple outputs depend on input order, ensuring that each call can independently satisfy all requirements without conflict.\\n- [0.50 · 0✓/0✗ · goal_deviation] Always ensure that all acceptance criteria are addressed in the implementation. Review each criterion carefully to avoid conflicts and ensure compliance with the specifications.\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_2\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk read /Users/marcus.kim/.codex/RTK.md'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_2\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk read /Users/marcus.kim/.codex/RTK.md'\",\"aggregated_output\":\"# RTK - Rust Token Killer (Codex CLI)\\n\\n**Usage**: Token-optimized CLI proxy for shell commands.\\n\\n## Rule\\n\\nAlways prefix shell commands with `rtk`.\\n\\nExamples:\\n\\n```bash\\nrtk git status\\nrtk cargo test\\nrtk npm run build\\nrtk pytest -q\\n```\\n\\n## Meta Commands\\n\\n```bash\\nrtk gain            # Token savings analytics\\nrtk gain --history  # Recent command savings history\\nrtk proxy <cmd>     # Run raw command without filtering\\n```\\n\\n## Verification\\n\\n```bash\\nrtk --version\\nrtk gain\\nwhich rtk\\n```\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_3\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk read /Users/marcus.kim/.codex/skills/tdd/SKILL.md'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_3\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk read /Users/marcus.kim/.codex/skills/tdd/SKILL.md'\",\"aggregated_output\":\"---\\nname: tdd\\ndescription: Test-driven development with red-green-refactor loop. Use when user wants to build features or fix bugs using TDD, mentions \\\"red-green-refactor\\\", wants integration tests, or asks for test-first development.\\n---\\n\\n# Test-Driven Development\\n\\n## Philosophy\\n\\n**Core principle**: Tests should verify behavior through public interfaces, not implementation details. Code can change entirely; tests shouldn't.\\n\\n**Good tests** are integration-style: they exercise real code paths through public APIs. They describe _what_ the system does, not _how_ it does it. A good test reads like a specification - \\\"user can checkout with valid cart\\\" tells you exactly what capability exists. These tests survive refactors because they don't care about internal structure.\\n\\n**Bad tests** are coupled to implementation. They mock internal collaborators, test private methods, or verify through external means (like querying a database directly instead of using the interface). The warning sign: your test breaks when you refactor, but behavior hasn't changed. If you rename an internal function and tests fail, those tests were testing implementation, not behavior.\\n\\nSee [tests.md](tests.md) for examples and [mocking.md](mocking.md) for mocking guidelines.\\n\\n## Anti-Pattern: Horizontal Slices\\n\\n**DO NOT write all tests first, then all implementation.** This is \\\"horizontal slicing\\\" - treating RED as \\\"write all tests\\\" and GREEN as \\\"write all code.\\\"\\n\\nThis produces **crap tests**:\\n\\n- Tests written in bulk test _imagined_ behavior, not _actual_ behavior\\n- You end up testing the _shape_ of things (data structures, function signatures) rather than user-facing behavior\\n- Tests become insensitive to real changes - they pass when behavior breaks, fail when behavior is fine\\n- You outrun your headlights, committing to test structure before understanding the implementation\\n\\n**Correct approach**: Vertical slices via tracer bullets. One test → one implementation → repeat. Each test responds to what you learned from the previous cycle. Because you just wrote the code, you know exactly what behavior matters and how to verify it.\\n\\n```\\nWRONG (horizontal):\\n  RED:   test1, test2, test3, test4, test5\\n  GREEN: impl1, impl2, impl3, impl4, impl5\\n\\nRIGHT (vertical):\\n  RED→GREEN: test1→impl1\\n  RED→GREEN: test2→impl2\\n  RED→GREEN: test3→impl3\\n  ...\\n```\\n\\n## Workflow\\n\\n### 1. Planning\\n\\nBefore writing any code:\\n\\n- [ ] Confirm with user what interface changes are needed\\n- [ ] Confirm with user which behaviors to test (prioritize)\\n- [ ] Identify opportunities for [deep modules](deep-modules.md) (small interface, deep implementation)\\n- [ ] Design interfaces for [testability](interface-design.md)\\n- [ ] List the behaviors to test (not implementation steps)\\n- [ ] Get user approval on the plan\\n\\nAsk: \\\"What should the public interface look like? Which behaviors are most important to test?\\\"\\n\\n**You can't test everything.** Confirm with the user exactly which behaviors matter most. Focus testing effort on critical paths and complex logic, not every possible edge case.\\n\\n### 2. Tracer Bullet\\n\\nWrite ONE test that confirms ONE thing about the system:\\n\\n```\\nRED:   Write test for first behavior → test fails\\nGREEN: Write minimal code to pass → test passes\\n```\\n\\nThis is your tracer bullet - proves the path works end-to-end.\\n\\n### 3. Incremental Loop\\n\\nFor each remaining behavior:\\n\\n```\\nRED:   Write next test → fails\\nGREEN: Minimal code to pass → passes\\n```\\n\\nRules:\\n\\n- One test at a time\\n- Only enough code to pass current test\\n- Don't anticipate future tests\\n- Keep tests focused on observable behavior\\n\\n### 4. Refactor\\n\\nAfter all tests pass, look for [refactor candidates](refactoring.md):\\n\\n- [ ] Extract duplication\\n- [ ] Deepen modules (move complexity behind simple interfaces)\\n- [ ] Apply SOLID principles where natural\\n- [ ] Consider what new code reveals about existing code\\n- [ ] Run tests after each refactor step\\n\\n**Never refactor while RED.** Get to GREEN first.\\n\\n## Checklist Per Cycle\\n\\n```\\n[ ] Test describes behavior, not implementation\\n[ ] Test uses public interface only\\n[ ] Test would survive internal refactor\\n[ ] Code is minimal for this test\\n[ ] No speculative features added\\n```\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_4\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk read /Users/marcus.kim/.codex/skills/diagnose/SKILL.md'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_4\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk read /Users/marcus.kim/.codex/skills/diagnose/SKILL.md'\",\"aggregated_output\":\"---\\nname: diagnose\\ndescription: Disciplined diagnosis loop for hard bugs and performance regressions. Reproduce → minimise → hypothesise → instrument → fix → regression-test. Use when user says \\\"diagnose this\\\" / \\\"debug this\\\", reports a bug, says something is broken/throwing/failing, or describes a performance regression.\\n---\\n\\n# Diagnose\\n\\nA discipline for hard bugs. Skip phases only when explicitly justified.\\n\\nWhen exploring the codebase, use the project's domain glossary to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.\\n\\n## Phase 1 — Build a feedback loop\\n\\n**This is the skill.** Everything else is mechanical. If you have a fast, deterministic, agent-runnable pass/fail signal for the bug, you will find the cause — bisection, hypothesis-testing, and instrumentation all just consume that signal. If you don't have one, no amount of staring at code will save you.\\n\\nSpend disproportionate effort here. **Be aggressive. Be creative. Refuse to give up.**\\n\\n### Ways to construct one — try them in roughly this order\\n\\n1. **Failing test** at whatever seam reaches the bug — unit, integration, e2e.\\n2. **Curl / HTTP script** against a running dev server.\\n3. **CLI invocation** with a fixture input, diffing stdout against a known-good snapshot.\\n4. **Headless browser script** (Playwright / Puppeteer) — drives the UI, asserts on DOM/console/network.\\n5. **Replay a captured trace.** Save a real network request / payload / event log to disk; replay it through the code path in isolation.\\n6. **Throwaway harness.** Spin up a minimal subset of the system (one service, mocked deps) that exercises the bug code path with a single function call.\\n7. **Property / fuzz loop.** If the bug is \\\"sometimes wrong output\\\", run 1000 random inputs and look for the failure mode.\\n8. **Bisection harness.** If the bug appeared between two known states (commit, dataset, version), automate \\\"boot at state X, check, repeat\\\" so you can `git bisect run` it.\\n9. **Differential loop.** Run the same input through old-version vs new-version (or two configs) and diff outputs.\\n10. **HITL bash script.** Last resort. If a human must click, drive _them_ with `scripts/hitl-loop.template.sh` so the loop is still structured. Captured output feeds back to you.\\n\\nBuild the right feedback loop, and the bug is 90% fixed.\\n\\n### Iterate on the loop itself\\n\\nTreat the loop as a product. Once you have _a_ loop, ask:\\n\\n- Can I make it faster? (Cache setup, skip unrelated init, narrow the test scope.)\\n- Can I make the signal sharper? (Assert on the specific symptom, not \\\"didn't crash\\\".)\\n- Can I make it more deterministic? (Pin time, seed RNG, isolate filesystem, freeze network.)\\n\\nA 30-second flaky loop is barely better than no loop. A 2-second deterministic loop is a debugging superpower.\\n\\n### Non-deterministic bugs\\n\\nThe goal is not a clean repro but a **higher reproduction rate**. Loop the trigger 100×, parallelise, add stress, narrow timing windows, inject sleeps. A 50%-flake bug is debuggable; 1% is not — keep raising the rate until it's debuggable.\\n\\n### When you genuinely cannot build a loop\\n\\nStop and say so explicitly. List what you tried. Ask the user for: (a) access to whatever environment reproduces it, (b) a captured artifact (HAR file, log dump, core dump, screen recording with timestamps), or (c) permission to add temporary production instrumentation. Do **not** proceed to hypothesise without a loop.\\n\\nDo not proceed to Phase 2 until you have a loop you believe in.\\n\\n## Phase 2 — Reproduce\\n\\nRun the loop. Watch the bug appear.\\n\\nConfirm:\\n\\n- [ ] The loop produces the failure mode the **user** described — not a different failure that happens to be nearby. Wrong bug = wrong fix.\\n- [ ] The failure is reproducible across multiple runs (or, for non-deterministic bugs, reproducible at a high enough rate to debug against).\\n- [ ] You have captured the exact symptom (error message, wrong output, slow timing) so later phases can verify the fix actually addresses it.\\n\\nDo not proceed until you reproduce the bug.\\n\\n## Phase 3 — Hypothesise\\n\\nGenerate **3–5 ranked hypotheses** before testing any of them. Single-hypothesis generation anchors on the first plausible idea.\\n\\nEach hypothesis must be **falsifiable**: state the prediction it makes.\\n\\n> Format: \\\"If <X> is the cause, then <changing Y> will make the bug disappear / <changing Z> will make it worse.\\\"\\n\\nIf you cannot state the prediction, the hypothesis is a vibe — discard or sharpen it.\\n\\n**Show the ranked list to the user before testing.** They often have domain knowledge that re-ranks instantly (\\\"we just deployed a change to #3\\\"), or know hypotheses they've already ruled out. Cheap checkpoint, big time saver. Don't block on it — proceed with your ranking if the user is AFK.\\n\\n## Phase 4 — Instrument\\n\\nEach probe must map to a specific prediction from Phase 3. **Change one variable at a time.**\\n\\nTool preference:\\n\\n1. **Debugger / REPL inspection** if the env supports it. One breakpoint beats ten logs.\\n2. **Targeted logs** at the boundaries that distinguish hypotheses.\\n3. Never \\\"log everything and grep\\\".\\n\\n**Tag every debug log** with a unique prefix, e.g. `[DEBUG-a4f2]`. Cleanup at the end becomes a single grep. Untagged logs survive; tagged logs die.\\n\\n**Perf branch.** For performance regressions, logs are usually wrong. Instead: establish a baseline measurement (timing harness, `performance.now()`, profiler, query plan), then bisect. Measure first, fix second.\\n\\n## Phase 5 — Fix + regression test\\n\\nWrite the regression test **before the fix** — but only if there is a **correct seam** for it.\\n\\nA correct seam is one where the test exercises the **real bug pattern** as it occurs at the call site. If the only available seam is too shallow (single-caller test when the bug needs multiple callers, unit test that can't replicate the chain that triggered the bug), a regression test there gives false confidence.\\n\\n**If no correct seam exists, that itself is the finding.** Note it. The codebase architecture is preventing the bug from being locked down. Flag this for the next phase.\\n\\nIf a correct seam exists:\\n\\n1. Turn the minimised repro into a failing test at that seam.\\n2. Watch it fail.\\n3. Apply the fix.\\n4. Watch it pass.\\n5. Re-run the Phase 1 feedback loop against the original (un-minimised) scenario.\\n\\n## Phase 6 — Cleanup + post-mortem\\n\\nRequired before declaring done:\\n\\n- [ ] Original repro no longer reproduces (re-run the Phase 1 loop)\\n- [ ] Regression test passes (or absence of seam is documented)\\n- [ ] All `[DEBUG-...]` instrumentation removed (`grep` the prefix)\\n- [ ] Throwaway prototypes deleted (or moved to a clearly-marked debug location)\\n- [ ] The hypothesis that turned out correct is stated in the commit / PR message — so the next debugger learns\\n\\n**Then ask: what would have prevented this bug?** If the answer involves architectural change (no good test seam, tangled callers, hidden coupling) hand off to the `/improve-codebase-architecture` skill with the specifics. Make the recommendation **after** the fix is in, not before — you have more information now than when you started.\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_5\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk read src/modules/catalog/infrastructure/nestjs/catalog.schemas.ts src/modules/catalog/tests/unit/catalog-schemas.test.ts'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_5\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk read src/modules/catalog/infrastructure/nestjs/catalog.schemas.ts src/modules/catalog/tests/unit/catalog-schemas.test.ts'\",\"aggregated_output\":\"import { z } from 'zod';\\n\\nexport const addBookBodySchema = z.object({\\n  isbn: z.string().min(1),\\n  title: z.string().min(1),\\n  author: z.string().min(1),\\n});\\n\\nexport type AddBookBody = z.infer<typeof addBookBodySchema>;\\nimport { describe, it, expect } from 'vitest';\\nimport { ZodError } from 'zod';\\nimport { addBookBodySchema } from '@catalog/infrastructure/nestjs/catalog.schemas';\\n\\ndescribe('addBookBodySchema', () => {\\n  it('accepts a valid body', () => {\\n    const result = addBookBodySchema.parse({\\n      isbn: '9780134685991',\\n      title: 'Clean Code',\\n      author: 'Robert C. Martin',\\n    });\\n\\n    expect(result).toEqual({\\n      isbn: '9780134685991',\\n      title: 'Clean Code',\\n      author: 'Robert C. Martin',\\n    });\\n  });\\n\\n  it('rejects a body with missing fields', () => {\\n    expect(() => addBookBodySchema.parse({ isbn: '9780134685991' })).toThrow(ZodError);\\n  });\\n\\n  it('rejects a body with a non-string field', () => {\\n    expect(() =>\\n      addBookBodySchema.parse({ isbn: 123, title: 'Clean Code', author: 'Robert C. Martin' }),\\n    ).toThrow(ZodError);\\n  });\\n\\n  it('rejects empty string fields', () => {\\n    expect(() =>\\n      addBookBodySchema.parse({ isbn: '', title: 'Clean Code', author: 'Robert C. Martin' }),\\n    ).toThrow(ZodError);\\n  });\\n\\n  it('rejects an empty body', () => {\\n    expect(() => addBookBodySchema.parse({})).toThrow(ZodError);\\n  });\\n\\n  it('rejects null', () => {\\n    expect(() => addBookBodySchema.parse(null)).toThrow(ZodError);\\n  });\\n\\n  it('strips unknown fields', () => {\\n    const result = addBookBodySchema.parse({\\n      isbn: '9780134685991',\\n      title: 'Clean Code',\\n      author: 'Robert C. Martin',\\n      extra: 'should be stripped',\\n    });\\n\\n    expect(result).not.toHaveProperty('extra');\\n  });\\n});\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_6\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk git status --short'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_6\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk git status --short'\",\"aggregated_output\":\"\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_7\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc \\\"rtk rg -n 'addBookBodySchema' src\\\"\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_7\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc \\\"rtk rg -n 'addBookBodySchema' src\\\"\",\"aggregated_output\":\"src/modules/catalog/infrastructure/nestjs/catalog.schemas.ts:3:export const addBookBodySchema = z.object({\\nsrc/modules/catalog/infrastructure/nestjs/catalog.schemas.ts:9:export type AddBookBody = z.infer<typeof addBookBodySchema>;\\nsrc/modules/catalog/infrastructure/nestjs/catalog.controller.ts:7:import { addBookBodySchema, type AddBookBody } from './catalog.schemas.js';\\nsrc/modules/catalog/infrastructure/nestjs/catalog.controller.ts:17:  async addBook(@Body(new ZodValidationPipe(addBookBodySchema)) body: AddBookBody): Promise<{ id: string }> {\\nsrc/modules/catalog/tests/unit/catalog-schemas.test.ts:3:import { addBookBodySchema } from '@catalog/infrastructure/nestjs/catalog.schemas';\\nsrc/modules/catalog/tests/unit/catalog-schemas.test.ts:5:describe('addBookBodySchema', () => {\\nsrc/modules/catalog/tests/unit/catalog-schemas.test.ts:7:    const result = addBookBodySchema.parse({\\nsrc/modules/catalog/tests/unit/catalog-schemas.test.ts:21:    expect(() => addBookBodySchema.parse({ isbn: '9780134685991' })).toThrow(ZodError);\\nsrc/modules/catalog/tests/unit/catalog-schemas.test.ts:26:      addBookBodySchema.parse({ isbn: 123, title: 'Clean Code', author: 'Robert C. Martin' }),\\nsrc/modules/catalog/tests/unit/catalog-schemas.test.ts:32:      addBookBodySchema.parse({ isbn: '', title: 'Clean Code', author: 'Robert C. Martin' }),\\nsrc/modules/catalog/tests/unit/catalog-schemas.test.ts:37:    expect(() => addBookBodySchema.parse({})).toThrow(ZodError);\\nsrc/modules/catalog/tests/unit/catalog-schemas.test.ts:41:    expect(() => addBookBodySchema.parse(null)).toThrow(ZodError);\\nsrc/modules/catalog/tests/unit/catalog-schemas.test.ts:45:    const result = addBookBodySchema.parse({\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_8\",\"type\":\"agent_message\",\"text\":\"The schema currently checks only string length, so whitespace passes. I’m using the TDD skill’s red–green loop to test all three fields, including Unicode whitespace, before changing validation.\\n\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_9\",\"type\":\"file_change\",\"changes\":[{\"path\":\"/private/tmp/lyo-specific-transfer-20260910/learned/src/modules/catalog/tests/unit/catalog-schemas.test.ts\",\"kind\":\"update\"}],\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_9\",\"type\":\"file_change\",\"changes\":[{\"path\":\"/private/tmp/lyo-specific-transfer-20260910/learned/src/modules/catalog/tests/unit/catalog-schemas.test.ts\",\"kind\":\"update\"}],\"status\":\"completed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_10\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk proxy node node_modules/vitest/vitest.mjs run src/modules/catalog/tests/unit/catalog-schemas.test.ts'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_10\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk proxy node node_modules/vitest/vitest.mjs run src/modules/catalog/tests/unit/catalog-schemas.test.ts'\",\"aggregated_output\":\"\\n RUN  v4.1.0 /private/tmp/lyo-specific-transfer-20260910/learned\\n\\n ❯ src/modules/catalog/tests/unit/catalog-schemas.test.ts (10 tests | 3 failed) 7ms\\n     × rejects whitespace-only isbn 4ms\\n     × rejects whitespace-only title 0ms\\n     × rejects whitespace-only author 0ms\\n\\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯\\n\\n FAIL  src/modules/catalog/tests/unit/catalog-schemas.test.ts > addBookBodySchema > rejects whitespace-only isbn\\n FAIL  src/modules/catalog/tests/unit/catalog-schemas.test.ts > addBookBodySchema > rejects whitespace-only title\\n FAIL  src/modules/catalog/tests/unit/catalog-schemas.test.ts > addBookBodySchema > rejects whitespace-only author\\nAssertionError: expected function to throw an error, but it didn't\\n ❯ src/modules/catalog/tests/unit/catalog-schemas.test.ts:12:9\\n     10|       expect(() =>\\n     11|         addBookBodySchema.parse({ isbn: '9780134685991', title: 'Clean…\\n     12|       ).toThrow(ZodError);\\n       |         ^\\n     13|     }\\n     14|   });\\n\\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯\\n\\n\\n Test Files  1 failed (1)\\n      Tests  3 failed | 7 passed (10)\\n   Start at  00:48:22\\n   Duration  886ms (transform 37ms, setup 0ms, import 443ms, tests 7ms, environment 0ms)\\n\\n\",\"exit_code\":1,\"status\":\"failed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_11\",\"type\":\"file_change\",\"changes\":[{\"path\":\"/private/tmp/lyo-specific-transfer-20260910/learned/src/modules/catalog/infrastructure/nestjs/catalog.schemas.ts\",\"kind\":\"update\"}],\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_11\",\"type\":\"file_change\",\"changes\":[{\"path\":\"/private/tmp/lyo-specific-transfer-20260910/learned/src/modules/catalog/infrastructure/nestjs/catalog.schemas.ts\",\"kind\":\"update\"}],\"status\":\"completed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_12\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk proxy node node_modules/vitest/vitest.mjs run src/modules/catalog/tests/unit/catalog-schemas.test.ts'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_12\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk proxy node node_modules/vitest/vitest.mjs run src/modules/catalog/tests/unit/catalog-schemas.test.ts'\",\"aggregated_output\":\"\\n RUN  v4.1.0 /private/tmp/lyo-specific-transfer-20260910/learned\\n\\n\\n Test Files  1 passed (1)\\n      Tests  10 passed (10)\\n   Start at  00:48:34\\n   Duration  256ms (transform 36ms, setup 0ms, import 104ms, tests 10ms, environment 0ms)\\n\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_13\",\"type\":\"file_change\",\"changes\":[{\"path\":\"/private/tmp/lyo-specific-transfer-20260910/learned/src/modules/catalog/tests/unit/catalog-schemas.test.ts\",\"kind\":\"update\"}],\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_13\",\"type\":\"file_change\",\"changes\":[{\"path\":\"/private/tmp/lyo-specific-transfer-20260910/learned/src/modules/catalog/tests/unit/catalog-schemas.test.ts\",\"kind\":\"update\"}],\"status\":\"completed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_14\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk proxy node node_modules/vitest/vitest.mjs run src/modules/catalog/tests/unit/catalog-schemas.test.ts'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_14\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk proxy node node_modules/vitest/vitest.mjs run src/modules/catalog/tests/unit/catalog-schemas.test.ts'\",\"aggregated_output\":\"\\n RUN  v4.1.0 /private/tmp/lyo-specific-transfer-20260910/learned\\n\\n\\n Test Files  1 passed (1)\\n      Tests  14 passed (14)\\n   Start at  00:49:12\\n   Duration  209ms (transform 32ms, setup 0ms, import 84ms, tests 9ms, environment 0ms)\\n\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_15\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk git diff --check'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_15\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk git diff --check'\",\"aggregated_output\":\"\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_16\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk git diff --stat'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_16\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'rtk git diff --stat'\",\"aggregated_output\":\".../infrastructure/nestjs/catalog.schemas.ts       |  6 +--\\n .../catalog/tests/unit/catalog-schemas.test.ts     | 43 +++++++++++++++-------\\n 2 files changed, 33 insertions(+), 16 deletions(-)\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_17\",\"type\":\"agent_message\",\"text\":\"Updated only the schema and its tests. All three fields reject whitespace-only strings, including Unicode whitespace, while preserving accepted strings exactly.\\n\\nEmpty/missing/non-string rejection and unknown-field stripping remain intact.\\n\\nTDD verified: new tests failed before the fix; the focused command now passes all 14 tests.\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":165323,\"cached_input_tokens\":146304,\"cache_write_input_tokens\":0,\"output_tokens\":2285,\"reasoning_output_tokens\":587}}\n"
+      },
+      "usage": {
+        "complete": true,
+        "totalTokens": 167608,
+        "turns": 1,
+        "estimatedCost": null
+      },
+      "source": {
+        "head": "3ce3438eba134cef4430dcecb6eadfce94b5a19a",
+        "diff": "diff --git a/src/modules/catalog/infrastructure/nestjs/catalog.schemas.ts b/src/modules/catalog/infrastructure/nestjs/catalog.schemas.ts\nindex 2d582e8..afe908d 100644\n--- a/src/modules/catalog/infrastructure/nestjs/catalog.schemas.ts\n+++ b/src/modules/catalog/infrastructure/nestjs/catalog.schemas.ts\n@@ -1,9 +1,9 @@\n import { z } from 'zod';\n \n export const addBookBodySchema = z.object({\n-  isbn: z.string().min(1),\n-  title: z.string().min(1),\n-  author: z.string().min(1),\n+  isbn: z.string().min(1).refine((value) => value.trim().length > 0),\n+  title: z.string().min(1).refine((value) => value.trim().length > 0),\n+  author: z.string().min(1).refine((value) => value.trim().length > 0),\n });\n \n export type AddBookBody = z.infer<typeof addBookBodySchema>;\ndiff --git a/src/modules/catalog/tests/unit/catalog-schemas.test.ts b/src/modules/catalog/tests/unit/catalog-schemas.test.ts\nindex e6ccdb0..676c761 100644\n--- a/src/modules/catalog/tests/unit/catalog-schemas.test.ts\n+++ b/src/modules/catalog/tests/unit/catalog-schemas.test.ts\n@@ -3,6 +3,27 @@ import { ZodError } from 'zod';\n import { addBookBodySchema } from '@catalog/infrastructure/nestjs/catalog.schemas';\n \n describe('addBookBodySchema', () => {\n+  it.each(['isbn', 'title', 'author'])('rejects whitespace-only %s', (field) => {\n+    const whitespace = '\\t\\n\\v\\f\\r \\u00a0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff';\n+\n+    for (const value of [...whitespace, whitespace]) {\n+      expect(() =>\n+        addBookBodySchema.parse({\n+          isbn: '9780134685991',\n+          title: 'Clean Code',\n+          author: 'Robert C. Martin',\n+          [field]: value,\n+        }),\n+      ).toThrow(ZodError);\n+    }\n+  });\n+\n+  it.each([' \\ttext\\r\\n ', '\\u00a0\\u3000text\\u202f\\ufeff', 'a \\t b\\n c', 'e\\u0301'])('preserves nonblank strings exactly: %j', (value) => {\n+    const body = { isbn: value, title: value, author: value };\n+\n+    expect(addBookBodySchema.parse(body)).toEqual(body);\n+  });\n+\n   it('accepts a valid body', () => {\n     const result = addBookBodySchema.parse({\n       isbn: '9780134685991',\n@@ -17,20 +38,16 @@ describe('addBookBodySchema', () => {\n     });\n   });\n \n-  it('rejects a body with missing fields', () => {\n-    expect(() => addBookBodySchema.parse({ isbn: '9780134685991' })).toThrow(ZodError);\n-  });\n-\n-  it('rejects a body with a non-string field', () => {\n-    expect(() =>\n-      addBookBodySchema.parse({ isbn: 123, title: 'Clean Code', author: 'Robert C. Martin' }),\n-    ).toThrow(ZodError);\n-  });\n+  it.each(['isbn', 'title', 'author'] as const)('rejects missing, empty and non-string %s', (field) => {\n+    const body: Partial<{ isbn: string; title: string; author: string }> = {\n+      isbn: '9780134685991', title: 'Clean Code', author: 'Robert C. Martin',\n+    };\n+    delete body[field];\n+    expect(() => addBookBodySchema.parse(body)).toThrow(ZodError);\n \n-  it('rejects empty string fields', () => {\n-    expect(() =>\n-      addBookBodySchema.parse({ isbn: '', title: 'Clean Code', author: 'Robert C. Martin' }),\n-    ).toThrow(ZodError);\n+    for (const value of ['', undefined, null, 123, false, {}, []]) {\n+      expect(() => addBookBodySchema.parse({ ...body, [field]: value })).toThrow(ZodError);\n+    }\n   });\n \n   it('rejects an empty body', () => {\n",
+        "untracked": []
+      },
+      "acceptance": {
+        "kind": "command",
+        "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs' acceptance",
+        "exit_code": 0,
+        "stdout": "{\"phase\":\"acceptance\",\"passed\":true}\n",
+        "stderr": ""
+      },
+      "regression": {
+        "kind": "command",
+        "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs' regression",
+        "exit_code": 0,
+        "stdout": "{\"phase\":\"regression\",\"passed\":true}\n",
+        "stderr": ""
+      },
+      "outcome": true,
+      "withinBudget": false,
+      "reward": 0,
+      "wallTimeMs": 525769,
+      "problems": [],
+      "measuredAt": "2026-09-09T14:49:22.795Z"
+    },
+    "episode": {
+      "episode_id": "transfer-20260910-catalog-learned",
+      "task_id": "CATALOG-NONBLANK-20260910",
+      "baseline_id": "B4",
+      "model": "gpt-6-astra",
+      "harness": "native-codex",
+      "budget": {
+        "max_turns": 10,
+        "max_wall_time_seconds": 180,
+        "max_tokens": 100000
+      },
+      "allowed_tools": [
+        "shell",
+        "edit"
+      ],
+      "trace_ref": "task-receipt:transfer-20260910-catalog-learned#trace",
+      "diff_ref": "task-receipt:transfer-20260910-catalog-learned#source",
+      "touched_paths": [
+        "src/modules/catalog/infrastructure/nestjs/catalog.schemas.ts",
+        "src/modules/catalog/tests/unit/catalog-schemas.test.ts"
+      ],
+      "verifier_evidence": {
+        "kind": "command",
+        "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs' acceptance",
+        "exit_code": 0,
+        "stdout": "{\"phase\":\"acceptance\",\"passed\":true}\n",
+        "stderr": ""
+      },
+      "episode_kind": "agent",
+      "split": "selection",
+      "task_fingerprint": "a4a54a5ebcd20f8a971a88a98812e87923e47236683c9974cff1234e168f43a8",
+      "pair_id": "catalog-nonblank-transfer-20260910",
+      "verifier_sha256": "db0d8cb7cc85726891403eb3d14476b87287be8e70561f01726326cd86e0b58d",
+      "false_gate": false,
+      "regression": false,
+      "token_usage": {
+        "total_tokens": 167608
+      },
+      "wall_time_ms": 525769,
+      "injected_context": {
+        "static_skill": null,
+        "observe_only": false,
+        "rule_gates": []
+      },
+      "policy_ref": "a4eb087f4d2e9cbf395fffa6794d3e18d4e554f36aa3635f4ffeb711ff399a8b",
+      "decision_ref": "f55dca01341744585cc8f6bb7ba1cd17e913ba0fa2ead4c4d23bd67cc210a85f",
+      "delivery_ref": "task-delivery:transfer-20260910-catalog-learned",
+      "outcome": {
+        "verified_success": true
+      }
+    },
+    "feedback": {
+      "decisionId": "f55dca01341744585cc8f6bb7ba1cd17e913ba0fa2ead4c4d23bd67cc210a85f",
+      "executedAction": "77b7d36b8d920fa091db94920f615ad9bd589de3a615361cb03b8a72254d6de4",
+      "evaluator": "registered-verifier-and-host-usage@1",
+      "reward": 0,
+      "evidenceRef": "task-receipt:transfer-20260910-catalog-learned",
+      "sequence": 10
+    }
+  }
+}

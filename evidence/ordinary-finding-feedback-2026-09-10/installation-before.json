@@ -1,0 +1,16 @@
+{
+  "prefix": "/Users/marcus.kim/.nvm/versions/node/v24.15.0",
+  "package": "0.4.3-adaptive.3",
+  "configHashes": {
+    "/Users/marcus.kim/.codex/hooks.json": "ab3cb3239546d1aec203ac73cbf356214b48200ce2428f4cca76417eaf20f57d",
+    "/Users/marcus.kim/.codex/config.toml": "d3297b805cc45ce1b0835b521b0ef097c66fd6c09fe5bae110944b6d5ad15ce7",
+    "/Users/marcus.kim/.codex/AGENTS.md": "9bf31570427ef5202a0a931152e28f59661517d7e0d671c1eae388e7402c0561",
+    "/Users/marcus.kim/.claude/settings.json": "aff1f37b52d93653783b2d83332086b6f7fc9c6c5fd4a15a080b2cac09c58b9c",
+    "/Users/marcus.kim/.config/eca/config.json": "49a8613e4ec19d54efe05b8ee954ec0f99e6de82813d0bdd26821c17e98c5b5b",
+    "/Users/marcus.kim/.bob/settings/settings.json": "e48f6b8f55a91a3ee3ad06abeda9ebb5f595e19dc0cb012573123b9212ceba3f"
+  },
+  "targets": {
+    "/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/lyo": "/Users/marcus.kim/.nvm/versions/node/v24.15.0/lib/node_modules/lyo-kernel/src/cli.js",
+    "/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/lyo-session-hook": "/Users/marcus.kim/.nvm/versions/node/v24.15.0/lib/node_modules/lyo-kernel/src/lyo/selection/session-hook.js"
+  }
+}

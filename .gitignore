@@ -11,6 +11,7 @@ node_modules
 !/docs/behavior-as-code.md
 !/docs/adaptive-feedback-loop.md
 !/docs/development-status.md
+!/docs/task-feedback-cycle.md
 !/docs/candidate-at-bat-telemetry-spec.md
 !/docs/cybernetic-association-learner.md
 !/docs/cybernetic-learning-experiment-protocol.md

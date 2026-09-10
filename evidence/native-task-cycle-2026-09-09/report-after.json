@@ -1,0 +1,126 @@
+{
+  "ok": true,
+  "report": {
+    "policy": {
+      "controllerId": "069f9316fa2e37b6802af4b89e4df9a86a50fa763d3e589c3d096ce70c694225",
+      "stateHash": "8b970fd861a526ca83b86a7f33ba5af62c2b1936f84851213c74c17c40e6480d",
+      "revision": 4,
+      "training": {
+        "episodes": 4,
+        "unknownOutcomes": 0,
+        "totalTokens": 1339042,
+        "wallTimeMs": 508956
+      },
+      "evidenceRefs": [
+        "task-receipt:pilot-20260909-train-cost",
+        "task-receipt:pilot-20260909-train-command",
+        "task-receipt:pilot-20260909-train-identity",
+        "task-receipt:pilot-20260909-train-arrays"
+      ],
+      "trainingTaskFingerprints": [
+        "c76ad7cdb0d41fa87f815a5739772415cd6c4f6c282435680f9af6db48696f19",
+        "8bc74bea2429fd38906bdffb057c3142f06078f37a967ac0cb5b215af0d22ee5",
+        "b0a968268a4ada6d979ae1d630f2d95f38ba0e01713978fd80b9ad3a97ac20c7",
+        "0f4bf37f2623bdbe6dee251bc2e2df1215da4125139be15dfaf1c3dec42e774b"
+      ],
+      "id": "34477883e11da6729de5558e0ec904152c4b874b88201c69a4f2adbd83b43979"
+    },
+    "comparison": {
+      "id": "pilot-20260909-transfer",
+      "policyId": "34477883e11da6729de5558e0ec904152c4b874b88201c69a4f2adbd83b43979",
+      "pairs": [
+        {
+          "baselineAttemptId": "pilot-20260909-metadata-baseline",
+          "learnedAttemptId": "pilot-20260909-metadata-learned"
+        },
+        {
+          "baselineAttemptId": "pilot-20260909-budget-order-baseline",
+          "learnedAttemptId": "pilot-20260909-budget-order-learned"
+        }
+      ],
+      "maxTotalTokenRatio": 1
+    },
+    "training": {
+      "episodes": 4,
+      "unknownOutcomes": 0,
+      "totalTokens": 1339042,
+      "wallTimeMs": 508956
+    },
+    "evaluation": {
+      "version": "lyo/eval-report/v2",
+      "task_split_hash": "cc8d06a7d35e2afbc5dd1ab255cfd9315cc333bda9e082fdd7d7c29a66d899c2",
+      "baseline_scores": [
+        {
+          "baseline_id": "B0",
+          "episodes": 2,
+          "known_outcomes": 2,
+          "unknown_outcomes": 0,
+          "verified_success_rate": 1,
+          "verified_success_interval": [
+            0.3424,
+            1
+          ],
+          "false_gate_rate": 0,
+          "regression_rate": 0,
+          "token_cost": 761112,
+          "context_overhead_tokens": null,
+          "avg_wall_time_ms": 119242,
+          "rule_applications": 0
+        },
+        {
+          "baseline_id": "B4",
+          "episodes": 2,
+          "known_outcomes": 2,
+          "unknown_outcomes": 0,
+          "verified_success_rate": 1,
+          "verified_success_interval": [
+            0.3424,
+            1
+          ],
+          "false_gate_rate": 0,
+          "regression_rate": 0,
+          "token_cost": 618739,
+          "context_overhead_tokens": null,
+          "avg_wall_time_ms": 109029,
+          "rule_applications": 0
+        }
+      ],
+      "worst_regressions": [],
+      "gate": {
+        "rule_id": "34477883e11da6729de5558e0ec904152c4b874b88201c69a4f2adbd83b43979",
+        "baseline_id": "B0",
+        "treatment_id": "B4",
+        "decision": "inconclusive",
+        "reasons": [
+          "no supported success or cost improvement"
+        ]
+      }
+    },
+    "registeredAttempts": 4,
+    "totalLearnedTokens": 1957781,
+    "decision": "inconclusive",
+    "reasons": [
+      "no supported success or cost improvement"
+    ],
+    "deployment": "experimental-only",
+    "evidenceRefs": [
+      {
+        "attemptId": "pilot-20260909-metadata-baseline",
+        "receiptHash": "cfb1bc68e9bc5d709781367767c4608b7d1646ad3081a217498208e4cfbf3246"
+      },
+      {
+        "attemptId": "pilot-20260909-metadata-learned",
+        "receiptHash": "c916c9d750ffa996c53a0ab937cb3875919a979653086c185f09dd01a0a9e14b"
+      },
+      {
+        "attemptId": "pilot-20260909-budget-order-baseline",
+        "receiptHash": "b71c97c8e5e35d36a9123e9e5f343cc374b8f8768c50e34e6623d5133c0baad2"
+      },
+      {
+        "attemptId": "pilot-20260909-budget-order-learned",
+        "receiptHash": "294c74886bcf2048fb2689ec65fcbc72037f8236831d46e090d68ac745ede871"
+      }
+    ],
+    "reportId": "d0749ecdd20a95cde35429dc756c01cd87177b7bf951994c8111bf91af52d4cb"
+  }
+}

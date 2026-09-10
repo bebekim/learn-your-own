@@ -1,0 +1,106 @@
+{
+  "status": "ok",
+  "exitCode": 0,
+  "message": "opcore validation complete.",
+  "diagnostics": [
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/cli/commands/findings.ts",
+      "code": "TS_FUNCTION_COMPLEXITY",
+      "message": "TypeScript function findingCommand has cyclomatic complexity 11; max is 10."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/cli/hooks.ts",
+      "code": "TS_FUNCTION_COMPLEXITY",
+      "message": "TypeScript function addNativeFeedback has cyclomatic complexity 15; max is 10."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/cli/output.ts",
+      "code": "TS_FUNCTION_LINES",
+      "message": "TypeScript function usage has 106 lines; max is 80."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/lyo/selection/session-finding-capture.ts",
+      "code": "TS_FUNCTION_COMPLEXITY",
+      "message": "TypeScript function captureFindingAction has cyclomatic complexity 17; max is 10."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/lyo/selection/session-finding-capture.ts",
+      "code": "TS_FUNCTION_COMPLEXITY",
+      "message": "TypeScript function findingActionEvidence has cyclomatic complexity 24; max is 10."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/lyo/selection/session-finding-evidence.ts",
+      "code": "TS_FUNCTION_COMPLEXITY",
+      "message": "TypeScript function findingOpportunity has cyclomatic complexity 12; max is 10."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/lyo/selection/session-finding-evidence.ts",
+      "code": "TS_FUNCTION_COMPLEXITY",
+      "message": "TypeScript function measureFindingOpportunity has cyclomatic complexity 11; max is 10."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/lyo/selection/session-finding-evidence.ts",
+      "code": "TS_FUNCTION_COMPLEXITY",
+      "message": "TypeScript function resolveFindingEvidence has cyclomatic complexity 35; max is 10."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/lyo/selection/session-finding-semantics.ts",
+      "code": "TS_FUNCTION_COMPLEXITY",
+      "message": "TypeScript function reviewFindingSemantics has cyclomatic complexity 12; max is 10."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/lyo/selection/session-finding-workflow.ts",
+      "code": "TS_FUNCTION_COMPLEXITY",
+      "message": "TypeScript function <anonymous> has cyclomatic complexity 16; max is 10."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/lyo/selection/session-finding-workflow.ts",
+      "code": "TS_FUNCTION_COMPLEXITY",
+      "message": "TypeScript function observeSessionFindings has cyclomatic complexity 19; max is 10."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/lyo/selection/session-findings.ts",
+      "code": "TS_FUNCTION_COMPLEXITY",
+      "message": "TypeScript function checkedFeedback has cyclomatic complexity 13; max is 10."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/lyo/selection/session-hook.ts",
+      "code": "TS_FUNCTION_COMPLEXITY",
+      "message": "TypeScript function emitSessionLessons has cyclomatic complexity 22; max is 10."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "tests/package.test.ts",
+      "code": "TS_FUNCTION_LINES",
+      "message": "TypeScript function <anonymous> has 107 lines; max is 80."
+    }
+  ],
+  "sha256": "682e2e6c98b9e2fad19f0a5f96e0c77dea7ad37421bc45fb3640c9f0a373f51b"
+}

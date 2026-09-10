@@ -3,43 +3,8 @@ import { readFileSync } from 'node:fs';
 
 import type { EvalBaselineId, EvalEpisodeResult } from './live-runner.ts';
 
-export interface EvalReport {
-  version: 'lyo/eval-report/v1';
-  task_split_hash: string;
-  baseline_scores: EvalBaselineSummary[];
-  worst_regressions: WorstRegression[];
-  gate: RuleGateDecision | null;
-}
-
-export interface EvalBaselineSummary {
-  baseline_id: EvalBaselineId;
-  episodes: number;
-  verified_success_rate: number;
-  verified_success_interval: [number, number];
-  false_gate_rate: number | null;
-  regression_rate: number | null;
-  token_cost: number | null;
-  context_overhead_tokens: number | null;
-  avg_wall_time_ms: number;
-  rule_applications: number;
-}
-
-export interface RuleGateDecision {
-  rule_id: string;
-  baseline_id: EvalBaselineId;
-  treatment_id: EvalBaselineId;
-  decision: 'accept' | 'reject' | 'inconclusive';
-  reasons: string[];
-}
-
-export interface WorstRegression {
-  episode_id: string;
-  task_id: string;
-  baseline_id: EvalBaselineId;
-  verifier_command: string;
-  exit_code: number | null;
-  stderr: string;
-}
+import type { EvalReport, EvalBaselineSummary, RuleGateDecision, WorstRegression } from './report-types.ts';
+export type { EvalReport, EvalBaselineSummary, RuleGateDecision, WorstRegression } from './report-types.ts';
 
 type EpisodeWithOptionalMetrics = Omit<EvalEpisodeResult, 'token_usage'> & {
   false_gate?: boolean;
@@ -76,7 +41,7 @@ export function buildEvalReport(
     : null;
 
   return {
-    version: 'lyo/eval-report/v1',
+    version: 'lyo/eval-report/v2',
     task_split_hash: hashTaskSet(episodes),
     baseline_scores: summaries,
     worst_regressions: worstRegressions(episodes),
@@ -130,7 +95,7 @@ export function decideRuleGate({
     return gateDecision(ruleId, baseline, treatment, 'accept', ['verified_success_rate improved']);
   }
   if (
-    baseline.verified_success_rate > 0 &&
+    baseline.verified_success_rate !== null && baseline.verified_success_rate > 0 &&
     treatment.verified_success_rate === baseline.verified_success_rate &&
     baseline.token_cost !== null && treatment.token_cost !== null &&
     treatment.token_cost < baseline.token_cost
@@ -141,7 +106,8 @@ export function decideRuleGate({
       return gateDecision(ruleId, baseline, treatment, 'accept', ['success unchanged and token_cost improved']);
   }
 
-  return gateDecision(ruleId, baseline, treatment, treatment.verified_success_rate < baseline.verified_success_rate ? 'reject' : 'inconclusive',
+  return gateDecision(ruleId, baseline, treatment, treatment.verified_success_rate !== null && baseline.verified_success_rate !== null &&
+    treatment.verified_success_rate < baseline.verified_success_rate ? 'reject' : 'inconclusive',
     ['no supported success or cost improvement']);
 }
 
@@ -151,13 +117,13 @@ export function renderEvalReportMarkdown(report: EvalReport): string {
     '',
     `Task split hash: \`${report.task_split_hash}\``,
     '',
-    '| Baseline | Episodes | Verified Success | 95% Interval | False Gate | Regression | Token Cost | Context Overhead | Rule Apps | Avg Wall Time |',
-    '| --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |',
+    '| Baseline | Episodes | Known Outcomes | Unknown Outcomes | Verified Success (known outcomes) | 95% Interval | False Gate | Regression | Token Cost | Context Overhead | Rule Apps | Avg Wall Time |',
+    '| --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |',
   ];
   for (const summary of report.baseline_scores) {
     lines.push(
-      `| ${summary.baseline_id} | ${summary.episodes} | ${pct(summary.verified_success_rate)} | ` +
-      `${pct(summary.verified_success_interval[0])}-${pct(summary.verified_success_interval[1])} | ` +
+      `| ${summary.baseline_id} | ${summary.episodes} | ${summary.known_outcomes} | ${summary.unknown_outcomes} | ${pct(summary.verified_success_rate)} | ` +
+      `${summary.verified_success_interval?.map(pct).join('-') ?? 'unknown'} | ` +
       `${pct(summary.false_gate_rate)} | ${pct(summary.regression_rate)} | ${summary.token_cost ?? 'unknown'} | ` +
       `${summary.context_overhead_tokens ?? 'unknown'} | ${summary.rule_applications} | ${summary.avg_wall_time_ms}ms |`
     );
@@ -184,14 +150,17 @@ function summarizeBaseline(
   baselineId: EvalBaselineId,
   episodes: EpisodeWithOptionalMetrics[]
 ): EvalBaselineSummary {
-  const successes = episodes.filter((episode) => episode.outcome.verified_success).length;
+  const successes = episodes.filter((episode) => episode.outcome.verified_success === true).length;
+  const known = episodes.filter((episode) => episode.outcome.verified_success !== null).length;
   const falseGates = episodes.filter((episode) => episode.false_gate === true).length;
   const regressions = episodes.filter((episode) => episode.regression === true).length;
   return {
     baseline_id: baselineId,
     episodes: episodes.length,
-    verified_success_rate: rate(successes, episodes.length),
-    verified_success_interval: wilson(successes, episodes.length),
+    known_outcomes: known,
+    unknown_outcomes: episodes.length - known,
+    verified_success_rate: known ? rate(successes, known) : null,
+    verified_success_interval: known ? wilson(successes, known) : null,
     false_gate_rate: episodes.every(e => typeof e.false_gate === 'boolean') ? rate(falseGates, episodes.length) : null,
     regression_rate: episodes.every(e => typeof e.regression === 'boolean') ? rate(regressions, episodes.length) : null,
     token_cost: episodes.every(e => typeof e.token_usage?.total_tokens === 'number') ? sum(episodes, e => e.token_usage!.total_tokens!) : null,
@@ -203,7 +172,7 @@ function summarizeBaseline(
 
 function worstRegressions(episodes: EvalEpisodeResult[]): WorstRegression[] {
   return (episodes as EpisodeWithOptionalMetrics[])
-    .filter((episode) => episode.regression === true || !episode.outcome.verified_success)
+    .filter((episode) => episode.regression === true || episode.outcome.verified_success === false)
     .slice(0, 5)
     .map((episode) => ({
       episode_id: episode.episode_id,
@@ -271,7 +240,7 @@ function validateEpisodes(episodes: EvalEpisodeResult[]): void {
       throw new Error('episodes require unique episode_id values');
     ids.add(row.episode_id);
     if (!['B0', 'B1', 'B3', 'B4'].includes(row.baseline_id) ||
-        typeof row.task_id !== 'string' || typeof row.outcome?.verified_success !== 'boolean' ||
+        typeof row.task_id !== 'string' || (row.outcome?.verified_success !== null && typeof row.outcome?.verified_success !== 'boolean') ||
         !row.verifier_evidence || typeof row.verifier_evidence.command !== 'string' ||
         typeof row.verifier_evidence.stderr !== 'string' ||
         typeof row.model !== 'string' || typeof row.harness !== 'string' ||
@@ -293,6 +262,8 @@ function comparisonProblems(episodes: EvalEpisodeResult[], baselineId: EvalBasel
     return ['at least two matched pairs from distinct baselines are required'];
   const rows = [...baseline, ...treatment];
   const reasons: string[] = [];
+  if (rows.some(e => e.outcome.verified_success === null))
+    reasons.push('task acceptance must be known for every compared episode');
   if (rows.some(e => e.episode_kind !== 'agent' || !e.trace_ref || !e.diff_ref))
     reasons.push('real agent episodes with trace and output evidence are required');
   if (rows.some(e => e.split !== 'selection')) reasons.push('rule selection may use only selection-split episodes');
@@ -301,7 +272,8 @@ function comparisonProblems(episodes: EvalEpisodeResult[], baselineId: EvalBasel
   if (rows.some(e => e.token_usage == null || typeof e.token_usage.total_tokens !== 'number' ||
       typeof e.false_gate !== 'boolean' || typeof e.regression !== 'boolean'))
     reasons.push('cost, false-gate and regression measurements must be present');
-  if (treatment.some(e => !e.injected_context.rule_gates.some(g => g.ruleId === ruleId)))
+  if (treatment.some(e => !(e.policy_ref === ruleId && e.decision_ref && e.delivery_ref)
+    && !e.injected_context.rule_gates.some(g => g.ruleId === ruleId)))
     reasons.push('the nominated intervention must be recorded in every treatment episode');
   const signature = (e: EvalEpisodeResult) => JSON.stringify([
     e.task_id, e.task_fingerprint, e.verifier_sha256, e.model, e.harness,

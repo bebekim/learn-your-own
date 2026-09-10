@@ -1,5 +1,6 @@
 import { bridgeSessionOnEnd } from '../lyo/bridge/session-bridge.ts';
 import { resolveSessionLessonStorePath } from '../lyo/selection/session-hook.ts';
+import { observeSessionFindings } from '../lyo/selection/session-finding-workflow.ts';
 import {
   claudeHookObservation,
   emptyClaudeHookOutput,
@@ -83,7 +84,9 @@ export function spoolCodexHookEvent(event: CodexHookInput, options: HookSpoolOpt
     promptDir: options.promptDir,
     includeRawPrompt: false,
   });
-  return spoolHookObservation(observation, options);
+  const record = spoolHookObservation(observation, options);
+  captureLiveFindings(observation);
+  return record;
 }
 
 export function spoolClaudeHookEvent(event: ClaudeHookInput, options: HookSpoolOptions): HookSpoolRecord {
@@ -91,7 +94,9 @@ export function spoolClaudeHookEvent(event: ClaudeHookInput, options: HookSpoolO
     promptDir: options.promptDir,
     includeRawPrompt: false,
   });
-  return spoolHookObservation(observation, options);
+  const record = spoolHookObservation(observation, options);
+  captureLiveFindings(observation);
+  return record;
 }
 
 export function drainHookSpool(kernel: LearningKernel, input: DrainHookSpoolInput): DrainHookSpoolResult {
@@ -122,6 +127,7 @@ export function handleCodexHook(
   const { sessionId, turnId } = observation;
 
   persistHookObservation(kernel, observation);
+  captureLiveFindings(observation);
   maybeNormalizeHookEvent(kernel, eventName, options, CODEX_NORMALIZATION_POLICY);
 
   if (!['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse'].includes(eventName)) {
@@ -160,6 +166,7 @@ export function handleClaudeHook(
   const eventName = observation.runtimeEventName;
 
   persistHookObservation(kernel, observation);
+  captureLiveFindings(observation);
   maybeNormalizeHookEvent(kernel, eventName, options, CLAUDE_NORMALIZATION_POLICY);
 
   return emptyClaudeHookOutput();
@@ -167,6 +174,11 @@ export function handleClaudeHook(
 
 function ingestHookSpoolPacket(kernel: LearningKernel, packet: HookSpoolPacket): void {
   persistHookObservation(kernel, packet);
+}
+
+function captureLiveFindings(observation: HookObservation): void {
+  try { observeSessionFindings(observation, resolveSessionLessonStorePath(observation.cwd)); }
+  catch (error) { process.stderr.write(`Lyo finding capture: ${error instanceof Error ? error.message : String(error)}\n`); }
 }
 
 function persistHookObservation(

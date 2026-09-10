@@ -1,0 +1,27 @@
+{
+  "ok": true,
+  "policy": {
+    "controllerId": "069f9316fa2e37b6802af4b89e4df9a86a50fa763d3e589c3d096ce70c694225",
+    "stateHash": "8b970fd861a526ca83b86a7f33ba5af62c2b1936f84851213c74c17c40e6480d",
+    "revision": 4,
+    "training": {
+      "episodes": 4,
+      "unknownOutcomes": 0,
+      "totalTokens": 1339042,
+      "wallTimeMs": 508956
+    },
+    "evidenceRefs": [
+      "task-receipt:pilot-20260909-train-cost",
+      "task-receipt:pilot-20260909-train-command",
+      "task-receipt:pilot-20260909-train-identity",
+      "task-receipt:pilot-20260909-train-arrays"
+    ],
+    "trainingTaskFingerprints": [
+      "c76ad7cdb0d41fa87f815a5739772415cd6c4f6c282435680f9af6db48696f19",
+      "8bc74bea2429fd38906bdffb057c3142f06078f37a967ac0cb5b215af0d22ee5",
+      "b0a968268a4ada6d979ae1d630f2d95f38ba0e01713978fd80b9ad3a97ac20c7",
+      "0f4bf37f2623bdbe6dee251bc2e2df1215da4125139be15dfaf1c3dec42e774b"
+    ],
+    "id": "34477883e11da6729de5558e0ec904152c4b874b88201c69a4f2adbd83b43979"
+  }
+}

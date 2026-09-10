@@ -1,0 +1,32 @@
+{
+  "database": "/Users/marcus.kim/.lyo/corpus.sqlite",
+  "snapshotSha256": "90bcc9378a407e4572de6d4765636e09e790f2ea734370eb9495ebed18d23feb",
+  "recorded": [
+    {
+      "traceId": "real-task-observation:20260910:mlops-link-check-false-positive",
+      "createdAt": "2026-09-10T03:37:36.919Z",
+      "payloadSha256": "89775190d9a90d9cf4c109800652f8021840b19956c20500c166b775e39868a1"
+    },
+    {
+      "traceId": "real-task-observation:20260910:mlops-corrected-link-check",
+      "createdAt": "2026-09-10T03:37:37.086Z",
+      "payloadSha256": "d154eb068d1bbad74bb9b1ceefdd294633c15aea21c778cdbb26de64dd85a90b"
+    },
+    {
+      "traceId": "real-task-observation:20260910:mlops-unsupported-type-check",
+      "createdAt": "2026-09-10T03:37:37.245Z",
+      "payloadSha256": "87a51c292bc50d4eb0ee114697bca2ea6e1ce8472eff2100ad6e5a68f0c3d5cd"
+    },
+    {
+      "traceId": "real-task-observation:20260910:data-engineering-full-suite-failure",
+      "createdAt": "2026-09-10T03:37:37.408Z",
+      "payloadSha256": "5c3897639c0759d35d74eea1ddd5fe9b663f46d6bac41311955e0a3d3f67c20e"
+    },
+    {
+      "traceId": "real-task-observation:20260910:data-engineering-subset-pass",
+      "createdAt": "2026-09-10T03:37:37.575Z",
+      "payloadSha256": "0ad2b58968fa618eda77e05827f8c4ca555526b793cc76bb054fbc20beb0b842"
+    }
+  ],
+  "learningCreditChanged": false
+}

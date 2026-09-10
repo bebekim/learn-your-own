@@ -1,0 +1,36 @@
+{
+  "node": "24.15.0",
+  "tests": {
+    "total": 608,
+    "passed": 607,
+    "failed": 0,
+    "skipped": 1,
+    "skipReason": "localhost bind unavailable in local sandbox"
+  },
+  "typecheck": "passed",
+  "opcore": {
+    "status": "ok",
+    "warnings": 12,
+    "errors": 0,
+    "command": [
+      "check",
+      "--changed",
+      "--base",
+      "main",
+      "--json"
+    ]
+  },
+  "realTaskAttempts": 8,
+  "receiptAndTraceVerification": "passed",
+  "isolatedLedgerReplay": "exact report and frozen policy reproduced",
+  "localInstalledVersion": "0.4.3-adaptive.1",
+  "installedRuntimeMatchesPilot": true,
+  "hookConfigurationHashesUnchanged": true,
+  "finalPackageSHA256": "c45a8a666ccbefd81b97ed5412b1e03aa5b3b7fb4fc0cf6db95934109dab1320",
+  "registryPublished": false,
+  "userWorkPreserved": {
+    "staged": true,
+    "unstaged": true,
+    "untracked": true
+  }
+}

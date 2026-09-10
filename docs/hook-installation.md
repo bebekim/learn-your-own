@@ -6,7 +6,7 @@ Build and install the same artifact you tested:
 rtk npm test
 rtk npm run typecheck
 rtk npm run pack:local
-rtk npm install -g ./dist/lyo-kernel-0.4.1.tgz
+rtk npm install -g ./dist/lyo-kernel-0.4.3-adaptive.4.tgz
 ```
 
 Use one Node 24+ installation for both npm and the hooks. GUI applications may
@@ -124,3 +124,18 @@ against the installed Shell 2.0.2 bundle; its Stop behavior is more limited than
 the documentation's description of an ended session.
 `tests/package.test.ts` exercises npm-style symlinks and the compiled learning loop
 with isolated ledgers; it never populates the user's lesson library.
+
+## Finding feedback in ordinary sessions
+
+The `0.4.3-adaptive.4` CLI captures declared finding actions synchronously at
+Codex/Claude PreToolUse and PostToolUse boundaries, before spool replay. It measures
+and assesses them using the registered evaluator and attributed semantic review.
+The paired session hook surfaces pending reviews and reads current validity, so
+CLI and delivery must use the same package and delivery store. No SessionEnd is
+needed. See [input contracts and recovery](scoped-session-findings.md).
+
+Exact tool-call binding follows [Codex hooks](https://learn.chatgpt.com/docs/hooks)
+and [Claude hooks](https://code.claude.com/docs/en/hooks), checked 2026-09-10.
+Review prompts prove delivery only. The user/agent still declares a relevant
+opportunity and reviews what its evaluator means; no background model invents
+semantic judgments.

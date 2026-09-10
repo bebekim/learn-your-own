@@ -1,0 +1,19 @@
+{
+  "kind": "post-hoc-verifier-coverage-audit",
+  "codePoint": "U+0085",
+  "unicodeWhiteSpace": true,
+  "trimmedLength": 1,
+  "registeredVerifierIncludedCase": false,
+  "results": {
+    "baseline": {
+      "isbn": false,
+      "title": false,
+      "author": false
+    },
+    "learned": {
+      "isbn": true,
+      "title": true,
+      "author": true
+    }
+  }
+}

@@ -1,0 +1,529 @@
+{
+  "packageRoot": "/Users/marcus.kim/.nvm/versions/node/v24.15.0/lib/node_modules/lyo-kernel",
+  "version": "0.4.3-adaptive.4",
+  "installed": true,
+  "checks": [
+    {
+      "host": "codex",
+      "version": "0.4.3-adaptive.4",
+      "configuredCommands": true,
+      "configHash": "ab3cb3239546d1aec203ac73cbf356214b48200ce2428f4cca76417eaf20f57d",
+      "capture": "/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node /Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/lyo codex-hook --db-from-event-cwd --spool-dir-from-event-cwd --prompt-dir-from-event-cwd",
+      "deliver": "/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node /Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/lyo-session-hook",
+      "pairedAction": true,
+      "automaticAssessment": true,
+      "duplicateReviews": 0,
+      "nextDeliverySuppressed": true,
+      "immediateReviewPrompt": true,
+      "nextReviewPrompt": true,
+      "evidence": {
+        "id": "finding-evidence:rollout-codex",
+        "hash": "426a569d0c2c002b77bc614eb7e32216e355dda69fce9394023f717a7488decd",
+        "withdrawn": false,
+        "opportunityId": "rollout-codex",
+        "opportunity": {
+          "input": {
+            "capture": {
+              "runtime": "codex",
+              "toolName": "Bash",
+              "toolInput": {
+                "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' -e 'require('\\''fs'\\'').writeFileSync(\"/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/state.json\", JSON.stringify({applicable:true,followed:true,predicted:false}))'"
+              }
+            },
+            "id": "rollout-codex",
+            "findingId": "finding:rollout-codex",
+            "deliveryId": "session-delivery:isolated-rollout-codex",
+            "taskId": "rollout-codex",
+            "cwd": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY",
+            "claim": {
+              "kind": "deterministic",
+              "conditions": "This isolated fixture applies.",
+              "action": "For this fixture, set followed to true; the declared prediction must also hold.",
+              "prediction": "The fixture predicted flag is true.",
+              "falsifiedBy": "The fixture flag is explicitly false."
+            },
+            "checks": {
+              "applicability": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/check.mjs' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/state.json' applicable",
+              "adherence": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/check.mjs' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/state.json' followed",
+              "prediction": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/check.mjs' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/state.json' predicted"
+            },
+            "verifierFiles": [
+              "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/check.mjs"
+            ],
+            "sourceFiles": [
+              "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/state.json"
+            ],
+            "evaluator": {
+              "id": "fixture",
+              "version": "1"
+            },
+            "timeoutSeconds": 5
+          },
+          "version": "02bf4582f3c198ff813c816691668314aec879e9cff0dea097aa9fb38d6407ff",
+          "context": {
+            "repository": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY",
+            "activity": "transfer-review",
+            "match": "activity"
+          },
+          "sessionId": "isolated-rollout-codex",
+          "verifierFiles": [
+            {
+              "path": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/check.mjs",
+              "content": "aW1wb3J0IGZzIGZyb20gJ25vZGU6ZnMnOyBjb25zb2xlLmxvZyhKU09OLnN0cmluZ2lmeSh7c2F0aXNmaWVkOkpTT04ucGFyc2UoZnMucmVhZEZpbGVTeW5jKHByb2Nlc3MuYXJndlsyXSwndXRmOCcpKVtwcm9jZXNzLmFyZ3ZbM11dfSkpOw=="
+            }
+          ],
+          "sourceBefore": [
+            {
+              "path": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/state.json",
+              "content": "eyJhcHBsaWNhYmxlIjp0cnVlLCJmb2xsb3dlZCI6ZmFsc2UsInByZWRpY3RlZCI6ZmFsc2V9"
+            }
+          ],
+          "applicability": {
+            "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/check.mjs' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/state.json' applicable",
+            "exit_code": 0,
+            "stdout": "{\"satisfied\":true}\n",
+            "stderr": "",
+            "satisfied": true
+          },
+          "adherenceBefore": {
+            "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/check.mjs' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/state.json' followed",
+            "exit_code": 0,
+            "stdout": "{\"satisfied\":false}\n",
+            "stderr": "",
+            "satisfied": false
+          },
+          "problems": []
+        },
+        "measurement": {
+          "opportunityId": "rollout-codex",
+          "opportunityHash": "45000633e7e05e1d08de63c656d7d014a6f4fb74f355d15834ecda6468d75e0b",
+          "sourceMeasured": [
+            {
+              "path": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/state.json",
+              "content": "eyJhcHBsaWNhYmxlIjp0cnVlLCJmb2xsb3dlZCI6dHJ1ZSwicHJlZGljdGVkIjpmYWxzZX0="
+            }
+          ],
+          "adherence": {
+            "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/check.mjs' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/state.json' followed",
+            "exit_code": 0,
+            "stdout": "{\"satisfied\":true}\n",
+            "stderr": "",
+            "satisfied": true
+          },
+          "prediction": {
+            "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/check.mjs' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/state.json' predicted",
+            "exit_code": 0,
+            "stdout": "{\"satisfied\":false}\n",
+            "stderr": "",
+            "satisfied": false
+          },
+          "problems": []
+        },
+        "semantics": {
+          "id": "rollout-codex-semantics",
+          "opportunityId": "rollout-codex",
+          "reviewer": {
+            "id": "rollout-fixture",
+            "kind": "agent"
+          },
+          "verdict": "accepted",
+          "claimKind": "deterministic",
+          "applicability": {
+            "rationale": "The retained verifier reads the named fixture boolean. This exercises the contract, not semantic generalization.",
+            "verifierPaths": [
+              "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/check.mjs"
+            ]
+          },
+          "adherence": {
+            "rationale": "The retained verifier reads the named fixture boolean. This exercises the contract, not semantic generalization.",
+            "verifierPaths": [
+              "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/check.mjs"
+            ]
+          },
+          "prediction": {
+            "rationale": "The retained verifier reads the named fixture boolean. This exercises the contract, not semantic generalization.",
+            "verifierPaths": [
+              "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/check.mjs"
+            ]
+          },
+          "limitations": "Synthetic deterministic fixture only; no real-world usefulness or independent review claimed.",
+          "source": "session-finding-semantics@1",
+          "opportunityHash": "45000633e7e05e1d08de63c656d7d014a6f4fb74f355d15834ecda6468d75e0b",
+          "hash": "25b3803cfc0291238307ddbb62a4c89894b063a02464cb3a06116de1b6392421"
+        },
+        "action": {
+          "before": {
+            "source": "session-finding-action@1",
+            "opportunityId": "rollout-codex",
+            "opportunityHash": "45000633e7e05e1d08de63c656d7d014a6f4fb74f355d15834ecda6468d75e0b",
+            "eventId": "hook-3a676fba5da3c836920505e3",
+            "runtime": "codex",
+            "sessionId": "isolated-rollout-codex",
+            "cwd": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY",
+            "toolUseId": "rollout-codex-call",
+            "toolName": "Bash",
+            "toolInputHash": "ac63974dbcf9aa35fa564a66f4f159c7f772e0837aa33d481eb61f2dffcc85c1",
+            "eventName": "PreToolUse",
+            "sourceFiles": [
+              {
+                "path": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/state.json",
+                "content": "eyJhcHBsaWNhYmxlIjp0cnVlLCJmb2xsb3dlZCI6ZmFsc2UsInByZWRpY3RlZCI6ZmFsc2V9"
+              }
+            ],
+            "verifierFiles": [
+              {
+                "path": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/check.mjs",
+                "content": "aW1wb3J0IGZzIGZyb20gJ25vZGU6ZnMnOyBjb25zb2xlLmxvZyhKU09OLnN0cmluZ2lmeSh7c2F0aXNmaWVkOkpTT04ucGFyc2UoZnMucmVhZEZpbGVTeW5jKHByb2Nlc3MuYXJndlsyXSwndXRmOCcpKVtwcm9jZXNzLmFyZ3ZbM11dfSkpOw=="
+              }
+            ],
+            "responseHash": null,
+            "hash": "78a9b786de333163ee36ecb6f8dceeb14204702b364d4fef1c887eade5e7de9c",
+            "rowid": 5
+          },
+          "after": {
+            "source": "session-finding-action@1",
+            "opportunityId": "rollout-codex",
+            "opportunityHash": "45000633e7e05e1d08de63c656d7d014a6f4fb74f355d15834ecda6468d75e0b",
+            "eventId": "hook-0647da29b34aef0b61861ab1",
+            "runtime": "codex",
+            "sessionId": "isolated-rollout-codex",
+            "cwd": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY",
+            "toolUseId": "rollout-codex-call",
+            "toolName": "Bash",
+            "toolInputHash": "ac63974dbcf9aa35fa564a66f4f159c7f772e0837aa33d481eb61f2dffcc85c1",
+            "eventName": "PostToolUse",
+            "sourceFiles": [
+              {
+                "path": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/state.json",
+                "content": "eyJhcHBsaWNhYmxlIjp0cnVlLCJmb2xsb3dlZCI6dHJ1ZSwicHJlZGljdGVkIjpmYWxzZX0="
+              }
+            ],
+            "verifierFiles": [
+              {
+                "path": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/check.mjs",
+                "content": "aW1wb3J0IGZzIGZyb20gJ25vZGU6ZnMnOyBjb25zb2xlLmxvZyhKU09OLnN0cmluZ2lmeSh7c2F0aXNmaWVkOkpTT04ucGFyc2UoZnMucmVhZEZpbGVTeW5jKHByb2Nlc3MuYXJndlsyXSwndXRmOCcpKVtwcm9jZXNzLmFyZ3ZbM11dfSkpOw=="
+              }
+            ],
+            "responseHash": "fdb30379f3ac5c28607d13bb96a3a851d78e3a5a12e9264aaf29536d3031aea5",
+            "hash": "30b120dcbb11a812bc6cc3ee826d12072170ff640352337de0b0650bb1fe77e9",
+            "rowid": 6
+          },
+          "problems": [],
+          "hash": "4b7a52423f10b200b5aae925ec11dd3b7ebfba3af137d68520cc4620b6fe5eb0"
+        },
+        "observationId": "9c44e4f9016f917c620f1260c42a451de5886d2a41939b4ad24f039f050a0094",
+        "incrementalBenefit": "unknown",
+        "applicability": "applicable",
+        "adherence": "followed",
+        "outcome": "contradicted"
+      },
+      "delivery": {
+        "cwd": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY",
+        "promptHash": "ae45d61bd9737642119275f67817fb185f29a864e333e932f87e316c00082645",
+        "lessons": [],
+        "findings": [
+          {
+            "source": "session-finding@1",
+            "gitCommonDir": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY/fixture.git",
+            "activity": "transfer-review",
+            "observation": "Synthetic lifecycle fixture, not a learned benefit.",
+            "evidenceRef": "fixture:rollout",
+            "intervention": "For this fixture, set followed to true; the declared prediction must also hold.",
+            "id": "finding:rollout-codex",
+            "version": "02bf4582f3c198ff813c816691668314aec879e9cff0dea097aa9fb38d6407ff",
+            "context": {
+              "repository": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY",
+              "activity": "transfer-review",
+              "match": "activity"
+            },
+            "supporting": 0
+          }
+        ],
+        "evidenceKind": "delivery-only"
+      },
+      "feedback": {
+        "id": "review-69f722651ea5f09a4245",
+        "findingId": "finding:rollout-codex",
+        "deliveryId": "session-delivery:isolated-rollout-codex",
+        "applicability": "applicable",
+        "adherence": "followed",
+        "outcome": "contradicted",
+        "verifier": "fixture@1",
+        "evidenceRef": "finding-evidence:rollout-codex",
+        "rationale": "Automatic assessment of retained registered checks and live action boundaries; semantic judgment is attributed separately. Incremental benefit remains unknown.",
+        "source": "session-finding-feedback@2",
+        "version": "02bf4582f3c198ff813c816691668314aec879e9cff0dea097aa9fb38d6407ff",
+        "context": {
+          "repository": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-codex-dOLzZY",
+          "activity": "transfer-review",
+          "match": "activity"
+        },
+        "opportunityId": "rollout-codex",
+        "observationId": "9c44e4f9016f917c620f1260c42a451de5886d2a41939b4ad24f039f050a0094",
+        "evidenceHash": "426a569d0c2c002b77bc614eb7e32216e355dda69fce9394023f717a7488decd"
+      },
+      "realUsefulnessEstablished": false
+    },
+    {
+      "host": "claude",
+      "version": "0.4.3-adaptive.4",
+      "configuredCommands": true,
+      "configHash": "aff1f37b52d93653783b2d83332086b6f7fc9c6c5fd4a15a080b2cac09c58b9c",
+      "capture": "/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node /Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/lyo claude-hook --db-from-event-cwd --spool-dir-from-event-cwd",
+      "deliver": "/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node /Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/lyo-session-hook",
+      "pairedAction": true,
+      "automaticAssessment": true,
+      "duplicateReviews": 0,
+      "nextDeliverySuppressed": true,
+      "immediateReviewPrompt": true,
+      "nextReviewPrompt": true,
+      "evidence": {
+        "id": "finding-evidence:rollout-claude",
+        "hash": "94cf3f3678d5efad0fbf1598b80d590f3466891cceef1dd50f45f58c090602a7",
+        "withdrawn": false,
+        "opportunityId": "rollout-claude",
+        "opportunity": {
+          "input": {
+            "capture": {
+              "runtime": "claude",
+              "toolName": "Bash",
+              "toolInput": {
+                "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' -e 'require('\\''fs'\\'').writeFileSync(\"/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/state.json\", JSON.stringify({applicable:true,followed:true,predicted:false}))'"
+              }
+            },
+            "id": "rollout-claude",
+            "findingId": "finding:rollout-claude",
+            "deliveryId": "session-delivery:isolated-rollout-claude",
+            "taskId": "rollout-claude",
+            "cwd": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR",
+            "claim": {
+              "kind": "deterministic",
+              "conditions": "This isolated fixture applies.",
+              "action": "For this fixture, set followed to true; the declared prediction must also hold.",
+              "prediction": "The fixture predicted flag is true.",
+              "falsifiedBy": "The fixture flag is explicitly false."
+            },
+            "checks": {
+              "applicability": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/check.mjs' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/state.json' applicable",
+              "adherence": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/check.mjs' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/state.json' followed",
+              "prediction": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/check.mjs' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/state.json' predicted"
+            },
+            "verifierFiles": [
+              "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/check.mjs"
+            ],
+            "sourceFiles": [
+              "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/state.json"
+            ],
+            "evaluator": {
+              "id": "fixture",
+              "version": "1"
+            },
+            "timeoutSeconds": 5
+          },
+          "version": "e8625ae26dd8134539bfab3b43beab56b7fe2c64b114d571de9c044edcf40a15",
+          "context": {
+            "repository": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR",
+            "activity": "transfer-review",
+            "match": "activity"
+          },
+          "sessionId": "isolated-rollout-claude",
+          "verifierFiles": [
+            {
+              "path": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/check.mjs",
+              "content": "aW1wb3J0IGZzIGZyb20gJ25vZGU6ZnMnOyBjb25zb2xlLmxvZyhKU09OLnN0cmluZ2lmeSh7c2F0aXNmaWVkOkpTT04ucGFyc2UoZnMucmVhZEZpbGVTeW5jKHByb2Nlc3MuYXJndlsyXSwndXRmOCcpKVtwcm9jZXNzLmFyZ3ZbM11dfSkpOw=="
+            }
+          ],
+          "sourceBefore": [
+            {
+              "path": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/state.json",
+              "content": "eyJhcHBsaWNhYmxlIjp0cnVlLCJmb2xsb3dlZCI6ZmFsc2UsInByZWRpY3RlZCI6ZmFsc2V9"
+            }
+          ],
+          "applicability": {
+            "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/check.mjs' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/state.json' applicable",
+            "exit_code": 0,
+            "stdout": "{\"satisfied\":true}\n",
+            "stderr": "",
+            "satisfied": true
+          },
+          "adherenceBefore": {
+            "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/check.mjs' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/state.json' followed",
+            "exit_code": 0,
+            "stdout": "{\"satisfied\":false}\n",
+            "stderr": "",
+            "satisfied": false
+          },
+          "problems": []
+        },
+        "measurement": {
+          "opportunityId": "rollout-claude",
+          "opportunityHash": "bf83fd2d6c618808b4a72f242a36b8d9b3a9aec9ae8ca2f55b3f7bd6b346295d",
+          "sourceMeasured": [
+            {
+              "path": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/state.json",
+              "content": "eyJhcHBsaWNhYmxlIjp0cnVlLCJmb2xsb3dlZCI6dHJ1ZSwicHJlZGljdGVkIjpmYWxzZX0="
+            }
+          ],
+          "adherence": {
+            "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/check.mjs' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/state.json' followed",
+            "exit_code": 0,
+            "stdout": "{\"satisfied\":true}\n",
+            "stderr": "",
+            "satisfied": true
+          },
+          "prediction": {
+            "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/check.mjs' '/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/state.json' predicted",
+            "exit_code": 0,
+            "stdout": "{\"satisfied\":false}\n",
+            "stderr": "",
+            "satisfied": false
+          },
+          "problems": []
+        },
+        "semantics": {
+          "id": "rollout-claude-semantics",
+          "opportunityId": "rollout-claude",
+          "reviewer": {
+            "id": "rollout-fixture",
+            "kind": "agent"
+          },
+          "verdict": "accepted",
+          "claimKind": "deterministic",
+          "applicability": {
+            "rationale": "The retained verifier reads the named fixture boolean. This exercises the contract, not semantic generalization.",
+            "verifierPaths": [
+              "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/check.mjs"
+            ]
+          },
+          "adherence": {
+            "rationale": "The retained verifier reads the named fixture boolean. This exercises the contract, not semantic generalization.",
+            "verifierPaths": [
+              "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/check.mjs"
+            ]
+          },
+          "prediction": {
+            "rationale": "The retained verifier reads the named fixture boolean. This exercises the contract, not semantic generalization.",
+            "verifierPaths": [
+              "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/check.mjs"
+            ]
+          },
+          "limitations": "Synthetic deterministic fixture only; no real-world usefulness or independent review claimed.",
+          "source": "session-finding-semantics@1",
+          "opportunityHash": "bf83fd2d6c618808b4a72f242a36b8d9b3a9aec9ae8ca2f55b3f7bd6b346295d",
+          "hash": "708b0158babacf570a333274057b105d9f54cc60e2e1e3dba2d789d17a034ede"
+        },
+        "action": {
+          "before": {
+            "source": "session-finding-action@1",
+            "opportunityId": "rollout-claude",
+            "opportunityHash": "bf83fd2d6c618808b4a72f242a36b8d9b3a9aec9ae8ca2f55b3f7bd6b346295d",
+            "eventId": "hook-2f7b4475c82b44b5abea6a28",
+            "runtime": "claude",
+            "sessionId": "isolated-rollout-claude",
+            "cwd": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR",
+            "toolUseId": "rollout-claude-call",
+            "toolName": "Bash",
+            "toolInputHash": "70f2f66a1c529f71f0243e1c1a0eb51b1b90cccdd2c44dff026f315695165774",
+            "eventName": "PreToolUse",
+            "sourceFiles": [
+              {
+                "path": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/state.json",
+                "content": "eyJhcHBsaWNhYmxlIjp0cnVlLCJmb2xsb3dlZCI6ZmFsc2UsInByZWRpY3RlZCI6ZmFsc2V9"
+              }
+            ],
+            "verifierFiles": [
+              {
+                "path": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/check.mjs",
+                "content": "aW1wb3J0IGZzIGZyb20gJ25vZGU6ZnMnOyBjb25zb2xlLmxvZyhKU09OLnN0cmluZ2lmeSh7c2F0aXNmaWVkOkpTT04ucGFyc2UoZnMucmVhZEZpbGVTeW5jKHByb2Nlc3MuYXJndlsyXSwndXRmOCcpKVtwcm9jZXNzLmFyZ3ZbM11dfSkpOw=="
+              }
+            ],
+            "responseHash": null,
+            "hash": "3e6b244dab697bb1248a517d487293892e56a9ea4205d2ba0f9440b841c21e86",
+            "rowid": 5
+          },
+          "after": {
+            "source": "session-finding-action@1",
+            "opportunityId": "rollout-claude",
+            "opportunityHash": "bf83fd2d6c618808b4a72f242a36b8d9b3a9aec9ae8ca2f55b3f7bd6b346295d",
+            "eventId": "hook-362c7cf2bb6d02a8e6eb894c",
+            "runtime": "claude",
+            "sessionId": "isolated-rollout-claude",
+            "cwd": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR",
+            "toolUseId": "rollout-claude-call",
+            "toolName": "Bash",
+            "toolInputHash": "70f2f66a1c529f71f0243e1c1a0eb51b1b90cccdd2c44dff026f315695165774",
+            "eventName": "PostToolUse",
+            "sourceFiles": [
+              {
+                "path": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/state.json",
+                "content": "eyJhcHBsaWNhYmxlIjp0cnVlLCJmb2xsb3dlZCI6dHJ1ZSwicHJlZGljdGVkIjpmYWxzZX0="
+              }
+            ],
+            "verifierFiles": [
+              {
+                "path": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/check.mjs",
+                "content": "aW1wb3J0IGZzIGZyb20gJ25vZGU6ZnMnOyBjb25zb2xlLmxvZyhKU09OLnN0cmluZ2lmeSh7c2F0aXNmaWVkOkpTT04ucGFyc2UoZnMucmVhZEZpbGVTeW5jKHByb2Nlc3MuYXJndlsyXSwndXRmOCcpKVtwcm9jZXNzLmFyZ3ZbM11dfSkpOw=="
+              }
+            ],
+            "responseHash": "fdb30379f3ac5c28607d13bb96a3a851d78e3a5a12e9264aaf29536d3031aea5",
+            "hash": "893179efc68e0e53184659717b0a6cfa44cf0287d9c218ce7b690e10d3e31b21",
+            "rowid": 6
+          },
+          "problems": [],
+          "hash": "bb602388da0758ebdd7504d717287c98812a4379bc023e9c4a401292a12e8c87"
+        },
+        "observationId": "79ab5ca271a3d37dd87c6054f9073a6e34fb7df55f277de32b85371cfe905313",
+        "incrementalBenefit": "unknown",
+        "applicability": "applicable",
+        "adherence": "followed",
+        "outcome": "contradicted"
+      },
+      "delivery": {
+        "cwd": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR",
+        "promptHash": "ae45d61bd9737642119275f67817fb185f29a864e333e932f87e316c00082645",
+        "lessons": [],
+        "findings": [
+          {
+            "source": "session-finding@1",
+            "gitCommonDir": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR/fixture.git",
+            "activity": "transfer-review",
+            "observation": "Synthetic lifecycle fixture, not a learned benefit.",
+            "evidenceRef": "fixture:rollout",
+            "intervention": "For this fixture, set followed to true; the declared prediction must also hold.",
+            "id": "finding:rollout-claude",
+            "version": "e8625ae26dd8134539bfab3b43beab56b7fe2c64b114d571de9c044edcf40a15",
+            "context": {
+              "repository": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR",
+              "activity": "transfer-review",
+              "match": "activity"
+            },
+            "supporting": 0
+          }
+        ],
+        "evidenceKind": "delivery-only"
+      },
+      "feedback": {
+        "id": "review-d22431c9aefb81e80728",
+        "findingId": "finding:rollout-claude",
+        "deliveryId": "session-delivery:isolated-rollout-claude",
+        "applicability": "applicable",
+        "adherence": "followed",
+        "outcome": "contradicted",
+        "verifier": "fixture@1",
+        "evidenceRef": "finding-evidence:rollout-claude",
+        "rationale": "Automatic assessment of retained registered checks and live action boundaries; semantic judgment is attributed separately. Incremental benefit remains unknown.",
+        "source": "session-finding-feedback@2",
+        "version": "e8625ae26dd8134539bfab3b43beab56b7fe2c64b114d571de9c044edcf40a15",
+        "context": {
+          "repository": "/private/var/folders/v6/h3bwg6xs5f73x2jhcqrfc_g40000gn/T/lyo-rollout-claude-Cq7DKR",
+          "activity": "transfer-review",
+          "match": "activity"
+        },
+        "opportunityId": "rollout-claude",
+        "observationId": "79ab5ca271a3d37dd87c6054f9073a6e34fb7df55f277de32b85371cfe905313",
+        "evidenceHash": "94cf3f3678d5efad0fbf1598b80d590f3466891cceef1dd50f45f58c090602a7"
+      },
+      "realUsefulnessEstablished": false
+    }
+  ]
+}

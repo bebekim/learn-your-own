@@ -1,0 +1,49 @@
+{
+  "baseCommit": "c3f85fa",
+  "node": "v24.15.0",
+  "tests": {
+    "command": "npm test",
+    "total": 614,
+    "passed": 613,
+    "failed": 0,
+    "skipped": 1,
+    "skipReason": "localhost bind unavailable in sandbox"
+  },
+  "typecheck": {
+    "command": "npm run typecheck",
+    "passed": true
+  },
+  "build": {
+    "command": "npm run build:npm",
+    "passed": true
+  },
+  "opcore": {
+    "command": "opcore check --changed --json",
+    "status": "passed",
+    "diagnostics": [
+      {
+        "category": "policy",
+        "severity": "warning",
+        "path": "src/lyo/control/task-intervention.ts",
+        "code": "TS_FUNCTION_COMPLEXITY",
+        "message": "TypeScript function retainTaskIntervention has cyclomatic complexity 16; max is 10."
+      }
+    ]
+  },
+  "evidenceReplay": {
+    "command": "node evidence/native-task-intervention-2026-09-10/replay.mjs",
+    "passed": true,
+    "output": "Verified retained provenance and costs; local replay reproduces fail/pass/same-fail/pass. No model request was made."
+  },
+  "logHashes": {
+    "fenced-red.log": "bad90fe73a91ecb4e0982d1d86dacdd4cdf571a342db7888df7ae76db71a3839",
+    "fenced-green.log": "f8f601237913280500fe7c1a0e1d7531d726e18cbf9cd426ffadf87346c0caaa",
+    "recheck-red.log": "2b1622f425bec4de940c8d0b8c44b73a60e907ca9519a7e211adc4fc735bc4da",
+    "recheck-green.log": "40247628d4beb7ae89741a24c09a836367bac08fafbe13da08913be7de73812f",
+    "full-tests.log": "f9533ace101b8a26deac740db5cf4feb744042f20f8e0d5e8c2eb68a74dca332",
+    "typecheck.log": "08f3dbdf0a4e299f0bcbe8b2ca93f8b1f43c9bbcb772a93061bc80dc9d1b63ee",
+    "build.log": "dd81b061acca0a406606202bdb92d2c65823f28676e1731f4088ba07afde156f",
+    "opcore-final.json": "02367bb8b2073048207484497acc2a0113cc3868c627e65893b2e1c12af5c524",
+    "evidence-replay.log": "165c2c9f57962b7a9fb6856bea7bf745d31c05cad966479e78ad5893f946023b"
+  }
+}

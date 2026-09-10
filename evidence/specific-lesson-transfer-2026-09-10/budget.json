@@ -1,0 +1,5 @@
+{
+  "max_turns": 10,
+  "max_wall_time_seconds": 180,
+  "max_tokens": 100000
+}

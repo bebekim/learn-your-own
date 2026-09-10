@@ -1,0 +1,26 @@
+{
+  "kind": "candidate-trial",
+  "interventionId": "77b7d36b8d920fa091db94920f615ad9bd589de3a615361cb03b8a72254d6de4",
+  "controllerId": "efa191942d7ed2fb40e4a4a7f00aa2446fc22e4dba019a57a6dd086f7c15d59e",
+  "stateHash": "90dc8f48a93ff786ff57fcd269f690eb8164ccd9578411ef87f711afb0308a3a",
+  "revision": 0,
+  "evaluationBudget": {
+    "max_turns": 10,
+    "max_wall_time_seconds": 180,
+    "max_tokens": 100000
+  },
+  "training": {
+    "episodes": 1,
+    "unknownOutcomes": 0,
+    "totalTokens": 442269,
+    "wallTimeMs": 188576
+  },
+  "evidenceRefs": [
+    "task-receipt:pilot-20260909-train-command",
+    "task-intervention:77b7d36b8d920fa091db94920f615ad9bd589de3a615361cb03b8a72254d6de4"
+  ],
+  "trainingTaskFingerprints": [
+    "8bc74bea2429fd38906bdffb057c3142f06078f37a967ac0cb5b215af0d22ee5"
+  ],
+  "id": "a4eb087f4d2e9cbf395fffa6794d3e18d4e554f36aa3635f4ffeb711ff399a8b"
+}

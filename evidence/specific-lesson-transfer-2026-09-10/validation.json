@@ -1,0 +1,44 @@
+{
+  "fullSuite": {
+    "passed": 613,
+    "failed": 0,
+    "skipped": 1,
+    "note": "Before final null-budget guard; sandbox localhost skip"
+  },
+  "finalFocusedSuite": {
+    "passed": 6,
+    "failed": 0,
+    "redObserved": "Missing expected exception for null budget"
+  },
+  "typecheck": "passed",
+  "pack": "passed",
+  "offlineEvidenceCheck": "passed",
+  "opcore": {
+    "status": "passed",
+    "diagnostics": [
+      {
+        "category": "policy",
+        "severity": "warning",
+        "path": "src/cli/commands/control.ts",
+        "code": "TS_FUNCTION_COMPLEXITY",
+        "message": "TypeScript function <anonymous> has cyclomatic complexity 11; max is 10."
+      }
+    ]
+  },
+  "ripwire": {
+    "exitCode": 2,
+    "gatingFindings": 4,
+    "kind": "short-horizon-churn",
+    "symbols": [
+      "TaskFeedback",
+      "taskCommand",
+      "trial",
+      "usage"
+    ],
+    "disposition": "Retained conscious tradeoff; no suppressed checks"
+  },
+  "preservation": {
+    "mainUserChanges": "staged and unstaged binary diff hashes plus 26 untracked file hashes unchanged",
+    "sourceCheckout": "clean at original 3ce3438eba134cef4430dcecb6eadfce94b5a19a"
+  }
+}

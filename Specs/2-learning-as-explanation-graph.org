@@ -1,6 +1,12 @@
 * Learning As Explanation Graph
 
-This is the formal implementation target for Lyo's next learning layer.
+State: partial components; integrated graph runtime deferred (reviewed 2026-09-10).
+
+This is a longer-term design target, not the next required implementation step.
+The dry-run components listed below exist; deterministic telemetry-to-graph
+emission, persistent belief derivation and graph-driven artifact delivery remain
+open. The bounded native/task feedback path does not depend on this graph.
+See [[file:8-learning-evidence-loop.md][current learning acceptance]].
 
 The doctrine is:
 

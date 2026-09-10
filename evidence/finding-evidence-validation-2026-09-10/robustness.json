@@ -1,0 +1,93 @@
+{
+  "status": "passed",
+  "ok": true,
+  "errors": 0,
+  "warnings": 12,
+  "diagnostics": [
+    {
+      "category": "graph",
+      "severity": "warning",
+      "path": "dist/npm/package/src/cli/commands/init.js",
+      "code": "TS_IMPORT_GRAPH_MISSING_EDGE",
+      "message": "Missing IMPORTS_FROM graph edge for dist/npm/package/src/cli/commands/init.js -> dist/npm/package/src/ledger.js"
+    },
+    {
+      "category": "graph",
+      "severity": "warning",
+      "path": "dist/npm/package/src/cli/commands/init.js",
+      "code": "TS_IMPORT_GRAPH_MISSING_EDGE",
+      "message": "Missing IMPORTS_FROM graph edge for dist/npm/package/src/cli/commands/init.js -> dist/npm/package/src/schema.js"
+    },
+    {
+      "category": "graph",
+      "severity": "warning",
+      "path": "dist/npm/package/src/cli/commands/wrap.js",
+      "code": "TS_IMPORT_GRAPH_MISSING_EDGE",
+      "message": "Missing IMPORTS_FROM graph edge for dist/npm/package/src/cli/commands/wrap.js -> dist/npm/package/src/cli/commands/init.js"
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/cli/output.ts",
+      "code": "TS_FUNCTION_LINES",
+      "message": "TypeScript function usage has 104 lines; max is 80."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/lyo/selection/session-finding-evidence.ts",
+      "code": "TS_FUNCTION_COMPLEXITY",
+      "message": "TypeScript function opportunity has cyclomatic complexity 12; max is 10."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/lyo/selection/session-finding-evidence.ts",
+      "code": "TS_FUNCTION_COMPLEXITY",
+      "message": "TypeScript function registerFindingOpportunity has cyclomatic complexity 14; max is 10."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/lyo/selection/session-finding-evidence.ts",
+      "code": "TS_FUNCTION_COMPLEXITY",
+      "message": "TypeScript function resolveFindingEvidence has cyclomatic complexity 27; max is 10."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/lyo/selection/session-finding-evidence.ts",
+      "code": "TS_FUNCTION_PARAMS",
+      "message": "TypeScript function retain has 5 parameters; max is 4."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/lyo/selection/session-findings.ts",
+      "code": "TS_FUNCTION_COMPLEXITY",
+      "message": "TypeScript function checkedFeedback has cyclomatic complexity 12; max is 10."
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "src/lyo/selection/session-findings.ts",
+      "code": "TS_FUNCTION_COMPLEXITY",
+      "message": "TypeScript function recordFindingFeedback has cyclomatic complexity 23; max is 10."
+    },
+    {
+      "category": "graph",
+      "severity": "warning",
+      "path": "tests/package.test.ts",
+      "code": "TS_IMPORT_GRAPH_MISSING_EDGE",
+      "message": "Missing IMPORTS_FROM graph edge for tests/package.test.ts -> dist/npm/package/src/cli/commands/wrap.js"
+    },
+    {
+      "category": "policy",
+      "severity": "warning",
+      "path": "tests/package.test.ts",
+      "code": "TS_FUNCTION_LINES",
+      "message": "TypeScript function <anonymous> has 131 lines; max is 80."
+    }
+  ],
+  "fullReportSha256": "22f05db3b6432b46ad978d6fa2997b07264b5a3621a219808a9fd4e5d6ec4950"
+}

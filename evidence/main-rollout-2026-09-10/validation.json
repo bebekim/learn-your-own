@@ -1,0 +1,79 @@
+{
+  "version": "0.4.3-adaptive.5",
+  "baseMain": "5759cc857",
+  "mergeMode": "squash",
+  "tests": {
+    "command": "npm test -- --test-concurrency=2",
+    "exitCode": 0,
+    "total": 649,
+    "passed": 648,
+    "skipped": 1,
+    "failed": 0,
+    "skipReason": "sandbox does not permit localhost binds",
+    "log": {
+      "path": "/private/tmp/lyo-main-merge-tests-final.log",
+      "sha256": "329676673d094459e6a3c20dbe1ca7d92999347cc738065157894949160e4572"
+    }
+  },
+  "localhostTest": {
+    "command": "node --test tests/telemetry-server.test.js",
+    "exitCode": 0,
+    "passed": 1,
+    "skipped": 0,
+    "log": {
+      "path": "/private/tmp/lyo-main-merge-local-server.log",
+      "sha256": "e252c1507730e8521e9d2af7685d13e22769bc35225ddeaa89debf34831e79dd"
+    }
+  },
+  "typecheck": {
+    "command": "npm run typecheck",
+    "exitCode": 0,
+    "expandedTo": [
+      "tests/eval-report.test.ts",
+      "tests/native-feedback.test.ts"
+    ],
+    "log": {
+      "path": "/private/tmp/lyo-main-merge-types-green.log",
+      "sha256": "a998eccc888d978322a64c67352744bb9755ef7cbf43b384ed87e332440c63c3"
+    }
+  },
+  "robustness": {
+    "command": "opcore check --changed --base main --json",
+    "exitCode": 1,
+    "status": "unsupported Python type-checker authority for archived evidence script",
+    "errorDiagnostics": 0,
+    "warningDiagnostics": 46,
+    "unsupported": [
+      {
+        "category": "graph",
+        "severity": "info",
+        "code": "TS_DEAD_CODE_UNSUPPORTED",
+        "message": "Graph facts include exported Type symbols in referenced files without symbol-level type reference evidence: EvalBaselineId, EvalEpisodeResult, RunLocalEpisodeInput, VerifierEvidence, EvalBaselineSummary."
+      },
+      {
+        "category": "graph",
+        "severity": "info",
+        "code": "TS_DEAD_CODE_UNSUPPORTED",
+        "message": "Graph facts include exported Variable symbols, but TypeScript dead-code validation only has CALLS usage coverage for Function/Class exports."
+      },
+      {
+        "category": "types",
+        "severity": "info",
+        "code": "PYTHON_TYPES_UNSUPPORTED_TARGET",
+        "message": "Python project . has no explicit or configured type-checker authority",
+        "path": "evidence/specific-lesson-transfer-2026-09-10/capture-cost.py"
+      }
+    ],
+    "pythonSyntax": "ast.parse passed; archive script not executed or changed",
+    "log": {
+      "path": "/private/tmp/lyo-main-merge-opcore-final.json",
+      "sha256": "762131673b7482bf7a3b6c3bcc49b5a52b601c20f5793b941bf5a2ec3e3024f4"
+    }
+  },
+  "packageRegression": {
+    "red": "handoff absent from tarball (ENOENT)",
+    "green": "package lifecycle test passes with handoff included"
+  },
+  "userWorkBackup": "/private/tmp/lyo-main-merge-20260910",
+  "learningBenefitEstablished": false
+}

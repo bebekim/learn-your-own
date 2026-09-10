@@ -102,6 +102,11 @@ export function readEvalTask(path: string): EvalTask {
   return validateTaskObject(readJsonObject(path), basename(path)).task;
 }
 
+export function parseEvalTask(value: unknown): EvalTask {
+  if (!isJsonObject(value)) throw new Error('task must be a JSON object');
+  return validateTaskObject(value, 'task').task;
+}
+
 function validateTaskFile(path: string, file: string): EvalTaskSummary {
   return validateTaskObject(readJsonObject(path), file).summary;
 }

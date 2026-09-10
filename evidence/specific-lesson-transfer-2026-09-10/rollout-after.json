@@ -1,0 +1,25 @@
+{
+  "version": "0.4.3-adaptive.2",
+  "configFiles": {
+    "/Users/marcus.kim/.codex/config.toml": {
+      "beforeSHA256": "aaaa889be25155d9fdfa083eb4430ee518e3d1bd49b247f8e1c5f725dc9852bc",
+      "afterSHA256": "d3297b805cc45ce1b0835b521b0ef097c66fd6c09fe5bae110944b6d5ad15ce7",
+      "unchanged": false,
+      "modifiedAt": "2026-09-09T14:41:11.511609+00:00"
+    },
+    "/Users/marcus.kim/.codex/hooks.json": {
+      "beforeSHA256": "ab3cb3239546d1aec203ac73cbf356214b48200ce2428f4cca76417eaf20f57d",
+      "afterSHA256": "ab3cb3239546d1aec203ac73cbf356214b48200ce2428f4cca76417eaf20f57d",
+      "unchanged": true,
+      "modifiedAt": "2026-09-08T10:29:27.379579+00:00"
+    },
+    "/Users/marcus.kim/.claude/settings.json": {
+      "beforeSHA256": "aff1f37b52d93653783b2d83332086b6f7fc9c6c5fd4a15a080b2cac09c58b9c",
+      "afterSHA256": "aff1f37b52d93653783b2d83332086b6f7fc9c6c5fd4a15a080b2cac09c58b9c",
+      "unchanged": true,
+      "modifiedAt": "2026-09-08T10:25:47.358219+00:00"
+    }
+  },
+  "tarballSHA256": "bb5f6557372babc1f63b05a90a97db1c213a5ba528e5bbe92e9ff6d23b3efff0",
+  "note": "Final local rebuild adds tested null-budget rejection after the screen. Hook definitions match; Codex config.toml changed during the screen, cause unverified. No configuration was intentionally edited or restored. rollout.json identifies the tarball used for the experiment."
+}

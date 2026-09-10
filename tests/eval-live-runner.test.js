@@ -51,6 +51,15 @@ test('local eval runner preserves failed verifier evidence', () => {
   assert.match(result.verifier_evidence.stderr, /boom/);
 });
 
+test('an interrupted acceptance verifier leaves the task outcome unknown', () => {
+  const result = runLocalEpisode({
+    task: fixtureTask('kill -TERM $$'),
+    baselineId: 'B0', model: 'test-model', harness: 'local-shell', cwd: ROOT,
+  });
+  assert.equal(result.verifier_evidence.exit_code, null);
+  assert.equal(result.outcome.verified_success, null);
+});
+
 test('B4 local eval runner records learned verifier rule applications', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-eval-live-'));
   try {

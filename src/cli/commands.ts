@@ -7,6 +7,7 @@ import { CORPUS_COMMANDS } from './commands/corpus.ts';
 import { DEMO_COMMANDS } from './commands/demo.ts';
 import { EVAL_COMMANDS } from './commands/eval.ts';
 import { EXERCISE_COMMANDS } from './commands/exercise.ts';
+import { FINDING_COMMANDS } from './commands/findings.ts';
 import { HARNESS_COMMANDS } from './commands/harness.ts';
 import { HOOK_COMMANDS } from './commands/hooks.ts';
 import { INIT_COMMANDS } from './commands/init.ts';
@@ -38,6 +39,7 @@ const COMMAND_HANDLERS: Record<string, CommandHandler> = {
   ...CONTROL_COMMANDS,
   ...CORPUS_COMMANDS,
   ...EXERCISE_COMMANDS,
+  ...FINDING_COMMANDS,
   ...DEMO_COMMANDS,
   ...EVAL_COMMANDS,
   ...PIPELINE_COMMANDS,

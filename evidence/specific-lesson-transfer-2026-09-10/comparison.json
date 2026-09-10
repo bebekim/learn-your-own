@@ -1,0 +1,11 @@
+{
+  "id": "catalog-nonblank-transfer-20260910",
+  "policyId": "a4eb087f4d2e9cbf395fffa6794d3e18d4e554f36aa3635f4ffeb711ff399a8b",
+  "pairs": [
+    {
+      "baselineAttemptId": "transfer-20260910-catalog-baseline",
+      "learnedAttemptId": "transfer-20260910-catalog-learned"
+    }
+  ],
+  "maxTotalTokenRatio": 1
+}

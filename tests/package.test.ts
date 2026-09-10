@@ -11,10 +11,13 @@ const ROOT = new URL('..', import.meta.url).pathname;
 
 test('packed executables and generated hooks run the installed learning loop', async () => {
   execFileSync(process.execPath, ['scripts/pack-npm.mjs'], { cwd: ROOT, encoding: 'utf8' });
+  const rollout = JSON.parse(execFileSync(process.execPath, ['evidence/ordinary-finding-feedback-2026-09-10/verify-rollout.mjs'], { cwd: ROOT, encoding: 'utf8' }));
+  assert.equal(rollout.checks.length, 2);
   const dir = realpathSync(mkdtempSync(join(tmpdir(), 'lyo-package-')));
   const staging = join(ROOT, 'dist/npm/package');
   const manifest = JSON.parse(readFileSync(join(staging, 'package.json'), 'utf8'));
   const sourceManifest = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+  assert.ok(readFileSync(join(staging, 'docs/first-real-task-handoff.md'), 'utf8').includes('first prospective LYO'));
   const storePath = join(dir, '.zeroshot/lyo-lessons.db');
   mkdirSync(join(dir, '.zeroshot'));
   const store = new LessonStore(storePath);
@@ -41,7 +44,7 @@ test('packed executables and generated hooks run the installed learning loop', a
     assert.ok(command.endsWith('/src/lyo/selection/session-hook.js'));
     assert.match(execFileSync('/bin/sh', ['-c', command], { cwd: dir, env, encoding: 'utf8',
       input: JSON.stringify({ cwd: dir, session_id: 'init-package' }) }), /Run the narrow test/);
-    const { buildHookBlock } = await import('../dist/npm/package/src/cli/commands/wrap.js');
+    const { buildHookBlock } = await import(new URL('../dist/npm/package/src/cli/commands/wrap.js', import.meta.url).href);
     assert.match(buildHookBlock(), /src\/cli\.js claude-hook/);
     assert.match(buildHookBlock(), /selection\/session-hook\.js/);
     assert.doesNotMatch(buildHookBlock(), /\.ts/);

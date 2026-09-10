@@ -1,0 +1,42 @@
+{
+  "auditedImplementation": "70a5e9e",
+  "probes": [
+    {
+      "id": "P1",
+      "required": "Unresolved evidence cannot establish checked support.",
+      "gapReproduced": true,
+      "observed": {
+        "validity": "supported",
+        "evidenceResolved": false
+      }
+    },
+    {
+      "id": "P2",
+      "required": "Task-local inapplicability cannot exclude another task merely sharing repository/activity.",
+      "gapReproduced": true,
+      "observed": {
+        "differentTaskSuppressed": true
+      }
+    },
+    {
+      "id": "P3",
+      "required": "Two delivery reviews citing one result must not imply two independent supporting observations.",
+      "gapReproduced": true,
+      "observed": {
+        "supporting": 2,
+        "distinctEvidenceRefs": 1
+      }
+    },
+    {
+      "id": "P4",
+      "required": "Correcting a revision premise must flag dependent wording for reassessment.",
+      "gapReproduced": true,
+      "observed": {
+        "stillDelivered": true,
+        "validity": "unvalidated",
+        "citedReview": "premise",
+        "currentReview": "corrected"
+      }
+    }
+  ]
+}

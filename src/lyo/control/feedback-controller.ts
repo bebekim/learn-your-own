@@ -11,6 +11,7 @@ const specificationSchema = z.object({
 const requestSchema = z.object({
   episodeId: nonempty, state: z.record(z.string(), z.json()), observationRef: nonempty,
   mode: z.enum(['explore', 'evaluate']), revision: z.number().int().nonnegative().optional(),
+  fixedAction: nonempty.optional(),
 }).strict();
 const feedbackSchema = z.object({
   decisionId: nonempty, executedAction: nonempty, evaluator: nonempty,
@@ -32,6 +33,7 @@ export interface ControlRequest {
   observationRef: string;
   mode: 'explore' | 'evaluate';
   revision?: number;
+  fixedAction?: string;
 }
 
 export interface ActionEstimate {
@@ -44,7 +46,7 @@ export interface ControlDecision extends ControlRequest {
   id: string;
   controllerId: string;
   requestHash: string;
-  algorithm: 'tabular-mean@1';
+  algorithm: 'tabular-mean@1' | 'fixed-action@1';
   specification: ControlSpecification;
   revision: number;
   action: string;
@@ -99,6 +101,8 @@ export class FeedbackController {
 
   decide(input: ControlRequest, rng: () => number = Math.random): ControlDecision {
     input = requestSchema.parse(input);
+    if (input.fixedAction && (input.mode !== 'evaluate' || !this.specification.actions.includes(input.fixedAction)))
+      throw new Error('fixed action requires evaluation and an action in the registered specification');
     const db = this.kernel.db;
     const id = hashValue([this.controllerId, input.episodeId]);
     const existing = this.storedDecision(id);
@@ -122,7 +126,9 @@ export class FeedbackController {
     const estimates = this.specification.actions.map(action => rows.find(row => row.action === action)
       ?? { action, count: 0, mean: null });
     let action = this.specification.baselineAction;
-    if (input.mode === 'explore') {
+    if (input.fixedAction) {
+      action = input.fixedAction;
+    } else if (input.mode === 'explore') {
       const draw = rng();
       if (!Number.isFinite(draw) || draw < 0 || draw >= 1) throw new Error('random draw must be in [0, 1)');
       action = this.specification.actions[Math.floor(draw * this.specification.actions.length)];
@@ -131,7 +137,7 @@ export class FeedbackController {
         estimates.find(estimate => estimate.action === action)!).action;
     }
     const decision: ControlDecision = {
-      ...structuredClone(input), id, requestHash: hashValue(input), algorithm: 'tabular-mean@1',
+      ...structuredClone(input), id, requestHash: hashValue(input), algorithm: input.fixedAction ? 'fixed-action@1' : 'tabular-mean@1',
       controllerId: this.controllerId, specification: structuredClone(this.specification),
       revision, action, propensity: input.mode === 'explore' ? 1 / estimates.length : 1,
       estimates, createdAt: new Date().toISOString(),

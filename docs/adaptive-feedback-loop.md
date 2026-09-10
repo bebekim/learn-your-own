@@ -293,11 +293,54 @@ latest decisions, original observations, turn-boundary receipts, and measurement
 basis. Native records use `native_control_events` and `native_control_sessions`
 alongside the controller's existing decision and feedback tables.
 
+The `measured`, `unknown`, and `pending` counters describe **check recovery**.
+Each recovery episode also exposes `taskOutcome: null`: recovery hooks cannot
+establish ticket acceptance. A recovery reward of `1` still leaves task
+acceptance unknown. Registered tasks use the separate `tasks` status section
+and independently measured task receipts described below.
+
 Exploration accumulates evidence and updates action estimates; it continues
 randomised assignment to make a comparison possible. Evaluation requires
 `{"mode":"evaluate","revision":N}` with an explicitly frozen revision.
 There is no automatic promotion to daily exploitation. This connection is
 instrumentation for learning whether the guidance helps.
+
+### Task acceptance and evaluation (0.4.3-adaptive.1 local rollout)
+
+The existing evaluation row's `outcome.verified_success` accepts `true`, `false`,
+or explicit `null`. Missing fields and strings such as `"unknown"` are invalid.
+Report v2 exposes `known_outcomes` and `unknown_outcomes` for each baseline.
+Success rate and its interval use known outcomes only; both are null with zero
+known outcomes. For one success, one failure, and one unknown, the report shows
+50% over two known outcomes, with one unknown still visible. This conditional
+rate does not estimate success for the missing outcomes.
+
+The paired promotion gate returns `inconclusive` if either arm has an unknown
+task outcome, including when token costs look better. Unknown task acceptance
+does not itself count as a regression; an independently recorded regression
+remains visible. The local smoke runner executes a task's declared
+`success_check`, preserves interruption as unknown, and remains ineligible for
+agent-policy promotion.
+
+The [task workflow](task-feedback-cycle.md) now supplies the complete connection.
+`task run` registers a clean starting commit and frozen verifier files, launches
+the native host, and collects its trace. The prompt hook delivers the decision;
+after exit, independent acceptance and regression checks plus host usage produce
+the receipt and controller feedback. Registered tasks do not also train the
+legacy recovery proxy.
+
+`task freeze` retains the training evidence and feedback cutoff. A later task
+uses that policy through the same native prompt hook. `task compare` registers
+matched attempts before either starts, and `task report` connects their receipts
+to the existing paired gate. Its outer cost gate includes training plus learned
+evaluation tokens. The generic report's success-improvement path is unchanged;
+use the task report for the declared total-cost limit.
+
+See [task evidence](../src/lyo/control/task-evidence.ts),
+[task lifecycle](../src/lyo/control/task-feedback.ts),
+[launcher](../src/lyo/control/task-run.ts), and
+[task report](../src/eval/task-report.ts). These are responsibilities with actual
+consumers; the existing controller and evaluation machinery are reused.
 
 ### Release regression checks (0.4.2)
 

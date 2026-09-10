@@ -1,0 +1,110 @@
+[
+  {
+    "attemptId": "transfer-20260910-catalog-baseline",
+    "cwd": "/private/tmp/lyo-specific-transfer-20260910/baseline",
+    "runtime": "codex",
+    "model": "gpt-6-astra",
+    "family": "lyo-eval-validation-pilot-20260909",
+    "condition": "baseline",
+    "policyId": "a4eb087f4d2e9cbf395fffa6794d3e18d4e554f36aa3635f4ffeb711ff399a8b",
+    "pairId": "catalog-nonblank-transfer-20260910",
+    "criteria": [
+      "Reject whitespace-only isbn, title and author strings at the catalogue add-book request schema, including Unicode whitespace.",
+      "Preserve every accepted nonblank string exactly; retain existing empty/missing/non-string rejection and unknown-field stripping."
+    ],
+    "verifierFiles": [
+      "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs"
+    ],
+    "regressionCheck": {
+      "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs' regression",
+      "files": [
+        "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs"
+      ]
+    },
+    "task": {
+      "task_id": "CATALOG-NONBLANK-20260910",
+      "split": "selection",
+      "repo_ref": {
+        "kind": "git",
+        "ref": "3ce3438eba134cef4430dcecb6eadfce94b5a19a"
+      },
+      "prompt": "Reject whitespace-only isbn, title and author strings at the catalogue add-book request schema, including Unicode whitespace.\nPreserve every accepted nonblank string exactly; retain existing empty/missing/non-string rejection and unknown-field stripping.\nThis is a small ticket in an isolated experimental checkout. Relevant files: src/modules/catalog/infrastructure/nestjs/catalog.schemas.ts and src/modules/catalog/tests/unit/catalog-schemas.test.ts. Use TDD and the focused command: rtk proxy node node_modules/vitest/vitest.mjs run src/modules/catalog/tests/unit/catalog-schemas.test.ts. Keep changes to that schema and its tests. Group independent reads. Do not run unrelated suites. Do not create worktrees, commit, change configuration, or delegate. Do not inspect external verifiers, sibling checkouts, experiment artifacts or lesson libraries. Use the task criteria and any context delivered by the registered native hook. Prefix shell commands with rtk. Finish within 100,000 input-plus-output tokens and 180 seconds; report the changes and test result.",
+      "allowed_tools": [
+        "shell",
+        "edit"
+      ],
+      "budget": {
+        "max_turns": 10,
+        "max_wall_time_seconds": 180,
+        "max_tokens": 100000
+      },
+      "success_check": {
+        "kind": "command",
+        "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs' acceptance"
+      },
+      "expected_touched_paths": [
+        "src/modules/catalog/infrastructure/nestjs/catalog.schemas.ts",
+        "src/modules/catalog/tests/unit/catalog-schemas.test.ts"
+      ],
+      "tags": [
+        "cross-repository",
+        "nonblank-input",
+        "candidate-screen"
+      ]
+    }
+  },
+  {
+    "attemptId": "transfer-20260910-catalog-learned",
+    "cwd": "/private/tmp/lyo-specific-transfer-20260910/learned",
+    "runtime": "codex",
+    "model": "gpt-6-astra",
+    "family": "lyo-eval-validation-pilot-20260909",
+    "condition": "learned",
+    "policyId": "a4eb087f4d2e9cbf395fffa6794d3e18d4e554f36aa3635f4ffeb711ff399a8b",
+    "pairId": "catalog-nonblank-transfer-20260910",
+    "criteria": [
+      "Reject whitespace-only isbn, title and author strings at the catalogue add-book request schema, including Unicode whitespace.",
+      "Preserve every accepted nonblank string exactly; retain existing empty/missing/non-string rejection and unknown-field stripping."
+    ],
+    "verifierFiles": [
+      "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs"
+    ],
+    "regressionCheck": {
+      "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs' regression",
+      "files": [
+        "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs"
+      ]
+    },
+    "task": {
+      "task_id": "CATALOG-NONBLANK-20260910",
+      "split": "selection",
+      "repo_ref": {
+        "kind": "git",
+        "ref": "3ce3438eba134cef4430dcecb6eadfce94b5a19a"
+      },
+      "prompt": "Reject whitespace-only isbn, title and author strings at the catalogue add-book request schema, including Unicode whitespace.\nPreserve every accepted nonblank string exactly; retain existing empty/missing/non-string rejection and unknown-field stripping.\nThis is a small ticket in an isolated experimental checkout. Relevant files: src/modules/catalog/infrastructure/nestjs/catalog.schemas.ts and src/modules/catalog/tests/unit/catalog-schemas.test.ts. Use TDD and the focused command: rtk proxy node node_modules/vitest/vitest.mjs run src/modules/catalog/tests/unit/catalog-schemas.test.ts. Keep changes to that schema and its tests. Group independent reads. Do not run unrelated suites. Do not create worktrees, commit, change configuration, or delegate. Do not inspect external verifiers, sibling checkouts, experiment artifacts or lesson libraries. Use the task criteria and any context delivered by the registered native hook. Prefix shell commands with rtk. Finish within 100,000 input-plus-output tokens and 180 seconds; report the changes and test result.",
+      "allowed_tools": [
+        "shell",
+        "edit"
+      ],
+      "budget": {
+        "max_turns": 10,
+        "max_wall_time_seconds": 180,
+        "max_tokens": 100000
+      },
+      "success_check": {
+        "kind": "command",
+        "command": "'/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node' '/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs' acceptance"
+      },
+      "expected_touched_paths": [
+        "src/modules/catalog/infrastructure/nestjs/catalog.schemas.ts",
+        "src/modules/catalog/tests/unit/catalog-schemas.test.ts"
+      ],
+      "tags": [
+        "cross-repository",
+        "nonblank-input",
+        "candidate-screen"
+      ]
+    }
+  }
+]

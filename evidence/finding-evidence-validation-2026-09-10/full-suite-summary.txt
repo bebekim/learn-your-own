@@ -1,0 +1,10 @@
+ℹ tests 638
+ℹ suites 24
+ℹ pass 637
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 128877.996542
+
+Full log SHA256: 2d32eae0e174813eac5934639885452a7ba4390b87f79ac2379d5afe4ef954cd

@@ -1,7 +1,8 @@
 import { join } from 'node:path';
 import { translateBobEvent } from '../adapters/bob.ts';
 import { translateEcaEvent } from '../adapters/eca.ts';
-import { emitSessionLessons } from '../lyo/selection/session-hook.ts';
+import { emitSessionLessons, resolveSessionLessonStorePath } from '../lyo/selection/session-hook.ts';
+import { emitFindingReviewQueue, findingOwnsToolCall } from '../lyo/selection/session-finding-workflow.ts';
 import {
   closeKernel,
   createKernel,
@@ -82,7 +83,20 @@ export async function runClaudeHookCommand(
 }
 
 function addNativeFeedback(output: any, runtime: 'codex' | 'claude', event: Record<string, any>, args: CliArgs): unknown {
+  if (['PostToolUse', 'PostToolUseFailure'].includes(event.hook_event_name)) {
+    try {
+      const cwd = event.cwd || args.cwd, storePath = resolveSessionLessonStorePath(cwd);
+      let additionalContext = '';
+      if (storePath) emitFindingReviewQueue(storePath, cwd, event.session_id ?? null, text => { additionalContext += text; });
+      if (additionalContext) output = { ...output, hookSpecificOutput: { ...output.hookSpecificOutput,
+        hookEventName: event.hook_event_name, additionalContext: [output.hookSpecificOutput?.additionalContext, additionalContext].filter(Boolean).join('\n') } };
+    } catch { /* Pending review delivery must not block capture or native feedback. */ }
+  }
   try {
+    const findingEvent = { ...event, cwd: event.cwd || args.cwd };
+    try {
+      if (findingOwnsToolCall(resolveSessionLessonStorePath(findingEvent.cwd), runtime, findingEvent)) return output;
+    } catch { /* An unavailable finding store must not disable the separate native controller. */ }
     const native = nativeFeedback(runtime, { ...event, cwd: event.cwd || args.cwd }, args.env);
     if (native) return { ...output, hookSpecificOutput: { ...output.hookSpecificOutput, ...native,
       hookEventName: event.hook_event_name,

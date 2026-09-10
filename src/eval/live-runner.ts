@@ -37,6 +37,9 @@ export interface EvalEpisodeResult {
   task_fingerprint?: string;
   pair_id?: string;
   verifier_sha256?: string;
+  policy_ref?: string;
+  decision_ref?: string;
+  delivery_ref?: string;
   false_gate?: boolean;
   regression?: boolean;
   context_overhead_tokens?: number | null;
@@ -48,7 +51,8 @@ export interface EvalEpisodeResult {
     rule_gates: VerifierGate[];
   };
   outcome: {
-    verified_success: boolean;
+    // Task acceptance, not check recovery. Null means acceptance is unverified.
+    verified_success: boolean | null;
   };
 }
 
@@ -115,7 +119,7 @@ export function runLocalEpisode(input: RunLocalEpisodeInput): EvalEpisodeResult 
       rule_gates: ruleGates,
     },
     outcome: {
-      verified_success: exitCode === 0,
+      verified_success: exitCode === null ? null : exitCode === 0,
     },
   };
 }

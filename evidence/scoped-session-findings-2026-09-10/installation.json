@@ -1,0 +1,12 @@
+{
+  "sourceReportId": "0310e7eda0cf7381213dc3013198fb5c025380db2ab04a11173ecd36651cef17",
+  "centralDb": "/Users/marcus.kim/.lyo/corpus.sqlite",
+  "deliveryStore": "/Users/marcus.kim/.zeroshot/lyo-lessons.db",
+  "findingIds": [
+    "finding:catalog-20260910:transfer-review",
+    "finding:catalog-20260910:experiment-design",
+    "finding:catalog-20260910:learning-budget"
+  ],
+  "libraryUnchanged": true,
+  "creditAwarded": false
+}

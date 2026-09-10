@@ -1,0 +1,113 @@
+{
+  "policy": {
+    "kind": "candidate-trial",
+    "interventionId": "77b7d36b8d920fa091db94920f615ad9bd589de3a615361cb03b8a72254d6de4",
+    "controllerId": "efa191942d7ed2fb40e4a4a7f00aa2446fc22e4dba019a57a6dd086f7c15d59e",
+    "stateHash": "90dc8f48a93ff786ff57fcd269f690eb8164ccd9578411ef87f711afb0308a3a",
+    "revision": 0,
+    "evaluationBudget": {
+      "max_turns": 10,
+      "max_wall_time_seconds": 180,
+      "max_tokens": 100000
+    },
+    "training": {
+      "episodes": 1,
+      "unknownOutcomes": 0,
+      "totalTokens": 442269,
+      "wallTimeMs": 188576
+    },
+    "evidenceRefs": [
+      "task-receipt:pilot-20260909-train-command",
+      "task-intervention:77b7d36b8d920fa091db94920f615ad9bd589de3a615361cb03b8a72254d6de4"
+    ],
+    "trainingTaskFingerprints": [
+      "8bc74bea2429fd38906bdffb057c3142f06078f37a967ac0cb5b215af0d22ee5"
+    ],
+    "id": "a4eb087f4d2e9cbf395fffa6794d3e18d4e554f36aa3635f4ffeb711ff399a8b"
+  },
+  "comparison": {
+    "id": "catalog-nonblank-transfer-20260910",
+    "policyId": "a4eb087f4d2e9cbf395fffa6794d3e18d4e554f36aa3635f4ffeb711ff399a8b",
+    "pairs": [
+      {
+        "baselineAttemptId": "transfer-20260910-catalog-baseline",
+        "learnedAttemptId": "transfer-20260910-catalog-learned"
+      }
+    ],
+    "maxTotalTokenRatio": 1
+  },
+  "training": {
+    "episodes": 1,
+    "unknownOutcomes": 0,
+    "totalTokens": 442269,
+    "wallTimeMs": 188576
+  },
+  "evaluation": {
+    "version": "lyo/eval-report/v2",
+    "task_split_hash": "67326e7f277d8fe9fc13612dc3109f14e283a7a272bafae4aeb38fcb4ad9040e",
+    "baseline_scores": [
+      {
+        "baseline_id": "B0",
+        "episodes": 1,
+        "known_outcomes": 1,
+        "unknown_outcomes": 0,
+        "verified_success_rate": 1,
+        "verified_success_interval": [
+          0.2065,
+          1
+        ],
+        "false_gate_rate": 0,
+        "regression_rate": 0,
+        "token_cost": 157307,
+        "context_overhead_tokens": null,
+        "avg_wall_time_ms": 133865,
+        "rule_applications": 0
+      },
+      {
+        "baseline_id": "B4",
+        "episodes": 1,
+        "known_outcomes": 1,
+        "unknown_outcomes": 0,
+        "verified_success_rate": 1,
+        "verified_success_interval": [
+          0.2065,
+          1
+        ],
+        "false_gate_rate": 0,
+        "regression_rate": 0,
+        "token_cost": 167608,
+        "context_overhead_tokens": null,
+        "avg_wall_time_ms": 525769,
+        "rule_applications": 0
+      }
+    ],
+    "worst_regressions": [],
+    "gate": {
+      "rule_id": "a4eb087f4d2e9cbf395fffa6794d3e18d4e554f36aa3635f4ffeb711ff399a8b",
+      "baseline_id": "B0",
+      "treatment_id": "B4",
+      "decision": "inconclusive",
+      "reasons": [
+        "at least two matched pairs from distinct baselines are required"
+      ]
+    }
+  },
+  "registeredAttempts": 2,
+  "totalLearnedTokens": 609877,
+  "decision": "inconclusive",
+  "reasons": [
+    "at least two matched pairs from distinct baselines are required"
+  ],
+  "deployment": "experimental-only",
+  "evidenceRefs": [
+    {
+      "attemptId": "transfer-20260910-catalog-baseline",
+      "receiptHash": "dff02110e5df0ab12dc05191de2da842954bd80e84d6f51d849291966053bfc1"
+    },
+    {
+      "attemptId": "transfer-20260910-catalog-learned",
+      "receiptHash": "f8baca2bcc955b9af9a4813c97d3b7c520a9ab7cca7cb5822a60cc9c0d5124e1"
+    }
+  ],
+  "reportId": "0310e7eda0cf7381213dc3013198fb5c025380db2ab04a11173ecd36651cef17"
+}

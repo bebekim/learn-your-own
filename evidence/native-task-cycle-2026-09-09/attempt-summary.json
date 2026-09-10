@@ -1,0 +1,258 @@
+[
+  {
+    "attemptId": "pilot-20260909-train-cost",
+    "condition": "explore",
+    "action": "acceptance-reminder",
+    "decisionId": "e4b1306dc75e0a790c53f98a042b9a340989f1b74958a62fbd016c7283ae92ef",
+    "revision": 0,
+    "estimates": [
+      {
+        "action": "no-guidance",
+        "count": 0,
+        "mean": null
+      },
+      {
+        "action": "acceptance-reminder",
+        "count": 0,
+        "mean": null
+      }
+    ],
+    "accepted": true,
+    "withinBudget": true,
+    "tokens": 357456,
+    "wallTimeMs": 159436,
+    "feedback": {
+      "decisionId": "e4b1306dc75e0a790c53f98a042b9a340989f1b74958a62fbd016c7283ae92ef",
+      "executedAction": "acceptance-reminder",
+      "evaluator": "registered-verifier-and-host-usage@1",
+      "reward": 1,
+      "evidenceRef": "task-receipt:pilot-20260909-train-cost",
+      "sequence": 1
+    },
+    "traceSHA256": "e0b8be427de9fbf6c82ded8db65bacbf86c4371fd19ece08c203bfc2e8cb39b9"
+  },
+  {
+    "attemptId": "pilot-20260909-train-command",
+    "condition": "explore",
+    "action": "acceptance-reminder",
+    "decisionId": "9b7d7310b2ac6ce6f708c081366503bd680a18777dc1a706942b8aa6d1a7c786",
+    "revision": 0,
+    "estimates": [
+      {
+        "action": "no-guidance",
+        "count": 0,
+        "mean": null
+      },
+      {
+        "action": "acceptance-reminder",
+        "count": 0,
+        "mean": null
+      }
+    ],
+    "accepted": true,
+    "withinBudget": true,
+    "tokens": 304223,
+    "wallTimeMs": 108473,
+    "feedback": {
+      "decisionId": "9b7d7310b2ac6ce6f708c081366503bd680a18777dc1a706942b8aa6d1a7c786",
+      "executedAction": "acceptance-reminder",
+      "evaluator": "registered-verifier-and-host-usage@1",
+      "reward": 1,
+      "evidenceRef": "task-receipt:pilot-20260909-train-command",
+      "sequence": 2
+    },
+    "traceSHA256": "acc0de791220813c939b732d865faac4151e260542b14a247d5086c585e0d7f1"
+  },
+  {
+    "attemptId": "pilot-20260909-train-identity",
+    "condition": "explore",
+    "action": "acceptance-reminder",
+    "decisionId": "b94f952b56ce60957236470c7d75dd7916618edd3f766f92a9ea523ff6ab3a69",
+    "revision": 1,
+    "estimates": [
+      {
+        "action": "no-guidance",
+        "count": 0,
+        "mean": null
+      },
+      {
+        "action": "acceptance-reminder",
+        "count": 1,
+        "mean": 1
+      }
+    ],
+    "accepted": true,
+    "withinBudget": true,
+    "tokens": 376626,
+    "wallTimeMs": 124510,
+    "feedback": {
+      "decisionId": "b94f952b56ce60957236470c7d75dd7916618edd3f766f92a9ea523ff6ab3a69",
+      "executedAction": "acceptance-reminder",
+      "evaluator": "registered-verifier-and-host-usage@1",
+      "reward": 1,
+      "evidenceRef": "task-receipt:pilot-20260909-train-identity",
+      "sequence": 3
+    },
+    "traceSHA256": "11b52305134d0d4b1b0a904b3aaee75468baa29219c992eb7e07d090647b351d"
+  },
+  {
+    "attemptId": "pilot-20260909-train-arrays",
+    "condition": "explore",
+    "action": "no-guidance",
+    "decisionId": "729391c9cf1ca11f444ea28cddb73cae07dfba385caca9677c87ec676c7ae462",
+    "revision": 2,
+    "estimates": [
+      {
+        "action": "no-guidance",
+        "count": 0,
+        "mean": null
+      },
+      {
+        "action": "acceptance-reminder",
+        "count": 2,
+        "mean": 1
+      }
+    ],
+    "accepted": true,
+    "withinBudget": true,
+    "tokens": 300737,
+    "wallTimeMs": 116537,
+    "feedback": {
+      "decisionId": "729391c9cf1ca11f444ea28cddb73cae07dfba385caca9677c87ec676c7ae462",
+      "executedAction": "no-guidance",
+      "evaluator": "registered-verifier-and-host-usage@1",
+      "reward": 1,
+      "evidenceRef": "task-receipt:pilot-20260909-train-arrays",
+      "sequence": 4
+    },
+    "traceSHA256": "64fb7c0615debf3b589af6b07765cfd77a6e068279d626cce9f149031f4de734"
+  },
+  {
+    "attemptId": "pilot-20260909-metadata-baseline",
+    "condition": "baseline",
+    "action": "no-guidance",
+    "decisionId": "c4b620a7eb2febe6a401a8c17c110ce2c675f529cf64730d6b14281e2ee398b0",
+    "revision": 0,
+    "estimates": [
+      {
+        "action": "no-guidance",
+        "count": 0,
+        "mean": null
+      },
+      {
+        "action": "acceptance-reminder",
+        "count": 0,
+        "mean": null
+      }
+    ],
+    "accepted": true,
+    "withinBudget": true,
+    "tokens": 390297,
+    "wallTimeMs": 127701,
+    "feedback": {
+      "decisionId": "c4b620a7eb2febe6a401a8c17c110ce2c675f529cf64730d6b14281e2ee398b0",
+      "executedAction": "no-guidance",
+      "evaluator": "registered-verifier-and-host-usage@1",
+      "reward": 1,
+      "evidenceRef": "task-receipt:pilot-20260909-metadata-baseline",
+      "sequence": 8
+    },
+    "traceSHA256": "ed97e00111374a318f954c08447e91bb67afddd7c665e3b4d1fd11df0fc11490"
+  },
+  {
+    "attemptId": "pilot-20260909-metadata-learned",
+    "condition": "learned",
+    "action": "no-guidance",
+    "decisionId": "82df04cacc093fee4388983494212d2a5ceb940d98c72eea3dc679a8b0f09928",
+    "revision": 4,
+    "estimates": [
+      {
+        "action": "no-guidance",
+        "count": 1,
+        "mean": 1
+      },
+      {
+        "action": "acceptance-reminder",
+        "count": 3,
+        "mean": 1
+      }
+    ],
+    "accepted": true,
+    "withinBudget": true,
+    "tokens": 339081,
+    "wallTimeMs": 113333,
+    "feedback": {
+      "decisionId": "82df04cacc093fee4388983494212d2a5ceb940d98c72eea3dc679a8b0f09928",
+      "executedAction": "no-guidance",
+      "evaluator": "registered-verifier-and-host-usage@1",
+      "reward": 1,
+      "evidenceRef": "task-receipt:pilot-20260909-metadata-learned",
+      "sequence": 6
+    },
+    "traceSHA256": "7036333a6d3c5b194c4fcb55bb2a4652161d20512ad6dc8c449d67b2051425e5"
+  },
+  {
+    "attemptId": "pilot-20260909-budget-order-learned",
+    "condition": "learned",
+    "action": "no-guidance",
+    "decisionId": "4260be2bce5c552dbdbff0a85083536bfedeebeb581b64b823aa6eccf255c776",
+    "revision": 4,
+    "estimates": [
+      {
+        "action": "no-guidance",
+        "count": 1,
+        "mean": 1
+      },
+      {
+        "action": "acceptance-reminder",
+        "count": 3,
+        "mean": 1
+      }
+    ],
+    "accepted": true,
+    "withinBudget": true,
+    "tokens": 279658,
+    "wallTimeMs": 104725,
+    "feedback": {
+      "decisionId": "4260be2bce5c552dbdbff0a85083536bfedeebeb581b64b823aa6eccf255c776",
+      "executedAction": "no-guidance",
+      "evaluator": "registered-verifier-and-host-usage@1",
+      "reward": 1,
+      "evidenceRef": "task-receipt:pilot-20260909-budget-order-learned",
+      "sequence": 5
+    },
+    "traceSHA256": "0b5d668cc187d8be974030b3e01966d036d1b4241af63849ef5cf9ee050c5de9"
+  },
+  {
+    "attemptId": "pilot-20260909-budget-order-baseline",
+    "condition": "baseline",
+    "action": "no-guidance",
+    "decisionId": "c04876a78a9c7e2c26d47c43832d8fbd0267978e11087901069a1fe0c4f79a16",
+    "revision": 0,
+    "estimates": [
+      {
+        "action": "no-guidance",
+        "count": 0,
+        "mean": null
+      },
+      {
+        "action": "acceptance-reminder",
+        "count": 0,
+        "mean": null
+      }
+    ],
+    "accepted": true,
+    "withinBudget": true,
+    "tokens": 370815,
+    "wallTimeMs": 110782,
+    "feedback": {
+      "decisionId": "c04876a78a9c7e2c26d47c43832d8fbd0267978e11087901069a1fe0c4f79a16",
+      "executedAction": "no-guidance",
+      "evaluator": "registered-verifier-and-host-usage@1",
+      "reward": 1,
+      "evidenceRef": "task-receipt:pilot-20260909-budget-order-baseline",
+      "sequence": 7
+    },
+    "traceSHA256": "10e54289950cc8941928bc2d379d30446bcbc875f3f42654242d6e0ef00cd370"
+  }
+]

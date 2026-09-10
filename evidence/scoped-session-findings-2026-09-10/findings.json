@@ -1,0 +1,26 @@
+[
+  {
+    "source": "session-finding@1",
+    "gitCommonDir": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.git",
+    "evidenceRef": "task-report:0310e7eda0cf7381213dc3013198fb5c025380db2ab04a11173ecd36651cef17",
+    "activity": "transfer-review",
+    "observation": "The guided fix accepted U+0085; baseline rejected it. Source repair verification did not establish transfer to the new Unicode contract.",
+    "intervention": "When reusing a repair, compare the source and target semantics and test their boundary cases. JavaScript trim() does not cover every Unicode whitespace character."
+  },
+  {
+    "source": "session-finding@1",
+    "gitCommonDir": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.git",
+    "evidenceRef": "task-report:0310e7eda0cf7381213dc3013198fb5c025380db2ab04a11173ecd36651cef17",
+    "activity": "experiment-design",
+    "observation": "Both arms passed the frozen verifier, which omitted U+0085. Legacy guidance varied in order, and approval waiting distorted the timing comparison.",
+    "intervention": "Before comparing interventions, audit verifier coverage, fix ambient guidance, and measure execution separately from approval waiting."
+  },
+  {
+    "source": "session-finding@1",
+    "gitCommonDir": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.git",
+    "evidenceRef": "task-report:0310e7eda0cf7381213dc3013198fb5c025380db2ab04a11173ecd36651cef17",
+    "activity": "learning-budget",
+    "observation": "Both attempts exceeded 100,000 tokens. Evaluation spent 324,915 tokens with no validated benefit; engineering and orchestration added millions more.",
+    "intervention": "Before a learning trial, set an enforceable spending limit and include acquisition, evaluation and orchestration costs. A post-run budget check cannot stop token use."
+  }
+]

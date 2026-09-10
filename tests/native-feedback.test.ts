@@ -204,6 +204,7 @@ test('Codex stdout-only hooks learn from the real command receipt while preservi
     assert.equal(episode.observation.measurement.exitCode, 1);
     assert.equal(episode.feedback[0].reward, 1);
     assert.equal(episode.feedback[0].evidence.result.measurement.basis, 'command-receipt');
+    assert.equal(episode.taskOutcome, null, 'a passing retry does not establish task acceptance');
   } finally { f.close(); }
 });
 
@@ -259,7 +260,7 @@ test('later repositories see prior measured evidence while an interrupted turn s
     f.hook('codex', { ...call, cwd: next, hook_event_name: 'PostToolUse', tool_use_id: 'new-failure', tool_response: { exit_code: 1 } });
     const { decision } = f.status().recent[0];
     assert.ok(decision.revision > 0);
-    assert.equal(decision.estimates.reduce((sum, row) => sum + row.count, 0), 1);
+    assert.equal(decision.estimates.reduce((sum: number, row: { count: number }) => sum + row.count, 0), 1);
     f.hook('codex', { cwd: next, hook_event_name: 'SessionEnd' });
     assert.equal(f.status().unknown, 1);
     assert.equal(f.status().measured, 1);

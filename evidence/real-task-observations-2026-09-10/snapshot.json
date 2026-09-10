@@ -1,0 +1,259 @@
+{
+  "collectedAt": "2026-09-10T03:34:56.043Z",
+  "collectorSha256": "3ec215efc577e4a58a54a735e66ff4cba0902ef8b4c828bc2aa6056f2b390ab4",
+  "method": "Two read-only SQLite transactions; selected original transcript outputs matched by exact untruncated stdout fingerprints. No tasks replayed, no backdated registrations, no learning credit.",
+  "sampling": "Convenience sample: most recent work repository plus a recent coding session with recoverable verification outputs. Not a representative or randomized task sample.",
+  "corpus": {
+    "eventRows": 150330,
+    "distinctEventIds": 116542,
+    "sessionIds": 226,
+    "sourceLedgers": 90,
+    "earliestEvent": "2026-05-20T10:39:27.900Z",
+    "latestEvent": "2026-09-10T03:21:20.163Z"
+  },
+  "workCorpus": {
+    "eventRows": 119759,
+    "distinctEventIds": 88739,
+    "sessionIds": 146,
+    "sourceLedgers": 62
+  },
+  "registeredWorkTasks": 0,
+  "deliveryTraceSources": [
+    {
+      "source": null,
+      "n": 87,
+      "latest": "2026-09-10T03:13:18.693Z"
+    },
+    {
+      "source": "native-session-observation",
+      "n": 64,
+      "latest": "2026-09-10T03:10:28.659Z"
+    },
+    {
+      "source": "session-finding@1",
+      "n": 3,
+      "latest": "2026-09-09T15:35:44.515Z"
+    }
+  ],
+  "deliveryTracePrefixes": [
+    {
+      "prefix": "finding",
+      "n": 3
+    },
+    {
+      "prefix": "historical-learning",
+      "n": 4
+    },
+    {
+      "prefix": "session-delivery",
+      "n": 83
+    },
+    {
+      "prefix": "session-outcome",
+      "n": 64
+    }
+  ],
+  "lessonCounters": [
+    {
+      "lesson_id": "les_027d0f11760e91e3",
+      "status": "candidate",
+      "helpful_count": 0,
+      "harmful_count": 0,
+      "uses": 78
+    },
+    {
+      "lesson_id": "les_93ca0ad689249c97",
+      "status": "candidate",
+      "helpful_count": 0,
+      "harmful_count": 0,
+      "uses": 77
+    },
+    {
+      "lesson_id": "les_4d38b41d6661609c",
+      "status": "candidate",
+      "helpful_count": 0,
+      "harmful_count": 0,
+      "uses": 0
+    },
+    {
+      "lesson_id": "les_6507fb874b5106ac",
+      "status": "candidate",
+      "helpful_count": 0,
+      "harmful_count": 0,
+      "uses": 0
+    },
+    {
+      "lesson_id": "les_5786abb453e33871",
+      "status": "candidate",
+      "helpful_count": 0,
+      "harmful_count": 0,
+      "uses": 0
+    },
+    {
+      "lesson_id": "les_decf0d0bec470f39",
+      "status": "candidate",
+      "helpful_count": 0,
+      "harmful_count": 0,
+      "uses": 0
+    }
+  ],
+  "upgradedWorkHooks": {
+    "version": "0.4.3-adaptive.4",
+    "eventRows": 57,
+    "sessions": [
+      "01a08948-8ba3-78d2-bbbc-479ac8a00b00"
+    ],
+    "before": 28,
+    "after": 28,
+    "exactInputPairs": 28,
+    "bashAfter": 21,
+    "bashAfterWithExitCode": 0
+  },
+  "observations": [
+    {
+      "id": "mlops-link-check-false-positive",
+      "classification": "retrospective-observation",
+      "sessionId": "01a08948-8ba3-78d2-bbbc-479ac8a00b00",
+      "event": {
+        "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItbWwtb3BzLy5hZ2VudC1sZWFybmluZy9sZWFybmluZy5zcWxpdGU",
+        "event_id": "hook-35ce37e45975d6ff619e1b07",
+        "created_at": "2026-09-10T03:20:58.746Z"
+      },
+      "toolCallId": "exec-071ccae7-a4d2-4e9b-9c7f-0d31907631ce",
+      "command": "rtk .venv/bin/python -c 'from pathlib import Path; import re; p=Path(\"docs/architecture-proposal.md\"); t=p.read_text(); links=re.findall(r\"\\]\\(<?(/[^)>]+)>?\\)\",t); missing=[x for x in links if not Path(re.sub(r\":\\d+$\",\"\",x)).exists()]; print(\"Local links:\",len(links),\"Missing:\",missing); print(\"Words:\",len(t.split())); assert not missing'",
+      "outputFingerprint": "c116466dc3f05b01d4f64b602c7e2d0322b2c692a4eb835529860173043e9429",
+      "fingerprintFormat": "sha256(JSON.stringify(stdout))",
+      "transcript": {
+        "path": "/Users/marcus.kim/.codex/sessions/2026/09/10/rollout-2026-09-10T13-07-08-01a08948-8ba3-78d2-bbbc-479ac8a00b00.jsonl",
+        "sha256": "52881a81ace8a6c0706d94a207c4a53b5177f236569a01ff057c4fcab93d8787",
+        "line": 137,
+        "lineSha256": "d5211721ee93b046c7491ffe5e97ee534f59debbc8f9e3dd44d666b53a6b303d",
+        "block": 3,
+        "outerCallId": "call_zy660HHqFE4nRZlx88cnoBkz"
+      },
+      "observedExitCode": 1,
+      "ledgerExitCode": null,
+      "conclusion": "Link checker rejected paths containing parentheses.",
+      "prospectiveRegistration": false,
+      "taskAcceptance": null,
+      "incrementalBenefit": null,
+      "causalCredit": false
+    },
+    {
+      "id": "mlops-corrected-link-check",
+      "classification": "retrospective-observation",
+      "sessionId": "01a08948-8ba3-78d2-bbbc-479ac8a00b00",
+      "event": {
+        "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItbWwtb3BzLy5hZ2VudC1sZWFybmluZy9sZWFybmluZy5zcWxpdGU",
+        "event_id": "hook-7ffcd5bad65c9948475758ee",
+        "created_at": "2026-09-10T03:20:58.776Z"
+      },
+      "toolCallId": "exec-62b9ba23-eecc-4732-8e88-060216b9a2e4",
+      "command": "rtk .venv/bin/python - <<'PY'\nfrom pathlib import Path\nimport re\ntext = Path('docs/architecture-proposal.md').read_text()\nlinks = re.findall(r'\\]\\(<([^>]+)>\\)|\\]\\((/[^)]+)\\)', text)\nmissing = [target for pair in links for target in pair if target and not Path(re.sub(r':\\d+$', '', target)).exists()]\nassert not missing, missing\nprint(f'{len(links)} local links verified')\nPY",
+      "outputFingerprint": "f479fb3e8976ebefbc01517e507555635c588f632081bac8e59fb255f7970e2f",
+      "fingerprintFormat": "sha256(JSON.stringify(stdout))",
+      "transcript": {
+        "path": "/Users/marcus.kim/.codex/sessions/2026/09/10/rollout-2026-09-10T13-07-08-01a08948-8ba3-78d2-bbbc-479ac8a00b00.jsonl",
+        "sha256": "52881a81ace8a6c0706d94a207c4a53b5177f236569a01ff057c4fcab93d8787",
+        "line": 146,
+        "lineSha256": "31bd6a980345b6cd477516c2306cee4542346f3fac5c9a0a2ce63209c367d2a6",
+        "block": 2,
+        "outerCallId": "call_kc6D7aguCdzemVI8jpvONE03"
+      },
+      "observedExitCode": 0,
+      "ledgerExitCode": null,
+      "conclusion": "Corrected link parser verified 15 local links.",
+      "prospectiveRegistration": false,
+      "taskAcceptance": null,
+      "incrementalBenefit": null,
+      "causalCredit": false
+    },
+    {
+      "id": "mlops-unsupported-type-check",
+      "classification": "retrospective-observation",
+      "sessionId": "01a08948-8ba3-78d2-bbbc-479ac8a00b00",
+      "event": {
+        "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItbWwtb3BzLy5hZ2VudC1sZWFybmluZy9sZWFybmluZy5zcWxpdGU",
+        "event_id": "hook-6ff1c779e136901537e10641",
+        "created_at": "2026-09-10T03:20:58.800Z"
+      },
+      "toolCallId": "exec-e057a716-f28e-41d0-81a7-e2482e81778e",
+      "command": "rtk proxy opcore check --changed --json",
+      "outputFingerprint": "24b6ba19a802ec3389ae4a3b4043a1716865668e37b123317e8837b69d1501b6",
+      "fingerprintFormat": "sha256(JSON.stringify(stdout))",
+      "transcript": {
+        "path": "/Users/marcus.kim/.codex/sessions/2026/09/10/rollout-2026-09-10T13-07-08-01a08948-8ba3-78d2-bbbc-479ac8a00b00.jsonl",
+        "sha256": "52881a81ace8a6c0706d94a207c4a53b5177f236569a01ff057c4fcab93d8787",
+        "line": 155,
+        "lineSha256": "c38de51b5e290b496593ac23a72383341fe7ad8248b7bab865a59dfcbf0ef904",
+        "block": 1,
+        "outerCallId": "call_xHnGFKpfr0halarR3KgvOFis"
+      },
+      "observedExitCode": 1,
+      "ledgerExitCode": null,
+      "conclusion": "Required check lacked configured Python type-checker authority; this is not a demonstrated code regression.",
+      "prospectiveRegistration": false,
+      "taskAcceptance": null,
+      "incrementalBenefit": null,
+      "causalCredit": false
+    },
+    {
+      "id": "data-engineering-full-suite-failure",
+      "classification": "retrospective-observation",
+      "sessionId": "01a0862c-8a58-78a3-adde-93b7b42f9f83",
+      "event": {
+        "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHJfZGF0YV9lbmcvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+        "event_id": "hook-022f2db66fe4cfd4d8571bdb",
+        "created_at": "2026-09-09T13:39:14.366Z"
+      },
+      "toolCallId": "exec-18d3b108-34e3-4005-86f0-2ee93061b45f",
+      "command": "rtk /Users/marcus.kim/repositories/work/nectr-data-lake/.venv/bin/python -m pytest -q",
+      "outputFingerprint": "d62231f043c7f1223f82af68572d6eb701c535b7ce078f889df520c2efe97cb2",
+      "fingerprintFormat": "sha256(JSON.stringify(stdout))",
+      "transcript": {
+        "path": "/Users/marcus.kim/.codex/sessions/2026/09/09/rollout-2026-09-09T22-37-41-01a0862c-8a58-78a3-adde-93b7b42f9f83.jsonl",
+        "sha256": "4353a92a66951edcbc0c6afd101e7b1c0d208256be982a96e6258fc8576d4d34",
+        "line": 496,
+        "lineSha256": "bb414e7b5f0282e98c32e88f1c499d6feb0cb0d304de3c78817c0ea96874f539",
+        "block": 4,
+        "outerCallId": "call_NOHBtNSwIcHGLLRiisKy1bpo"
+      },
+      "observedExitCode": 1,
+      "ledgerExitCode": null,
+      "conclusion": "Full pytest run failed a live-data current-month assertion; cause and task acceptance remain unresolved.",
+      "prospectiveRegistration": false,
+      "taskAcceptance": null,
+      "incrementalBenefit": null,
+      "causalCredit": false
+    },
+    {
+      "id": "data-engineering-subset-pass",
+      "classification": "retrospective-observation",
+      "sessionId": "01a0862c-8a58-78a3-adde-93b7b42f9f83",
+      "event": {
+        "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHJfZGF0YV9lbmcvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+        "event_id": "hook-a784918f54d48f31bcbee51b",
+        "created_at": "2026-09-09T14:10:37.060Z"
+      },
+      "toolCallId": "exec-7b040106-6482-4e93-a482-c93dec1eca2a",
+      "command": "rtk proxy /Users/marcus.kim/repositories/work/nectr-data-lake/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_nsw_social_programs_bundle.py tests/test_rep829_generation_models.py tests/test_rep829_wholesale.py",
+      "outputFingerprint": "c4e1e6cbf1ec386685437072a25cb5bbf75b3fe5558653c09bc208421cc99ad4",
+      "fingerprintFormat": "sha256(JSON.stringify(stdout))",
+      "transcript": {
+        "path": "/Users/marcus.kim/.codex/sessions/2026/09/09/rollout-2026-09-09T22-37-41-01a0862c-8a58-78a3-adde-93b7b42f9f83.jsonl",
+        "sha256": "4353a92a66951edcbc0c6afd101e7b1c0d208256be982a96e6258fc8576d4d34",
+        "line": 1075,
+        "lineSha256": "ed23d12b52ef4425b54e35dd9a6ba5ab875204b8e4d1ecc0da6b92b217693e4f",
+        "block": 1,
+        "outerCallId": "call_eYoR9MRFsLur68lq4C4EYDPQ"
+      },
+      "observedExitCode": 0,
+      "ledgerExitCode": null,
+      "conclusion": "Three selected test files passed; this does not recheck the earlier failing full-suite test.",
+      "prospectiveRegistration": false,
+      "taskAcceptance": null,
+      "incrementalBenefit": null,
+      "causalCredit": false
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "registeredAt": "2026-09-09T12:49:18.862361+00:00",
+  "trainingOrder": [
+    "cost",
+    "command",
+    "identity",
+    "arrays"
+  ],
+  "trainingStoppingRule": "Stop once both randomly assigned actions have been observed, or after four tasks; never condition stopping on success or cost.",
+  "assignment": "Existing controller uniform Math.random; no forced action or edited reward.",
+  "selectionPairs": [
+    "metadata",
+    "budget-order"
+  ],
+  "maxTotalTokenRatio": 1,
+  "budget": {
+    "max_turns": 10,
+    "max_wall_time_seconds": 480,
+    "max_tokens": 500000
+  },
+  "runtime": "codex",
+  "model": "gpt-6-astra",
+  "family": "lyo-eval-validation-pilot-20260909",
+  "database": "/Users/marcus.kim/.lyo/corpus.sqlite",
+  "purpose": "Verify a complete task feedback cycle; two comparison pairs cannot establish general utility.",
+  "verifierSHA256": "0f4185e0f91cab76443a6b5f0802b18ed0f4b73ec45558fb754d3ceb7fdfca45"
+}

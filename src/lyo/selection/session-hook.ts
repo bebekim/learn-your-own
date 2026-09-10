@@ -6,26 +6,37 @@
  * id is available. Hook failures never block the agent.
  *
  * When the hook payload carries a session id (e.g. kimi-code UserPromptSubmit,
- * which fires on every prompt), the banner prints at most once per session;
- * the marker is only written when lessons were actually printed, so a session
- * that starts with an empty library can still receive lessons on a later
- * prompt. Without a session id (e.g. `--cwd` manual runs) it always prints.
+ * which fires on every prompt), ordinary lessons print once per session.
+ * Findings print once per item, so a newly applicable finding can arrive on a
+ * later prompt. Without a session id (e.g. `--cwd` manual runs) it always prints.
  */
 
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { hashValue } from '../../contract/refs.ts';
 import { resolvePolicy } from './selection-policies.ts';
 import { LessonStore } from '../storage/lesson-store.ts';
 import { sessionVerifier } from '../bridge/session-bridge.ts';
 import { parsePriorJson, priorCalibration, priorPseudoCounts } from './semantic-prior.ts';
+import { selectSessionFindings } from './session-findings.ts';
+import type { SessionFinding } from './session-findings.ts';
+import { emitFindingReviewQueue } from './session-finding-workflow.ts';
 
 const LIMIT = 5;
 const MAX_TEXT = 220;
 const STDIN_GUARD_MS = 2500;
+
+function repositoryKey(cwd?: string | null): string | null {
+  if (!cwd) return null;
+  try {
+    return fs.realpathSync(execFileSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'],
+      { cwd, encoding: 'utf8', timeout: 1000, stdio: ['ignore', 'pipe', 'ignore'] }).trim());
+  } catch { return null; }
+}
 
 interface LessonRow {
   lesson_id: string;
@@ -40,6 +51,7 @@ interface LessonRow {
 
 export interface SessionHookPayload {
   cwd?: string | null;
+  prompt?: string | null;
   session_id?: string | null;
   sessionId?: string | null;
 }
@@ -72,10 +84,21 @@ function formatLesson(row: LessonRow): string {
 }
 
 export function renderSessionLessons(payload: SessionHookPayload = {}): string | null {
-  return selectSessionLessons(payload)?.text ?? null;
+  const selection = selectSessionLessons(payload);
+  return selection ? formatSelection(selection) : null;
 }
 
-function selectSessionLessons(payload: SessionHookPayload): { text: string; selected: LessonRow[]; storePath: string } | null {
+function formatSelection({ selected, findings }: { selected: LessonRow[]; findings: SessionFinding[] }): string {
+  return [
+    findings.length ? 'Observed findings — future usefulness unvalidated; apply only when the stated activity fits:\n' +
+      findings.map(row => `- [${row.activity}; ${row.id}] ${row.intervention}\n  Observed: ${row.observation} Evidence: ${row.evidenceRef}` +
+        (row.supporting ? `\n  ${row.supporting} supporting observation(s); broader usefulness unvalidated.` : '')).join('\n') : '',
+    selected.length ? `LYO lessons from your past runs (Thompson-sampled ${selected.length}; ` +
+      'score = posterior mean, ✓/✗ = validated outcomes; apply when relevant):\n' + selected.map(formatLesson).join('\n') : '',
+  ].filter(Boolean).join('\n') + '\n';
+}
+
+function selectSessionLessons(payload: SessionHookPayload): { selected: LessonRow[]; findings: SessionFinding[]; storePath: string } | null {
   const storePath = resolveSessionLessonStorePath(payload.cwd);
   if (!storePath) return null;
 
@@ -86,35 +109,28 @@ function selectSessionLessons(payload: SessionHookPayload): { text: string; sele
         `SELECT * FROM v_lesson_library`
       )
       .all() as unknown as LessonRow[];
+    const findings = selectSessionFindings(db, { ...payload, repository: () => repositoryKey(payload.cwd) });
     const scoped = rows.filter(row => {
       if (!row.intervention.trim()) return false;
       const verifier = sessionVerifier(row.explanation);
       return !verifier || verifier.repoPath === payload.cwd;
     });
-    if (scoped.length === 0) return null;
     const gamma = priorCalibration(scoped).gamma;
     const candidates = scoped.map((row) => ({
       lesson_id: row.lesson_id,
       alpha: Number(row.helpful_count) + 1 + priorPseudoCounts(parsePriorJson(row.prior_json), gamma).alpha,
       beta: Number(row.harmful_count) + 1 + priorPseudoCounts(parsePriorJson(row.prior_json), gamma).beta,
     }));
-    const picks = resolvePolicy(null).sampleSelection(candidates, LIMIT);
+    const picks = resolvePolicy(null).sampleSelection(candidates, LIMIT - findings.length);
     const selected = picks.map(({ index }) => scoped[index]);
-    const lines = selected.map(formatLesson);
-    if (lines.length === 0) return null;
-
-    return { selected, storePath, text:
-      `LYO lessons from your past runs (${scoped.length} in library, Thompson-sampled top ${lines.length}; ` +
-      `score = posterior mean, ✓/✗ = validated outcomes; apply when relevant):\n` +
-      `${lines.join('\n')}\n`
-    };
+    return selected.length || findings.length ? { selected, findings, storePath } : null;
   } finally {
     db.close();
   }
 }
 
-function claimSessionBanner(sessionId: string, storePath: string): boolean {
-  const safe = hashValue([storePath, sessionId]);
+function claimSessionBanner(sessionId: string, storePath: string, findingId?: string): boolean {
+  const safe = hashValue(findingId ? [storePath, sessionId, findingId] : [storePath, sessionId]);
   if (!safe) return true;
   const dir = path.join(os.tmpdir(), 'lyo-lesson-banner');
   try {
@@ -134,22 +150,32 @@ export function emitSessionLessons(
   write: (text: string) => void = text => { process.stdout.write(text); },
 ): void {
   try {
+    const storePath = resolveSessionLessonStorePath(payload.cwd);
+    try {
+      if (storePath && payload.cwd) emitFindingReviewQueue(storePath, payload.cwd, payload.session_id ?? payload.sessionId ?? null, write);
+    } catch { /* A damaged review queue must not hide ordinary guidance. */ }
     const selection = selectSessionLessons(payload);
     if (!selection) return;
     const sessionId = payload.session_id ?? payload.sessionId;
-    if (sessionId && !claimSessionBanner(sessionId, selection.storePath)) return;
-    write(selection.text);
+    if (sessionId && selection.selected.length && !claimSessionBanner(sessionId, selection.storePath)) selection.selected = [];
+    if (sessionId) selection.findings = selection.findings.filter(row => claimSessionBanner(sessionId, selection.storePath, `${row.id}:${row.version}`));
+    if (!selection.selected.length && !selection.findings.length) return;
     if (sessionId) {
       const store = new LessonStore(selection.storePath);
       try {
+        const firstTraceId = `session-delivery:${sessionId}`;
+        const traceId = store.getTrace(firstTraceId)
+          ? `${firstTraceId}:${hashValue([...selection.selected.map(row => row.lesson_id), ...selection.findings.map(row => [row.id, row.version])])}` : firstTraceId;
+        write(formatSelection(selection) + (selection.findings.length
+          ? `Finding delivery: ${traceId}. Store: ${selection.storePath}. Before applying advice, use lyo finding inspect --finding-id <id> --store <path> for registration and semantic-review templates. Register the opportunity and exact planned capture action, then review evaluator semantics with finding semantics. Codex/Claude hooks capture paired actions and record assessments automatically. Without a sound evaluator leave the outcome unknown. Use the same --store throughout.\n` : ''));
         for (const row of selection.selected) store.recordApplication({ lesson_id: row.lesson_id,
           run_id: sessionId, trigger_message_id: 'session-banner', task_cue: payload.cwd ?? null });
-        const traceId = `session-delivery:${sessionId}`;
         if (!store.getTrace(traceId)) store.recordTrace({ trace_id: traceId, run_id: sessionId,
           kind: 'protocol_application', summary: 'Session banner emitted.',
-          payload: { cwd: payload.cwd, lessons: selection.selected, evidenceKind: 'delivery-only' } });
+          payload: { cwd: payload.cwd, promptHash: typeof payload.prompt === 'string' ? hashValue(payload.prompt) : null,
+            lessons: selection.selected, findings: selection.findings, evidenceKind: 'delivery-only' } });
       } finally { store.close(); }
-    }
+    } else write(formatSelection(selection));
   } catch {
     // fail-open: never block the session
   }

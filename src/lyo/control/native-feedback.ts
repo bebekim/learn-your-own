@@ -8,6 +8,7 @@ import { extractHookFacts } from '../../hooks/normalizer.ts';
 import { isWithinRoot, workspaceSyncConfig } from '../../corpus/workspace-sync.ts';
 import { FeedbackController, type ControlDecision } from './feedback-controller.ts';
 import { nativeCheckReceiptSchema } from './native-check.ts';
+import { TaskFeedback } from './task-feedback.ts';
 
 type Runtime = 'codex' | 'claude';
 type Status = 'passed' | 'failed' | 'unknown';
@@ -45,6 +46,11 @@ export function nativeFeedback(runtime: Runtime, event: Record<string, any>, env
   if (!isWithinRoot(config.rootDir, cwd)) return null;
   const kernel = createKernel({ dbPath: config.corpusPath });
   try {
+    if (kernel.db.prepare("SELECT 1 FROM sqlite_master WHERE name = 'task_attempts'").get()) {
+      const tasks = new TaskFeedback(kernel);
+      if (tasks.active(runtime, cwd)) return name === 'UserPromptSubmit'
+        ? tasks.prompt(runtime, { cwd, session_id: event.session_id, prompt: event.prompt, model: event.model }) : null;
+    }
     const controller = new FeedbackController(kernel, specification(runtime));
     const db = kernel.db;
     db.exec(`CREATE TABLE IF NOT EXISTS native_control_sessions (id TEXT PRIMARY KEY, record_json TEXT NOT NULL);
@@ -198,7 +204,8 @@ export function nativeFeedbackStatus(kernel: LearningKernel) {
   const decisions = exists ? kernel.db.prepare(`SELECT record_json FROM control_decisions
     WHERE json_extract(record_json, '$.specification.domain') LIKE 'coding/native-recovery/%' ORDER BY rowid DESC`)
     .all().map(row => JSON.parse(String(row.record_json)) as ControlDecision) : [];
-  const episodes = decisions.map(decision => ({ decision, observation: evidence(decision.observationRef), feedback: kernel.db.prepare(
+  // Native receipts measure check recovery; task acceptance has no receipt yet.
+  const episodes = decisions.map(decision => ({ decision, taskOutcome: null, observation: evidence(decision.observationRef), feedback: kernel.db.prepare(
     'SELECT record_json FROM control_feedback WHERE decision_id = ? ORDER BY sequence').all(decision.id)
     .map(row => {
       const feedback = JSON.parse(String(row.record_json));
@@ -207,6 +214,8 @@ export function nativeFeedbackStatus(kernel: LearningKernel) {
         result: boundary.resultRef ? evidence(boundary.resultRef) : null } : null };
     }) }));
   return { ok: true, dbPath: kernel.dbPath, decisions: episodes.length,
+    tasks: kernel.db.prepare("SELECT 1 FROM sqlite_master WHERE name = 'task_attempts'").get()
+      ? new TaskFeedback(kernel).status() : { registered: 0, completed: 0, recent: [] },
     observations: nativeExists ? Number(kernel.db.prepare('SELECT COUNT(*) n FROM native_control_events').get()!.n) : 0,
     sessions: nativeExists ? Number(kernel.db.prepare('SELECT COUNT(*) n FROM native_control_sessions').get()!.n) : 0,
     measured: episodes.filter(row => row.feedback.some(f => f.reward !== null)).length,

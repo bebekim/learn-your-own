@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "allowJs": true,
     "allowImportingTsExtensions": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
@@ -12,6 +13,14 @@
     ]
   },
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "tests/package.test.ts",
+    "tests/eval-report.test.ts",
+    "tests/native-feedback.test.ts",
+    "tests/session-finding-feedback.test.ts",
+    "tests/session-finding-evidence.test.ts",
+    "tests/session-finding-semantics.test.ts",
+    "tests/session-finding-capture.test.ts",
+    "tests/helpers/session-finding-fixture.ts"
   ]
 }

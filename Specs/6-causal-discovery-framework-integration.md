@@ -1,6 +1,13 @@
 # Causal Discovery Framework Integration — 임성빈 교수 강연에서 Lyo로
 
-Date: 2026-08-11. State: six component prototypes exist; integrated causal learning and empirical benefit are not established (reviewed 2026-09-08).
+Date: 2026-08-11. State: six component prototypes exist; integrated causal learning and empirical benefit are not established (reviewed 2026-09-10).
+
+The implementation labels below refer to individual components and schema
+iterations, not completion of the product or npm release versions. The later
+task workflow checked one source repair by removal/restoration and ran a transfer
+screen; it did not establish an integrated causal graph or useful coding transfer.
+Current acceptance and retained negative results are in
+[Spec 8](8-learning-evidence-loop.md). Sequence credit and Go remain deferred.
 
 ## 배경
 

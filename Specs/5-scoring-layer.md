@@ -1,94 +1,58 @@
-# 5 — Scoring Layer: At-Bat Score, Practice Score, and Signal Discipline
+# Scoring and learning-cost evidence
 
-**State:** draft (direction spec — pins rules, defines rework; not a pipeline item yet)
-**Layer:** 5 (scoring)
-**Dependencies:** 4.5 (prompt kind evidence), 4.6 (measurement), 4.7 (backfill),
-3.1 (counterfactual credit), `docs/candidate-at-bat-telemetry-spec.md`.
+State: partial — descriptive measurement implemented; useful-learning yield open
+(reviewed 2026-09-10)
 
-## Pinned rules
+The internal question is whether useful learning justifies the tokens spent to
+obtain it. Counting saved lessons or delivered findings cannot answer that.
 
-These rules govern all signal-producing and classifying code from this point on.
+## Implemented measurement
 
-### Rule 1 — The rent test
+- [x] [Prompt measurement](../src/measurement/prompt-kind.ts) distinguishes
+      content-induced flips from positional overrides and reports inter-method
+      concordance. These are descriptive measures, not ground-truth accuracy.
+- [x] [Turn cost attribution](5.2-cost-attribution-turn-id.md) and
+      [episode spend](5.3-episode-compression-cost.md) expose recorded costs and
+      grouping assumptions.
+- [x] [Task evidence](../src/lyo/control/task-evidence.ts) and
+      [evaluation reports](../src/eval/report.ts) separate acceptance, regressions,
+      unknown evidence and costs.
+- [x] Retained source, reflection, candidate and trial costs exist for the recent
+      specific-intervention screen; see [Spec 8](8-learning-evidence-loop.md).
 
-A signal, kind, or taxonomy distinction exists only if it pays rent in prediction:
-knowing it must change the expected outcome of an intervention. A distinction that
-does not move expected outcomes is decoration — the Yahoo directory problem — and
-gets deleted regardless of how intuitive it feels.
+Prompt likelihood constants (99/3/4), Jaccard overlap ≥ 0.5 and short-continuation
+grouping remain uncalibrated priors. Agreement between classifiers is not accuracy.
+Repeated or similar prompts can be productive; `retrySpend` and `echoSpend` do not
+establish avoidable waste. A verifier pass or absence of a retry also does not
+establish the user's full task acceptance.
 
-### Rule 2 — No new hand patterns
+## Useful-learning yield
 
-Moratorium on hand-authored classification knowledge: no new regexes, no new
-hand-picked kinds, no new hand-picked thresholds. New signals must be either derived
-from data (clustering, outcome structure, behavioral traces) or proposed with an
-explicit measurement plan. Crystallized knowledge is technical debt by default.
+Report separately:
 
-### Rule 3 — Signals are on trial
+1. Tokens spent, with source, generation/reflection, delivery, evaluation and
+   implementation/orchestration scopes. Identify overlap, cached input and unknown
+   coverage; token totals are not dollar costs.
+2. Candidate and finding counts, to describe outputs.
+3. **Validated useful interventions**, to measure the useful output denominator.
+   Require comparable later accepted work, regression checks and total learning cost.
 
-Every signal is hired with a prior, promoted or fired by measurement. Concretely:
-each evidence method's likelihood ratio starts as a documented guess and is refit
-from accumulated outcomes (flips, retries, verifier results). A method whose measured
-LR approaches 1 (no predictive value) is removed.
+The recent transfer work produced zero validated useful coding interventions.
+The ratio is therefore undefined/no finite value, not zero tokens per lesson.
+Do not replace the denominator with three observed findings. Report negative and
+inconclusive trials even when the cost-to-usefulness picture is poor.
 
-## The two scores
+## Remaining acceptance
 
-### At-bat score (performance)
+- [ ] Enforce an all-in experiment allowance before and during execution,
+      including reflection and orchestration. Current trial budgets are checked
+      after work and can be exceeded.
+- [ ] Validate useful transfer at acceptable total cost.
+- [ ] Calibrate classification/grouping only against relevant independently
+      labeled outcomes; session efficiency alone must not award lesson credit.
+- [ ] Attribute corrected measurements and unknown costs consistently through
+      future policy updates.
 
-Did the intervention produce a positive state transition? Measurable from the ledger
-today, no text classification required:
-
-```
-prompt → turn → PostToolUse exit codes → verifier results → red→green transitions
-```
-
-### Practice score (learning velocity)
-
-Does intervention quality improve over time? Measurable as trends over session
-windows:
-
-- at-bat score trend
-- repeated-mistake rate (same failing command class recurring)
-- recovery velocity (turns from red to green, trending)
-
-Practice never scores runs; the practice score exists to verify the cage work is
-converting into better at-bats.
-
-## Rework queue (audit of 4.5–4.7)
-
-The prompt-kind line shipped Google machinery with some Yahoo residue. Rework items,
-in order:
-
-- **R1 — Flip definition.** ~~A flip currently counts any prompt whose stored kind
-  differs from its heuristic vote while later evidence exists.~~ **LANDED** — a flip
-  now requires the stored kind to equal a kind the later evidence voted for;
-  positional dominance no longer counts.
-- **R2 — Pseudo-accuracy is structural.** **LANDED** — agreement-with-belief replaced
-  by inter-method concordance (pairwise kind-set intersection across content
-  methods). Outcome-linked validation lands with the at-bat score below.
-- **R3 — Retry threshold.** Jaccard 0.5 is hand-picked. Keep as a documented prior;
-  calibrate against session outcomes or replace with a distribution-derived cutoff.
-- **R4 — Regex classifiers on trial.** `classifyPromptKind` and
-  `classifyResponseContext` are priors, not truths. Calibration (below) measures
-  their real LRs; results decide whether they stay.
-
-## Calibration (the instrument for Rule 3)
-
-Estimate each method's real accuracy from the ledger: compare method votes against
-outcome labels (turn succeeded = verifier pass / no retry / session goal progress).
-Measured accuracy → measured LR → refit `PROMPT_KIND_LOG_LR`. Constants are versioned
-when they change so belief history remains interpretable.
-
-## Sequencing
-
-1. R1 + R2 (measurement corrections — small, unblocks trustworthy numbers)
-2. At-bat score wiring (prompt → turn → outcome join)
-3. Calibration refit (R3, R4 decided by data)
-4. Practice score trends
-
-## What this layer is NOT
-
-- No embeddings yet. The flat-margin residue (129 prompts, 16% at last measurement)
-  is the empirically-sized case; revisit when calibration shows current signals
-  bottoming out.
-- No new taxonomy. Kinds stay as-is until clustering over accumulated data earns a
-  revision.
+This replaces the sports/hiring metaphor and the proposed session-efficiency
+score as the learning objective. The existing descriptive reports remain useful
+for inspection; no new composite KPI is introduced.

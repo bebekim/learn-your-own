@@ -1,0 +1,48 @@
+{
+  "fullSuite": {
+    "passed": 616,
+    "skipped": 1,
+    "failed": 0,
+    "note": "Before final ordinary-banner marker fix"
+  },
+  "finalFocusedAndPackagedSuite": {
+    "passed": 7,
+    "failed": 0
+  },
+  "typecheck": "passed",
+  "pack": "passed",
+  "configuredHookSimulation": "passed for Codex and Claude; no model runs",
+  "opcore": {
+    "status": "passed",
+    "diagnostics": [
+      {
+        "category": "policy",
+        "severity": "warning",
+        "path": "src/lyo/selection/session-hook.ts",
+        "code": "TS_FUNCTION_COMPLEXITY",
+        "message": "TypeScript function emitSessionLessons has cyclomatic complexity 15; max is 10."
+      },
+      {
+        "category": "test",
+        "severity": "info",
+        "path": "src/lyo/selection/session-hook.ts",
+        "code": "TS_RELEVANT_TESTS_FOUND",
+        "message": "TESTED_BY graph evidence exists for src/lyo/selection/session-hook.ts: tests/learning-evidence-loop.test.ts, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js"
+      },
+      {
+        "category": "test",
+        "severity": "info",
+        "path": "tests/lyo-session-hook.test.js",
+        "code": "TS_RELEVANT_TESTS_FOUND",
+        "message": "TESTED_BY graph evidence exists for tests/lyo-session-hook.test.js: tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js, tests/lyo-session-hook.test.js"
+      }
+    ]
+  },
+  "ripwire": {
+    "exitCode": 2,
+    "gating": 4,
+    "kind": "short-horizon-churn",
+    "suppressed": false
+  },
+  "mainUserChangesPreserved": true
+}

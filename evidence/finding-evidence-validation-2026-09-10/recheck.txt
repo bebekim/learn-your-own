@@ -1,0 +1,12 @@
+✔ an unresolved evidence reference cannot change finding validity (308.765667ms)
+✔ withdrawing evidence suspends feedback and wording derived from that premise (1123.653ms)
+✔ one inapplicable task requests scope review without excluding a different task in the same repository (1199.140125ms)
+✔ a measurement cannot be reused for another delivery or counted twice (1497.301209ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5904.87625

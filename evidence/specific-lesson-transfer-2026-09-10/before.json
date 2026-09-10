@@ -1,0 +1,30 @@
+[
+  {
+    "condition": "baseline",
+    "cwd": "/private/tmp/lyo-specific-transfer-20260910/baseline",
+    "acceptance": {
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "node:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: isbn must reject blank text\n\ntrue !== false\n\n    at file:///Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs:9:12 {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: true,\n  expected: false,\n  operator: 'strictEqual',\n  diff: 'simple'\n}\n\nNode.js v24.15.0\n"
+    },
+    "regression": {
+      "exitCode": 0,
+      "stdout": "{\"phase\":\"regression\",\"passed\":true}\n",
+      "stderr": ""
+    }
+  },
+  {
+    "condition": "learned",
+    "cwd": "/private/tmp/lyo-specific-transfer-20260910/learned",
+    "acceptance": {
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "node:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: isbn must reject blank text\n\ntrue !== false\n\n    at file:///Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs:9:12 {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: true,\n  expected: false,\n  operator: 'strictEqual',\n  diff: 'simple'\n}\n\nNode.js v24.15.0\n"
+    },
+    "regression": {
+      "exitCode": 0,
+      "stdout": "{\"phase\":\"regression\",\"passed\":true}\n",
+      "stderr": ""
+    }
+  }
+]

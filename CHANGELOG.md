@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.4.3-adaptive.5 (local main rollout)
+
+- Consolidate the task/finding feedback implementation and real-session evidence onto main.
+- Ship the first-trial handoff with the package and start from the normal project directory.
+- Include report/native-feedback tests in typechecking; separate report data types to meet the file-size guardrail without changing evaluation behavior.
+- Preserve the existing evidence limits: ordinary command-status gaps and demonstrated intervention benefit remain unresolved.
+
+## 0.4.3-adaptive.4 (local rollout)
+
+- Require attributed evaluator-semantic review and prospectively fixed claim kinds before finding validity can change.
+- Capture declared Codex/Claude actions at live paired hooks; automatically measure and assess retained results, deduplicate observations and recover pending reviews across sessions.
+- Preserve unknown and improvement-trial outcomes; invalidate assessment dependencies on semantic disputes.
+- Keep declared finding actions out of proxy recovery command rewriting.
+
+
+## 0.4.3-adaptive.3 — local experimental release
+
+- Deliver approved observed findings by repository identity or explicit activity tags, with evidence references and unvalidated-usefulness labels.
+- Allow newly applicable findings later in a session; retain delivery-only traces without awarding lesson credit. Older hooks cannot mistake these traces for ordinary lessons.
+
+## 0.4.3-adaptive.2 — local experimental release
+
+- Derive a candidate from a retained task failure and repair, then test the claimed change by removal and restoration under the frozen verifier.
+- Retain the model request, response, costs and failed analyses. A different verifier failure cannot substantiate the claimed original cause.
+- Preregister a fixed candidate-advice versus no-advice trial through the existing task workflow; export the candidate in the existing lesson-library format and retain comparison verdicts without automatic promotion.
+- Accept a model response enclosed in a Markdown JSON fence; explicitly recheck a retained response with `--reuse-analysis`, preserving the failed record and counting its inference cost once.
+- A live approved model request identified an edit that passed local failure/removal/restoration checks. The generated advice remains broad; later-task benefit is unverified.
+- Allow an explicit evaluation budget when creating a fixed candidate trial, so a small transfer test need not inherit the source task's budget. Ship the task-workflow guide in the local tarball.
+- Retain one cross-repository screen: revised advice used more tokens, both arms exceeded budget, and a later Unicode audit exposed a verifier gap. No promotion or follow-on run.
+
+## 0.4.3-adaptive.1
+
+- Add a registered task feedback cycle: native decision delivery, independent acceptance/regression checks, host token usage, persisted feedback, frozen policies, and later-task evaluation.
+- `lyo task run` registers and launches Codex or Claude, retains the host trace, and collects its task receipt. Task commands default to the configured central database.
+- Register comparison pairs and a total token-cost limit before work starts; count training costs and preserve incomplete evidence. Registered tasks train acceptance within budget instead of check recovery.
+- Expose native task acceptance as unknown separately from check-recovery rewards.
+- Eval report v2 accepts explicit unknown task outcomes, reports known/unknown counts, and computes success rates only over known outcomes; rates and intervals are null when none are known. Existing boolean episode inputs remain supported.
+- Keep promotion inconclusive when either comparison arm has unknown acceptance. Interrupted local acceptance checks also remain unknown.
+
 ## 0.4.3-adaptive.0
 
 - Preserve Kimi Code CLI identity when events arrive through the Claude-compatible hook command.

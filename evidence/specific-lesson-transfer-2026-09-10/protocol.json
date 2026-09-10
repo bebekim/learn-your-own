@@ -1,0 +1,23 @@
+{
+  "id": "catalog-nonblank-transfer-20260910",
+  "source": {
+    "origin": "/Users/marcus.kim/repositories/oss/clean-domain-driven",
+    "head": "3ce3438eba134cef4430dcecb6eadfce94b5a19a"
+  },
+  "root": "/private/tmp/lyo-specific-transfer-20260910",
+  "candidateId": "77b7d36b8d920fa091db94920f615ad9bd589de3a615361cb03b8a72254d6de4",
+  "model": "gpt-6-astra",
+  "budget": {
+    "max_turns": 10,
+    "max_wall_time_seconds": 180,
+    "max_tokens": 100000
+  },
+  "maxEvaluationTokens": 200000,
+  "maxPairs": 1,
+  "stoppingRule": "One pair only. Any overrun fails the screen. No reruns or automatic follow-on experiments.",
+  "interpretation": "One pair is screening evidence. Token differences alone cannot establish a repeatable saving or award useful-lesson credit.",
+  "comparison": "Same untouched commit, prompt, model, tools, budget and frozen verifier; one run receives the exact revised advice and the other receives none from the task controller.",
+  "verifier": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.worktrees/feat/task-derived-interventions/evidence/specific-lesson-transfer-2026-09-10/verify-catalog.mjs",
+  "verifierSHA256": "3b47e8873a844b93f08285248d559685f70be08464bf21e06631abb65b451b6e",
+  "createdAt": "2026-09-09T14:34:39.465Z"
+}

@@ -7,7 +7,10 @@ capabilities, retained evidence, remaining development, and release status.
 
 Lyo records agent work and delivers scoped lessons to later attempts. It has a
 local ledger, telemetry compiler, pipeline lesson delivery, and an experimental
-session bridge. A controlled benchmark checks whether delivered guidance helps.
+session bridge. Registered comparisons check whether delivered guidance helps. The retained coding
+experiments have not established a useful reusable intervention; three scoped
+findings are delivered with their future usefulness explicitly unvalidated.
+See the [spec completion map](Specs/README.md).
 
 The longer-term design is inference over a graph of explanations. That graph
 runtime and the full learning compiler remain future work.
@@ -88,7 +91,7 @@ lyo --help
 
 Requires Node.js 24+ for `node:sqlite`.
 
-Current package version: `0.4.2`.
+Current development package: `0.4.3-adaptive.1` (local rollout; registry publication is separate).
 
 ## Experimental adaptive controller (2026-09-09)
 
@@ -98,6 +101,12 @@ trains action values, freezes the policy, and compares it with a fixed baseline
 on new inputs. Codex and Claude hooks can now run a bounded recovery-guidance
 experiment when `adaptiveFeedback` is enabled in the central workspace config.
 This is experimental; measured check recovery is not proof of task correctness.
+
+The [registered task workflow](docs/task-feedback-cycle.md) connects Codex/Claude
+task launches to independent acceptance and regression checks, host token usage,
+persistent feedback, and frozen policies used on later tasks. Its comparison
+report includes training cost and preserves inconclusive results. This workflow
+is opt-in and does not automatically promote guidance into ordinary sessions.
 
 See the [architecture and incremental TDD walkthrough](docs/adaptive-feedback-loop.md)
 and [retained calibration evidence](evidence/adaptive-feedback-2026-09-09/assessment.md).

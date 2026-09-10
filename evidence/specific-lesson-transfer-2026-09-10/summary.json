@@ -1,0 +1,24 @@
+{
+  "reportDecision": "inconclusive",
+  "reasons": [
+    "at least two matched pairs from distinct baselines are required"
+  ],
+  "baselineTokens": 157307,
+  "learnedTokens": 167608,
+  "evaluationTokens": 324915,
+  "sourceAndLearningTokens": 442269,
+  "recordedCandidateAndEvaluationTokens": 767184,
+  "tokenDifference": 10301,
+  "tokenRatio": 1.0654834177754327,
+  "protocolBudgetPassed": false,
+  "validatedUsefulLessons": 0,
+  "spendingDecision": "stop-this-candidate-screen",
+  "limitations": [
+    "One pair; no causal estimate of benefit or harm.",
+    "Registered wall time includes the treatment approval delay.",
+    "Both hosts loaded the same two legacy session lessons in different orders.",
+    "The frozen verifier omitted U+0085; the treatment fails this post-hoc case.",
+    "Tokens are checked after completion, not capped by the provider.",
+    "Candidate/evaluation totals exclude engineering and orchestration; see its separate checkpoint."
+  ]
+}
