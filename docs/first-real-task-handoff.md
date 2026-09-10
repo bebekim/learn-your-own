@@ -1,4 +1,23 @@
-# Resume the first prospective LYO trial
+# First prospective LYO trial: current entry point
+
+The manual handoff below is historical. For `0.4.3-adaptive.7`, use
+[prospective finding trials](prospective-finding-trials.md): register a reviewed,
+reusable trigger/evaluator once, then ordinary Codex/Claude hooks enroll matching
+future work, capture outcomes, and revise scoped delivery. Do not paste the old
+per-ticket instructions or enroll work that has already happened.
+
+The rollout inspection found no registered ordinary trial in the central lesson
+store and no sound match between the three catalog findings and the current
+MLOps deployment task. Installation alone does not start a trial. The next
+learning step is a real, reviewed finding/diagnostic/outcome contract; its absence
+is not an observation window that can be completed by waiting.
+
+Existing hook commands use stable executable paths and load the installed
+package on each invocation. Check fresh host receipts for the installed version;
+restart or resume a session only if it is not producing fresh capture. No new
+hook event configuration is required for this rollout.
+
+## Historical manual handoff (superseded)
 
 Prepared 10 September 2026; updated for the main-branch rollout. This is a restart
 handoff, not a completed trial.

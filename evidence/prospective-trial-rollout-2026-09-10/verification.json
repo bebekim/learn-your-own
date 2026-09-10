@@ -1,0 +1,50 @@
+{
+  "recordedAt": "2026-09-10T13:09:37.400821+00:00",
+  "version": "0.4.3-adaptive.7",
+  "fullTests": {
+    "passed": 666,
+    "skipped": 1,
+    "failed": 0
+  },
+  "typecheck": "passed",
+  "opcore": "passed with complexity warnings and unavailable Python/Rust checks",
+  "packageArchiveTest": "passed",
+  "archiveSha256": "69945b7052496822849a948bea67bea1d92e5dc22accea1d72476e24668cdab2",
+  "installedFilesCompared": 197,
+  "installedDifferences": [],
+  "hookConfigHashes": {
+    "/Users/marcus.kim/.codex/hooks.json": "ab3cb3239546d1aec203ac73cbf356214b48200ce2428f4cca76417eaf20f57d",
+    "/Users/marcus.kim/.claude/settings.json": "aff1f37b52d93653783b2d83332086b6f7fc9c6c5fd4a15a080b2cac09c58b9c"
+  },
+  "configuredHookChecks": [
+    {
+      "host": "codex",
+      "configuredCommands": true,
+      "pairedAction": true,
+      "automaticAssessment": true,
+      "duplicateReviews": 0,
+      "nextDeliverySuppressed": true,
+      "realUsefulnessEstablished": false
+    },
+    {
+      "host": "claude",
+      "configuredCommands": true,
+      "pairedAction": true,
+      "automaticAssessment": true,
+      "duplicateReviews": 0,
+      "nextDeliverySuppressed": true,
+      "realUsefulnessEstablished": false
+    }
+  ],
+  "centralOrdinaryTrials": 0,
+  "latestMlopsHostReceipt": {
+    "session_id": "01a08948-8ba3-78d2-bbbc-479ac8a00b00",
+    "event_name": "turn.stop",
+    "model": "gpt-6-astra",
+    "lyo_version": "0.4.3-adaptive.6",
+    "created_at": "2026-09-10T12:39:41.160Z"
+  },
+  "freshUpgradedMlopsReceiptObserved": false,
+  "realTrialStarted": false,
+  "realUsefulnessEstablished": false
+}

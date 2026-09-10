@@ -1,0 +1,23 @@
+✔ a fixed prospective comparison changes later delivery and later failure pauses that scope (36732.644375ms)
+✔ a closed missing outcome stays unknown and a replacement scope starts with fresh evidence (486.007791ms)
+✔ a reviewed trigger automatically registers an ordinary session before its next action (969.055958ms)
+✔ configured CLI hooks recognize the trial and isolate it from the native recovery experiment (1612.383458ms)
+✔ automatic enrollment retains its trigger and declines interrupted, unscoped, or unknown-model observations (132.824375ms)
+✔ ordinary banners cannot expose trial-managed advice before assignment (129.748958ms)
+✔ one ordinary trial owns the session even when an earlier definition matches a later event (123.802875ms)
+✔ a model change at the measured action cannot supply an outcome for the original model (131.852208ms)
+✔ an undelivered prospective opportunity retains an outcome without awarding lesson support (167.436166ms)
+✔ ordinary live hooks retain the no-delivery outcome automatically (156.491666ms)
+✔ assignment precedes delivery and is stable across retries in both comparison arms (264.908084ms)
+✔ one trial cannot rerandomize a session or enroll a session already exposed to its lesson (189.663625ms)
+✔ late assignments and deliveries are rejected, and withdrawn measurements lose their outcome (122.568333ms)
+✔ an ended opportunity cannot be randomized after its empty outcome window closed (57.8495ms)
+✔ a prospective delivered counterexample still suspends the finding through existing validity checks (132.55775ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 37417.876084

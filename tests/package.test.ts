@@ -18,6 +18,7 @@ test('packed executables and generated hooks run the installed learning loop', a
   const manifest = JSON.parse(readFileSync(join(staging, 'package.json'), 'utf8'));
   const sourceManifest = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
   assert.ok(readFileSync(join(staging, 'docs/first-real-task-handoff.md'), 'utf8').includes('first prospective LYO'));
+  assert.ok(readFileSync(join(staging, 'docs/prospective-finding-trials.md'), 'utf8').includes('Outcome to later delivery'));
   const storePath = join(dir, '.zeroshot/lyo-lessons.db');
   mkdirSync(join(dir, '.zeroshot'));
   const store = new LessonStore(storePath);
