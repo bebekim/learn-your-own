@@ -22,6 +22,7 @@ import { CliArgs, readStdin } from './args.ts';
 import { normalizeOutcome } from './coercion.ts';
 import { autoConnectWorkspace } from '../corpus/workspace-sync.ts';
 import { nativeFeedback } from '../lyo/control/native-feedback.ts';
+import { ordinaryFindingTrialFeedback } from '../lyo/selection/finding-trials.ts';
 
 export async function runCodexHookCommand(
   args: CliArgs,
@@ -83,6 +84,19 @@ export async function runClaudeHookCommand(
 }
 
 function addNativeFeedback(output: any, runtime: 'codex' | 'claude', event: Record<string, any>, args: CliArgs): unknown {
+  let trialManaged = false;
+  try {
+    const cwd = event.cwd || args.cwd;
+    const trial = ordinaryFindingTrialFeedback(runtime, { ...event, cwd }, resolveSessionLessonStorePath(cwd));
+    trialManaged = trial.managed;
+    if (trial.additionalContext) output = { ...output, hookSpecificOutput: { ...output.hookSpecificOutput,
+      hookEventName: event.hook_event_name, additionalContext: [output.hookSpecificOutput?.additionalContext, trial.additionalContext].filter(Boolean).join('\n') } };
+  } catch (error) {
+    // An uncertain assignment must not fall through into a different intervention.
+    trialManaged = true;
+    process.stderr.write(`Lyo prospective trial: ${error instanceof Error ? error.message : String(error)}\n`);
+  }
+  if (trialManaged) return output;
   if (['PostToolUse', 'PostToolUseFailure'].includes(event.hook_event_name)) {
     try {
       const cwd = event.cwd || args.cwd, storePath = resolveSessionLessonStorePath(cwd);

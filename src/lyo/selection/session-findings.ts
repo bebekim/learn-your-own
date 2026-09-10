@@ -123,10 +123,16 @@ export function inspectFinding(store: LessonStore, id: string) {
   return { ...state, deliveries, opportunities };
 }
 
+export function trialManagedFindings(db: DatabaseSync) {
+  return new Set(records(db, 'session-finding-trial@1').map(row => (row.value as { content?: { input?: { findingId?: string } } }).content?.input?.findingId));
+}
+
 export function selectSessionFindings(db: DatabaseSync, input: { repository: () => string | null; cwd?: string | null; prompt?: string | null }): SessionFinding[] {
   const candidates = records(db, 'session-finding@1');
+  const managed = trialManagedFindings(db);
   const repository = candidates.length ? input.repository() : null;
   return candidates.flatMap(row => {
+    if (managed.has(row.id)) return [];
     if (!findingSchema.safeParse(row.value).success) return [];
     let state: ReturnType<typeof findingState>;
     try { state = findingState(db, row.id); } catch { return []; }

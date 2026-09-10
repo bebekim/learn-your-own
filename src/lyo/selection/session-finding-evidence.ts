@@ -14,10 +14,12 @@ const text = z.string().trim().min(1).max(2000);
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
 const envelopeSchema = z.object({ source: text, content: z.record(z.string(), z.unknown()), hash }).strict();
 const contextSchema = z.object({ repository: z.string().nullable(), activity: text, match: z.enum(['repository', 'activity']) }).strict();
-const inputSchema = z.object({
+export const inputSchema = z.object({
   capture: captureSchema.optional(),
   id: text, findingId: text, deliveryId: text.optional(), taskId: text, cwd: text,
-  prospective: z.object({ sessionId: text, trialId: text, model: text, findingVersion: hash, context: contextSchema }).strict().optional(),
+  prospective: z.object({ sessionId: text, trialId: text, model: text, findingVersion: hash, context: contextSchema,
+    automatic: z.object({ trialHash: hash, trigger: z.object({ eventName: text, toolUseId: text, inputHash: hash, responseHash: hash }).strict() }).strict().optional(),
+  }).strict().optional(),
   claim: z.object({ kind: z.enum(['deterministic', 'improvement', 'unspecified']).default('unspecified'),
     conditions: text, action: text, prediction: text, falsifiedBy: text }).strict(),
   checks: z.object({ applicability: text, adherence: text, prediction: text }).strict(),

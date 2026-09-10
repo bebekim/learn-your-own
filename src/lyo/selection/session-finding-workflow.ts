@@ -4,8 +4,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { hashValue } from '../../contract/refs.ts';
 import { LessonStore } from '../storage/lesson-store.ts';
 import { captureFindingAction, findingActionEvidence } from './session-finding-capture.ts';
-import { findingOpportunity, measureFindingOpportunity, findingOpportunityDelivery } from './session-finding-evidence.ts';
-import { inspectFinding, recordFindingFeedback } from './session-findings.ts';
+import { findingOpportunity, measureFindingOpportunity } from './session-finding-evidence.ts';
+import { inspectFinding, recordFindingFeedback, trialManagedFindings } from './session-findings.ts';
 import { findingSemanticReview } from './session-finding-semantics.ts';
 
 export function findingOwnsToolCall(storePath: string | null, runtime: string, event: { session_id?: string; tool_use_id?: string; cwd?: string }): boolean {
@@ -83,7 +83,7 @@ export function pendingFindingReviews(store: LessonStore, cwd?: string) {
     try {
       const registered = findingOpportunity(store.db, input.id);
       // A review prompt would expose advice withheld by the trial. Operators can still inspect the opportunity.
-      if (input.prospective && !findingOpportunityDelivery(store.db, input.id)) return [];
+      if (input.prospective) return [];
       const state = inspectFinding(store, input.findingId), entry = state.opportunities.find(item => item.id === input.id)!;
       const semantics = findingSemanticReview(store.db, input.id, registered.payload.hash);
       const status = entry.error ? 'invalid-evidence' : !entry.evidence ? 'awaiting-action'
@@ -105,7 +105,8 @@ export function emitFindingReviewQueue(storePath: string, cwd: string, sessionId
   try {
     // Retained measurements can be reviewed anywhere; acquiring missing evidence still requires its own workspace.
     const workspace = realpathSync(cwd);
-    const queue = pendingFindingReviews(store).filter(item => item.cwd === workspace || item.evidenceRef !== null)
+    const managed = trialManagedFindings(store.db);
+    const queue = pendingFindingReviews(store).filter(item => !managed.has(item.findingId) && (item.cwd === workspace || item.evidenceRef !== null))
       .sort((a, b) => Number(b.cwd === workspace) - Number(a.cwd === workspace));
     if (!queue.length) return;
     const id = `finding-review-prompt:${hashValue([sessionId, cwd, queue])}`;

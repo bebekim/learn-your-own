@@ -5,13 +5,13 @@ import type { LessonStore } from '../storage/lesson-store.ts';
 
 const text = z.string().trim().min(1).max(2000);
 const basis = z.object({ rationale: text, verifierPaths: z.array(text).min(1) }).strict();
-const inputSchema = z.object({
+export const semanticReviewSchema = z.object({
   id: text, opportunityId: text, supersedes: text.optional(),
   reviewer: z.object({ id: text, kind: z.enum(['human', 'agent']) }).strict(),
   verdict: z.enum(['accepted', 'disputed']), claimKind: z.enum(['deterministic', 'improvement']),
   applicability: basis, adherence: basis, prediction: basis, limitations: text,
 }).strict();
-const receiptSchema = inputSchema.extend({ source: z.literal('session-finding-semantics@1'),
+const receiptSchema = semanticReviewSchema.extend({ source: z.literal('session-finding-semantics@1'),
   opportunityHash: text, hash: text });
 
 export function findingSemanticReview(db: DatabaseSync, opportunityId: string, opportunityHash: string) {
@@ -31,7 +31,7 @@ export function findingSemanticReview(db: DatabaseSync, opportunityId: string, o
 
 /** An attributed semantic judgment, never an independent causal verifier. */
 export function reviewFindingSemantics(store: LessonStore, value: unknown) {
-  const input = inputSchema.parse(value);
+  const input = semanticReviewSchema.parse(value);
   store.db.exec('BEGIN IMMEDIATE');
   try {
     const opportunity = store.getTrace(`finding-opportunity:${input.opportunityId}`);

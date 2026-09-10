@@ -9,7 +9,8 @@ import { findingState } from './session-findings.ts';
 
 const text = z.string().min(1);
 export const captureSchema = z.object({ runtime: z.enum(['codex', 'claude']), toolName: text,
-  toolInput: z.union([z.record(z.string(), z.unknown()), z.string()]) }).strict();
+  toolInput: z.union([z.record(z.string(), z.unknown()), z.string()]).optional(), next: z.literal(true).optional() }).strict()
+  .refine(value => (value.toolInput !== undefined) !== Boolean(value.next), 'declare an exact input or the next matching tool action');
 const filesSchema = z.array(z.object({ path: text, content: z.string().nullable() }).strict());
 const boundarySchema = z.object({ source: z.literal('session-finding-action@1'), opportunityId: text, opportunityHash: text,
   eventId: text, runtime: text, sessionId: text, cwd: text, toolUseId: text, toolName: text, toolInputHash: text,
@@ -34,17 +35,18 @@ export function captureFindingAction(store: LessonStore, registered: Registered,
   const { input, sessionId } = registered.content, capture = input.capture;
   const payload = event.hookEvent.payload as Record<string, unknown>;
   if (!capture || event.runtime !== capture.runtime || event.sessionId !== sessionId || realpathSync(event.cwd) !== input.cwd
-    || payload.tool_name !== capture.toolName || hashValue(payload.tool_input) !== hashValue(capture.toolInput)
+    || payload.tool_name !== capture.toolName || (capture.toolInput !== undefined && hashValue(payload.tool_input) !== hashValue(capture.toolInput))
     || typeof payload.tool_use_id !== 'string' || !payload.tool_use_id) return;
   if (!['PreToolUse', 'PostToolUse', 'PostToolUseFailure'].includes(event.runtimeEventName)) return;
   const phase = event.runtimeEventName === 'PreToolUse' ? 'before' : 'after';
   if (boundary(store.db, input.id, phase)) return;
   const before = boundary(store.db, input.id, 'before');
-  if (before && before.toolUseId !== payload.tool_use_id) return;
+  if (capture.next && phase === 'after' && !before) return;
+  if (before && (before.toolUseId !== payload.tool_use_id || before.toolInputHash !== hashValue(payload.tool_input))) return;
   const current = phase === 'before' ? findingState(store.db, input.findingId) : null;
   const content = { source: 'session-finding-action@1', opportunityId: input.id, opportunityHash: registered.payload.hash,
     eventId: event.hookEvent.eventId!, runtime: event.runtime, sessionId, cwd: input.cwd,
-    toolUseId: payload.tool_use_id, toolName: capture.toolName, toolInputHash: hashValue(capture.toolInput),
+    toolUseId: payload.tool_use_id, toolName: capture.toolName, toolInputHash: hashValue(payload.tool_input),
     eventName: event.runtimeEventName, sourceFiles: findingFiles(input.sourceFiles), verifierFiles: findingFiles(input.verifierFiles),
     ...(current ? { findingState: { version: current.version, validity: current.validity } } : {}),
     responseHash: phase === 'after' ? hashValue(payload.tool_response ?? payload.error ?? null) : null };
@@ -63,7 +65,7 @@ export function findingActionEvidence(db: DatabaseSync, registered: Registered) 
     if (!receipt) continue;
     if (receipt.opportunityId !== input.id || receipt.opportunityHash !== registered.payload.hash
       || receipt.runtime !== input.capture?.runtime || receipt.sessionId !== registered.content.sessionId || receipt.cwd !== input.cwd
-      || receipt.toolName !== input.capture.toolName || receipt.toolInputHash !== hashValue(input.capture.toolInput))
+      || receipt.toolName !== input.capture.toolName || (input.capture.toolInput !== undefined && receipt.toolInputHash !== hashValue(input.capture.toolInput)))
       problems.push('action belongs to another opportunity');
     if (hashValue(receipt.verifierFiles) !== hashValue(registered.content.verifierFiles)) problems.push('verifier changed at action boundary');
   }
