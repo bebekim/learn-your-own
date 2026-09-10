@@ -26,9 +26,11 @@ delivery and which conclusions remain unknown. Do not simulate host events,
 backdate a registration, or claim a passing task proves the advice helped.
 ```
 
-No reinstall is currently needed: the installed package is
-`lyo-kernel@0.4.3-adaptive.5`. Start the new session to establish fresh capture,
-then check the receipts. A restart is not itself proof of working hooks.
+The current local rollout targets `lyo-kernel@0.4.3-adaptive.6`, including checks
+for suspended/revised advice at registration and action start. Check the installed
+version and fresh receipts. Hook commands retain the same executable paths, so
+the next invocation loads the upgraded package; a restart is not itself proof of
+working hooks. Use a new session if the current one has no fresh capture.
 
 ## Why start a new session?
 

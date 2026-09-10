@@ -50,7 +50,7 @@ function records(db: DatabaseSync, source: string): Array<{ id: string; value: u
     ORDER BY rowid`).all(source).map(row => ({ id: String(row.trace_id), value: JSON.parse(String(row.payload_json)) }));
 }
 
-function findingState(db: DatabaseSync, id: string) {
+export function findingState(db: DatabaseSync, id: string) {
   // ponytail: replay this small journal on reads; index/materialize if hook latency grows.
   const row = records(db, 'session-finding@1').find(row => row.id === id);
   if (!row) throw new Error('unknown session finding');

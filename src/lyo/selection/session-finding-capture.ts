@@ -5,6 +5,7 @@ import { hashValue } from '../../contract/refs.ts';
 import type { HookObservation } from '../../hooks/events.ts';
 import type { LessonStore } from '../storage/lesson-store.ts';
 import { findingFiles } from './session-finding-files.ts';
+import { findingState } from './session-findings.ts';
 
 const text = z.string().min(1);
 export const captureSchema = z.object({ runtime: z.enum(['codex', 'claude']), toolName: text,
@@ -12,9 +13,10 @@ export const captureSchema = z.object({ runtime: z.enum(['codex', 'claude']), to
 const filesSchema = z.array(z.object({ path: text, content: z.string().nullable() }).strict());
 const boundarySchema = z.object({ source: z.literal('session-finding-action@1'), opportunityId: text, opportunityHash: text,
   eventId: text, runtime: text, sessionId: text, cwd: text, toolUseId: text, toolName: text, toolInputHash: text,
-  eventName: text, sourceFiles: filesSchema, verifierFiles: filesSchema, responseHash: text.nullable(), hash: text }).strict();
-type Registered = { content: { sessionId: string;
-  input: { id: string; cwd: string; sourceFiles: string[]; verifierFiles: string[]; capture?: z.infer<typeof captureSchema> };
+  eventName: text, sourceFiles: filesSchema, verifierFiles: filesSchema, responseHash: text.nullable(), hash: text,
+  findingState: z.object({ version: text, validity: z.enum(['unvalidated', 'supported', 'needs-revision', 'needs-reassessment']) }).strict().optional() }).strict();
+type Registered = { content: { sessionId: string; version: string;
+  input: { id: string; findingId: string; cwd: string; sourceFiles: string[]; verifierFiles: string[]; capture?: z.infer<typeof captureSchema> };
   sourceBefore: z.infer<typeof filesSchema>; verifierFiles: z.infer<typeof filesSchema> };
   payload: { hash: string } };
 
@@ -39,10 +41,12 @@ export function captureFindingAction(store: LessonStore, registered: Registered,
   if (boundary(store.db, input.id, phase)) return;
   const before = boundary(store.db, input.id, 'before');
   if (before && before.toolUseId !== payload.tool_use_id) return;
+  const current = phase === 'before' ? findingState(store.db, input.findingId) : null;
   const content = { source: 'session-finding-action@1', opportunityId: input.id, opportunityHash: registered.payload.hash,
     eventId: event.hookEvent.eventId!, runtime: event.runtime, sessionId, cwd: input.cwd,
     toolUseId: payload.tool_use_id, toolName: capture.toolName, toolInputHash: hashValue(capture.toolInput),
     eventName: event.runtimeEventName, sourceFiles: findingFiles(input.sourceFiles), verifierFiles: findingFiles(input.verifierFiles),
+    ...(current ? { findingState: { version: current.version, validity: current.validity } } : {}),
     responseHash: phase === 'after' ? hashValue(payload.tool_response ?? payload.error ?? null) : null };
   store.recordTrace({ trace_id: `finding-action:${input.id}:${phase}`, run_id: sessionId, kind: 'behavior',
     summary: 'Live finding action boundary; no outcome inferred from tool status.', payload: { ...content, hash: hashValue(content) } });
@@ -64,6 +68,11 @@ export function findingActionEvidence(db: DatabaseSync, registered: Registered) 
     if (hashValue(receipt.verifierFiles) !== hashValue(registered.content.verifierFiles)) problems.push('verifier changed at action boundary');
   }
   if (before && hashValue(before.sourceFiles) !== hashValue(registered.content.sourceBefore)) problems.push('source changed before the declared action');
+  if (before?.findingState) {
+    if (before.findingState.version !== registered.content.version) problems.push('finding version changed before the declared action');
+    if (before.findingState.validity === 'needs-revision' || before.findingState.validity === 'needs-reassessment')
+      problems.push('finding was suspended before the declared action');
+  }
   if (before && after && before.toolUseId !== after.toolUseId) problems.push('action call identity mismatch');
   if (after && after.eventName !== 'PostToolUse') problems.push('action did not complete normally');
   return { before, after, problems, hash: hashValue([before?.hash ?? null, after?.hash ?? null]) };

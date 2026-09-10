@@ -8,6 +8,7 @@ import type { LessonStore } from '../storage/lesson-store.ts';
 import { findingSemanticReview } from './session-finding-semantics.ts';
 import { findingFiles as files } from './session-finding-files.ts';
 import { captureSchema, findingActionEvidence } from './session-finding-capture.ts';
+import { findingState } from './session-findings.ts';
 
 const text = z.string().trim().min(1).max(2000);
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
@@ -95,6 +96,10 @@ export function registerFindingOpportunity(store: LessonStore, value: unknown) {
     const finding = payload.findings?.find((f: { id: string }) => f.id === input.findingId);
     if (delivery?.kind !== 'protocol_application' || !delivery.run_id || !finding?.version || !finding.context
       || !payload.cwd || realpathSync(payload.cwd) !== input.cwd) throw new Error('opportunity requires this finding delivery in the same workspace');
+    const current = findingState(store.db, input.findingId);
+    if (current.validity === 'needs-revision' || current.validity === 'needs-reassessment')
+      throw new Error('finding is suspended; review current evidence before starting another application');
+    if (current.version !== finding.version) throw new Error('application requires a delivery of the current finding version');
     if (input.claim.action !== finding.intervention) throw new Error('registered action must match the delivered advice');
     const verifierFiles = files(input.verifierFiles), sourceBefore = files(input.sourceFiles);
     if (verifierFiles.some(file => file.content === null)) throw new Error('registered verifier file is missing');

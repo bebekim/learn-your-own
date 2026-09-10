@@ -1,0 +1,48 @@
+{
+  "kind": "controlled-finding-feedback-loop",
+  "storePath": "/private/tmp/lyo-finding-feedback-loop-20260910/lessons.sqlite",
+  "findingId": "finding:unicode-contract-exercise",
+  "provenance": "finding-origin:retained-unicode-audit",
+  "original": {
+    "id": "original",
+    "delivery": {
+      "id": "session-delivery:original",
+      "output": "Observed findings — future usefulness unvalidated; apply only when the stated activity fits:\n- [transfer-review; finding:unicode-contract-exercise] Reject blank strings using value.trim().length > 0; return the original accepted string.\n  Observed: U+0085 survives trim but belongs to the target blank-character contract. Evidence: finding-origin:retained-unicode-audit\nFinding delivery: session-delivery:original. Store: /private/tmp/lyo-finding-feedback-loop-20260910/lessons.sqlite. Before applying advice, use lyo finding inspect --finding-id <id> --store <path> for registration and semantic-review templates. Register the opportunity and exact planned capture action, then review evaluator semantics with finding semantics. Codex/Claude hooks capture paired actions and record assessments automatically. Without a sound evaluator leave the outcome unknown. Use the same --store throughout.\n"
+    },
+    "version": "2bb030e93dfa1a7551cf216a1c9798a6675bdffa2ab13c9a63be765d621aae7f",
+    "outcome": "contradicted",
+    "prediction": false,
+    "feedbackId": "review-1e7f72fcf6e44a9e15cf"
+  },
+  "suspendedPrompt": "Pending finding review (1); store: /private/tmp/lyo-finding-feedback-loop-20260910/lessons.sqlite:\n- finding:unicode-contract-exercise / original: needs-content-review (retained from /private/tmp/lyo-finding-feedback-loop-20260910/original)\nUse lyo finding pending --all and finding inspect with this --store. Review retained evaluator semantics with finding semantics; preserve unknown when evidence is incomplete. Do not recreate a missed pre-action observation.\n",
+  "revision": {
+    "id": "unicode-contract-correction",
+    "findingId": "finding:unicode-contract-exercise",
+    "previousVersion": "2bb030e93dfa1a7551cf216a1c9798a6675bdffa2ab13c9a63be765d621aae7f",
+    "intervention": "For contracts rejecting both ECMAScript and Unicode whitespace, require /[^\\s\\p{White_Space}]/u to match; preserve the accepted string.",
+    "feedbackIds": [
+      "review-1e7f72fcf6e44a9e15cf"
+    ],
+    "author": "codex-controlled-exercise",
+    "rationale": "U+0085 is rejected by the declared target contract but survives trim. Restrict the wording to this explicit whitespace contract.",
+    "scopeFeedbackIds": [],
+    "source": "session-finding-revision@1",
+    "version": "0e31c38e1c999bc687dff37167698f0b6856740a8e3fd8373f24011ab45e2b5f"
+  },
+  "revised": {
+    "id": "revised",
+    "delivery": {
+      "id": "session-delivery:revised",
+      "output": "Observed findings — future usefulness unvalidated; apply only when the stated activity fits:\n- [transfer-review; finding:unicode-contract-exercise] For contracts rejecting both ECMAScript and Unicode whitespace, require /[^\\s\\p{White_Space}]/u to match; preserve the accepted string.\n  Observed: U+0085 survives trim but belongs to the target blank-character contract. Evidence: finding-origin:retained-unicode-audit\nFinding delivery: session-delivery:revised. Store: /private/tmp/lyo-finding-feedback-loop-20260910/lessons.sqlite. Before applying advice, use lyo finding inspect --finding-id <id> --store <path> for registration and semantic-review templates. Register the opportunity and exact planned capture action, then review evaluator semantics with finding semantics. Codex/Claude hooks capture paired actions and record assessments automatically. Without a sound evaluator leave the outcome unknown. Use the same --store throughout.\n"
+    },
+    "version": "0e31c38e1c999bc687dff37167698f0b6856740a8e3fd8373f24011ab45e2b5f",
+    "outcome": "supported",
+    "prediction": true,
+    "feedbackId": "review-77298280f88aa13f4f68"
+  },
+  "nextPrompt": "Observed findings — future usefulness unvalidated; apply only when the stated activity fits:\n- [transfer-review; finding:unicode-contract-exercise] For contracts rejecting both ECMAScript and Unicode whitespace, require /[^\\s\\p{White_Space}]/u to match; preserve the accepted string.\n  Observed: U+0085 survives trim but belongs to the target blank-character contract. Evidence: finding-origin:retained-unicode-audit\n  1 supporting observation(s); broader usefulness unvalidated.\nFinding delivery: session-delivery:after-correction. Store: /private/tmp/lyo-finding-feedback-loop-20260910/lessons.sqlite. Before applying advice, use lyo finding inspect --finding-id <id> --store <path> for registration and semantic-review templates. Register the opportunity and exact planned capture action, then review evaluator semantics with finding semantics. Codex/Claude hooks capture paired actions and record assessments automatically. Without a sound evaluator leave the outcome unknown. Use the same --store throughout.\n",
+  "validity": "supported",
+  "supporting": 1,
+  "incrementalBenefit": "unknown",
+  "boundary": "Real parser execution; scripted actions and hook events. Not an independent ordinary-session benefit trial."
+}

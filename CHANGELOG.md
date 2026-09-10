@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.3-adaptive.6 (local feedback-loop rollout)
+
+- Reject new finding applications from suspended or superseded deliveries.
+- Retain finding version and validity at the live action boundary; preserve legitimate late outcomes for the version used.
+- Retain a runnable SQLite counterexample → revision → later delivery exercise with real parser checks. Independent prompt benefit remains unproved.
+- Keep provenance, staged validation and state-dependent rechecking; defer builders, auctions and distributed coordination.
+
 ## 0.4.3-adaptive.5 (local main rollout)
 
 - Consolidate the task/finding feedback implementation and real-session evidence onto main.

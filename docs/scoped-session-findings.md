@@ -1,6 +1,6 @@
 # Findings in ordinary work: checked evidence and revision
 
-Current local main package: `0.4.3-adaptive.5`, including the ordinary-finding-feedback implementation.
+Local rollout package: `0.4.3-adaptive.6`, including finding-state rechecking.
 See the [semantic audit and rollout](../evidence/ordinary-finding-feedback-2026-09-10/assessment.md)
 for validation and installed-command evidence.
 For the first ordinary-work trial, use the [restart handoff](first-real-task-handoff.md),
@@ -19,6 +19,21 @@ versioned finding delivery
 
 A delivered banner remains delivery-only evidence. A passing task is insufficient
 on its own. Review labels cannot contradict the registered measurements.
+
+## Current development scope
+
+Keep SQLite, provenance, staged validation and state-dependent rechecking. Finish
+and evaluate one ordinary-work feedback loop before adding competing lesson
+builders, bundles, auctions, broadcast coordination or distributed consensus.
+Those mechanisms are deferred; none establishes usefulness by itself.
+
+The feedback-loop increment adds the state checks described below.
+Its [runnable controlled exercise](../evidence/finding-feedback-loop-2026-09-10/assessment.md)
+executes real parser code: a counterexample suppresses advice, a reviewed revision
+reaches a fresh workspace, and the revised code passes the same explicit contract.
+Scripted actions establish the operation of the loop, not incremental prompt
+benefit. The original stopped transfer experiment remains stopped. Independent
+ordinary-task benefit and broader-context promotion are still unproved.
 
 ## Ordinary-session workflow
 
@@ -93,6 +108,20 @@ LYO cannot credit a later application. Caller discipline still matters: register
 before the actual action. Automatic capture additionally requires paired live
 host events, a shared tool-call ID, exact tool name/input, runtime/session/workspace,
 and an unchanged starting source. Missing or rewritten inputs remain pending or unknown.
+
+Registration rechecks the current finding version and validity. An old delivery
+cannot register a new application after suspension or revision; obtain a current
+delivery first. Retrying an identical registration returns its historical receipt,
+not fresh authorization. Paired capture rechecks again at `PreToolUse` and retains
+the version and validity inside the hashed action receipt. If the finding changed
+or was suspended before that boundary, the application stays unknown. These are
+evidence checks, not a host-tool execution block; already emitted text cannot be
+removed from a prompt.
+
+Revisions after an action begins do not retroactively disqualify its outcome: it
+remains attached to the version actually used. Earlier receipts without an action
+state snapshot remain readable; they do not attest this additional recheck.
+CLI applications without paired capture still rely on registering before acting.
 
 Inspection exposes registration, retained file contents, action boundaries, measurement,
 `semanticReviewTemplate`, assessment history and `reviewTemplate`. Fill the semantic

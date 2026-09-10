@@ -1,0 +1,38 @@
+{
+  "version": "0.4.3-adaptive.6",
+  "packageRoot": "/Users/marcus.kim/.nvm/versions/node/v24.15.0/lib/node_modules/lyo-kernel",
+  "installed": true,
+  "sourceFilesMatched": 184,
+  "scenarioHash": "1c611956e12abab4a5fb55bb15e8ffad925985dec170d3d37c1d70b7968ed4bd",
+  "original": "contradicted",
+  "revised": "supported",
+  "staleRegistrationRejected": true,
+  "withdrawnPremiseSuspendsRevision": true,
+  "suspendedRegistrationRejected": true,
+  "hooks": [
+    {
+      "host": "codex",
+      "configuredCommands": true,
+      "capture": "/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node /Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/lyo codex-hook --db-from-event-cwd --spool-dir-from-event-cwd --prompt-dir-from-event-cwd",
+      "deliver": "/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node /Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/lyo-session-hook",
+      "configHash": "ab3cb3239546d1aec203ac73cbf356214b48200ce2428f4cca76417eaf20f57d",
+      "pairedAction": true,
+      "automaticAssessment": true,
+      "actionStateRetained": true,
+      "nextDeliverySuppressed": true
+    },
+    {
+      "host": "claude",
+      "configuredCommands": true,
+      "capture": "/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node /Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/lyo claude-hook --db-from-event-cwd --spool-dir-from-event-cwd",
+      "deliver": "/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node /Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/lyo-session-hook",
+      "configHash": "aff1f37b52d93653783b2d83332086b6f7fc9c6c5fd4a15a080b2cac09c58b9c",
+      "pairedAction": true,
+      "automaticAssessment": true,
+      "actionStateRetained": true,
+      "nextDeliverySuppressed": true
+    }
+  ],
+  "realUsefulnessEstablished": false,
+  "productionLearningRecordsWritten": false
+}

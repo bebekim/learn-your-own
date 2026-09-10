@@ -7,6 +7,24 @@ import { renderSessionLessons } from '../src/lyo/selection/session-hook.ts';
 import { inspectFinding, recordFindingFeedback, reviseFinding } from '../src/lyo/selection/session-findings.ts';
 import { execFileSync } from 'node:child_process';
 
+test('an old banner cannot start another application after its finding is contradicted or revised', () => {
+  const f = fixture();
+  try {
+    const delivery = f.deliver();
+    const evidence = f.evidenceFor(delivery.deliveryId, { applicable: true, followed: true, predicted: false });
+    recordFindingFeedback(f.store, { ...f.feedback, deliveryId: delivery.deliveryId,
+      evidenceRef: evidence.id, outcome: 'contradicted' });
+    assert.throws(() => f.prepare(delivery.deliveryId), /finding is suspended/);
+    reviseFinding(f.store, { id: 'corrected', findingId: f.findingId,
+      previousVersion: inspectFinding(f.store, f.findingId).version,
+      intervention: 'Check the target contract, including its Unicode whitespace cases.',
+      feedbackIds: ['review-1'], author: 'reviewer', rationale: 'The prior check omitted required inputs.' });
+    assert.throws(() => f.prepare(delivery.deliveryId), /current finding version/);
+    const current = f.deliver(f.root, `${f.root}:corrected`);
+    assert.doesNotThrow(() => f.prepare(current.deliveryId));
+  } finally { f.close(); }
+});
+
 test('withdrawing evidence suspends feedback and wording derived from that premise', async () => {
   const { withdrawFindingEvidence } = await import('../src/lyo/selection/session-finding-evidence.ts');
   const f = fixture();
@@ -125,6 +143,7 @@ test('revised advice is a new provisional version; late outcomes remain attached
   try {
     const old = f.deliver();
     const pending = f.deliver(f.root, `${f.root}:pending`);
+    const startedBeforeRevision = f.prepare(pending.deliveryId, { applicable: true, followed: true, predicted: false });
     recordFindingFeedback(f.store, { ...f.feedback, deliveryId: old.deliveryId, outcome: 'contradicted',
       evidenceRef: f.evidenceFor(old.deliveryId, { applicable: true, followed: true, predicted: false }).id });
     const previousVersion = inspectFinding(f.store, f.findingId).version;
@@ -136,7 +155,7 @@ test('revised advice is a new provisional version; late outcomes remain attached
     assert.equal(inspectFinding(f.store, f.findingId).validity, 'unvalidated');
     assert.match(f.deliver().output, /including its Unicode cases/, 'a new version can reach a session that received the old one');
     recordFindingFeedback(f.store, { ...f.feedback, id: 'late-review', deliveryId: pending.deliveryId, outcome: 'contradicted',
-      evidenceRef: f.evidenceFor(pending.deliveryId, { applicable: true, followed: true, predicted: false }).id });
+      evidenceRef: startedBeforeRevision.finish().id });
     const state = inspectFinding(f.store, f.findingId);
     assert.equal(state.validity, 'unvalidated');
     assert.equal(state.feedback.find(row => row.id === 'late-review')!.version, previousVersion);

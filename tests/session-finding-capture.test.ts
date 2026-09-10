@@ -7,8 +7,43 @@ import { fixture } from './helpers/session-finding-fixture.ts';
 import { findingOpportunity, registerFindingOpportunity } from '../src/lyo/selection/session-finding-evidence.ts';
 import { captureFindingAction } from '../src/lyo/selection/session-finding-capture.ts';
 import { codexHookObservation } from '../src/adapters/codex.ts';
-import { inspectFinding } from '../src/lyo/selection/session-findings.ts';
+import { inspectFinding, recordFindingFeedback, reviseFinding } from '../src/lyo/selection/session-findings.ts';
 import { spoolCodexHookEvent, spoolClaudeHookEvent } from '../src/hooks/runtime.ts';
+
+test('live action capture rechecks finding state without invalidating outcomes that started before a revision', () => {
+  for (const runtime of ['codex', 'claude'] as const) for (const change of ['suspended-before', 'revised-before', 'revised-after']) {
+    const f = fixture();
+    try {
+      const sessionId = `${f.root}:pending`, delivery = f.deliver(f.root, sessionId), pending = f.prepare(delivery.deliveryId);
+      const id = `${pending.id}-captured`, toolInput = { command: 'apply the delivered advice' };
+      registerFindingOpportunity(f.store, { ...pending.input, id, capture: { runtime, toolName: 'Bash', toolInput } });
+      f.review(id);
+      const registeredVersion = findingOpportunity(f.store.db, id).content.version;
+      const other = f.deliver(f.root, `${f.root}:other`);
+      const counterexample = f.evidenceFor(other.deliveryId, { applicable: true, followed: true, predicted: false });
+      const update = () => {
+        recordFindingFeedback(f.store, { ...f.feedback, deliveryId: other.deliveryId,
+          evidenceRef: counterexample.id, outcome: 'contradicted' });
+        if (change !== 'suspended-before') reviseFinding(f.store, { id: 'corrected', findingId: f.findingId,
+          previousVersion: inspectFinding(f.store, f.findingId).version,
+          intervention: 'Use the complete target whitespace contract.', feedbackIds: ['review-1'],
+          author: 'reviewer', rationale: 'Retained counterexample requires a correction.' });
+      };
+      const hook = runtime === 'codex' ? spoolCodexHookEvent : spoolClaudeHookEvent;
+      const event = { cwd: f.root, session_id: sessionId, tool_use_id: 'pending-call', tool_name: 'Bash', tool_input: toolInput };
+      const spool = { spoolDir: join(f.root, 'spool') };
+      if (change !== 'revised-after') update();
+      hook({ ...event, hook_event_name: 'PreToolUse' }, spool);
+      if (change === 'revised-after') update();
+      writeFileSync(pending.source, JSON.stringify({ applicable: true, followed: true, predicted: true }));
+      hook({ ...event, hook_event_name: 'PostToolUse' }, spool);
+      const result = inspectFinding(f.store, f.findingId).opportunities.find(row => row.id === id)!.evidence!;
+      assert.equal(result.outcome, change === 'revised-after' ? 'supported' : 'unknown', `${runtime}: ${change}`);
+      assert.equal(result.opportunity.version, registeredVersion);
+      if (change !== 'revised-after') assert.match(result.action!.problems.join(' '), /finding.*(suspended|version)/);
+    } finally { f.close(); }
+  }
+});
 
 test('ordinary paired tool hooks assess a declared counterexample before the next session, without SessionEnd', () => {
   const f = fixture();

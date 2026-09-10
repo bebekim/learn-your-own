@@ -1,0 +1,60 @@
+{
+  "date": "2026-09-10",
+  "branch": "feat/lesson-feedback-loop",
+  "base": "d62858700",
+  "scope": "Branch-local state rechecking and controlled SQLite revision/redelivery exercise",
+  "checks": [
+    {
+      "command": "node --test tests/session-finding-feedback.test.ts tests/session-finding-evidence.test.ts tests/session-finding-semantics.test.ts tests/session-finding-capture.test.ts",
+      "exitCode": 0,
+      "passed": 34
+    },
+    {
+      "command": "node --test tests/session-finding-loop.test.ts",
+      "exitCode": 0,
+      "passed": 1
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "passed": 652,
+      "failed": 0,
+      "skipped": 0
+    },
+    { "command": "npm run typecheck", "exitCode": 0 },
+    { "command": "npm run build:npm", "exitCode": 0 },
+    { "command": "git diff --check", "exitCode": 0 },
+    {
+      "command": "ripwire . --quality-delta",
+      "exitCode": 2,
+      "gatingFindings": 1,
+      "findings": [
+        "findingActionEvidence complexity increased from 16 to 22 by retaining explicit validity/version checks.",
+        "New controlled exercise runFeedbackLoop is 96 lines of sequential setup, execution and assertions."
+      ],
+      "decision": "Retain explicit checks and the single exercise; no metric suppression or unrelated refactoring."
+    },
+    {
+      "command": "ripwire . --edit-check=registerFindingOpportunity",
+      "exitCode": 0,
+      "result": "unchanged signature; no incompatible callers found"
+    },
+    {
+      "command": "ripwire . --test-gate --limit=30",
+      "exitCode": 4,
+      "namedTests": 13,
+      "staticallyUntestedSymbols": 299,
+      "decision": "All named executable suites ran in npm test. The name-based graph also reaches unrelated compiler/controller symbols; its static untested count is not a measured coverage result. No claim that this audit gate passed."
+    }
+  ],
+  "demonstration": {
+    "outputDirectory": "/private/tmp/lyo-finding-feedback-loop-20260910",
+    "originalOutcome": "contradicted",
+    "revisedOutcome": "supported",
+    "supportingApplicationsOfRevision": 1,
+    "incrementalBenefit": "unknown",
+    "independentOrdinaryTaskTrials": 0,
+    "productionDataModified": false,
+    "hooksUpgraded": false
+  }
+}
