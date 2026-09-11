@@ -1,6 +1,10 @@
 # Local Corpus Sync Effect Algebra Spec
 
-> **Naming note — "packet" (Sense 2):** This document uses "packet" to mean a corpus-slice export: a tagged effect-trace slice exported from one repo-local ledger for sync or rebroadcast. This is distinct from the cross-zone circulation signal sense of "packet" in `docs/future/learning-circulation-spec.md`. See `Specs/00-spec-consolidation.md` §00.2.2.
+Component specification with proposed extensions. Local/central collection and effect analysis exist; this full design is not an implemented general learner. See [current architecture and code](development-status.md).
+
+> Here a "packet" means a proposed corpus-slice export, not a distributed
+> consensus or lesson-broadcast protocol. Current central SQLite import is
+> implemented in [corpus sync](../src/corpus/sync.ts).
 
 ## Purpose
 

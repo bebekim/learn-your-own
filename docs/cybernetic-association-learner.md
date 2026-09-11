@@ -1,5 +1,7 @@
 # Cybernetic Association Learner
 
+Research/prototype design. Components exist, but this is not an integrated ordinary-session learner or the current execution plan. See [development status](development-status.md).
+
 ## Purpose
 
 Lyo should not stop at measuring sessions. The learning layer should change
@@ -420,13 +422,10 @@ demotable:
 These thresholds are bootstrap defaults, not universal truths. They should be
 stored with the learner version and made visible in reports.
 
-> **Gate authority note:** These bootstrap thresholds are superseded as the
-> authoritative promotion/quarantine gate for the kernel SQLite store by the
-> sequential likelihood-ratio criterion documented in
-> `docs/superpowers/specs/2026-07-27-principled-map.md` (Trust — sequential
-> analysis, E > 1/α). The Wilson score interval in `Specs/3-lesson-delta-design.md`
-> §5.2 serves the same kernel-store role. See `Specs/00-spec-consolidation.md`
-> §00.1.1 and §00.1.2.
+> These are association-prototype thresholds. They neither replace SQLite's
+> Wilson rules nor govern the ordinary trial loop. The
+> [current gate map](../Specs/2026-07-27-principled-map.md) identifies the separate
+> implementations and their evidence limits.
 
 Later versions can replace raw credibility-effect counts with Bayesian weight
 of evidence:

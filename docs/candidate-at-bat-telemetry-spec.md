@@ -1,5 +1,7 @@
 # Candidate At-Bat Telemetry Spec
 
+Adjacent interview-analytics design, retained for provenance. It is outside the current coding-agent feedback-loop submission; see [the product scope](../issues/prd.md).
+
 ## Purpose
 
 Modern AI-assisted coding interviews should not primarily ask:

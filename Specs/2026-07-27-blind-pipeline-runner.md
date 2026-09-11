@@ -1,5 +1,7 @@
 # Blind Pipeline Runner: The Separation Spec
 
+Dated pipeline design. Its declared sandbox boundaries reduce direct artifact sharing; they do not prove independent reasoning or complete verifier coverage. Current ordinary-session entry point: [development status](../docs/development-status.md).
+
 Date: 2026-07-27
 Status: as-built documentation (fills the gap left by the contract spec's
 "no stage runner" scope exclusion)

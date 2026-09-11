@@ -1,8 +1,8 @@
 # Learning evidence loop
 
-State: partial — feedback and delivery implemented; useful transfer unproven (2026-09-10)
-Audit baseline: `dd5f160`; local package `0.4.3-adaptive.3`.
-Follow-up: `fix/finding-evidence-validation` is unreleased; see Spec 7.
+State: partial — ordinary trial feedback and delivery implemented; useful transfer
+unproven (2026-09-11). Implementation baseline: main `f39ed6c`, source package
+`0.4.3-adaptive.8`. See [release/install status](../docs/hook-installation.md).
 
 ## Product acceptance
 
@@ -28,8 +28,9 @@ of that loop; routine useful learning remains unproved.
 | Revise ordinary finding delivery from later reviewed outcomes | Done, bounded review path | [Finding feedback](../src/lyo/selection/session-findings.ts), [Spec 7](7-session-telemetry-lesson-bridge.md): registered checks, task-local scope-review requests, content suspension and evidence withdrawal |
 | Demonstrate useful cross-repository coding transfer including learning cost | **Open** | No validated reusable coding intervention benefit in retained experiments |
 | Enforce all-in spend limits while work is running | **Open** | Source, reflection, task and orchestration costs need a common enforced limit |
-| Correct finalized evidence and recompute affected policies | **Open** | Feedback revisions exist; invalid finalized task measurements cannot yet be superseded |
-| Promote/rollback routine interventions from validated task outcomes | **Open** | Experimental freezing/reporting does not deploy a production policy |
+| Correct evidence and recompute affected policies | Partial | Ordinary finding withdrawal recomputes scoped policies; invalid finalized measurements in the separate task workflow remain open |
+| Promote/pause ordinary interventions from registered comparison outcomes | Done, bounded mechanism | [Trial policy](../src/lyo/selection/finding-trial-policy.ts) updates later delivery and rechecks evidence; [protocol and assumptions](../docs/prospective-finding-trials.md); real useful effect unproven |
+| Refresh eligible guidance across turns/compaction without outcome credit | Done for configured Codex/Claude paths | [Refresh proof](../evidence/context-refresh-2026-09-11/README.md); repeat emission is not a new application or observed adherence |
 | Integrate all five PRD artifact types, sequence credit and Go | **Deferred** | Components/designs exist; complete compiler and Go evaluator do not |
 
 ## Measured evidence
@@ -51,6 +52,13 @@ project spend total or dollar estimate. Validated useful coding interventions fr
 this work: **zero**, so no finite tokens-per-validated-useful-intervention ratio can
 yet be reported. See [Spec 5](5-scoring-layer.md).
 
+The later [ordinary feedback proof](../evidence/finding-feedback-loop-2026-09-10/assessment.md)
+executes a frozen parser contract: the original advice is contradicted, a scripted
+revision passes, and incremental benefit stays unknown. The [prospective rollout](../evidence/prospective-trial-rollout-2026-09-10/README.md)
+and [context-refresh proof](../evidence/context-refresh-2026-09-11/README.md)
+establish configured-command behavior and receipt integrity. They do not add
+validated useful coding interventions to the historical counts above.
+
 ## Next acceptance increment
 
 The primary objective is validation → ordinary workflow insertion → later positive
@@ -70,7 +78,8 @@ or its scope. Cost remains a constraint, not the leading objective.
 - [ ] Show an intervention helps independent later tasks at acceptable total cost.
       Unknown acceptance, missing usage, regressions or an inconclusive comparison
       must remain visible.
-- [ ] Connect validated results to reversible routine selection and promotion.
+- [x] Connect the registered ordinary comparison to reversible scoped selection;
+      independently useful real-task results remain the acceptance target.
 
 The earlier session-efficiency credit proposal is withdrawn. Legacy hook events
 without numeric exit status cannot be backfilled into verifier-based outcome credit.

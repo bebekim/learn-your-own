@@ -1,5 +1,7 @@
 # LYO telemetry gap — root cause
 
+Historical diagnosis at the recorded date. Repository counts and implementation claims below are snapshots, not current status. See [development status](../docs/development-status.md) and [the spec map](../Specs/README.md) for remaining work.
+
 **발견일:** 2026-08-05  
 **상태:** 확인 완료
 

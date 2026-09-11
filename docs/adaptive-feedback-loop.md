@@ -1,5 +1,7 @@
 # Adaptive feedback loop: first implemented increment
 
+Reference for the earlier native recovery experiment, which is separate from [ordinary finding trials](prospective-finding-trials.md). A passing retry does not establish ticket acceptance or useful learning.
+
 Status: experimental; implemented on `main` in `v0.4.2`, 2026-09-09.
 
 Local `0.4.3-adaptive.0` also distinguishes Kimi Code CLI events received through

@@ -1,5 +1,7 @@
 # Branching Strategy: Worktree + Squash Merge
 
+Historical rationale for the implemented worktree/squash policy. [AGENTS.md](../AGENTS.md) is the current contributor contract; the problem statement below describes the pre-policy state.
+
 ## Problem
 
 All development happens directly on `main`. There is no isolation between

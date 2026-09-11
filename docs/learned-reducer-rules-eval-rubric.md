@@ -1,5 +1,7 @@
 # Learned Reducer Rules And Eval Rubric
 
+Evaluation design for reducer-rule components, not a completed product-benefit benchmark. Current learning acceptance is [Spec 8](../Specs/8-learning-evidence-loop.md).
+
 ## Purpose
 
 Lyo needs one self-modification surface before it needs arbitrary reducer

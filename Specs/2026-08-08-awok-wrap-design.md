@@ -1,7 +1,9 @@
 # awok wrap: Agent Session Wrapper
 
+Historical Kimi wrapper design; the bounded implementation is in [wrap.ts](../src/cli/commands/wrap.ts) and [tests](../tests/wrap.test.js). Current installation, host coverage and limitations are in [the hook guide](../docs/hook-installation.md). The example hook count/configuration below records the original design.
+
 **Date:** 2026-08-08
-**Status:** Design approved, pending implementation plan
+**Status:** Implemented bounded Kimi wrapper; original design retained below
 
 ## Purpose
 

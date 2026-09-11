@@ -1,5 +1,7 @@
 # Product Learning Log
 
+Dated research/experiment log. Counts and conclusions below belong to their recorded observations; use [development status](development-status.md) for the current product state.
+
 This document records what Lyo learns from being used on real telemetry. It is
 not a specification and does not define promised behavior. Specs say what the
 product should do; this log records what the product has revealed so far, where

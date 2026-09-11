@@ -1,5 +1,7 @@
 # Recommendations — telemetry gap과 credit 합성 문제
 
+Historical diagnosis at the recorded date. Repository counts and implementation claims below are snapshots, not current status. See [development status](../docs/development-status.md) and [the spec map](../Specs/README.md) for remaining work.
+
 **작성일:** 2026-08-05  
 **관련 파일:** `2026-08-05-telemetry-gap-root-cause.md`, `2026-08-05-counterfactual-credit-synthesis-5-3.md`
 

@@ -1,7 +1,9 @@
 # LYO Improvement Roadmap
 
+Historical design snapshot. Current acceptance and remaining contracts are in the [spec map](../../../../Specs/README.md); original status labels below apply to the recorded date.
+
 Date: 2026-07-27
-Status: active
+Status: historical roadmap, superseded by the current spec map
 Scope: scaffolding improvement only — no θ updates, no world models, no causal estimators.
 
 ## Framing

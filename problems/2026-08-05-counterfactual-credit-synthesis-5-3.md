@@ -1,5 +1,7 @@
 # §5.3 반사실적 신용 합성 — 설계만 되고 배포 안 됨
 
+Historical diagnosis at the recorded date. Repository counts and implementation claims below are snapshots, not current status. See [development status](../docs/development-status.md) and [the spec map](../Specs/README.md) for remaining work.
+
 **출처:** `Specs/3.1-counterfactual-credit-synthesis.md` (2026-07-20)  
 **상태:** 설계 완료, 구현 0%, 배포 0%
 

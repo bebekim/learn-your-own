@@ -1,5 +1,7 @@
 # Artifact Contract Design
 
+Historical design snapshot. Current acceptance and remaining contracts are in the [spec map](../../../../Specs/README.md); original status labels below apply to the recorded date.
+
 Date: 2026-07-26
 Status: Approved (pending user spec review)
 Branch: feature/separation-code-test

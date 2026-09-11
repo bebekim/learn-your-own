@@ -1,5 +1,7 @@
 # Cybernetic Learning Experiment Protocol
 
+Research experiment proposal. For the implemented ordinary-session comparison, use [prospective finding trials](prospective-finding-trials.md); the experiments below are not claims of completed validation.
+
 ## Purpose
 
 Do not try to nail Lyo's learning algorithm in one design pass. Treat the

@@ -1,5 +1,7 @@
 # LYO Trace Audit — 2026-08-05
 
+Historical diagnosis at the recorded date. Repository counts and implementation claims below are snapshots, not current status. See [development status](../docs/development-status.md) and [the spec map](../Specs/README.md) for remaining work.
+
 ## 한 줄 결론
 
 **훅 캡처는 잘 되고 있다. 학습 파이프라인은 dogfood에서만 한 번 돌았고, 실제 작업 저장소 두 곳에서는 처음부터 꺼져 있었다.** 두 저장소의 `learning.sqlite`는 28개 테이블이 모두 비어 있고, `hook_events`만 채워져 있다 — 훅→잡화(materialize) 레이어는 작동하지만, `runs`·`learning_traces`·`outcomes`를 생성하는 파이프라인 레이어는 호출된 적이 없다.

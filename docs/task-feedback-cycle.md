@@ -1,5 +1,7 @@
 # A complete task feedback cycle
 
+Reference for the explicit registered-task experiment. For reusable triggers in ordinary Codex/Claude sessions, use [prospective finding trials](prospective-finding-trials.md). The two paths have different comparison and correction contracts.
+
 The task workflow connects a declared task to native intervention delivery,
 independent verification, measured host usage, feedback, and a frozen policy
 used in later work. An inconclusive comparison is a valid result. Completing

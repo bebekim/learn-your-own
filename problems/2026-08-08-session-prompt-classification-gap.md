@@ -1,5 +1,7 @@
 # session_prompts.prompt_kind — Classification Gap
 
+Historical diagnosis at the recorded date. Repository counts and implementation claims below are snapshots, not current status. See [development status](../docs/development-status.md) and [the spec map](../Specs/README.md) for remaining work.
+
 **Date:** 2026-08-08
 **Priority:** Low (feature enhancement, not a broken pipeline)
 **Parent analysis:** `problems/2026-08-08-telemetry-acquisition-gaps.md` (finding 5)

@@ -1,6 +1,8 @@
 # Lyo Local Corpus Sync Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> Historical implementation plan, retained for provenance. Its checkboxes and
+> workflow instructions are not an active work queue. Current behavior and gaps
+> are in [development status](../../development-status.md).
 
 **Goal:** Add the first OSS package slice for local learning propagation: discover repo-local Lyo ledgers, import new rows into a central SQLite corpus, and report corpus coverage.
 

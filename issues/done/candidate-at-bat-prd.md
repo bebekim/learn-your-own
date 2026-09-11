@@ -1,5 +1,7 @@
 ## Problem Statement
 
+Historical, adjacent interview-analytics proposal. Archive placement is not evidence of full implementation. The active coding-agent product is [the LYO PRD](../prd.md).
+
 Lyo can already record and normalize AI-assisted coding telemetry into actions,
 effects, semantic summaries, and workflow-style reports. That makes it possible
 to describe what happened in a session, but it does not yet provide a stable

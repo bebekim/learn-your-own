@@ -1,5 +1,7 @@
 # Behavior As Code
 
+Conceptual design for a broader learning representation. The current ordinary feedback loop uses versioned findings and SQLite receipts; it does not require this full representation. See [current scope](development-status.md).
+
 This document explains Lyo's core move through an old Lisp idea:
 homoiconicity, the property behind the saying "code is data, data is code."
 
@@ -105,10 +107,11 @@ can query, count, and transform.
 
 ### 3. Data is examined; a lesson is written (macro construction)
 
-`lyo learn style` runs semantic predicates over episode data, plain
-functions over plain data such as `hasStoppedAfterEditWithoutVerification`
-(`src/compiler/semantics.ts`). When a pattern repeats across runs, the
-learner emits a `StyleLearningCandidate` (`src/compiler/style-learning.ts`):
+The earlier style-learning design proposed a candidate from recurring episode
+patterns. Its `lyo learn style` command and `StyleLearningCandidate` generator
+are not in the current tree. Current [workflow-style reports](style-learning.md)
+are descriptive only. The following candidate and protocol lifecycle illustrate
+the proposed representation, not an automatic runtime path:
 
 ```ts
 {
@@ -126,7 +129,7 @@ list assembled from other lists.
 
 ### 4. Data becomes behavior (eval)
 
-The candidate is promoted into the `protocols` table (`src/schema.ts`):
+In this proposed lifecycle, a candidate would be promoted into a protocol:
 
 ```sql
 protocols:  status: 'candidate' -> 'active'
@@ -135,23 +138,22 @@ protocols:  status: 'candidate' -> 'active'
             action: 'Run targeted tests before claiming completion'
 ```
 
-When a future run starts, the active protocol is delivered into the agent's
-context and Lyo writes a `deliveries` row. This is `eval`: a stored data
-structure now runs, changing what the agent does.
+A future delivery would make the stored protocol available in the agent's
+context. Whether the agent follows it or benefits requires later evidence;
+emission alone does not establish a change in behavior.
 
 ### 5. Results flow back as data (the loop closes)
 
-Later, Lyo records an `outcomes` row for that delivery:
+The conceptual outcome record would look like:
 
 ```sql
 outcomes: followed: 1, defect_repeated: 0, verified: 1, credit_delta: +1
 ```
 
-> **Scalar-credit tension note:** `credit_delta` is a scalar reward signal. This
-> is in tension with `docs/future/preference-derived-budget-pressure-spec.md`,
-> which forbids "fake reward numbers" as a category. The scalar formula is
-> retained here as a recorded outcome metric; it is not the primary learning
-> signal. See `Specs/00-spec-consolidation.md` §00.1.5.
+> `credit_delta` is an illustrative scalar in this conceptual schema, not a
+> witness of causal benefit. The implemented stores use different evidence
+> contracts; see [credit discipline](../Specs/4.2-credit-evidence-discipline.md).
+> A passing task cannot credit every co-delivered lesson.
 
 Did the agent run tests this time? Did the defect repeat? That evidence is
 data again, and it updates belief in the protocol: keep it, demote it, or
@@ -165,7 +167,7 @@ round of learning.
 | `(quote (+ 1 2))` freezes code as data | hook spool freezes behavior as JSON |
 | reader: text -> list | frontend: hook event -> token -> `NormalizedAction` |
 | macro: build new code from data | style learner builds `StyleLearningCandidate` from run data |
-| `macroexpand`: preview, do not run | `--dry-run` on `lyo learn style` / `lyo learn explanation` |
+| `macroexpand`: preview, do not run | proposed dry-run inspection of candidates |
 | `eval`: data runs as code | `protocols` row delivered into a future run's context |
 | (Lisp stops here) | `outcomes` rows close the loop: did the change help? |
 

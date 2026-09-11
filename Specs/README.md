@@ -1,12 +1,9 @@
 # Specs
 
-Reviewed: 2026-09-10, against `dd5f160` (`feat/scoped-session-findings`).
-The audited implementation is on feature branches and in local package
-`0.4.3-adaptive.3`; it is not all merged into `main`. The subsequent unreleased
-`feat/session-finding-feedback` increment adds ordinary-session finding reviews,
-validity/context revision and version-aware delivery (Spec 7). The subsequent
-`fix/finding-evidence-validation` branch requires registered evidence, removes
-coarse exclusions from task misfires and propagates evidence withdrawal. It is unreleased.
+Reviewed 2026-09-11 against main `f39ed6c`, source package `0.4.3-adaptive.8`.
+The ordinary-session evidence, prospective-trial policy and context-refresh
+increments are merged. Source availability, local installation and npm publication
+are separate: the registry's `latest` tag still points to `0.2.0` on this date.
 
 The [PRD](../issues/prd.md) defines the product ambition.
 [Spec 8](8-learning-evidence-loop.md) owns current acceptance and evidence.
@@ -29,7 +26,7 @@ alone does not establish completion.
 | [4.1 Contract fixes](4.1-checkblindness-and-contract-small-fixes.md) | Ready | Loose-plan blindness, test entrypoint, SQLite timeout remain open |
 | [4.2 Credit discipline](4.2-credit-evidence-discipline.md) | Partial | Comparable reports and scoped counters; legacy observational credit remains a risk |
 | [4.3 Risk, usage, quarantine](4.3-at-bat-risk-inputs-cost-and-quarantine.md) | Done, bounded scope | Inputs, verifier ordering, judge usage, explicit unknown Kimi usage, file quarantine |
-| [4.4 Injection cadence](4.4-lesson-injection-cadence.md) | Draft | Pipeline stages and learned cost gate remain unimplemented |
+| [4.4 Injection cadence](4.4-lesson-injection-cadence.md) | Partial | Turn/compaction refresh implemented; broader pipeline stages and learned cost gate deferred |
 | [4.5 Prompt evidence](4.5-prompt-kind-evidence.md) | Done, bounded scope | Evidence accumulation/recompute; likelihood weights uncalibrated |
 | [4.6 Prompt measurement](4.6-prompt-kind-measurement.md) | Done, bounded scope | Descriptive reports; no validated accuracy or waste measure |
 | [4.7 Prompt backfill](4.7-prompt-kind-evidence-backfill.md) | Done, bounded scope | Idempotent reconstruction from retained summaries |
@@ -38,7 +35,17 @@ alone does not establish completion.
 | [5.3 Episode cost](5.3-episode-compression-cost.md) | Done, bounded scope | Heuristic grouping and spend summaries; no proven waste classification |
 | [6 Causal components](6-causal-discovery-framework-integration.md) | Partial | Six prototypes; no demonstrated integrated causal learner |
 | [7 Session bridge](7-session-telemetry-lesson-bridge.md) | Partial | Registered checks constrain finding feedback; misfires request scope review and withdrawal suspends dependent wording; real benefit remains open |
-| [8 Learning evidence loop](8-learning-evidence-loop.md) | Partial | Registered feedback, derivation, trials and reports; product benefit still open |
+| [8 Learning evidence loop](8-learning-evidence-loop.md) | Partial | Reviewed ordinary trials feed scoped promotion, pause and correction; product benefit still open |
+
+## Dated designs
+
+| Document | Role today |
+|---|---|
+| [Learning gate map](2026-07-27-principled-map.md) | Current reference, corrected against source |
+| [Blind pipeline](2026-07-27-blind-pipeline-runner.md) | Historical pipeline design and its assumptions |
+| [Pipeline mechanics](2026-08-04-lyo-workflow-mechanics.md) | Historical as-built snapshot; separate from ordinary trials |
+| [Kimi wrapper](2026-08-08-awok-wrap-design.md) | Implemented bounded wrapper; original design retained |
+| [Branching strategy](2026-08-08-branching-strategy-design.md) | Historical rationale; AGENTS.md owns the active policy |
 
 Historical plans in `done/` and `docs/superpowers/` preserve provenance.
 They do not override this status or the current contracts. Existing source and

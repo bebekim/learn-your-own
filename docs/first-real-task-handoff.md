@@ -1,4 +1,6 @@
-# First prospective LYO trial: current entry point
+# First prospective LYO trial: historical handoff
+
+Historical manual trial handoff and rollout notes from 2026-09-10. Temporary paths, model/session identities and package versions below are not portable setup instructions. For the current workflow, use [installation](hook-installation.md) and [ordinary trials](prospective-finding-trials.md). No per-task pasted handoff is required after a reusable reviewed trial is configured.
 
 The manual handoff below is historical. For `0.4.3-adaptive.7`, use
 [prospective finding trials](prospective-finding-trials.md): register a reviewed,
@@ -135,7 +137,7 @@ recovered retrospectively from matching transcript outputs. That recovery did
 not establish an automatic, prospectively bound result path.
 
 Investigate the authoritative host response before choosing a fix. The current
-[status extractor](../src/adapters/runtime.ts:64) accepts structured status;
+[status extractor](../src/adapters/runtime.ts#L64) accepts structured status;
 it cannot recover information absent from a stdout string. Do not "fix" this
 by guessing success from text such as `passed`, accepting printed JSON as host
 authority, or selecting the latest unrelated transcript result.

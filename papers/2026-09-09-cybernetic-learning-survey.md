@@ -149,7 +149,7 @@ The existing [explanation-graph direction](../docs/learning-as-explanation-graph
 | [Session bridge](../src/lyo/bridge/session-bridge.ts) | Completed-session failure/pass patterns create scoped verifier candidates; outcome records explicitly use `causalCredit: false` | Correctly preserves observations without claiming benefit. It does not learn an action-value model from them. |
 | [Controlled experiment](../evidence/learning-loop-2026-09-08-r2/assessment.md) | Corrected experiment recorded 0/8 successes in each condition | The mechanism was exercised; product improvement was not demonstrated. |
 
-The four recently reviewed work-repository entries remain historical candidates. Their failure/pass pairs are useful source episodes, not four validated control policies. The recovery review found examples involving a SQL comment, test parsing of renamed CTEs, and ordinary red/green development. The local audit is retained in [the recovery review](/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/review.md). Its observations motivate investigation; they do not identify causal benefits of advice never delivered in those episodes.
+The four recently reviewed work-repository entries remain historical candidates. Their failure/pass pairs are useful source episodes, not four validated control policies. The recovery review found examples involving a SQL comment, test parsing of renamed CTEs, and ordinary red/green development. The recovery review is a local-only artifact at `~/.lyo/learning-runs/2026-09-09T031457Z-work/review.md`; it is not included in this checkout. Its observations motivate investigation; they do not identify causal benefits of advice never delivered in those episodes.
 
 ### Corrections to earlier literature interpretations
 

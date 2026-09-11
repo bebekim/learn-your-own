@@ -1,141 +1,197 @@
-# Local package and agent hooks
+# Install Lyo and connect agent hooks
 
-Build and install the same artifact you tested:
+For a first evaluation, run the [isolated demo](../README.md#run-the-demo).
+It does not change your agent configuration or use a model API.
+This guide connects ordinary sessions to the source/local release
+`0.4.3-adaptive.8` (11 September 2026).
+
+## Build the current package
+
+Use one Node.js 24+ installation for npm and the hooks. From the checkout:
 
 ```sh
-rtk npm test
-rtk npm run typecheck
-rtk npm run pack:local
-rtk npm install -g ./dist/lyo-kernel-0.4.3-adaptive.4.tgz
+npm ci
+npm test
+npm run typecheck
+npm run pack:local
+npm install -g ./dist/lyo-kernel-0.4.3-adaptive.8.tgz
+command -v node
+command -v lyo
+command -v lyo-session-hook
 ```
 
-Use one Node 24+ installation for both npm and the hooks. GUI applications may
-have a different PATH: configure absolute paths to that Node executable and its
-installed `bin/lyo` / `bin/lyo-session-hook`. Source checkout paths are unnecessary.
-The package retains `lyo`, `awok`, `wok`, and `lyo-session-hook` executables.
+Record those executable paths for the configuration below. GUI applications may
+have a different PATH. The package provides `lyo`, the `awok`/`wok` aliases, and
+`lyo-session-hook`.
 
-## Automatic central collection
+npm's `latest` tag was `0.2.0` when checked on 11 September 2026. A plain registry
+install therefore does not provide the workflow described here. Building this
+checkout avoids that release mismatch; registry publication is separate work.
 
-`~/.lyo/config.json` selects the directory tree and the central corpus:
+## Know which SQLite store you are using
+
+| Store | Default location | Contents |
+|---|---|---|
+| Repository telemetry | `<project>/.agent-learning/learning.sqlite` | Local sessions and hook events; incoming events first spool under `.agent-learning/hook-spool/` |
+| Personal central corpus | `~/.lyo/corpus.sqlite` | Imported `corpus_events`, normalized actions/effects and task-workflow evidence |
+| Lesson/finding store | `~/.zeroshot/lyo-lessons.db` | Lesson library; finding deliveries, registrations, checks, reviews and policy receipts in `learning_trace` |
+
+The telemetry corpus and lesson store have different roles and schemas. Do not
+point `--store` at the telemetry corpus. A hook looks for an existing store in
+`ZEROSHOT_LYO_STORE_PATH`, then the project's `.zeroshot/lyo-lessons.db`, then the
+home-directory store. Keep the same lesson store throughout a trial.
+
+To create an empty personal lesson store and list its trial definitions:
+
+```sh
+mkdir -p ~/.zeroshot
+lyo finding trials --store ~/.zeroshot/lyo-lessons.db
+```
+
+An empty trial list is expected on a new installation. The reasoning mandate
+refreshes even without lessons; useful advice is not fabricated to fill a banner.
+
+## Codex and Claude Code
+
+Merge the following event entries into your host's existing configuration;
+preserve unrelated hooks. Replace all three executable placeholders with the
+absolute paths discovered above.
+
+- Codex: `~/.codex/hooks.json`.
+- Claude Code: `~/.claude/settings.json`.
+- Replace `HOST-hook` below with `codex-hook` or `claude-hook` respectively.
 
 ```json
 {
-  "rootDir": "/Users/marcus.kim/repositories/work",
-  "corpusPath": "/Users/marcus.kim/.lyo/corpus.sqlite"
+  "hooks": {
+    "SessionStart": [{"hooks": [
+      {"type": "command", "command": "/absolute/path/to/node /absolute/path/to/lyo HOST-hook --db-from-event-cwd --spool-dir-from-event-cwd", "timeout": 10},
+      {"type": "command", "command": "/absolute/path/to/node /absolute/path/to/lyo-session-hook", "timeout": 5}
+    ]}],
+    "UserPromptSubmit": [{"hooks": [
+      {"type": "command", "command": "/absolute/path/to/node /absolute/path/to/lyo HOST-hook --db-from-event-cwd --spool-dir-from-event-cwd", "timeout": 10},
+      {"type": "command", "command": "/absolute/path/to/node /absolute/path/to/lyo-session-hook", "timeout": 5}
+    ]}],
+    "PreToolUse": [{"hooks": [
+      {"type": "command", "command": "/absolute/path/to/node /absolute/path/to/lyo HOST-hook --db-from-event-cwd --spool-dir-from-event-cwd", "timeout": 10}
+    ]}],
+    "PostToolUse": [{"hooks": [
+      {"type": "command", "command": "/absolute/path/to/node /absolute/path/to/lyo HOST-hook --db-from-event-cwd --spool-dir-from-event-cwd", "timeout": 10}
+    ]}],
+    "Stop": [{"hooks": [
+      {"type": "command", "command": "/absolute/path/to/node /absolute/path/to/lyo HOST-hook --db-from-event-cwd --spool-dir-from-event-cwd", "timeout": 30}
+    ]}],
+    "SessionEnd": [{"hooks": [
+      {"type": "command", "command": "/absolute/path/to/node /absolute/path/to/lyo HOST-hook --db-from-event-cwd --spool-dir-from-event-cwd", "timeout": 30}
+    ]}]
+  }
 }
 ```
 
-With this config, the installed Codex, Claude, ECA, and Bob capture commands
-connect workspaces on SessionStart/UserPromptSubmit and sync again on Stop or
-SessionEnd. ECA's translated chat events use the same path. Hooks retain local
-capture if the central database is unavailable and report the sync error on
-stderr. Directories outside the configured root are untouched.
+For Claude, also add `PostToolUseFailure` using the same capture handler as
+`PostToolUse`. Codex reports failed commands through its supported tool-result
+contract; do not assume every host exposes Claude's event set.
 
-Create and connect an ordinary worktree in one command (no pipeline spec needed):
+Leave SessionStart without a source matcher: `source: "compact"` restores context
+after compaction. UserPromptSubmit refreshes the next turn. The session hook emits
+the standing proxy-versus-witness mandate, rechecks eligible lessons and keeps
+trial no-advice assignments unexposed. The capture handler records events and runs
+registered trial/evidence work; the session hook supplies ordinary guidance.
 
-```sh
-rtk lyo worktree add ../billing-fix --branch fix/billing
+New hook definitions may need host reload/trust review. For Codex, inspect `/hooks`
+and follow its review flow. Upgrading the package at unchanged executable paths
+requires no configuration change: the next hook invocation loads the new package.
+Verify fresh receipts rather than treating a restart as evidence that capture works.
+See the [Codex hook contract](https://learn.chatgpt.com/docs/hooks) and
+[Claude hook contract](https://code.claude.com/docs/en/hooks).
+
+## Optional central collection
+
+Create `~/.lyo/config.json` with the absolute parent directory you want to collect
+and your desired central corpus path. Replace these illustrative paths:
+
+```json
+{
+  "rootDir": "/home/you/projects",
+  "corpusPath": "/home/you/.lyo/corpus.sqlite"
+}
 ```
 
-The existing `--spec` pipeline workflow remains available. Connection failure
-reports the worktree that Git created and the retry command; it does not remove
-your worktree. Reconnect an existing checkout or ordinary directory with:
+With that config, capture commands connect workspaces on SessionStart and
+UserPromptSubmit, then sync again at Stop/SessionEnd. Directories outside the
+configured root are not automatically connected. Local capture remains available
+if central sync fails; the error is reported on stderr.
 
 ```sh
-rtk lyo connect --path ~/repositories/work/nectr-data-lake-billing-checks
-rtk lyo sync connected --discover
-rtk lyo corpus report --db ~/.lyo/corpus.sqlite
+lyo connect --path /absolute/path/to/project
+lyo sync connected --discover
+lyo corpus report --db ~/.lyo/corpus.sqlite
 ```
 
-The local setup sources `~/.lyo/workspaces.zsh` from `.zshrc`. Its `chpwd` hook
-connects directories under the configured work tree, including the initial
-directory of a new terminal. A cd into a Git subdirectory connects the Git root.
-Existing terminals can load it with `source ~/.lyo/workspaces.zsh`.
-Agent session startup covers agent use from editors; simply browsing a folder in
-Finder or Emacs does not itself fire an agent hook.
+From a repository, create and connect a worktree together:
 
-The user LaunchAgent `com.lyo.workspace-sync` runs `lyo sync connected --discover`
-every 60 seconds and at login. It drains pending hook packets, discovers existing
-workspace ledgers, and retries connections without requiring a final session
-event. Logs live in `~/.lyo/workspace-sync.log` and `workspace-sync.err.log`.
-Inspect it with `launchctl print gui/$(id -u)/com.lyo.workspace-sync`.
+```sh
+lyo worktree add ../my-fix --branch fix/my-fix
+```
 
-Central imports compare event identities and contents, refresh changed runs, and
-commit each ledger atomically. Hash IDs and resumed runs cannot strand later
-events behind a cursor. Existing worktree and repository databases stay separate;
-central rows retain their source path. The corpus contains telemetry and derived
-actions/effects; the session learning bridge still uses repository ledgers and
-the lesson store described below. Collection alone does not grant learning credit.
-`LYO_CONFIG_FILE` overrides the config path for isolated verification.
+This requires Git's normal worktree prerequisites. Failed connection reports a
+retry command and preserves the worktree. Existing repositories keep their own
+ledgers; imported rows retain source identity. `LYO_CONFIG_FILE` overrides the
+config path, which is useful for isolated tests.
 
-| Host | Capture command | Delivery | Completion |
-| --- | --- | --- | --- |
-| Codex | `lyo codex-hook` | `lyo-session-hook` on SessionStart and UserPromptSubmit | SessionEnd |
-| Claude Code | `lyo claude-hook` | `lyo-session-hook` on SessionStart and UserPromptSubmit | SessionEnd |
-| ECA / Emacs | `lyo eca-hook` | Built into chatStart and preRequest, as JSON additionalContext | chatEnd |
-| IBM Bob Shell / IDE | `lyo bob-hook` | `lyo-session-hook` on SessionStart and UserPromptSubmit | Explicit task completion; no SessionEnd hook |
+Opening a directory in an editor does not itself guarantee collection. Agent
+hooks and explicit `lyo connect` provide the connection boundaries. A shell
+`chpwd` callback or a scheduler can invoke connection/sync commands, but `npm install`
+does not install a directory watcher or a macOS LaunchAgent. The author's dated
+rollout records describe such optional local wiring, not a universal installer.
 
-Capture commands use `--db-from-event-cwd --spool-dir-from-event-cwd`.
-Codex and Claude capture SessionStart, UserPromptSubmit, PreToolUse, PostToolUse,
-Stop, SessionEnd; Claude also captures PostToolUseFailure.
-ECA captures chatStart, preRequest, preToolCall, postToolCall, postRequest, chatEnd.
-Set ECA's postToolCall hook `runOnError: true` so failed checks are retained.
+## Other adapters
 
-Bob uses global `~/.bob/settings/settings.json`, shared by Shell and IDE. Add
-command handlers for SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop.
-Use `lyo bob-hook --db-from-event-cwd --spool-dir-from-event-cwd >/dev/null` for
-capture (with absolute Node and executable paths). Discarding the CLI's JSON keeps
-it out of Bob's plain-text context channel. Add a separate `lyo-session-hook`
-handler on SessionStart and UserPromptSubmit; its stdout supplies the lessons.
-Both commands accept the documented Bob payload and installed Shell 2.0.2 payload;
-when cwd is absent, the hook process's working directory supplies it.
+| Host | Capture | Delivery | Current limit |
+|---|---|---|---|
+| ECA / Emacs | `lyo eca-hook` on chatStart, preRequest, preToolCall, postToolCall, postRequest, chatEnd | Built into chatStart/preRequest as JSON `additionalContext` | Does not join the Codex/Claude adaptive trial contract |
+| IBM Bob Shell / IDE | `lyo bob-hook` on SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop | Separate `lyo-session-hook` on SessionStart/UserPromptSubmit | No reliable automatic task-end/verifier-status contract in the checked Shell adapter |
+| Kimi Code CLI | `lyo wrap kimi` wires its supported config and launches Kimi | Uses the wrapper's hook configuration | Kept distinct from native Claude adaptive experiments |
+| Gemini / Antigravity / Deep Agents Code | `gemini-hook`, `agy-hook`, `dcode-hook` | Host-specific coverage | Capture adapters are not evidence of equivalent trial support |
 
-Bob Shell 2.0.2 calls Stop after each successful turn, with the same task ID on
-later prompts. Stop drains capture but must not permanently close that task.
-Bob also lacks reliably separated numeric exit status in its shell hook output;
-text that happens to say `Exit code: 0` is not verifier evidence. This connection
-captures activity and delivers lessons, but does not automatically award outcome
-credit. When a task is truly finished, existing `lyo session-end --session-id ID`
-and `lyo bridge --session ID` can close and assess its ledger (use the workspace's
-`--db .agent-learning/learning.sqlite`). Without numeric verifier evidence the
-bridge abstains. A future Bob completion/status API can remove this manual step.
+ECA postToolCall must set `runOnError: true` to retain failed checks. Restart its
+workspace server after changing configuration. ECA chatEnd means chat deletion;
+a finished turn or server shutdown is not an ended resumable chat. MLX models
+are observed through the host that invokes them, not through a direct Lyo/model link.
+[ECA contract](https://eca.dev/config/hooks/)
 
-Events spool beneath the workspace's `.agent-learning/`; Stop/postRequest drains
-them into `learning.sqlite`. Completion also drains and runs the learning bridge.
-ECA session IDs combine its workspace cache key with the chat ID. Ending a turn
-or shutting down ECA does not imply that a resumable chat has ended: ECA chatEnd
-fires when a chat is deleted. Numeric foreground shell exit status is retained;
-background and timeout messages do not manufacture verifier evidence.
+Bob uses `~/.bob/settings/settings.json`. Capture commands use
+`--db-from-event-cwd --spool-dir-from-event-cwd`; discard their JSON stdout with
+`>/dev/null` in Bob's plain-text context channel, and keep the separate lesson
+handler's stdout. When cwd is absent, the hook process's directory is used.
+Checked Shell 2.0.2 Stop events end turns, not necessarily the task. A genuine task
+completion can use `lyo session-end --session-id ID --db <local-ledger>`, followed
+by explicit bridge inspection. Text saying “Exit code: 0” is not sufficient status
+evidence. [Bob Shell](https://bob.ibm.com/docs/shell/configuration/lifecycle-hooks) ·
+[Bob IDE](https://bob.ibm.com/docs/ide/configuration/lifecycle-hooks)
 
-Lessons use the existing workspace/global `.zeroshot/lyo-lessons.db` store (or
-`ZEROSHOT_LYO_STORE_PATH`). A delivery trace proves context was emitted; a bridge
-trace proves observations were assessed. Neither proves a lesson caused success.
+## Verify capture, then start a reviewed trial
 
-After changing hooks, start a fresh agent session. Codex requires review of changed
-hook definitions through `/hooks`; check that each Lyo hook is enabled and trusted.
-Restart the ECA workspace server to reload its config; model/provider settings are
-independent of this connection.
+1. Start an ordinary session and run a harmless command through the host.
+2. Check its actual session ID in the local ledger and incoming spool. Require
+   fresh events from the installed package; pending import is not missing capture.
+3. Inspect the lesson store's delivery records separately. Emission is not adherence.
+4. Register a real reusable [finding trial](prospective-finding-trials.md) before
+   its target action. Installation alone does not choose a sound trigger/evaluator.
+5. Use `lyo finding trials`, `finding trial-report` and `finding inspect` with the
+   same `--store` to inspect assignments, evidence, unknowns and policy changes.
 
-Contracts checked against [Codex hooks](https://learn.chatgpt.com/docs/hooks) and
-[ECA hooks](https://eca.dev/config/hooks/), including ECA 0.158.0 source.
-Bob contracts: [Shell hooks](https://bob.ibm.com/docs/shell/configuration/lifecycle-hooks)
-and [IDE hooks](https://bob.ibm.com/docs/ide/configuration/lifecycle-hooks), checked
-against the installed Shell 2.0.2 bundle; its Stop behavior is more limited than
-the documentation's description of an ended session.
-`tests/package.test.ts` exercises npm-style symlinks and the compiled learning loop
-with isolated ledgers; it never populates the user's lesson library.
+The [registered evidence guide](scoped-session-findings.md) explains semantic
+review, paired action capture, automatic assessment and recovery. Do not replay
+synthetic host events into the personal store to manufacture a live trial.
+`tests/package.test.ts` and the README demo use isolated stores for that purpose.
 
-## Finding feedback in ordinary sessions
+Spool catch-up and explicit assessment of already completed sessions are available:
 
-The `0.4.3-adaptive.4` CLI captures declared finding actions synchronously at
-Codex/Claude PreToolUse and PostToolUse boundaries, before spool replay. It measures
-and assesses them using the registered evaluator and attributed semantic review.
-The paired session hook surfaces pending reviews and reads current validity, so
-CLI and delivery must use the same package and delivery store. No SessionEnd is
-needed. See [input contracts and recovery](scoped-session-findings.md).
+```sh
+lyo normalize hooks --db .agent-learning/learning.sqlite --spool-dir .agent-learning/hook-spool
+lyo bridge --db .agent-learning/learning.sqlite --all --store ~/.zeroshot/lyo-lessons.db
+```
 
-Exact tool-call binding follows [Codex hooks](https://learn.chatgpt.com/docs/hooks)
-and [Claude hooks](https://code.claude.com/docs/en/hooks), checked 2026-09-10.
-Review prompts prove delivery only. The user/agent still declares a relevant
-opportunity and reviews what its evaluator means; no background model invents
-semantic judgments.
+Missing historical numeric verifier status remains unknown. Collection, bridge
+observations and prompt refresh never by themselves establish useful learning.

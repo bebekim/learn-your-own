@@ -1,5 +1,7 @@
 # Learned Context As Thermodynamic Control
 
+Conceptual research, not a proven law of prompt retention or a shipped control rule. [Current implementation and evidence](development-status.md) use bounded host refresh and registered outcome checks.
+
 This is a conceptual sidebar for Lyo's learning model. It is not a product
 specification.
 

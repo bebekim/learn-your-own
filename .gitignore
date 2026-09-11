@@ -8,6 +8,8 @@ node_modules
 /docs/
 !/docs/
 /docs/*
+!/docs/README.md
+!/docs/hackathon-brief.md
 !/docs/behavior-as-code.md
 !/docs/adaptive-feedback-loop.md
 !/docs/development-status.md

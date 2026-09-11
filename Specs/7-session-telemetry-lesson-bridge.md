@@ -1,8 +1,8 @@
 # Session telemetry, finding outcomes and applicability revision
 
 State: partial — registered finding evidence and feedback implemented;
-real usefulness and learned generalization unvalidated (2026-09-10).
-Current increment: `feat/ordinary-finding-feedback`, package `0.4.3-adaptive.4`.
+real usefulness and learned generalization unvalidated (2026-09-11).
+Current baseline: main `f39ed6c`, source package `0.4.3-adaptive.8`.
 
 Soundness audit: `feat/finding-evidence-contract`, against implementation `70a5e9e`.
 That audit identified four gaps. The [runtime recheck](../evidence/finding-evidence-validation-2026-09-10/assessment.md)
@@ -113,8 +113,10 @@ effects are bounded:
 An unsuccessful trial is not automatically a counterexample to a probabilistic
 improvement claim. Such claims use the evaluator and comparison criteria declared
 before trial results. No arbitrary support-count threshold is introduced here.
-The existing comparison report remains experimental-only until explicitly connected
-to routine selection; its promotion decision must not be assumed to deploy advice.
+The separate task comparison remains experimental-only. The registered ordinary
+trial comparison is connected to scoped delivery: a completed qualifying cohort
+can promote, and later failed/unknown outcomes pause it. Its assumptions and
+correction rules are in the [trial protocol](../docs/prospective-finding-trials.md).
 
 Content and scope revisions have separate identities and retain their parents.
 Broader-scope failure suspends that broader claim; it does not erase supported
@@ -229,7 +231,11 @@ evaluator, replacement wording or a generalized scope.
       automatic-versus-explicit insertion route.
 - [ ] Propose and test broader scopes, retaining supported narrower scopes when a
       broader claim fails. This increment adds no automatic scope widening.
-- [ ] Connect controlled comparison evidence to routine promotion.
+- [x] Connect the registered ordinary comparison to scoped promotion, later pause
+      and correction. General scope discovery and useful real effects remain open.
+- [x] Refresh the reasoning mandate and currently eligible guidance on user turns,
+      compaction and resume; preserve control assignment and application identity.
+      Session banners cannot receive legacy validation credit.
 - [ ] Extend equivalent adaptive task evaluation to ECA/MLX, Bob and Go.
 
 The former proposal to credit lessons from session efficiency is withdrawn.
@@ -239,6 +245,8 @@ remain separate from ordinary lesson helpful/harmful counters and legacy gates.
 Use the [workflow and input contracts](../docs/scoped-session-findings.md).
 Feedback belongs to the chosen delivery store, normally
 `~/.zeroshot/lyo-lessons.db`; source observations also exist in the central corpus.
-The CLI and session hook are built together as `0.4.3-adaptive.4`; see the
-[rollout record](../evidence/ordinary-finding-feedback-2026-09-10/assessment.md) for
-installed paths, configuration hashes and isolated configured-command verification.
+The original `.4` [rollout record](../evidence/ordinary-finding-feedback-2026-09-10/assessment.md)
+is historical. The `.8` [refresh record](../evidence/context-refresh-2026-09-11/README.md)
+checks built and installed configured commands. Actual host dispatch and useful
+later outcomes must be observed separately. The withdrawn efficiency proposal is
+retained in the [archive](done/7-session-efficiency-proposal.md).

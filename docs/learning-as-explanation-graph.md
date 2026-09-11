@@ -1,5 +1,7 @@
 # Learning As Inference Over An Explanation Graph
 
+Deferred integration design with prototype components. This is not a description of a completed telemetry-to-graph-to-intervention loop. See [current implementation](development-status.md).
+
 This document records the current mathematical direction for Lyo's learning
 layer.
 

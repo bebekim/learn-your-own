@@ -2,7 +2,7 @@
 
 State: done — documentation reconciliation only (2026-09-10)
 
-Scope: compare the latest implemented branch, `dd5f160`, with the PRD and specs.
+Historical audit scope: compare the then-latest implemented branch, `dd5f160`, with the PRD and specs.
 The audit lives on `feat/spec-reconciliation`. At audit time, `main` was
 `5759cc8`; local hooks used `0.4.3-adaptive.3`. These are distinct delivery states.
 
@@ -63,10 +63,40 @@ not prerequisites for the bounded feedback experiment. Execution permissions and
 workspace custody remain host/Shepherd responsibilities; see the
 [boundary](../docs/lyo-shepherd-boundary.md).
 
-This audit preserves the existing user edits and paper files in the main worktree.
+The 2026-09-10 audit preserved the existing user edits and paper files in the main worktree.
 No runtime change, model experiment, merge to main or npm publication is included.
 
 Verification: all 165 relative file links in the 25 changed documents resolve;
 `git diff --check` passes. Main-worktree staged/unstaged diffs and all 26 existing
 untracked file hashes match the pre-work manifest. No runtime suite was rerun for
 this documentation-only change; implementation checks above are retained evidence.
+
+## 2026-09-11 documentation reconciliation
+
+The current implementation baseline is main `f39ed6c`, source package
+`0.4.3-adaptive.8`. The earlier branch/install inventory and gate table above are
+historical. The [current gate map](2026-07-27-principled-map.md) distinguishes
+legacy stores from ordinary trial policy, which now supports scoped promotion,
+later pause and correction. [Spec 8](8-learning-evidence-loop.md) remains the
+acceptance authority; useful coding transfer has not been established.
+
+README and the [documentation index](../docs/README.md) now lead to a source-checkout
+demo, application brief, installation guide and evidence. Research and old task
+handoffs are separated from current operation. The registry's `latest` tag was
+verified as `0.2.0`; publishing the current package is separate rollout work.
+The author's local cleanup and efficiency drafts are preserved in `done/` with
+explicit supersession notices. The five dated design moves into `Specs/` are
+retained. Downloaded local papers are outside this documentation publication.
+
+Verification for this documentation increment: inventory and link checks cover
+107 tracked Markdown/Org/reStructuredText documents, including the two new entry
+pages and preserved efficiency draft. Current product, CLI, installation and gate
+claims were checked against source; historical/research status is labeled rather
+than presented as a new validation result. Local file links and README navigation
+anchors resolve. This is not a new literature or mathematical-proof review.
+
+A clean source archive installed the locked dependencies with `npm ci` and ran
+the README's parser feedback demo successfully: original contradicted, revision
+supported, incremental benefit unknown. On Node 24.15.0, `npm test` passed 672
+tests with one skipped; `npm run typecheck` passed. Runtime code, package version
+and installed hooks are unchanged by this documentation increment.

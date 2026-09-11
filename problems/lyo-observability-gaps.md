@@ -1,5 +1,7 @@
 # LYO Observability Gaps
 
+Historical diagnosis at the recorded date. Repository counts and implementation claims below are snapshots, not current status. See [development status](../docs/development-status.md) and [the spec map](../Specs/README.md) for remaining work.
+
 ## Summary
 
 The LYO learning system has a fundamental split:

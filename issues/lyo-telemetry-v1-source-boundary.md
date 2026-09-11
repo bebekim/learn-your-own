@@ -1,5 +1,7 @@
 # Lyo telemetry source boundary
 
+Source-boundary design with proposed requirements, not a statement that every requirement is implemented. See [development status](../docs/development-status.md) for current capture and learning coverage.
+
 ## Problem
 
 Lyo's learning code currently sits beside native hook adapters, telemetry

@@ -48,9 +48,9 @@ from the transcript envelope; the stdout hash alone does not attest status.
 This is an attributed local reconstruction, not independently authenticated
 or prospectively registered evidence.
 
-[Status extraction](../../src/adapters/runtime.ts:64) walks structured objects;
+[Status extraction](../../src/adapters/runtime.ts#L64) walks structured objects;
 the matched real hook responses were stdout strings. The
-[ordinary session bridge](../../src/lyo/bridge/session-bridge.ts:47) requires
+[ordinary session bridge](../../src/lyo/bridge/session-bridge.ts#L47) requires
 an exit code before it can retain a verifier observation. More raw event
 collection does not repair that missing status. Registered finding checks
 have a separate evaluator path and are not proven broken by this observation.

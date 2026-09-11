@@ -1,13 +1,12 @@
 # LYO learning workflow PRD
 
 Status: partial implementation; useful reusable coding benefit unproven.
-Reconciled 2026-09-10 against `dd5f160` (`feat/scoped-session-findings`).
-Follow-up `feat/session-finding-feedback` adds the ordinary-session review loop;
-it is not yet installed or merged. The later `fix/finding-evidence-validation`
-branch adds registered checks and evidence withdrawal while removing generalized
-context exclusions inferred from individual task misfires.
+Reconciled 2026-09-11 against main `f39ed6c`, source `0.4.3-adaptive.8`.
+Registered finding evidence, ordinary Codex/Claude trials, scoped policy updates
+and turn/compaction refresh are implemented. A reviewed trigger and evaluator are
+still required before ordinary work can supply meaningful trial outcomes.
 See [Spec 8](../Specs/8-learning-evidence-loop.md) for measured acceptance and
-[development status](../docs/development-status.md) for branch/rollout status.
+[development status](../docs/development-status.md) for implementation and rollout.
 
 ## Problem and intended outcome
 
@@ -31,7 +30,7 @@ with domain-specific observations, legal actions and evaluators.
 | Capture and compile existing work (6–8, 34–35) | Implemented telemetry normalization, effects, episodes, central sync and read-side analysis | Missing historical outcomes/usage cannot be reconstructed as facts |
 | Infer purpose, preconditions, threats and failure structure (9–12) | Partial: deterministic classifications and dry-run semantic components | Validated learned interpretations and integrated artifact generation |
 | Produce procedures, critics, verifiers, context packs and policy (13–21) | Partial; artifact-by-artifact scope below | Integrated compiler for all five types |
-| Evidence, provenance, confidence and review (22–25) | Retained receipts/report gates; registered finding evidence constrains validity with withdrawal and scope-review requests | Real useful outcomes, automatic trustworthy assessment, unified evidence semantics and qualified routine promotion |
+| Evidence, provenance, confidence and review (22–25) | Retained receipts/report gates; registered finding evidence constrains validity with withdrawal and scope-review requests | Real useful outcomes, automatic trustworthy evaluator preparation and unified evidence semantics |
 | Applicable replay and delivery explanation (26–28) | Scoped guidance; explicit trials; checked later outcomes suppress contradicted findings or request scope review | Learned cross-repository applicability, broader-scope trials and automatic selection of useful interventions |
 | Compare quality, cost and learning delta (29–33) | Frozen comparisons, known/unknown outcomes, regression and cost reports | Demonstrated useful transfer and all-in spend enforcement |
 | Bounded modules, typed contracts, durable state, deterministic checks and CLI (36–41) | Many components and task CLI implemented | Complete controller separation and compiler-to-artifact integration |
@@ -48,8 +47,8 @@ a benchmark is an experimental choice, not the product acceptance criterion.
 | Procedure | Reusable steps with purpose, preconditions and checks | Trace/episode and draft components exist; no validated general procedure compiler/replay loop |
 | Critic | A scoped intervention that catches a specific mistake earlier | Candidate lesson generation, local repair checks and one later transfer screen exist; useful transfer failed to establish |
 | Verifier | An independent check with identity, scope and evidence | Registered/frozen checks and source mechanism tests exist; automatic extraction and validation of new verifiers remain partial |
-| Context pack | Compact, applicable guidance with provenance | Lesson snapshots and three scoped findings deliver context; adaptive selection by validated benefit remains open |
-| Policy | Choose an available intervention using outcome evidence | Native action estimates, revisions, freezing and registered evaluation exist; routine evidence-based promotion/rollback remains open |
+| Context pack | Compact, applicable guidance with provenance | Versioned scoped findings and lesson snapshots refresh at host boundaries; benefit-driven delivery is bounded to reviewed ordinary trials |
+| Policy | Choose an available intervention using outcome evidence | Reviewed ordinary trials can promote, pause and recompute scoped delivery; useful real-task effects and broader applicability remain unproven |
 
 A policy artifact is guidance to the execution host. It cannot grant permissions,
 change a sandbox or approve destructive/external actions. Host/Shepherd owns those
@@ -57,23 +56,25 @@ decisions and workspace custody; see [the boundary](../docs/lyo-shepherd-boundar
 
 ## Workflow and architecture
 
-The current bounded path is:
+The ordinary-session path is:
 
 ```text
-register task, source, verifier and budget
-→ deliver a recorded action
-→ host executes work
-→ independent checks and usage produce a task receipt
-→ retain feedback and freeze a policy or specific candidate
-→ register a comparable later task
-→ evaluate against baseline, including learning cost
+review finding, reusable trigger, scope and evaluator
+→ matching Codex/Claude task creates a prospective opportunity
+→ assign advice or no added advice before the next action
+→ capture paired action and declared outcome, retaining unknowns
+→ reconcile the fixed comparison and record a scoped policy
+→ deliver, withhold or pause in later eligible sessions
+→ recheck later outcomes and corrected evidence
 ```
 
-An explicit derivation can inspect a retained repair, test removal/restoration and
-propose advice for a trial. The recovery controller does not automatically invoke
-that derivation. Ordinary session observations do not earn causal credit.
-Three approved findings now reach scoped prompts; their future usefulness remains
-unvalidated.
+A separate explicit task workflow registers tasks, acceptance/regression checks,
+source and verifier fingerprints, budgets and comparable attempts. It can derive
+advice from a retained repair and test removal/restoration. The recovery controller
+does not automatically invoke that derivation. Neither ordinary observations nor
+repeated prompt refresh earn causal credit. Meaningful evaluator preparation and
+semantic review remain explicit; the system does not discover a trustworthy
+intervention and its evaluator from arbitrary telemetry by itself.
 
 The five architectural responsibilities remain benchmark/task definition,
 telemetry, learning, replay/delivery and evaluation. The durable kernel stores
@@ -99,8 +100,10 @@ formatting in `native-feedback.ts`; the architecture refactor is incomplete.
 - [ ] Demonstrate an intervention improves independent later accepted work without
       unacceptable regressions or total learning cost.
 - [ ] Enforce the declared all-in spend allowance while execution is running.
-- [ ] Use validated outcomes for reversible routine promotion and rollback.
-- [ ] Supersede invalid finalized measurements and recompute affected policies.
+- [x] Connect registered ordinary-trial comparisons to scoped promotion, later
+      pause and evidence-correction recomputation; useful real-task effect unproven.
+- [x] Withdraw ordinary finding measurements and recompute affected delivery policies.
+- [ ] Extend correction to invalid finalized measurements in the separate task workflow.
 - [ ] Complete general applicability, five-artifact integration and sequence credit.
 - [ ] Extend the adaptive experiment to ECA/MLX, IBM Bob and a Go adapter.
 
@@ -119,8 +122,8 @@ contracts; product benefit requires controlled later-task evidence.
 
 The next priority is real ordinary-session validation and evidence-driven
 applicability revision/generalization through the [finding workflow](../docs/scoped-session-findings.md).
-Before another live transfer test, enforce spend controls, freeze ambient guidance
-and verifier edge cases, and separate execution time from approval waiting.
+Before another live transfer test, freeze meaningful evaluator coverage and ambient
+guidance, set and observe spend limits, and separate execution from approval waiting.
 Automatic semantic selection or learned representations should be added only
 when the simpler registered comparison establishes a useful intervention.
 

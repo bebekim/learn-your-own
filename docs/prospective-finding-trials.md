@@ -14,7 +14,7 @@ Both arms use the same predeclared prediction check. `observedOutcome` records p
 
 Prospective observations without delivery are inspectable through `finding inspect`. They are omitted from agent-facing review prompts to avoid exposing withheld advice through a review request.
 
-## Approved sequence and status
+## Implemented increments
 
 1. `feat/finding-opportunities`: prospective records, assignment, delivery, paired measurement, and compatibility with existing validity evidence.
 2. `feat/ordinary-lesson-trials`: implemented reusable reviewed trigger/evaluator configuration and automatic opportunity recognition/capture in Codex/Claude hook boundaries.
@@ -26,13 +26,13 @@ Completion requires a real chain from opportunity through outcome and revision t
 
 ## Ordinary-session adapter
 
-Register a reviewed definition once with `lyo finding trial-register --input trial.json --store <central-lessons.db>`; inspect definitions with `lyo finding trials --store <central-lessons.db>`. This is configuration of a reusable mechanism and evaluator, not per-ticket registration. See `finding-trials.ts` for the strict schema and `tests/helpers/finding-trial-fixture.ts` for a synthetic example.
+Register a reviewed definition once with `lyo finding trial-register --input trial.json --store <central-lessons.db>`; inspect definitions with `lyo finding trials --store <central-lessons.db>`. This is configuration of a reusable mechanism and evaluator, not per-ticket registration. See [the strict schema](../src/lyo/selection/finding-trials.ts) and [a synthetic fixture](../tests/helpers/finding-trial-fixture.ts).
 
 A definition fixes the finding version, repository roots, model, exact diagnostic tool/input, source paths relative to each workspace, absolute verifier paths, claim/checks, and attributed semantic review. A non-interrupted failure of that diagnostic creates a prospective opportunity; a checked precondition must still pass before random assignment. Missing model identity, changed verifiers, and suspended/revised findings cannot enroll. The opportunity retains the definition hash and triggering tool identity/hashes. An ineligible registration remains unassigned and inspectable; it contributes no comparative result.
 
 Hosts may report the model only at session start. LYO retains that observation with its runtime and session identity and uses it when later events omit the field; it never substitutes a configured default for an unobserved model. A model change reported at the measured action makes that outcome unknown for the old model. Unreported host/model changes remain a limitation of the available observations. One ordinary trial owns a host session, including when another finding's trigger matches later.
 
-The advice is returned as host hook context after the diagnostic, before the agent chooses its next action. This does not modify a system prompt or rewrite an already dispatched tool call. The first later tool call of the declared name is bound by its actual input and call ID at pre/post boundaries. The same evaluator measures either arm. A missing, interrupted, or mismatched action remains unknown. Repeated hook calls neither rerandomize nor emit the lesson twice; spool replay cannot discover a trial in hindsight.
+The advice is returned as host hook context after the diagnostic, before the agent chooses its next action. This does not modify a system prompt or rewrite an already dispatched tool call. The first later tool call of the declared name is bound by its actual input and call ID at pre/post boundaries. The same evaluator measures either arm. A missing, interrupted, or mismatched action remains unknown. Repeated tool hooks do not rerandomize or duplicate the original emission. Compaction/resume refresh can deliberately re-emit still-pending advice, as described below; spool replay cannot discover a trial in hindsight.
 
 The trial controller owns delivery for registered findings, suppressing their ordinary banners and agent-facing review requests. An enrolled session also skips the separate native recovery intervention. Operators retain `finding inspect` and legacy `finding pending` access. No live definition has been enabled by the implementation tests; a production trial needs a real reviewed trigger and outcome evaluator. A copied review remains the original reviewer's assertion about that unchanged evaluator, not a new independent semantic judgment.
 
@@ -61,6 +61,23 @@ A failed later application is grounds to pause that delivery scope, not proof th
 
 Withdrawals or disputed semantics change the resolved evidence hash. Subsequent reconciliation can revoke promotion immediately; the next assignment and emission also check their policy's evidence snapshot. Historical policy receipts retain their predecessors and evidence references. A policy is therefore neither a permanent badge nor a cached win count.
 
+## Turn and compaction refresh
+
+Source `0.4.3-adaptive.8` refreshes the proxy-versus-witness mandate and eligible
+session guidance at user-turn, compaction and resume boundaries. The host must
+invoke its configured hook; there is no background prompt watcher. The mandate
+asks for direct evidence, alternative causes of a proxy, and checks across
+parallel code paths. It is a standing reasoning instruction, not a validated
+claim that repetition improves model behavior.
+
+A pending ordinary trial may re-emit its already assigned advice on compaction or
+resume only while its observation window, finding, files, model and policy remain
+valid. It retains the same application; the control arm stays hidden. A new user
+turn closes an unfinished trial window as unknown. Refresh never supplies outcome
+credit or a new random assignment. See [the configured-command proof](../evidence/context-refresh-2026-09-11/README.md)
+and [installation guide](hook-installation.md). Actual host event dispatch must be
+checked in an ordinary session after installation.
+
 ## Code and rollout boundary
 
 - `finding-trials.ts`: reviewed definitions, raw host trigger recognition, prospective enrollment.
@@ -69,6 +86,6 @@ Withdrawals or disputed semantics change the resolved evidence hash. Subsequent 
 - `finding-trial-policy.ts`: fixed comparison, window closure, scoped delivery decisions.
 - `src/cli/hooks.ts`: Codex/Claude wiring; no background watcher or mid-generation system-prompt mutation.
 
-The implementation is included in `0.4.3-adaptive.7`; its tests are not evidence that a real lesson helped. Rollout requires installing the built package and registering one genuinely reusable, reviewed real-task contract in the store the hooks resolve (normally `~/.zeroshot/lyo-lessons.db`, distinct from the telemetry corpus). Ordinary matching tasks then enroll without pasted per-task handoffs. The rollout inspection found no registered trial and no matching finding/evaluator for the current MLOps deployment task, so it is not retrospectively enrolled. See `evidence/prospective-trial-rollout-2026-09-10/README.md` in the repository for installation and live-capture verification.
+The original policy increment is included in `0.4.3-adaptive.7`; current source is `0.4.3-adaptive.8`. Its tests are not evidence that a real lesson helped. Rollout requires installing the built package and registering one genuinely reusable, reviewed real-task contract in the store the hooks resolve (normally `~/.zeroshot/lyo-lessons.db`, distinct from the telemetry corpus). Ordinary matching tasks then enroll without pasted per-task handoffs. The 2026-09-10 rollout inspection found no registered trial and no matching finding/evaluator for the current MLOps deployment task, so it is not retrospectively enrolled. See `evidence/prospective-trial-rollout-2026-09-10/README.md` in the repository for installation and live-capture verification.
 
 Verification on 2026-09-10, Node 24.15.0: 666 tests passed, one skipped; typecheck, npm build, built CLI smoke check, and Opcore's changed-code gate passed. Opcore still reports complexity warnings; unavailable Python/Rust tooling is not claimed as coverage. `tests/finding-trial-policy.test.ts` exercises promotion → later delivery → later failure → scope pause, correction of the original comparison, closed unknown outcomes, and a replacement scope with fresh evidence.

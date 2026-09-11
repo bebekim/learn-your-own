@@ -1,7 +1,9 @@
 # LYO Workflow and Mechanics
 
+Historical pipeline snapshot, not the current ordinary-session workflow. Model choices and installation details below are dated. Use [development status](../docs/development-status.md) and the [current gate map](2026-07-27-principled-map.md); prompt hashes identify emission, not causal attribution.
+
 Date: 2026-08-04
-Status: as-built documentation
+Status: historical as-built pipeline snapshot
 Companion to: blind-pipeline-runner.md (execution), principled-map.md (learning mechanics)
 
 ## The two tracks
@@ -45,7 +47,7 @@ Four deciders, in increasing subtlety:
    gives counts and per-test verdicts. Code correctness is machine-decided
    or undecided, never vibes.
 2. **Mechanical classifier** (`classifyMechanically`,
-   `src/lyo/mechanical-judge.ts`) — signature rules for machine-decidable
+   `src/lyo/judge/mechanical-judge.ts`) — signature rules for machine-decidable
    failures: test-code ReferenceError/SyntaxError, ESM/CJS mismatch, the
    `-0`/Object.is trap. Free, consistent, zero judge spend.
 3. **The LLM judge** — a third model family (currently claude-sonnet-5) that
