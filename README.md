@@ -96,7 +96,11 @@ lyo --help
 
 Requires Node.js 24+ for `node:sqlite`.
 
-Current package version: `0.4.3-adaptive.7` (local rollout; registry publication is separate).
+Current package version: `0.4.3-adaptive.8` (local rollout; registry publication is separate).
+
+Session and turn hooks now refresh the standing proxy-versus-witness mandate and
+currently eligible lessons, including after compaction. Refreshing advice awards
+no learning credit. See [refresh and evidence boundaries](docs/scoped-session-findings.md#turn-and-compaction-refresh).
 
 ## Experimental adaptive controller (2026-09-09)
 

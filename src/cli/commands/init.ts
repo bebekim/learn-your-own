@@ -59,18 +59,8 @@ function initWorkspace(folderPath: string): { ok: true; path: string; created: s
 
   const claudeSettings = JSON.stringify(
     {
-      hooks: {
-        SessionStart: [
-          {
-            hooks: [
-              {
-                type: 'command',
-                command: `node ${hookPath}`,
-              },
-            ],
-          },
-        ],
-      },
+      hooks: Object.fromEntries(['SessionStart', 'UserPromptSubmit'].map(event =>
+        [event, [{ hooks: [{ type: 'command', command: `node ${hookPath}` }] }]])),
     },
     null,
     2

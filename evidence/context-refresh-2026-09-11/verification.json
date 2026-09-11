@@ -1,0 +1,127 @@
+{
+  "version": "0.4.3-adaptive.8",
+  "packageRoot": "/Users/marcus.kim/.nvm/versions/node/v24.15.0/lib/node_modules/lyo-kernel",
+  "checkedAt": "2026-09-11T10:08:30.451Z",
+  "actualHostDispatchObserved": false,
+  "realUsefulnessEstablished": false,
+  "results": [
+    {
+      "host": "codex",
+      "configHash": "ab3cb3239546d1aec203ac73cbf356214b48200ce2428f4cca76417eaf20f57d",
+      "command": "/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node /Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/lyo-session-hook",
+      "events": [
+        {
+          "event": "SessionStart",
+          "source": "startup",
+          "elapsedMs": 159,
+          "mandate": true,
+          "lesson": true,
+          "outputHash": "3291fcbf52bae0ec57fd18c3a6b1d8b87e190ebca6b671ee055749ccf9516f54"
+        },
+        {
+          "event": "UserPromptSubmit",
+          "source": null,
+          "elapsedMs": 111,
+          "mandate": true,
+          "lesson": true,
+          "outputHash": "3291fcbf52bae0ec57fd18c3a6b1d8b87e190ebca6b671ee055749ccf9516f54"
+        },
+        {
+          "event": "UserPromptSubmit",
+          "source": null,
+          "elapsedMs": 105,
+          "mandate": true,
+          "lesson": true,
+          "outputHash": "3291fcbf52bae0ec57fd18c3a6b1d8b87e190ebca6b671ee055749ccf9516f54"
+        },
+        {
+          "event": "SessionStart",
+          "source": "compact",
+          "elapsedMs": 104,
+          "mandate": true,
+          "lesson": true,
+          "outputHash": "3291fcbf52bae0ec57fd18c3a6b1d8b87e190ebca6b671ee055749ccf9516f54"
+        },
+        {
+          "event": "SessionStart",
+          "source": "compact",
+          "elapsedMs": 105,
+          "mandate": true,
+          "lesson": true,
+          "outputHash": "3291fcbf52bae0ec57fd18c3a6b1d8b87e190ebca6b671ee055749ccf9516f54"
+        },
+        {
+          "event": "SessionStart",
+          "source": "resume",
+          "elapsedMs": 103,
+          "mandate": true,
+          "lesson": true,
+          "outputHash": "3291fcbf52bae0ec57fd18c3a6b1d8b87e190ebca6b671ee055749ccf9516f54"
+        }
+      ],
+      "applicationCount": 1,
+      "helpful": 0,
+      "harmful": 0,
+      "runPassAwardsCredit": false
+    },
+    {
+      "host": "claude",
+      "configHash": "6bfdd0baf8d5cf39efb47453abc5976696b24d209592aa880c6880d92c1bb97c",
+      "command": "/Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/node /Users/marcus.kim/.nvm/versions/node/v24.15.0/bin/lyo-session-hook",
+      "events": [
+        {
+          "event": "SessionStart",
+          "source": "startup",
+          "elapsedMs": 107,
+          "mandate": true,
+          "lesson": true,
+          "outputHash": "3291fcbf52bae0ec57fd18c3a6b1d8b87e190ebca6b671ee055749ccf9516f54"
+        },
+        {
+          "event": "UserPromptSubmit",
+          "source": null,
+          "elapsedMs": 105,
+          "mandate": true,
+          "lesson": true,
+          "outputHash": "3291fcbf52bae0ec57fd18c3a6b1d8b87e190ebca6b671ee055749ccf9516f54"
+        },
+        {
+          "event": "UserPromptSubmit",
+          "source": null,
+          "elapsedMs": 106,
+          "mandate": true,
+          "lesson": true,
+          "outputHash": "3291fcbf52bae0ec57fd18c3a6b1d8b87e190ebca6b671ee055749ccf9516f54"
+        },
+        {
+          "event": "SessionStart",
+          "source": "compact",
+          "elapsedMs": 111,
+          "mandate": true,
+          "lesson": true,
+          "outputHash": "3291fcbf52bae0ec57fd18c3a6b1d8b87e190ebca6b671ee055749ccf9516f54"
+        },
+        {
+          "event": "SessionStart",
+          "source": "compact",
+          "elapsedMs": 112,
+          "mandate": true,
+          "lesson": true,
+          "outputHash": "3291fcbf52bae0ec57fd18c3a6b1d8b87e190ebca6b671ee055749ccf9516f54"
+        },
+        {
+          "event": "SessionStart",
+          "source": "resume",
+          "elapsedMs": 117,
+          "mandate": true,
+          "lesson": true,
+          "outputHash": "3291fcbf52bae0ec57fd18c3a6b1d8b87e190ebca6b671ee055749ccf9516f54"
+        }
+      ],
+      "applicationCount": 1,
+      "helpful": 0,
+      "harmful": 0,
+      "runPassAwardsCredit": false
+    }
+  ]
+}

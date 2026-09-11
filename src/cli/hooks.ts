@@ -145,7 +145,7 @@ export async function runEcaHookCommand(
   await runClaudeStyleHook(args, event);
   let additionalContext = '';
   if (payload.hook_type === 'chatStart' || payload.hook_type === 'preRequest') {
-    emitSessionLessons(event, text => { additionalContext = text; });
+    emitSessionLessons(event, text => { additionalContext += text; });
   }
   return additionalContext ? { additionalContext } : {};
 }

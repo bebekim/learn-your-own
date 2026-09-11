@@ -60,6 +60,8 @@ test('awok init <folder> creates a fully wired workspace', () => {
     const cmdHook = hookEntry.hooks[0];
     assert.equal(cmdHook.type, 'command');
     assert.match(cmdHook.command, /node .*src\/lyo\/selection\/session-hook\.ts/);
+    assert.deepEqual(settings.hooks.UserPromptSubmit, settings.hooks.SessionStart,
+      'new workspaces refresh lessons at each user turn as well as session/compaction start');
 
     // plan.json minimal shape
     const plan = JSON.parse(readFileSync(join(folderPath, 'plan.json'), 'utf8'));

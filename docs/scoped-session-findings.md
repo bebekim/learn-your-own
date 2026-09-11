@@ -1,10 +1,10 @@
 # Findings in ordinary work: checked evidence and revision
 
-Local rollout package: `0.4.3-adaptive.6`, including finding-state rechecking.
+Local rollout package: `0.4.3-adaptive.8`, including finding-state rechecking and context refresh.
 See the [semantic audit and rollout](../evidence/ordinary-finding-feedback-2026-09-10/assessment.md)
 for validation and installed-command evidence.
-For the first ordinary-work trial, use the [restart handoff](first-real-task-handoff.md),
-which includes a live-capture preflight and the current evidence limitations.
+Reviewed recurring trials use the [prospective trial workflow](prospective-finding-trials.md).
+The [restart handoff](first-real-task-handoff.md) retains historical preflight context.
 
 The feedback path now requires retained results from registered local checks:
 
@@ -19,6 +19,52 @@ versioned finding delivery
 
 A delivered banner remains delivery-only evidence. A passing task is insufficient
 on its own. Review labels cannot contradict the registered measurements.
+
+## Turn and compaction refresh
+
+The configured `lyo-session-hook` runs on `UserPromptSubmit` and `SessionStart`.
+Both Codex and Claude report compaction through `SessionStart` with `source:
+"compact"`; use that post-compaction context boundary, not a timer or a pre-compaction
+message that may immediately be summarized away. The host adds stdout to the next
+model request as context. This does not rewrite a hidden system prompt.
+See the [Codex hook contract](https://learn.chatgpt.com/docs/hooks) and
+[Claude hook contract](https://code.claude.com/docs/en/hooks#sessionstart).
+
+Each refresh emits the short standing reasoning mandate even without a readable
+lesson store: distinguish the claim, observation and inference; consider alternative
+causes and witness assumptions; preserve unknown. This user-mandated discipline is
+independent of sampled lesson rank and has no helpful/harmful score.
+
+The hook reselects at most five ordinary lessons/findings using the existing
+repository/activity rules, current evidence and legacy sampler. It does not replay
+stale wording. Explicit `[lyo:transfer-review]`, `[lyo:experiment-design]` and
+`[lyo:learning-budget]` tags are retained in SQLite, without raw prompt text, for
+compaction/resume in the same canonical workspace. Each new prompt replaces those
+tags, including replacing them with none; startup/clear resets them. This is explicit
+scope matching, not inferred task intent. A failed refresh remains fail-open for
+the session; the already-emitted mandate remains available.
+
+Trial-managed findings stay out of the ordinary sampler. Compaction/resume can
+restore previously delivered advice from the same assignment only if the model,
+workspace, finding, policy, declared files and unstarted outcome window still match.
+Unknown model identity suppresses trial refresh. No-advice assignments remain silent.
+A new user turn or clear closes a pending trial window, independently of hook order.
+Refresh never rerandomizes, registers another application or invents an outcome.
+
+Context preparation is journaled as `session-context@1`. Delivery receipts retain
+finding version/context; repeated lesson applications remain deduplicated per
+session. These are delivery observations, not independent evidence units. At the
+legacy outcome boundary, `applyValidationOutcome` now excludes `session-banner`
+applications, including existing receipts. Native observations remain observational.
+At the finding boundary, `recordFindingFeedback` continues to require the registered
+measurement, accepted evaluator semantics, matching delivery/version and compatible
+applicability/adherence/outcome labels. A passing check alone cannot establish
+incremental benefit; comparative trials remain necessary.
+
+Tests exercise repeated compactions, scope reset, workspace binding, withheld and
+stale trial advice, unsupported credit and counterevidence suppressing the next
+refresh. These checks prove the observable mechanism. They do not establish that
+the model obeys it internally or that reminders improve real-task outcomes.
 
 ## Current development scope
 

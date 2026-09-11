@@ -867,7 +867,9 @@ export class LessonStore {
     let countedApplications = 0;
     withTransaction(this.db, () => {
       const applications = this.db
-        .prepare('SELECT * FROM lesson_application WHERE run_id = ? AND counted = 0')
+        // Session banners witness delivery only. A run-level pass/fail cannot
+        // establish adherence or benefit, including for pre-refresh receipts.
+        .prepare("SELECT * FROM lesson_application WHERE run_id = ? AND counted = 0 AND trigger_message_id IS NOT 'session-banner'")
         .all(run_id) as unknown as ApplicationRow[];
 
       for (const application of applications) {

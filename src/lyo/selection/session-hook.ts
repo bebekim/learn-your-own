@@ -5,10 +5,8 @@
  * Read-only rendering; emitted banners record delivery receipts when a session
  * id is available. Hook failures never block the agent.
  *
- * When the hook payload carries a session id (e.g. kimi-code UserPromptSubmit,
- * which fires on every prompt), ordinary lessons print once per session.
- * Findings print once per item, so a newly applicable finding can arrive on a
- * later prompt. Without a session id (e.g. `--cwd` manual runs) it always prints.
+ * SessionStart (including compact/resume) and UserPromptSubmit refresh guidance.
+ * Legacy callers without an event name retain once-per-session delivery.
  */
 
 import fs from 'node:fs';
@@ -16,6 +14,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { execFileSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { hashValue } from '../../contract/refs.ts';
 import { resolvePolicy } from './selection-policies.ts';
@@ -25,10 +24,14 @@ import { parsePriorJson, priorCalibration, priorPseudoCounts } from './semantic-
 import { selectSessionFindings, trialManagedFindings } from './session-findings.ts';
 import type { SessionFinding } from './session-findings.ts';
 import { emitFindingReviewQueue } from './session-finding-workflow.ts';
+import { refreshSessionTrialAdvice } from './finding-opportunities.ts';
 
 const LIMIT = 5;
 const MAX_TEXT = 220;
 const STDIN_GUARD_MS = 2500;
+const REASONING_MANDATE = 'LYO reasoning mandate: Could this evidence exist while the claim is false? ' +
+  'Separate claim, observation, and inference; check alternative causes and witness assumptions. ' +
+  'Preserve unknown. Advice delivery and passing checks alone do not establish benefit.\n';
 
 export function repositoryKey(cwd?: string | null): string | null {
   if (!cwd) return null;
@@ -54,6 +57,10 @@ export interface SessionHookPayload {
   prompt?: string | null;
   session_id?: string | null;
   sessionId?: string | null;
+  hook_event_name?: string | null;
+  source?: string | null;
+  turn_id?: string | null;
+  model?: string | null;
 }
 
 export function resolveSessionLessonStorePath(cwd?: string | null): string | null {
@@ -146,27 +153,62 @@ function claimSessionBanner(sessionId: string, storePath: string, findingId?: st
   }
 }
 
+function refreshActivity(payload: SessionHookPayload, storePath: string): SessionHookPayload {
+  const sessionId = payload.session_id ?? payload.sessionId;
+  if (!sessionId || !payload.cwd) return payload;
+  const store = new LessonStore(storePath);
+  try {
+    const cwd = fs.realpathSync(payload.cwd);
+    let cue = typeof payload.prompt === 'string'
+      ? [...payload.prompt.matchAll(/\[lyo:(transfer-review|experiment-design|learning-budget)\]/g)].map(match => match[0]).join(' ') : '';
+    if (payload.hook_event_name === 'SessionStart' && ['compact', 'resume'].includes(payload.source ?? '')) {
+      const row = store.db.prepare(`SELECT payload_json FROM learning_trace WHERE run_id = ? AND kind = 'behavior'
+        AND CASE WHEN json_valid(payload_json) THEN json_extract(payload_json, '$.source') END = 'session-context@1'
+        ORDER BY rowid DESC LIMIT 1`).get(sessionId);
+      const previous = row ? JSON.parse(String(row.payload_json)) : null;
+      cue = previous?.cwd === cwd && typeof previous.activityCue === 'string' ? previous.activityCue : '';
+    }
+    // Retain explicit activity tags, never the user's prompt. A clear/new prompt
+    // records an empty cue too, so compaction cannot revive an obsolete scope.
+    store.recordTrace({ trace_id: `session-context:${randomUUID()}`, run_id: sessionId,
+      kind: 'behavior', summary: 'Prepared session context refresh; no outcome evidence.',
+      payload: { source: 'session-context@1', cwd, activityCue: cue, event: payload.hook_event_name,
+        reason: payload.source ?? null, turnId: payload.turn_id ?? null } });
+    return { ...payload, prompt: cue };
+  } finally { store.close(); }
+}
+
 export function emitSessionLessons(
   payload: SessionHookPayload = {},
   write: (text: string) => void = text => { process.stdout.write(text); },
 ): void {
   try {
+    const refresh = payload.hook_event_name === 'SessionStart' || payload.hook_event_name === 'UserPromptSubmit';
+    if (refresh) write(REASONING_MANDATE);
     const storePath = resolveSessionLessonStorePath(payload.cwd);
+    if (refresh && storePath) payload = refreshActivity(payload, storePath);
+    const sessionId = payload.session_id ?? payload.sessionId;
+    if (refresh && storePath && sessionId && payload.cwd) {
+      const store = new LessonStore(storePath);
+      try { refreshSessionTrialAdvice(store, { sessionId, cwd: payload.cwd, model: payload.model,
+        event: payload.hook_event_name, source: payload.source }, write); }
+      finally { store.close(); }
+    }
     try {
       if (storePath && payload.cwd) emitFindingReviewQueue(storePath, payload.cwd, payload.session_id ?? payload.sessionId ?? null, write);
     } catch { /* A damaged review queue must not hide ordinary guidance. */ }
     const selection = selectSessionLessons(payload);
     if (!selection) return;
-    const sessionId = payload.session_id ?? payload.sessionId;
-    if (sessionId && selection.selected.length && !claimSessionBanner(sessionId, selection.storePath)) selection.selected = [];
-    if (sessionId) selection.findings = selection.findings.filter(row => claimSessionBanner(sessionId, selection.storePath, `${row.id}:${row.version}`));
+    if (!refresh && sessionId && selection.selected.length && !claimSessionBanner(sessionId, selection.storePath)) selection.selected = [];
+    if (!refresh && sessionId) selection.findings = selection.findings.filter(row => claimSessionBanner(sessionId, selection.storePath, `${row.id}:${row.version}`));
     if (!selection.selected.length && !selection.findings.length) return;
     if (sessionId) {
       const store = new LessonStore(selection.storePath);
       try {
         const firstTraceId = `session-delivery:${sessionId}`;
         const traceId = store.getTrace(firstTraceId)
-          ? `${firstTraceId}:${hashValue([...selection.selected.map(row => row.lesson_id), ...selection.findings.map(row => [row.id, row.version])])}` : firstTraceId;
+          ? `${firstTraceId}:${hashValue([payload.cwd, selection.selected.map(row => row.lesson_id),
+            selection.findings.map(row => [row.id, row.version, row.context])])}` : firstTraceId;
         write(formatSelection(selection) + (selection.findings.length
           ? `Finding delivery: ${traceId}. Store: ${selection.storePath}. Before applying advice, use lyo finding inspect --finding-id <id> --store <path> for registration and semantic-review templates. Register the opportunity and exact planned capture action, then review evaluator semantics with finding semantics. Codex/Claude hooks capture paired actions and record assessments automatically. Without a sound evaluator leave the outcome unknown. Use the same --store throughout.\n` : ''));
         for (const row of selection.selected) store.recordApplication({ lesson_id: row.lesson_id,

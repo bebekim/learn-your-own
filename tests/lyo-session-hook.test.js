@@ -11,6 +11,8 @@ import {
   emitSessionLessons,
   resolveSessionLessonStorePath,
 } from '../src/lyo/selection/session-hook.ts';
+import { fixture } from './helpers/session-finding-fixture.ts';
+import { recordFindingFeedback } from '../src/lyo/selection/session-findings.ts';
 
 function tempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'lyo-session-hook-'));
@@ -51,6 +53,13 @@ test('LYO session hook: missing store fails open', () => {
   assert.equal(result.status, 0);
   assert.equal(result.stdout, '');
   assert.equal(result.stderr, '');
+  const refreshed = spawnSync(process.execPath, ['src/lyo/selection/session-hook.ts'], {
+    cwd: path.join(import.meta.dirname, '..'), encoding: 'utf8',
+    input: JSON.stringify({ cwd, hook_event_name: 'SessionStart', source: 'compact' }),
+    env: { ...process.env, HOME: home, ZEROSHOT_LYO_STORE_PATH: path.join(home, 'missing.db') },
+  });
+  assert.equal(refreshed.status, 0);
+  assert.match(refreshed.stdout, /LYO reasoning mandate/);
 });
 
 test('observed findings reach the owning repository and its worktrees with explicit evidence limits', () => {
@@ -115,6 +124,100 @@ test('LYO session hook: prints at most once per session id', () => {
   const other = runHook('session-b');
   assert.equal(other.status, 0);
   assert.match(other.stdout, /LYO lessons from your past runs/);
+});
+
+test('turns and repeated compactions restore guidance without multiplying applications', () => {
+  const cwd = tempDir(), storePath = path.join(cwd, 'lessons.db');
+  const store = new LessonStore(storePath);
+  const lesson = store.createLesson({ failure_class: 'output_generation', trigger_cue: 'test',
+    intervention: 'Check the counterexample before accepting the flag.' });
+  try {
+    for (const event of [
+      { hook_event_name: 'SessionStart', source: 'startup' },
+      { hook_event_name: 'UserPromptSubmit', prompt: 'Implement the flag.', turn_id: 'turn-1' },
+      { hook_event_name: 'UserPromptSubmit', prompt: 'Review the flag.', turn_id: 'turn-2' },
+      { hook_event_name: 'SessionStart', source: 'compact' },
+      { hook_event_name: 'SessionStart', source: 'compact' },
+    ]) {
+      const result = spawnSync(process.execPath, ['src/lyo/selection/session-hook.ts'], {
+        cwd: path.join(import.meta.dirname, '..'), encoding: 'utf8',
+        input: JSON.stringify({ ...event, cwd, session_id: 'refresh-session' }),
+        env: { ...process.env, ZEROSHOT_LYO_STORE_PATH: storePath },
+      });
+      assert.equal(result.status, 0);
+      assert.match(result.stdout, /Could this evidence exist while the claim is false/);
+      assert.match(result.stdout, /Check the counterexample/);
+    }
+    assert.equal(store.getLesson(lesson.lesson_id).uses, 1);
+    assert.equal(store.getLesson(lesson.lesson_id).helpful_count, 0);
+    assert.equal(store.getLesson(lesson.lesson_id).harmful_count, 0);
+  } finally { store.close(); fs.rmSync(cwd, { recursive: true, force: true }); }
+});
+
+test('compaction restores declared activity, but later prompts and clear reset it', () => {
+  const f = fixture();
+  try {
+    const emit = extra => {
+      let output = '';
+      emitSessionLessons({ cwd: f.root, session_id: 'scoped-refresh', ...extra }, text => { output += text; });
+      return output;
+    };
+    const prompt = { hook_event_name: 'UserPromptSubmit', prompt: '[lyo:transfer-review] Review the repair.' };
+    const compact = { hook_event_name: 'SessionStart', source: 'compact' };
+    assert.match(emit(prompt), /Check the target whitespace/);
+    assert.match(emit(compact), /Check the target whitespace/);
+    assert.doesNotMatch(emit({ hook_event_name: 'UserPromptSubmit', prompt: 'Plan unrelated work.' }), /Check the target whitespace/);
+    assert.doesNotMatch(emit(compact), /Check the target whitespace/);
+    emit(prompt);
+    assert.doesNotMatch(emit({ hook_event_name: 'SessionStart', source: 'clear' }), /Check the target whitespace/);
+    assert.doesNotMatch(emit(compact), /Check the target whitespace/);
+  } finally { f.close(); }
+});
+
+test('run success or failure cannot turn a session banner into validated learning', () => {
+  const f = fixture();
+  try {
+    const lesson = f.store.createLesson({ failure_class: 'output_generation', trigger_cue: 'test', intervention: 'Check the counterexample.' });
+    for (const outcome of ['passed', 'failed']) {
+      emitSessionLessons({ cwd: f.root, session_id: outcome, hook_event_name: 'UserPromptSubmit' }, () => {});
+      assert.equal(f.store.applyValidationOutcome({ run_id: outcome, outcome }).updated, 0,
+        'delivery is not a witness that the advice was followed or helped');
+    }
+    const current = f.store.getLesson(lesson.lesson_id);
+    assert.equal(current.helpful_count + current.harmful_count, 0);
+  } finally { f.close(); }
+});
+
+test('refreshed delivery references remain bound to the current workspace', () => {
+  const f = fixture();
+  try {
+    for (const name of ['one', 'two', 'three']) {
+      const cwd = path.join(f.root, name); fs.mkdirSync(cwd);
+      let output = '';
+      emitSessionLessons({ cwd, session_id: 'moving-session', hook_event_name: 'UserPromptSubmit',
+        prompt: '[lyo:transfer-review]' }, text => { output += text; });
+      const deliveryId = output.match(/Finding delivery: ([^ ]+)\. Store:/)?.[1];
+      assert.ok(deliveryId);
+      assert.equal(JSON.parse(f.store.getTrace(deliveryId).payload_json).cwd, cwd);
+    }
+  } finally { f.close(); }
+});
+
+test('a refreshed finding still needs registered evidence, and counterevidence suppresses the next refresh', () => {
+  const f = fixture();
+  try {
+    let output = '';
+    const payload = { cwd: f.root, session_id: 'checked-refresh', hook_event_name: 'UserPromptSubmit', prompt: '[lyo:transfer-review]' };
+    emitSessionLessons(payload, text => { output += text; });
+    const deliveryId = output.match(/Finding delivery: ([^ ]+)\. Store:/)[1];
+    assert.throws(() => recordFindingFeedback(f.store, { ...f.feedback, deliveryId, evidenceRef: deliveryId }), /evidence/);
+    const evidence = f.evidenceFor(deliveryId, { applicable: true, followed: true, predicted: false });
+    recordFindingFeedback(f.store, { ...f.feedback, deliveryId, evidenceRef: evidence.id, outcome: 'contradicted' });
+    output = '';
+    emitSessionLessons({ ...payload, hook_event_name: 'SessionStart', source: 'compact', prompt: undefined }, text => { output += text; });
+    assert.match(output, /LYO reasoning mandate/);
+    assert.doesNotMatch(output, /Check the target whitespace/);
+  } finally { f.close(); }
 });
 
 test('an explicit activity delivers a finding later in the session once, without awarding credit', () => {

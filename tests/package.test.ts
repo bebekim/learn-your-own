@@ -63,7 +63,10 @@ test('packed executables and generated hooks run the installed learning loop', a
     const eca = { cwd: dir, session_id: 'cache', chat_id: 'chat1', full_model: 'local-mlxcel/Qwen3.5-4B-4bit' };
     const output = JSON.parse(run('lyo', ['eca-hook', ...flags], { ...eca, hook_type: 'chatStart' }));
     assert.match(output.additionalContext, /Run the narrow test/);
-    assert.deepEqual(JSON.parse(run('lyo', ['eca-hook', ...flags], { ...eca, hook_type: 'preRequest', prompt: 'Check tests' })), {});
+    assert.match(output.additionalContext, /LYO reasoning mandate/);
+    const refreshed = JSON.parse(run('lyo', ['eca-hook', ...flags], { ...eca, hook_type: 'preRequest', prompt: 'Check tests' }));
+    assert.match(refreshed.additionalContext, /LYO reasoning mandate/);
+    assert.match(refreshed.additionalContext, /Run the narrow test/);
     for (const exit of [1, 0]) run('lyo', ['eca-hook', ...flags], { ...eca, hook_type: 'postToolCall',
       tool_name: 'shell_command', server: 'eca', tool_call_id: `tool-${exit}`, tool_input: { command: 'npm test' },
       tool_response: `Exit code: ${exit}\nStdout:\nprivate tool output`, error: exit !== 0 });

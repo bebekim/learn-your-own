@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.3-adaptive.8 (context refresh)
+
+- Refresh the standing proxy-versus-witness mandate and current eligible lessons on SessionStart and UserPromptSubmit, including repeated compactions.
+- Retain explicit activity tags across compaction/resume in the same workspace; a new prompt or clear resets them. Recheck current finding validity and bind delivery references to their workspace/context.
+- Restore previously delivered trial advice only while its assignment, model, files, policy and unstarted outcome window remain valid. Never expose withheld advice or reopen a previous turn's trial.
+- Exclude delivery-only session banners from run-level validation credit; retain the existing registered-evidence gate for finding outcomes.
+- Wire both refresh events in newly initialized workspaces and preserve all guidance fragments in ECA's shared delivery adapter.
+- Repeated context is an intervention mechanism, not proof of adherence or useful learning.
+
 ## 0.4.3-adaptive.7 (prospective trial rollout)
 
 - Register reviewed reusable finding trials and enroll eligible ordinary Codex/Claude sessions before their next action.

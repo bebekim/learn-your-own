@@ -7,6 +7,7 @@ import { inspectFinding } from '../src/lyo/selection/session-findings.ts';
 import { spoolCodexHookEvent, spoolClaudeHookEvent } from '../src/hooks/runtime.ts';
 import * as trials from '../src/lyo/selection/finding-trials.ts';
 import { measureFindingOpportunity } from '../src/lyo/selection/session-finding-evidence.ts';
+import { emitSessionLessons } from '../src/lyo/selection/session-hook.ts';
 
 test('a reviewed trigger automatically registers an ordinary session before its next action', () => {
   for (const runtime of ['codex', 'claude'] as const) for (const advice of [false, true]) {
@@ -80,6 +81,34 @@ test('ordinary banners cannot expose trial-managed advice before assignment', ()
     measureFindingOpportunity(f.store, 'application-1');
     assert.doesNotMatch(f.deliver(f.target.cwd, 'fresh-session').output, /Check the target whitespace contract|Pending finding review/);
   } finally { f.close(); }
+});
+
+test('compaction restores only previously delivered trial advice while its pending state still matches', () => {
+  for (const advice of [false, true]) {
+    const f = trialFixture();
+    try {
+      trials.registerFindingTrial(f.store, f.trial);
+      trials.ordinaryFindingTrialFeedback('codex', f.event, f.storePath, () => advice ? 0.1 : 0.9);
+      const refresh = (extra = {}) => {
+        let output = '';
+        emitSessionLessons({ ...f.event, hook_event_name: 'SessionStart', source: 'compact', ...extra }, text => { output += text; });
+        return output;
+      };
+      for (let i = 0; i < 2; i++) assert.equal(refresh().includes(f.trial.measurement.claim.action), advice);
+      assert.doesNotMatch(refresh({ model: 'different-model' }), /Check the target whitespace/);
+      assert.doesNotMatch(refresh({ cwd: f.root }), /Check the target whitespace/);
+      const state = inspectFinding(f.store, f.findingId);
+      assert.equal(state.deliveries.filter(row => row.sessionId === f.event.session_id).length, advice ? 1 : 0);
+      assert.equal(state.supporting, 0);
+      const before = JSON.stringify({ applicable: true, followed: false, predicted: false });
+      writeFileSync(f.target.source, JSON.stringify({ applicable: false, followed: false, predicted: false }));
+      assert.doesNotMatch(refresh(), /Check the target whitespace/);
+      writeFileSync(f.target.source, before);
+      assert.equal(refresh().includes(f.trial.measurement.claim.action), advice);
+      assert.doesNotMatch(refresh({ hook_event_name: 'UserPromptSubmit', prompt: 'A different task.' }), /Check the target whitespace/);
+      assert.doesNotMatch(refresh(), /Check the target whitespace/, 'compaction cannot reopen the preceding turn trial');
+    } finally { f.close(); }
+  }
 });
 
 test('one ordinary trial owns the session even when an earlier definition matches a later event', () => {
