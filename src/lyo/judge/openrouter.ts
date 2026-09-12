@@ -3,8 +3,8 @@
  * so the consumer stays pure orchestration — the network layer is swappable.
  */
 
-import { buildJudgePrompt, parseJudgeResponse } from './trace-consumer.ts';
-import type { JudgeFn } from './trace-consumer.ts';
+import { buildJudgePrompt, parseJudgeResponse } from '../application/judgment.ts';
+import type { JudgeFn } from '../application/judgment.ts';
 
 const DEFAULT_JUDGE_MODEL = 'openai/gpt-4o-mini';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';

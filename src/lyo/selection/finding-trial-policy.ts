@@ -1,4 +1,4 @@
-import type { FindingTrial } from './finding-trials.ts';
+import { evaluateFindingTrialPolicy, type FindingTrialPolicyDefinition } from '../domain/finding-trial-policy.ts';
 import type { LessonStore } from '../storage/lesson-store.ts';
 import { hashValue } from '../../contract/refs.ts';
 import { findingAssignment, findingOpportunity, resolveFindingEvidence } from './session-finding-evidence.ts';
@@ -55,37 +55,15 @@ function latestPolicy(store: LessonStore, trialHash: string) {
   return { id: String(row.trace_id), ...receipt };
 }
 
-export function reconcileFindingTrial(store: LessonStore, trial: FindingTrial) {
+export function reconcileFindingTrial(store: LessonStore, trial: FindingTrialPolicyDefinition) {
   const rows = observations(store, trial.hash);
-  const sample = rows.filter(row => row.assignment.probability === 0.5);
-  const arms = { advice: { assigned: 0, pass: 0, fail: 0, unknown: 0 }, 'no-advice': { assigned: 0, pass: 0, fail: 0, unknown: 0 } };
-  for (const row of sample) { arms[row.assignment.action].assigned++; arms[row.assignment.action][row.outcome]++; }
-  const plan = trial.evaluation;
-  let status = 'collecting';
-  let effectInterval: [number, number] | null = null;
-  if (plan && sample.length >= plan.sampleSize) {
-    status = 'awaiting-outcomes';
-    if (sample.every(row => row.closed)) {
-      // Hoeffding for independent fair assignments: Z = 2*A*Y - 2*(1-A)*Y is in [-2,2].
-      // Unknown outcomes take their worst/best possible values; they are never discarded.
-      const radius = Math.sqrt(8 * Math.log(2 / plan.alpha) / sample.length);
-      const base = 2 * (arms.advice.pass - arms['no-advice'].pass) / sample.length;
-      effectInterval = [Math.max(-1, base - 2 * arms['no-advice'].unknown / sample.length - radius),
-        Math.min(1, base + 2 * arms.advice.unknown / sample.length + radius)];
-      status = arms.advice.assigned && arms['no-advice'].assigned && effectInterval[0] <= effectInterval[1]
-        ? effectInterval[0] > plan.minimumEffect ? 'promoted' : effectInterval[1] < 0 ? 'harmful' : 'inconclusive'
-        : 'inconclusive';
-    }
-    if (sample.length !== plan.sampleSize) status = 'invalid-cohort';
-  }
-  if (status === 'promoted' && rows.some(row => row.assignment.probability === 1 && row.assignment.action === 'advice'
-    && row.closed && row.outcome !== 'pass')) status = 'needs-review';
   const state = findingState(store.db, trial.findingId);
-  if (state.version !== trial.findingVersion || ['needs-revision', 'needs-reassessment'].includes(state.validity)
-    || hashValue(findingFiles(trial.measurement.verifierFiles)) !== hashValue(trial.verifierFiles)) status = 'suspended';
-  if (store.db.prepare(`SELECT 1 FROM learning_trace WHERE kind = 'behavior'
+  const suspended = state.version !== trial.findingVersion || ['needs-revision', 'needs-reassessment'].includes(state.validity)
+    || hashValue(findingFiles(trial.measurement.verifierFiles)) !== hashValue(trial.verifierFiles);
+  const superseded = Boolean(store.db.prepare(`SELECT 1 FROM learning_trace WHERE kind = 'behavior'
     AND json_extract(payload_json, '$.source') = 'session-finding-trial@1'
-    AND json_extract(payload_json, '$.content.input.supersedes') = ?`).get(trial.id)) status = 'superseded';
+    AND json_extract(payload_json, '$.content.input.supersedes') = ?`).get(trial.id));
+  const { status, arms, effectInterval } = evaluateFindingTrialPolicy(rows, trial.evaluation, { suspended, superseded });
   const content = { trialId: trial.id, trialHash: trial.hash, status, arms, effectInterval,
     evidence: rows.map(row => row.reference), definition: { findingVersion: trial.findingVersion, model: trial.model,
       runtime: trial.runtime ?? null, roots: trial.roots, evaluation: trial.evaluation ?? null } };

@@ -1,4 +1,4 @@
-import type { DisagreementInput, Judgment } from './trace-consumer.ts';
+import type { DisagreementInput, Judgment } from '../application/judgment.ts';
 
 interface MechanicalRule {
   id: string;

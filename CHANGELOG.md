@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.3-adaptive.9 (evidence architecture)
+
+- Extract finding assessment, lifecycle and trial-policy rules into the domain, with application-owned ports for assessment, revision, selection and live-boundary ordering.
+- Enforce inward domain/application imports and remove LYO runtime and type-import cycles; preserve existing entry points, receipt identities and correction behavior.
+- Keep trial-managed advice withheld from ordinary banners and count support only for the delivered version and context.
+- This refactor changes code ownership, not the threshold for claiming useful learning. General coding benefit remains unvalidated.
+
 ## 0.4.3-adaptive.8 (context refresh)
 
 - Refresh the standing proxy-versus-witness mandate and current eligible lessons on SessionStart and UserPromptSubmit, including repeated compactions.

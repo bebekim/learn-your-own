@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { hashFile, hashValue } from '../../contract/refs.ts';
 import type { LyoUpdate } from '../../contract/index.ts';
 import { sampleGamma } from '../selection/selection-policies.ts';
-import type { JudgeClassification } from '../judge/trace-consumer.ts';
+import type { JudgeClassification } from '../application/judgment.ts';
 
 export type LessonVehicle = 'prose' | 'skeleton-patch' | 'spec-constraint';
 

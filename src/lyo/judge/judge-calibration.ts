@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-import type { DisagreementInput, JudgeClassification, JudgeFn, Judgment } from './trace-consumer.ts';
+import type { DisagreementInput, JudgeClassification, JudgeFn, Judgment } from '../application/judgment.ts';
 
 /**
  * judge-calibration — test the test. Before any verdict from the LLM judge is

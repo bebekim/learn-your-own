@@ -60,9 +60,9 @@ It does not require a general explanation graph or distributed network to run.
 
 ## Evidence and next milestone
 
-The source baseline is `0.4.3-adaptive.8`: 672 passing tests, one skipped, and
-passing typecheck at the context-refresh rollout. Configured Codex/Claude command
-checks passed with isolated events. [Evidence](../evidence/context-refresh-2026-09-11/README.md)
+The source baseline is `0.4.3-adaptive.9`: 689 passing tests, one skipped, and
+passing typecheck with inward dependency checks. The refactor preserves the
+existing evidence loop. [Validation](../issues/refactor-evidence-domain.md)
 
 The retained coding transfer screen was inconclusive and exposed a verifier gap.
 There is no demonstrated general coding uplift to report yet. The next experiment

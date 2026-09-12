@@ -9,6 +9,7 @@ import { LessonStore } from '../src/lyo/storage/lesson-store.ts';
 import {
   renderSessionLessons,
   emitSessionLessons,
+  repositoryKey,
   resolveSessionLessonStorePath,
 } from '../src/lyo/selection/session-hook.ts';
 import { fixture } from './helpers/session-finding-fixture.ts';
@@ -69,6 +70,12 @@ test('observed findings reach the owning repository and its worktrees with expli
   git(['-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '--allow-empty', '-qm', 'seed']);
   git(['worktree', 'add', '--detach', linked]);
   const gitCommonDir = fs.realpathSync(path.join(cwd, '.git'));
+  const alias = path.join(tempDir(), 'linked alias');
+  fs.symlinkSync(linked, alias);
+  for (const workspace of [cwd, linked, alias]) assert.equal(repositoryKey(workspace), gitCommonDir);
+  for (const missing of [undefined, null, '', unrelated, path.join(unrelated, 'missing')]) {
+    assert.equal(repositoryKey(missing), null);
+  }
   for (const workspace of [cwd, linked, unrelated]) {
     const dir = path.join(workspace, '.zeroshot'); fs.mkdirSync(dir);
     const store = new LessonStore(path.join(dir, 'lyo-lessons.db'));
@@ -81,7 +88,7 @@ test('observed findings reach the owning repository and its worktrees with expli
         'older hooks must not see findings as ordinary unscoped lessons');
     } finally { store.close(); }
   }
-  for (const workspace of [cwd, linked]) {
+  for (const workspace of [cwd, linked, alias]) {
     const output = renderSessionLessons({ cwd: workspace });
     assert.match(output, /Observed findings.*usefulness unvalidated/);
     assert.match(output, /target semantics/);

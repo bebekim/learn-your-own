@@ -271,7 +271,7 @@ test('tokenizer delegates command resource inference', () => {
   }
 });
 
-function sourceFiles(root) {
+function sourceFiles(root: string): string[] {
   const files = [];
   for (const entry of readdirSync(root)) {
     const path = join(root, entry);

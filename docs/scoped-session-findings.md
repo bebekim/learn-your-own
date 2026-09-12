@@ -1,6 +1,6 @@
 # Findings in ordinary work: checked evidence and revision
 
-Local rollout package: `0.4.3-adaptive.8`, including finding-state rechecking and context refresh.
+Local rollout package: `0.4.3-adaptive.9`, including finding-state rechecking, context refresh and inward evidence boundaries.
 See the [semantic audit and rollout](../evidence/ordinary-finding-feedback-2026-09-10/assessment.md)
 for validation and installed-command evidence.
 Reviewed recurring trials use the [prospective trial workflow](prospective-finding-trials.md).

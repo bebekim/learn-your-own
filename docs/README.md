@@ -2,7 +2,7 @@
 
 Start with the [project overview and runnable demo](../README.md). This index
 separates current operation, product requirements, research and historical records.
-Current source baseline: `0.4.3-adaptive.8`, reviewed 11 September 2026.
+Current source baseline: `0.4.3-adaptive.9`, updated 12 September 2026.
 
 ## For a first visit
 
@@ -17,6 +17,7 @@ Current source baseline: `0.4.3-adaptive.8`, reviewed 11 September 2026.
 
 ## Product requirements and contributor guidance
 
+- [Domain glossary](../CONTEXT.md) and [evidence-boundary refactor](../issues/refactor-evidence-domain.md).
 - [PRD](../issues/prd.md): product ambition and remaining capability gaps.
 - [Spec map](../Specs/README.md): status of every numbered spec and dated design.
 - [Learning acceptance](../Specs/8-learning-evidence-loop.md): what would establish useful learning.
@@ -62,7 +63,8 @@ explanation-graph/compiler architecture.
 ## Historical and adjacent work
 
 - [Evidence records](../evidence): dated experiment, audit and deployment results.
-  Start with the [latest implementation validation](../evidence/context-refresh-2026-09-11/README.md)
+  Start with the [evidence refactor validation](../issues/refactor-evidence-domain.md),
+  [context-refresh rollout](../evidence/context-refresh-2026-09-11/README.md)
   and [controlled feedback exercise](../evidence/finding-feedback-loop-2026-09-10/assessment.md).
 - [Product learning log](product-learning-log.md): dated observations and interpretations.
 - [Problem reports](../problems): diagnoses at their recorded dates, not a current backlog.

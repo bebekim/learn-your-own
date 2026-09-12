@@ -1,33 +1,8 @@
-import type { DatabaseSync } from 'node:sqlite';
-import { z } from 'zod';
 import { hashValue } from '../../contract/refs.ts';
 import type { LessonStore } from '../storage/lesson-store.ts';
+import { findingSemanticReview, semanticReviewSchema } from '../storage/finding-evidence.ts';
 
-const text = z.string().trim().min(1).max(2000);
-const basis = z.object({ rationale: text, verifierPaths: z.array(text).min(1) }).strict();
-export const semanticReviewSchema = z.object({
-  id: text, opportunityId: text, supersedes: text.optional(),
-  reviewer: z.object({ id: text, kind: z.enum(['human', 'agent']) }).strict(),
-  verdict: z.enum(['accepted', 'disputed']), claimKind: z.enum(['deterministic', 'improvement']),
-  applicability: basis, adherence: basis, prediction: basis, limitations: text,
-}).strict();
-const receiptSchema = semanticReviewSchema.extend({ source: z.literal('session-finding-semantics@1'),
-  opportunityHash: text, hash: text });
-
-export function findingSemanticReview(db: DatabaseSync, opportunityId: string, opportunityHash: string) {
-  const rows = db.prepare(`SELECT payload_json FROM learning_trace WHERE kind = 'behavior'
-    AND CASE WHEN json_valid(payload_json) THEN json_extract(payload_json, '$.source') END = 'session-finding-semantics@1'
-    AND json_extract(payload_json, '$.opportunityId') = ? ORDER BY rowid`).all(opportunityId);
-  let current: z.infer<typeof receiptSchema> | null = null;
-  for (const row of rows) {
-    const receipt = receiptSchema.parse(JSON.parse(String(row.payload_json)));
-    const { hash, ...content } = receipt;
-    if (hash !== hashValue(content) || receipt.opportunityHash !== opportunityHash
-      || receipt.supersedes !== current?.id) throw new Error('invalid finding semantic review chain');
-    current = receipt;
-  }
-  return current;
-}
+export { findingSemanticReview, semanticReviewSchema } from '../storage/finding-evidence.ts';
 
 /** An attributed semantic judgment, never an independent causal verifier. */
 export function reviewFindingSemantics(store: LessonStore, value: unknown) {

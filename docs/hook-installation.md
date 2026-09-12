@@ -3,7 +3,7 @@
 For a first evaluation, run the [isolated demo](../README.md#run-the-demo).
 It does not change your agent configuration or use a model API.
 This guide connects ordinary sessions to the source/local release
-`0.4.3-adaptive.8` (11 September 2026).
+`0.4.3-adaptive.9` (12 September 2026).
 
 ## Build the current package
 
@@ -14,7 +14,7 @@ npm ci
 npm test
 npm run typecheck
 npm run pack:local
-npm install -g ./dist/lyo-kernel-0.4.3-adaptive.8.tgz
+npm install -g ./dist/lyo-kernel-0.4.3-adaptive.9.tgz
 command -v node
 command -v lyo
 command -v lyo-session-hook

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { runWithoutModule } from './helpers/module-boundary.ts';
 import test from 'node:test';
 
 import { resolveReflector } from '../src/lyo/reflection/reflector-policies.ts';
@@ -20,6 +21,21 @@ function makeRejectedValidation({ sender = 'validator' } = {}) {
     },
   };
 }
+
+test('elaborator reflector works without loading the reflector registry', () => {
+  const moduleUrl = new URL('../src/lyo/reflection/elaborator-reflector.ts', import.meta.url);
+  const registryUrl = new URL('../src/lyo/reflection/reflector-policies.ts', import.meta.url);
+  runWithoutModule(registryUrl, `
+    const { createElaboratorReflector } = await import(${JSON.stringify(moduleUrl.href)});
+    const reflector = createElaboratorReflector({ chat: async ({ messages }) => {
+      assert.ok(messages[1].content.includes('Validator rejected the last result without details.'));
+      return '{"explanation":"retained evidence","intervention":"check the contract"}';
+    } });
+    assert.deepEqual(await reflector.reflectAsync({ message: {} }), {
+      explanation: 'retained evidence', intervention: 'check the contract',
+    });
+  `);
+});
 
 test('elaborator reflector — buildPrompt: quotes the validator feedback as data and carries class + cue', () => {
   const messages = buildPrompt({

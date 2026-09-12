@@ -5,8 +5,10 @@ import { hashValue } from '../../contract/refs.ts';
 import { LessonStore } from '../storage/lesson-store.ts';
 import { captureFindingAction, findingActionEvidence } from './session-finding-capture.ts';
 import { findingOpportunity, measureFindingOpportunity } from './session-finding-evidence.ts';
-import { inspectFinding, recordFindingFeedback, trialManagedFindings } from './session-findings.ts';
+import { assessFindingEvidence, inspectFinding, trialManagedFindings } from './session-findings.ts';
 import { findingSemanticReview } from './session-finding-semantics.ts';
+import { completeFindingBoundary } from '../application/finding-workflow.ts';
+import { findingReviewStatus } from '../application/finding-assessment.ts';
 
 export function findingOwnsToolCall(storePath: string | null, runtime: string, event: { session_id?: string; tool_use_id?: string; cwd?: string }): boolean {
   if (!storePath || !event.session_id || !event.tool_use_id || !event.cwd) return false;
@@ -25,41 +27,34 @@ export function observeSessionFindings(event: HookObservation, storePath: string
   if (!storePath || !['codex', 'claude'].includes(event.runtime)) return;
   if (!hasFindingOpportunities(storePath)) return;
   const store = new LessonStore(storePath);
+  const registrations = new Map<string, ReturnType<typeof findingOpportunity>>();
+  const report = (error: unknown) => process.stderr.write(`Lyo finding capture: ${error instanceof Error ? error.message : String(error)}\n`);
   try {
-    const rows = opportunityRows(store);
-    const registrations: ReturnType<typeof findingOpportunity>[] = [];
-    for (const row of rows) {
-      try {
-        const registered = findingOpportunity(store.db, JSON.parse(String(row.payload_json)).content.input.id);
-        const input = registered.content.input;
-        if (!input.capture) continue;
-        const retained = store.getTrace(`finding-evidence:${input.id}`);
-        if (!retained && (input.cwd !== realpathSync(event.cwd) || input.capture.runtime !== event.runtime)) continue;
-        captureFindingAction(store, registered, event);
-        registrations.push(registered);
-      } catch (error) { process.stderr.write(`Lyo finding capture: ${error instanceof Error ? error.message : String(error)}\n`); }
-    }
-    // Freeze every matching post-action snapshot before any evaluator can run.
-    let measured = false;
-    for (const registered of registrations) {
-      try {
-        const id = registered.content.input.id;
-        const action = findingActionEvidence(store.db, registered);
-        if (!action.after) continue;
-        if (!store.getTrace(`finding-evidence:${id}`)) {
-          // ponytail: one bounded evaluation per live boundary; later hooks drain retained pending work.
-          if (measured) continue;
-          measured = true;
+    completeFindingBoundary({
+      captureAll() {
+        const captured: string[] = [];
+        for (const row of opportunityRows(store)) {
+          try {
+            const registered = findingOpportunity(store.db, JSON.parse(String(row.payload_json)).content.input.id);
+            const input = registered.content.input;
+            if (!input.capture) continue;
+            const retained = store.getTrace(`finding-evidence:${input.id}`);
+            if (!retained && (input.cwd !== realpathSync(event.cwd) || input.capture.runtime !== event.runtime)) continue;
+            captureFindingAction(store, registered, event);
+            registrations.set(input.id, registered);
+            captured.push(input.id);
+          } catch (error) { report(error); }
         }
-        measureFindingOpportunity(store, id);
-        const entry = inspectFinding(store, registered.content.input.findingId).opportunities.find(entry => entry.id === id)!;
-        if (entry.reviewEvidenceCurrent || !entry.reviewTemplate) continue;
-        recordFindingFeedback(store, { ...entry.reviewTemplate,
-          rationale: 'Automatic assessment of retained registered checks and live action boundaries; semantic judgment is attributed separately. Incremental benefit remains unknown.' });
-      } catch (error) {
-        process.stderr.write(`Lyo finding capture: ${error instanceof Error ? error.message : String(error)}\n`);
-      }
-    }
+        return captured;
+      },
+      status(id) {
+        const action = findingActionEvidence(store.db, registrations.get(id)!);
+        return { hasAfter: Boolean(action.after), hasMeasurement: Boolean(action.after && store.getTrace(`finding-evidence:${id}`)) };
+      },
+      measure: id => measureFindingOpportunity(store, id),
+      assess: ref => { assessFindingEvidence(store, ref); },
+      report,
+    });
   } finally { store.close(); }
 }
 
@@ -86,12 +81,10 @@ export function pendingFindingReviews(store: LessonStore, cwd?: string) {
       if (input.prospective) return [];
       const state = inspectFinding(store, input.findingId), entry = state.opportunities.find(item => item.id === input.id)!;
       const semantics = findingSemanticReview(store.db, input.id, registered.payload.hash);
-      const status = entry.error ? 'invalid-evidence' : !entry.evidence ? 'awaiting-action'
-        : !semantics ? 'needs-semantic-review' : semantics.verdict === 'disputed' ? 'disputed-semantics'
-        : !entry.reviewEvidenceCurrent ? 'needs-assessment' : state.validity === 'needs-reassessment' ? 'needs-reassessment'
-        : state.validity === 'needs-revision' ? 'needs-content-review'
-        : state.scopeReviewFeedbackIds.some(id => state.currentFeedback.some(feedback => feedback.id === id && feedback.opportunityId === input.id))
-          ? 'needs-scope-review' : entry.evidence.outcome === 'unknown' ? 'inconclusive' : null;
+      const status = findingReviewStatus({ error: entry.error, hasEvidence: Boolean(entry.evidence),
+        semanticVerdict: semantics?.verdict ?? null, reviewCurrent: entry.reviewEvidenceCurrent, validity: state.validity,
+        scopeReview: state.scopeReviewFeedbackIds.some(id => state.currentFeedback.some(feedback => feedback.id === id && feedback.opportunityId === input.id)),
+        outcome: entry.evidence?.outcome });
       return status ? [{ ...identity, status, evidenceRef: entry.evidence?.id ?? null,
         problems: entry.error ? [entry.error] : entry.evidence?.measurement.problems ?? [] }] : [];
     } catch (error) { return [{ ...identity, status: 'invalid-evidence', evidenceRef: null,

@@ -1,9 +1,8 @@
 # Lyo development status
 
-Reviewed 11 September 2026 against `main` at `f39ed6c`, source package
-`0.4.3-adaptive.8`. The task, finding, trial-policy and context-refresh increments
-are merged. This page describes current behavior; dated rollout records preserve
-what was true at their checkpoints.
+Updated 12 September 2026 for source package `0.4.3-adaptive.9`, including the
+evidence-boundary refactor. This page describes current behavior; dated rollout
+records preserve what was true at their checkpoints.
 
 **The bounded feedback loop is implemented. Useful general coding transfer is
 still an experimental result to establish.** The prototype can retain a lesson,
@@ -17,7 +16,8 @@ change future delivery from that evidence.
 | Host observations | [Adapters](../src/adapters), [hook runtime](../src/hooks/runtime.ts) | Records what the host exposes; missing status is unknown |
 | Local and central capture | [Corpus sync](../src/corpus/sync.ts), [workspace sync](../src/corpus/workspace-sync.ts) | Central telemetry is distinct from the lesson store |
 | Timely guidance | [Session hook](../src/lyo/selection/session-hook.ts) | Turn/compaction refresh, explicit scope, delivery-only receipts |
-| Finding lifecycle | [Finding state](../src/lyo/selection/session-findings.ts) | Versioned support, contradiction, revision and correction |
+| Finding lifecycle | [Domain rules](../src/lyo/domain/finding-lifecycle.ts), [assessment](../src/lyo/application/finding-assessment.ts), [SQLite adapter](../src/lyo/storage/finding-state.ts) | Versioned support, contradiction, revision and correction; inward application/domain dependencies |
+| Ordinary finding workflow | [Selection](../src/lyo/application/finding-selection.ts), [boundary ordering](../src/lyo/application/finding-workflow.ts) | Trial-managed withholding, scoped support, capture before measurement |
 | Prospective ordinary trials | [Trial definitions](../src/lyo/selection/finding-trials.ts), [delivery](../src/lyo/selection/finding-opportunities.ts) | Reviewed trigger/evaluator before action; stable advice/no-advice assignment |
 | Action and evaluator evidence | [Capture](../src/lyo/selection/session-finding-capture.ts), [evidence](../src/lyo/selection/session-finding-evidence.ts), [semantics](../src/lyo/selection/session-finding-semantics.ts) | Paired identity, declared files, explicit claim kind and attributed review |
 | Scoped promotion and pause | [Trial policy](../src/lyo/selection/finding-trial-policy.ts) | Completed fixed cohort; conservative unknown handling; later failures pause scope |
@@ -50,6 +50,7 @@ adherence or benefit. See [refresh semantics](scoped-session-findings.md#turn-an
 
 | Exercise | Observed result | What it establishes |
 |---|---|---|
+| [Evidence refactor](../issues/refactor-evidence-domain.md) | 689 passing tests, one skipped; typecheck and dependency guards | Preserved receipt/workflow behavior and inward domain/application imports |
 | [Controlled parser feedback demo](../evidence/finding-feedback-loop-2026-09-10/assessment.md) | Counterexample → suppression → scripted revision → supported later application | Real parser checks and durable feedback transitions; actions are scripted |
 | [Prospective policy tests](../tests/finding-trial-policy.test.ts) | Fixed comparison → promotion → pause after later failure; correction recomputes policy | Policy mechanics on controlled outcomes |
 | [Context refresh rollout](../evidence/context-refresh-2026-09-11/README.md) | 672 passing tests, one skipped; typecheck; configured command checks | Tested implementation and installed-command behavior; no claim of observed host-dispatched compaction |
@@ -91,7 +92,7 @@ not measures of learning by themselves. The three older contract fixes in
 
 ## Release status
 
-`0.4.3-adaptive.8` is the source/local rollout version. npm's `latest` tag was
+`0.4.3-adaptive.9` is the source/local rollout version. npm's `latest` tag was
 `0.2.0` on 11 September 2026. Use the source demo or a locally built package;
 see [installation](hook-installation.md). Registry publication is separate from
 merging and pushing this repository. Historical test counts and installed paths

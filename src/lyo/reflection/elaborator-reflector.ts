@@ -21,8 +21,9 @@
  * Tests inject `chat` — no network.
  */
 
-import { formatValidationFeedback } from './reflector-policies.ts';
-import type { Reflection, Reflector, ValidationMessage } from './reflector-policies.ts';
+import { formatValidationFeedback } from '../application/reflection.ts';
+import { parseModelObject } from '../application/model-json.ts';
+import type { Reflection, Reflector, ValidationMessage } from '../application/reflection.ts';
 
 export const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 export const DEFAULT_MODEL = 'openai/gpt-4o-mini';
@@ -83,18 +84,9 @@ export function buildPrompt({ message, failure_class, cue }: BuildPromptInput): 
   ];
 }
 
-// Tolerant JSON extraction: the model is asked for bare JSON but may wrap it
-// in fences or add prose. Extract the first balanced {…} and parse it.
+// The shared extractor tolerates fences/prose; this boundary validates reflection fields.
 export function parseReflectionJson(text: unknown): Reflection {
-  const source = String(text || '');
-  const fenced = source.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const candidate = fenced ? fenced[1] : source;
-  const start = candidate.indexOf('{');
-  const end = candidate.lastIndexOf('}');
-  if (start === -1 || end <= start) {
-    throw new Error('elaborator: no JSON object in model output');
-  }
-  const parsed = JSON.parse(candidate.slice(start, end + 1)) as {
+  const parsed = parseModelObject(text, 'elaborator: no JSON object in model output') as {
     explanation?: unknown;
     intervention?: unknown;
     confidence?: unknown;

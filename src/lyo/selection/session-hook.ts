@@ -13,7 +13,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { hashValue } from '../../contract/refs.ts';
@@ -25,6 +24,9 @@ import { selectSessionFindings, trialManagedFindings } from './session-findings.
 import type { SessionFinding } from './session-findings.ts';
 import { emitFindingReviewQueue } from './session-finding-workflow.ts';
 import { refreshSessionTrialAdvice } from './finding-opportunities.ts';
+import { repositoryKey } from '../repository.ts';
+
+export { repositoryKey };
 
 const LIMIT = 5;
 const MAX_TEXT = 220;
@@ -32,14 +34,6 @@ const STDIN_GUARD_MS = 2500;
 const REASONING_MANDATE = 'LYO reasoning mandate: Could this evidence exist while the claim is false? ' +
   'Separate claim, observation, and inference; check alternative causes and witness assumptions. ' +
   'Preserve unknown. Advice delivery and passing checks alone do not establish benefit.\n';
-
-export function repositoryKey(cwd?: string | null): string | null {
-  if (!cwd) return null;
-  try {
-    return fs.realpathSync(execFileSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'],
-      { cwd, encoding: 'utf8', timeout: 1000, stdio: ['ignore', 'pipe', 'ignore'] }).trim());
-  } catch { return null; }
-}
 
 interface LessonRow {
   lesson_id: string;

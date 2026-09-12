@@ -2,8 +2,44 @@ import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import test from 'node:test';
 import { fixture } from './helpers/session-finding-fixture.ts';
-import { inspectFinding, recordFindingFeedback } from '../src/lyo/selection/session-findings.ts';
+import { assessFindingEvidence, inspectFinding, recordFindingFeedback } from '../src/lyo/selection/session-findings.ts';
 import { registerFindingOpportunity, measureFindingOpportunity } from '../src/lyo/selection/session-finding-evidence.ts';
+
+test('assessment derives conclusions from retained evidence and revises them when semantics change', () => {
+  const f = fixture();
+  try {
+    const delivery = f.deliver();
+    assert.throws(() => assessFindingEvidence(f.store, delivery.deliveryId), /evidence/);
+    const pending = f.prepare(delivery.deliveryId, undefined, false);
+    const measured = pending.finish();
+    const template = inspectFinding(f.store, f.findingId).opportunities[0].reviewTemplate!;
+    const initial = assessFindingEvidence(f.store, measured.id)!;
+    assert.equal(initial.id, template.id, 'automatic recording preserves the operator proposal identity');
+    assert.equal(initial.outcome, 'unknown', 'a passing check without accepted semantics is insufficient');
+    assert.equal(assessFindingEvidence(f.store, measured.id), null, 'retry cannot add another assessment');
+    assert.equal(inspectFinding(f.store, f.findingId).supporting, 0);
+
+    const accepted = f.review(pending.id);
+    const supported = assessFindingEvidence(f.store, measured.id)!;
+    assert.equal(supported.supersedes, initial.id);
+    assert.equal(supported.outcome, 'supported');
+    assert.equal(assessFindingEvidence(f.store, measured.id), null);
+    assert.match(f.deliver(f.root, `${f.root}:supported`).output, /1 supporting observation/);
+
+    f.review(pending.id, { verdict: 'disputed', supersedes: accepted.id });
+    // Assessment uses the retained measurement, even if running the evaluator again would fail.
+    writeFileSync(pending.verifier, 'throw new Error("do not rerun the measurement");');
+    const disputed = assessFindingEvidence(f.store, measured.id)!;
+    assert.equal(disputed.supersedes, supported.id);
+    assert.equal(disputed.outcome, 'unknown');
+    const state = inspectFinding(f.store, f.findingId);
+    assert.deepEqual(state.feedback.map(row => row.outcome), ['unknown', 'supported', 'unknown']);
+    assert.equal(state.supporting, 0);
+    assert.doesNotMatch(f.deliver(f.root, `${f.root}:disputed`).output, /supporting observation/);
+    assert.deepEqual(state.opportunities[0].evidence!.measurement, measured.measurement);
+    assert.equal(state.opportunities[0].evidence!.incrementalBenefit, 'unknown');
+  } finally { f.close(); }
+});
 
 test('an unresolved evidence reference cannot change finding validity', () => {
   const f = fixture();

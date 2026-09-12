@@ -11,7 +11,7 @@ import { semanticReviewSchema, reviewFindingSemantics } from './session-finding-
 import { assignFindingOpportunity, emitFindingOpportunity } from './finding-opportunities.ts';
 import { findingFiles } from './session-finding-files.ts';
 import { closeFindingTrialWindow, reconcileFindingTrial } from './finding-trial-policy.ts';
-import { repositoryKey } from './session-hook.ts';
+import { repositoryKey } from '../repository.ts';
 import { findingSessionModel } from './session-finding-capture.ts';
 
 const text = z.string().trim().min(1).max(2000);

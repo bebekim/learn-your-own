@@ -104,10 +104,10 @@ comparison → promotion → later pause on controlled outcomes.
 | Scoped policy updates | Fixed prospective comparison, promotion, later monitoring and pause |
 | Other integrations | ECA/Emacs and IBM Bob have capture/delivery adapters; adaptive trial coverage differs |
 
-Source baseline: **`0.4.3-adaptive.8`**, locally installed and tested on 11 September
-2026. Validation: **672 tests passed, one skipped**, plus typecheck. Configured
-Codex/Claude commands passed isolated refresh and feedback-chain checks.
-[Retained validation](evidence/context-refresh-2026-09-11/README.md)
+Source baseline: **`0.4.3-adaptive.9`**. Validation: **689 tests passed, one skipped**,
+plus typecheck and inward dependency checks. The evidence refactor preserves
+receipt and workflow behavior. [Refactor validation](issues/refactor-evidence-domain.md)
+and [earlier configured-hook checks](evidence/context-refresh-2026-09-11/README.md).
 
 The retained transfer experiment did not establish a useful reusable coding
 intervention: its verifier missed a Unicode edge case. That result helped shape
@@ -124,7 +124,7 @@ this workflow. To install the version built from this checkout:
 
 ```sh
 npm run pack:local
-npm install -g ./dist/lyo-kernel-0.4.3-adaptive.8.tgz
+npm install -g ./dist/lyo-kernel-0.4.3-adaptive.9.tgz
 lyo --help
 ```
 

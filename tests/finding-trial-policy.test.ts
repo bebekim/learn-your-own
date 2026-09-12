@@ -18,6 +18,8 @@ test('a fixed prospective comparison changes later delivery and later failure pa
         assumptions: 'Synthetic independent workspaces; no shared edits or prior lesson exposure.' } });
     const trial = findingTrials(f.store.db)[0];
     const report = () => reconcileFindingTrial(f.store, trial).content;
+    const initialPolicy = reconcileFindingTrial(f.store, trial);
+    assert.deepEqual(reconcileFindingTrial(f.store, trial), initialPolicy, 'unchanged evidence preserves policy identity and receipt');
     const run = (name: string, draw: number, pass?: boolean) => {
       const workspace = f.workspace(name), event = { ...f.event, cwd: workspace.cwd, session_id: name };
       const output = ordinaryFindingTrialFeedback('codex', event, f.storePath, () => draw);
