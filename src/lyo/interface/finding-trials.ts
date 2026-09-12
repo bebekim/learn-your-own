@@ -9,7 +9,7 @@ import { findingState } from './session-findings.ts';
 import { inputSchema, registerFindingOpportunity } from './session-finding-evidence.ts';
 import { semanticReviewSchema, reviewFindingSemantics } from './session-finding-semantics.ts';
 import { assignFindingOpportunity, emitFindingOpportunity } from './finding-opportunities.ts';
-import { findingFiles } from './session-finding-files.ts';
+import { findingFiles } from '../storage/finding-files.ts';
 import { closeFindingTrialWindow, reconcileFindingTrial } from './finding-trial-policy.ts';
 import { repositoryKey } from '../repository.ts';
 import { findingSessionModel } from './session-finding-capture.ts';

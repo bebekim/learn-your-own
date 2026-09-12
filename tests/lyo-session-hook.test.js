@@ -13,7 +13,7 @@ import {
   resolveSessionLessonStorePath,
 } from '../src/lyo/selection/session-hook.ts';
 import { fixture } from './helpers/session-finding-fixture.ts';
-import { recordFindingFeedback } from '../src/lyo/selection/session-findings.ts';
+import { recordFindingFeedback } from '../src/lyo/interface/session-findings.ts';
 
 function tempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'lyo-session-hook-'));

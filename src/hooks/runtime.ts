@@ -1,6 +1,6 @@
 import { bridgeSessionOnEnd } from '../lyo/bridge/session-bridge.ts';
 import { resolveSessionLessonStorePath } from '../lyo/selection/session-hook.ts';
-import { observeSessionFindings } from '../lyo/selection/session-finding-workflow.ts';
+import { observeSessionFindings } from '../lyo/interface/session-finding-workflow.ts';
 import {
   claudeHookObservation,
   emptyClaudeHookOutput,

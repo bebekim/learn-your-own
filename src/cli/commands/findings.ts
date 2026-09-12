@@ -2,13 +2,13 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { LessonStore } from '../../lyo/storage/lesson-store.ts';
 import { resolveSessionLessonStorePath } from '../../lyo/selection/session-hook.ts';
-import { inspectFinding, recordFindingFeedback, reviseFinding } from '../../lyo/selection/session-findings.ts';
-import { registerFindingOpportunity, measureFindingOpportunity, withdrawFindingEvidence } from '../../lyo/selection/session-finding-evidence.ts';
-import { reviewFindingSemantics } from '../../lyo/selection/session-finding-semantics.ts';
-import { pendingFindingReviews } from '../../lyo/selection/session-finding-workflow.ts';
-import { assignFindingOpportunity } from '../../lyo/selection/finding-opportunities.ts';
-import { findingTrials, registerFindingTrial } from '../../lyo/selection/finding-trials.ts';
-import { reconcileFindingTrial } from '../../lyo/selection/finding-trial-policy.ts';
+import { inspectFinding, recordFindingFeedback, reviseFinding } from '../../lyo/interface/session-findings.ts';
+import { registerFindingOpportunity, measureFindingOpportunity, withdrawFindingEvidence } from '../../lyo/interface/session-finding-evidence.ts';
+import { reviewFindingSemantics } from '../../lyo/interface/session-finding-semantics.ts';
+import { pendingFindingReviews } from '../../lyo/interface/session-finding-workflow.ts';
+import { assignFindingOpportunity } from '../../lyo/interface/finding-opportunities.ts';
+import { findingTrials, registerFindingTrial } from '../../lyo/interface/finding-trials.ts';
+import { reconcileFindingTrial } from '../../lyo/interface/finding-trial-policy.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
 
 export const FINDING_COMMANDS: Record<string, CommandHandler> = {

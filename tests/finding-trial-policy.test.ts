@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import test from 'node:test';
 import { trialFixture } from './helpers/finding-trial-fixture.ts';
-import { registerFindingTrial, findingTrials, ordinaryFindingTrialFeedback } from '../src/lyo/selection/finding-trials.ts';
-import { reconcileFindingTrial } from '../src/lyo/selection/finding-trial-policy.ts';
-import { findingAssignment, withdrawFindingEvidence } from '../src/lyo/selection/session-finding-evidence.ts';
-import { inspectFinding } from '../src/lyo/selection/session-findings.ts';
+import { registerFindingTrial, findingTrials, ordinaryFindingTrialFeedback } from '../src/lyo/interface/finding-trials.ts';
+import { reconcileFindingTrial } from '../src/lyo/interface/finding-trial-policy.ts';
+import { findingAssignment, withdrawFindingEvidence } from '../src/lyo/interface/session-finding-evidence.ts';
+import { inspectFinding } from '../src/lyo/interface/session-findings.ts';
 import { spoolCodexHookEvent } from '../src/hooks/runtime.ts';
 
 test('a fixed prospective comparison changes later delivery and later failure pauses that scope', () => {

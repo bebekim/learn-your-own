@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { LessonStore } from '../../src/lyo/storage/lesson-store.ts';
 import { emitSessionLessons, renderSessionLessons } from '../../src/lyo/selection/session-hook.ts';
-import { inspectFinding, recordFindingFeedback, reviseFinding } from '../../src/lyo/selection/session-findings.ts';
+import { inspectFinding, recordFindingFeedback, reviseFinding } from '../../src/lyo/interface/session-findings.ts';
 
 function probe(id, required, inspect) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'lyo-link-audit-')));

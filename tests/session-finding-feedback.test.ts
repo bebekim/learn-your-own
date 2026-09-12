@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { fixture } from './helpers/session-finding-fixture.ts';
 import { renderSessionLessons } from '../src/lyo/selection/session-hook.ts';
-import { inspectFinding, recordFindingFeedback, reviseFinding } from '../src/lyo/selection/session-findings.ts';
+import { inspectFinding, recordFindingFeedback, reviseFinding } from '../src/lyo/interface/session-findings.ts';
 import { execFileSync } from 'node:child_process';
 
 test('an old banner cannot start another application after its finding is contradicted or revised', () => {
@@ -26,7 +26,7 @@ test('an old banner cannot start another application after its finding is contra
 });
 
 test('withdrawing evidence suspends feedback and wording derived from that premise', async () => {
-  const { withdrawFindingEvidence } = await import('../src/lyo/selection/session-finding-evidence.ts');
+  const { withdrawFindingEvidence } = await import('../src/lyo/interface/session-finding-evidence.ts');
   const f = fixture();
   try {
     const delivery = f.deliver();

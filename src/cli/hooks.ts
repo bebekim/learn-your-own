@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import { translateBobEvent } from '../adapters/bob.ts';
 import { translateEcaEvent } from '../adapters/eca.ts';
 import { emitSessionLessons, resolveSessionLessonStorePath } from '../lyo/selection/session-hook.ts';
-import { emitFindingReviewQueue, findingOwnsToolCall } from '../lyo/selection/session-finding-workflow.ts';
+import { emitFindingReviewQueue, findingOwnsToolCall } from '../lyo/interface/session-finding-workflow.ts';
 import {
   closeKernel,
   createKernel,
@@ -22,7 +22,7 @@ import { CliArgs, readStdin } from './args.ts';
 import { normalizeOutcome } from './coercion.ts';
 import { autoConnectWorkspace } from '../corpus/workspace-sync.ts';
 import { nativeFeedback } from '../lyo/control/native-feedback.ts';
-import { ordinaryFindingTrialFeedback } from '../lyo/selection/finding-trials.ts';
+import { ordinaryFindingTrialFeedback } from '../lyo/interface/finding-trials.ts';
 
 export async function runCodexHookCommand(
   args: CliArgs,

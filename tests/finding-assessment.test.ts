@@ -4,8 +4,8 @@ import { assessFindingObservation } from '../src/lyo/domain/finding-assessment.t
 import { assessFindingEvidence, recordFindingFeedback, reviseFinding } from '../src/lyo/application/finding-assessment.ts';
 import { findingAssessmentPort } from '../src/lyo/storage/finding-state.ts';
 import { fixture } from './helpers/session-finding-fixture.ts';
-import { inspectFinding } from '../src/lyo/selection/session-findings.ts';
-import { withdrawFindingEvidence } from '../src/lyo/selection/session-finding-evidence.ts';
+import { inspectFinding } from '../src/lyo/interface/session-findings.ts';
+import { withdrawFindingEvidence } from '../src/lyo/interface/session-finding-evidence.ts';
 import { findingReviewStatus } from '../src/lyo/application/finding-assessment.ts';
 
 test('a passing prediction needs the declared witnesses before it supports advice', () => {

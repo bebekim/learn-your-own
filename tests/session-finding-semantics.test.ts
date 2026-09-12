@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { fixture } from './helpers/session-finding-fixture.ts';
-import { inspectFinding, recordFindingFeedback } from '../src/lyo/selection/session-findings.ts';
+import { inspectFinding, recordFindingFeedback } from '../src/lyo/interface/session-findings.ts';
 
 test('unreviewed evaluator semantics cannot suspend advice even with intact false output', () => {
   const f = fixture();

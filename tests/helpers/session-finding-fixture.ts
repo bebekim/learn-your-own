@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { LessonStore } from '../../src/lyo/storage/lesson-store.ts';
 import { emitSessionLessons } from '../../src/lyo/selection/session-hook.ts';
-import { registerFindingOpportunity, measureFindingOpportunity } from '../../src/lyo/selection/session-finding-evidence.ts';
-import { reviewFindingSemantics } from '../../src/lyo/selection/session-finding-semantics.ts';
+import { registerFindingOpportunity, measureFindingOpportunity } from '../../src/lyo/interface/session-finding-evidence.ts';
+import { reviewFindingSemantics } from '../../src/lyo/interface/session-finding-semantics.ts';
 
 export function fixture() {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'finding-feedback-')));

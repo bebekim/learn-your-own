@@ -4,14 +4,14 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import { trialFixture } from './helpers/finding-trial-fixture.ts';
-import { inspectFinding } from '../src/lyo/selection/session-findings.ts';
+import { inspectFinding } from '../src/lyo/interface/session-findings.ts';
 import { spoolCodexHookEvent, spoolClaudeHookEvent } from '../src/hooks/runtime.ts';
-import * as trials from '../src/lyo/selection/finding-trials.ts';
-import { measureFindingOpportunity } from '../src/lyo/selection/session-finding-evidence.ts';
+import * as trials from '../src/lyo/interface/finding-trials.ts';
+import { measureFindingOpportunity } from '../src/lyo/interface/session-finding-evidence.ts';
 import { emitSessionLessons } from '../src/lyo/selection/session-hook.ts';
 
 test('ordinary trial registration loads without the session hook entrypoint', () => {
-  const trialsUrl = new URL('../src/lyo/selection/finding-trials.ts', import.meta.url);
+  const trialsUrl = new URL('../src/lyo/interface/finding-trials.ts', import.meta.url);
   const hookUrl = new URL('../src/lyo/selection/session-hook.ts', import.meta.url);
   runWithoutModule(hookUrl, `
     const { ordinaryFindingTrialFeedback } = await import(${JSON.stringify(trialsUrl.href)});

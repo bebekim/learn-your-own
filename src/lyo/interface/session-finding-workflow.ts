@@ -9,6 +9,7 @@ import { assessFindingEvidence, inspectFinding, trialManagedFindings } from './s
 import { findingSemanticReview } from './session-finding-semantics.ts';
 import { completeFindingBoundary } from '../application/finding-workflow.ts';
 import { findingReviewStatus } from '../application/finding-assessment.ts';
+import { eligibleFindingReviewQueue, type PendingFindingReview } from '../domain/finding-exposure.ts';
 
 export function findingOwnsToolCall(storePath: string | null, runtime: string, event: { session_id?: string; tool_use_id?: string; cwd?: string }): boolean {
   if (!storePath || !event.session_id || !event.tool_use_id || !event.cwd) return false;
@@ -71,7 +72,7 @@ function hasFindingOpportunities(storePath: string): boolean {
   finally { db.close(); }
 }
 
-export function pendingFindingReviews(store: LessonStore, cwd?: string) {
+export function pendingFindingReviews(store: LessonStore, cwd?: string): PendingFindingReview[] {
   return opportunityRows(store, cwd).flatMap(row => {
     const input = JSON.parse(String(row.payload_json)).content.input;
     const identity = { findingId: String(input.findingId), opportunityId: String(input.id), cwd: String(input.cwd) };
@@ -99,8 +100,7 @@ export function emitFindingReviewQueue(storePath: string, cwd: string, sessionId
     // Retained measurements can be reviewed anywhere; acquiring missing evidence still requires its own workspace.
     const workspace = realpathSync(cwd);
     const managed = trialManagedFindings(store.db);
-    const queue = pendingFindingReviews(store).filter(item => !managed.has(item.findingId) && (item.cwd === workspace || item.evidenceRef !== null))
-      .sort((a, b) => Number(b.cwd === workspace) - Number(a.cwd === workspace));
+    const queue = eligibleFindingReviewQueue(pendingFindingReviews(store), { managed: id => managed.has(id), workspace });
     if (!queue.length) return;
     const id = `finding-review-prompt:${hashValue([sessionId, cwd, queue])}`;
     if (sessionId && store.getTrace(id)) return;

@@ -4,7 +4,7 @@ import type { HookObservation } from '../../hooks/events.ts';
 import type { LessonStore } from '../storage/lesson-store.ts';
 import { findingActionBoundary, findingSessionModel } from '../storage/finding-evidence.ts';
 import type { Registered } from '../storage/finding-evidence.ts';
-import { findingFiles } from './session-finding-files.ts';
+import { findingFiles } from '../storage/finding-files.ts';
 import { findingState } from './session-findings.ts';
 
 export { captureSchema, findingActionEvidence, findingSessionModel } from '../storage/finding-evidence.ts';

@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import test from 'node:test';
 import { fixture } from './helpers/session-finding-fixture.ts';
-import { assessFindingEvidence, inspectFinding, recordFindingFeedback } from '../src/lyo/selection/session-findings.ts';
-import { registerFindingOpportunity, measureFindingOpportunity } from '../src/lyo/selection/session-finding-evidence.ts';
+import { assessFindingEvidence, inspectFinding, recordFindingFeedback } from '../src/lyo/interface/session-findings.ts';
+import { registerFindingOpportunity, measureFindingOpportunity } from '../src/lyo/interface/session-finding-evidence.ts';
 
 test('assessment derives conclusions from retained evidence and revises them when semantics change', () => {
   const f = fixture();

@@ -4,10 +4,10 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import test from 'node:test';
 import { execFileSync } from 'node:child_process';
 import { fixture } from './helpers/session-finding-fixture.ts';
-import { findingOpportunity, registerFindingOpportunity } from '../src/lyo/selection/session-finding-evidence.ts';
-import { captureFindingAction } from '../src/lyo/selection/session-finding-capture.ts';
+import { findingOpportunity, registerFindingOpportunity } from '../src/lyo/interface/session-finding-evidence.ts';
+import { captureFindingAction } from '../src/lyo/interface/session-finding-capture.ts';
 import { codexHookObservation } from '../src/adapters/codex.ts';
-import { inspectFinding, recordFindingFeedback, reviseFinding } from '../src/lyo/selection/session-findings.ts';
+import { inspectFinding, recordFindingFeedback, reviseFinding } from '../src/lyo/interface/session-findings.ts';
 import { spoolCodexHookEvent, spoolClaudeHookEvent } from '../src/hooks/runtime.ts';
 
 test('live action capture rechecks finding state without invalidating outcomes that started before a revision', () => {

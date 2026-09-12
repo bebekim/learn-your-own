@@ -7,7 +7,7 @@ import type { LessonStore } from '../storage/lesson-store.ts';
 import { findingActionEvidence, findingEvidenceTrace, findingOpportunity, inputSchema,
   measurementSchema, opportunitySchema, resolveFindingEvidence } from '../storage/finding-evidence.ts';
 import type { Opportunity } from '../storage/finding-evidence.ts';
-import { findingFiles as files } from './session-finding-files.ts';
+import { findingFiles as files } from '../storage/finding-files.ts';
 import { findingState } from './session-findings.ts';
 
 export { findingAssignment, findingOpportunity, findingOpportunityDelivery, inputSchema,

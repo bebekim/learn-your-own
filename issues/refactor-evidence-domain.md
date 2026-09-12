@@ -232,3 +232,105 @@ Remaining architecture work is explicit: advice exposure still spans banners,
 review queues and trial/refresh routes; trial reconciliation and the legacy judge,
 native control and lesson-credit paths still combine orchestration with concrete
 adapters. Removing cycles does not make those whole subsystems clean architecture.
+
+## Fourth-slice result
+
+Assignment and compaction refresh already shared one gate: `emitFindingOpportunity`
+withholds a no-advice control-arm opportunity, and `refreshSessionTrialAdvice` calls
+that same function rather than re-deciding withholding on refresh. The review-queue
+route did not; `pendingFindingReviews` withheld a prospective opportunity itself,
+while its caller separately re-filtered by trial-managed finding id inline, as two
+untested ad hoc checks in an interface-layer function. The banner route's own
+trial-managed exclusion was already behind an application port (`selectSessionFindings`'s
+`managed`), so this slice brought the review queue to the same shape rather than
+inventing a new shared abstraction across all four routes.
+
+`domain/finding-exposure.ts` now owns the review queue's eligibility rule as one
+pure, ported function: a trial-managed finding is withheld, and a bare opportunity
+absent from the current workspace is withheld unless it carries retained evidence
+from elsewhere. `emitFindingReviewQueue` composes I/O and calls it; `pendingFindingReviews`
+keeps returning the unfiltered list, since the CLI's `finding pending --all` intentionally
+lets an operator inspect trial-managed and cross-workspace items the ordinary-session
+route must not surface. Collapsing that operator view into the same filter would have
+changed observable CLI behavior outside this slice's scope.
+
+TDD: the new eligibility test failed for the missing module, then passed. The domain
+function replaced the inline filter/sort with no behavior change; the full suite
+passed 693 tests with none skipped, and typecheck passed on Node 24.15.0 once the new
+test file was added to tsconfig's explicit include list — a step this slice's own
+first run of the changed-code gate caught before it was otherwise missed. After graph
+refresh, Opcore's changed-code check passed with exit 0; its remaining diagnostics are
+informational graph-coverage notes, not findings.
+
+Assignment, compaction refresh and the banner route were not modified in this slice;
+their existing ownership already matched the target shape. The legacy lesson-credit
+banner exclusion (matching a plain lesson's intervention text against trial-managed
+actions in `session-hook.ts`) remains untouched, consistent with the stated boundary
+that the legacy lesson-credit and native task paths need their own explicit contracts
+first. Trial reconciliation and the legacy judge/native-control paths remain outside
+this slice's verification claim.
+
+## Fifth-slice result
+
+Trial reconciliation previously computed suspension, supersession, persistence
+identity and hash chaining directly against `store.db`/`store.recordTrace` inside
+`reconcileFindingTrial` and `findingTrialAllocation`, with no port between that
+orchestration and SQLite. `application/finding-trial-reconciliation.ts` now owns
+both operations as pure functions against a `FindingTrialReconciliationPort`;
+`storage/finding-trial-state.ts` implements the port, keeping the existing
+observation join query, window-receipt validation and policy-integrity checks
+verbatim. The wrapper that used to hold this logic now only builds the port and
+delegates, matching the assessment/lifecycle/selection shape from earlier slices.
+
+Fixing this exposed a boundary the review-queue slice had not touched: the new
+storage adapter needed `findingFiles` (reading verifier bytes from disk), and
+that function lived under `selection/`, an outer layer. An infrastructure file
+importing from an interface file inverts the dependency direction this whole
+refactor exists to enforce, even without a runtime cycle — "no cycle" is not the
+rule; "dependencies point inward" is. `findingFiles` moved to `storage/finding-files.ts`,
+its rightful layer, and its four existing `selection/` consumers now import it
+from there.
+
+That prompted a wider check: `src/lyo/` had folders for three of the four layers
+named in this document's own dependency strategy (`domain/`, `application/`,
+`storage/` for Infrastructure) but none for Interface, whose code — session hook
+composition, trial/opportunity entry points, CLI-facing wrappers — sat flat inside
+`selection/` alongside unrelated legacy files. A new `src/lyo/interface/` now holds
+the finding/trial subsystem's interface layer: `finding-opportunities.ts`,
+`finding-trials.ts`, `finding-trial-policy.ts`, `session-finding-capture.ts`,
+`session-finding-evidence.ts`, `session-finding-semantics.ts`,
+`session-finding-workflow.ts`, `session-findings.ts`. `session-hook.ts` and the
+non-finding legacy files (`selection-policies.ts`, `semantic-prior.ts`,
+`failure-classifier.ts`, `pipeline-order.ts`) stay in `selection/`, unmoved and
+unmodified beyond `session-hook.ts`'s three updated import paths — this was a pure
+move plus import-path fix, not a design change, and no other subsystem's shape
+changed. `judge/`, `control/`, `credit/`, `reflection/` and `bridge/` remain outside
+this document's scope, as stated.
+
+TDD: `tests/finding-trial-reconciliation.test.ts` is new, exercising the port
+directly — persistence-only-on-change with supersede chaining, suspended/superseded
+overriding the domain's computed status, and allocation's three failure modes plus
+its three status-derived outcomes — without re-deriving the Hoeffding-bound math
+that `finding-trial-policy-domain.test.ts` already covers. The existing
+`finding-trial-policy.ts`/`prospective-finding.ts` integration tests, which exercise
+this code end to end including hash-identity stability across repeated calls,
+passed unchanged throughout. The full suite passed 697 tests with none skipped, and
+typecheck passed on Node 24.15.0 once the new test file was added to tsconfig's
+include list.
+
+One mechanical misstep during the file move: a bulk path-rewrite command intended
+for two live scripts under `evidence/` matched more broadly than written and briefly
+touched dated `evidence/*.json` and `assessment.md` records plus unrelated `Specs/`
+and `docs/development-status.md` files. It was caught before verification and
+reverted with `git checkout --` against exactly those files; only the two intended
+scripts (`evidence/finding-evidence-link-2026-09-10/audit.mjs`,
+`evidence/finding-feedback-loop-2026-09-10/run.ts`) carry a diff, limited to their
+now-stale import paths. Dated evidence records were not otherwise edited, consistent
+with the standing rule that they preserve what was true at their checkpoints.
+
+Opcore's changed-code gate passed with exit 0 after graph refresh; its diagnostics
+are pre-existing function-complexity warnings on unchanged bodies and informational
+test-linkage notes, not findings. Trial reconciliation's persistence and hash
+identity were not changed in this slice, only where the code that computes them
+lives; the legacy judge/native-control/credit paths and the ordinary lesson-credit
+banner exclusion remain outside this slice's verification claim.

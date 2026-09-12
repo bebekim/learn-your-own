@@ -20,10 +20,10 @@ import { resolvePolicy } from './selection-policies.ts';
 import { LessonStore } from '../storage/lesson-store.ts';
 import { sessionVerifier } from '../bridge/session-bridge.ts';
 import { parsePriorJson, priorCalibration, priorPseudoCounts } from './semantic-prior.ts';
-import { selectSessionFindings, trialManagedFindings } from './session-findings.ts';
-import type { SessionFinding } from './session-findings.ts';
-import { emitFindingReviewQueue } from './session-finding-workflow.ts';
-import { refreshSessionTrialAdvice } from './finding-opportunities.ts';
+import { selectSessionFindings, trialManagedFindings } from '../interface/session-findings.ts';
+import type { SessionFinding } from '../interface/session-findings.ts';
+import { emitFindingReviewQueue } from '../interface/session-finding-workflow.ts';
+import { refreshSessionTrialAdvice } from '../interface/finding-opportunities.ts';
 import { repositoryKey } from '../repository.ts';
 
 export { repositoryKey };

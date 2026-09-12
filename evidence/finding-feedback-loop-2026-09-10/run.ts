@@ -6,9 +6,9 @@ import { pathToFileURL } from 'node:url';
 import { hashValue } from '../../src/contract/refs.ts';
 import { LessonStore } from '../../src/lyo/storage/lesson-store.ts';
 import { emitSessionLessons } from '../../src/lyo/selection/session-hook.ts';
-import { registerFindingOpportunity } from '../../src/lyo/selection/session-finding-evidence.ts';
-import { reviewFindingSemantics } from '../../src/lyo/selection/session-finding-semantics.ts';
-import { inspectFinding, reviseFinding } from '../../src/lyo/selection/session-findings.ts';
+import { registerFindingOpportunity } from '../../src/lyo/interface/session-finding-evidence.ts';
+import { reviewFindingSemantics } from '../../src/lyo/interface/session-finding-semantics.ts';
+import { inspectFinding, reviseFinding } from '../../src/lyo/interface/session-findings.ts';
 import { spoolCodexHookEvent, spoolClaudeHookEvent } from '../../src/hooks/runtime.ts';
 
 const originalAdvice = 'Reject blank strings using value.trim().length > 0; return the original accepted string.';

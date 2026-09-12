@@ -4,7 +4,7 @@ import type { LessonStore } from '../storage/lesson-store.ts';
 import { findingOpportunity, findingAssignment, findingOpportunityDelivery } from './session-finding-evidence.ts';
 import { findingSemanticReview } from './session-finding-semantics.ts';
 import { findingState } from './session-findings.ts';
-import { findingFiles } from './session-finding-files.ts';
+import { findingFiles } from '../storage/finding-files.ts';
 import { closeFindingTrialWindow, findingTrialAllocation } from './finding-trial-policy.ts';
 
 function beforeAction(store: LessonStore, id: string) {
