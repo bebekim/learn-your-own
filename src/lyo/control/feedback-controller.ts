@@ -1,5 +1,6 @@
 import type { LearningKernel } from '../../ledger.ts';
 import { hashValue } from '../../contract/refs.ts';
+import { selectAction } from '../domain/tabular-mean-policy.ts';
 import { z } from 'zod';
 
 const nonempty = z.string().min(1).refine(value => value.trim().length > 0);
@@ -125,22 +126,13 @@ export class FeedbackController {
     `).all(this.controllerId, hashValue(input.state), revision) as unknown as ActionEstimate[];
     const estimates = this.specification.actions.map(action => rows.find(row => row.action === action)
       ?? { action, count: 0, mean: null });
-    let action = this.specification.baselineAction;
-    if (input.fixedAction) {
-      action = input.fixedAction;
-    } else if (input.mode === 'explore') {
-      const draw = rng();
-      if (!Number.isFinite(draw) || draw < 0 || draw >= 1) throw new Error('random draw must be in [0, 1)');
-      action = this.specification.actions[Math.floor(draw * this.specification.actions.length)];
-    } else if (estimates.every(estimate => estimate.count > 0)) {
-      action = estimates.reduce((best, current) => current.mean! > best.mean! ? current : best,
-        estimates.find(estimate => estimate.action === action)!).action;
-    }
+    const { action, propensity } = selectAction({ actions: this.specification.actions,
+      baselineAction: this.specification.baselineAction, mode: input.mode, fixedAction: input.fixedAction,
+      estimates, draw: input.mode === 'explore' ? rng() : undefined });
     const decision: ControlDecision = {
       ...structuredClone(input), id, requestHash: hashValue(input), algorithm: input.fixedAction ? 'fixed-action@1' : 'tabular-mean@1',
       controllerId: this.controllerId, specification: structuredClone(this.specification),
-      revision, action, propensity: input.mode === 'explore' ? 1 / estimates.length : 1,
-      estimates, createdAt: new Date().toISOString(),
+      revision, action, propensity, estimates, createdAt: new Date().toISOString(),
     };
     db.prepare(`INSERT INTO control_decisions
       (id, controller_id, episode_id, state_key, mode, action, record_json) VALUES (?, ?, ?, ?, ?, ?, ?)
