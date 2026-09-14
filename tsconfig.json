@@ -31,6 +31,8 @@
     "tests/finding-trial-policy.test.ts",
     "tests/finding-trial-policy-domain.test.ts",
     "tests/finding-trial-reconciliation.test.ts",
+    "tests/injection-weight.test.ts",
+    "tests/credit-fidelity-domain.test.ts",
     "tests/session-finding-semantics.test.ts",
     "tests/session-finding-capture.test.ts",
     "tests/helpers/session-finding-fixture.ts",
