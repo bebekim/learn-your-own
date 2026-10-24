@@ -22,8 +22,11 @@ const measurementSchema = z.object({ claim: inputSchema.shape.claim, checks: inp
 const trialSchema = z.object({ id: text, findingId: text, findingVersion: text, roots: z.array(text).min(1), model: text,
   runtime: z.enum(['codex', 'claude']).optional(),
   supersedes: text.optional(),
+  // Absent method means Hoeffding, so registered definitions keep their hashed semantics.
   evaluation: z.object({ sampleSize: z.number().int().min(2).max(10000), minimumEffect: z.number().min(0).lt(1),
-    alpha: z.number().gt(0).max(0.1), assumptions: text }).strict().optional(),
+    alpha: z.number().gt(0).max(0.1), assumptions: text, method: z.enum(['hoeffding', 'exact-binomial']).optional() })
+    .strict().refine(plan => plan.method !== 'exact-binomial' || plan.sampleSize <= 1000,
+      'exact-binomial trials allow at most 1000 assignments').optional(),
   trigger: z.object({ toolName: text, toolInput: z.union([z.record(z.string(), z.unknown()), text]), result: z.literal('failure') }).strict(),
   measurement: measurementSchema,
   review: semanticReviewSchema.omit({ id: true, opportunityId: true, supersedes: true, verdict: true }),

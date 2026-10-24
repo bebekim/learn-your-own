@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add an opt-in `evaluation.method: "exact-binomial"` for prospective trials: exact unconditional bounds on the pass-rate difference, needing about a fifth of the Hoeffding sample at equal power. It assumes independent outcomes; definitions without `method` keep Hoeffding.
 - Withhold legacy lessons with no validated outcome from session banners; banner delivery cannot earn them credit. `LYO_SESSION_UNVALIDATED_LESSONS=1` restores the previous behavior.
 - Anchor `--*-from-event-cwd` hook records at the checkout root, so events after the agent changes into a subdirectory reach the workspace ledger instead of a stray `.agent-learning/`.
 - Type-check all TypeScript tests by default, with an explicit exclusion list for nine existing files; JavaScript tests remain unchecked.

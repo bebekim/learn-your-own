@@ -1,3 +1,5 @@
+import { exactDifferenceInterval } from './exact-binomial-difference.ts';
+
 export interface FindingTrialPolicyDefinition {
   id: string;
   hash: string;
@@ -6,7 +8,8 @@ export interface FindingTrialPolicyDefinition {
   model: string;
   runtime?: 'codex' | 'claude';
   roots: string[];
-  evaluation?: { sampleSize: number; minimumEffect: number; alpha: number; assumptions: string };
+  evaluation?: { sampleSize: number; minimumEffect: number; alpha: number; assumptions: string;
+    method?: 'hoeffding' | 'exact-binomial' };
   measurement: { verifierFiles: string[] };
   verifierFiles: Array<{ path: string; content: string | null }>;
 }
@@ -28,12 +31,22 @@ export function evaluateFindingTrialPolicy(rows: readonly FindingTrialOutcome[],
   if (plan && sample.length >= plan.sampleSize) {
     status = 'awaiting-outcomes';
     if (sample.every(row => row.closed)) {
-      // Hoeffding for independent fair assignments: Z = 2*A*Y - 2*(1-A)*Y is in [-2,2].
       // Unknown outcomes take their worst/best possible values; they are never discarded.
-      const radius = Math.sqrt(8 * Math.log(2 / plan.alpha) / sample.length);
-      const base = 2 * (arms.advice.pass - arms['no-advice'].pass) / sample.length;
-      effectInterval = [Math.max(-1, base - 2 * arms['no-advice'].unknown / sample.length - radius),
-        Math.min(1, base + 2 * arms.advice.unknown / sample.length + radius)];
+      if (plan.method === 'exact-binomial') {
+        const advice = arms.advice, control = arms['no-advice'];
+        effectInterval = [
+          exactDifferenceInterval({ passes: advice.pass, assigned: advice.assigned },
+            { passes: control.pass + control.unknown, assigned: control.assigned }, plan.alpha)[0],
+          exactDifferenceInterval({ passes: advice.pass + advice.unknown, assigned: advice.assigned },
+            { passes: control.pass, assigned: control.assigned }, plan.alpha)[1],
+        ];
+      } else {
+        // Hoeffding for independent fair assignments: Z = 2*A*Y - 2*(1-A)*Y is in [-2,2].
+        const radius = Math.sqrt(8 * Math.log(2 / plan.alpha) / sample.length);
+        const base = 2 * (arms.advice.pass - arms['no-advice'].pass) / sample.length;
+        effectInterval = [Math.max(-1, base - 2 * arms['no-advice'].unknown / sample.length - radius),
+          Math.min(1, base + 2 * arms.advice.unknown / sample.length + radius)];
+      }
       status = arms.advice.assigned && arms['no-advice'].assigned && effectInterval[0] <= effectInterval[1]
         ? effectInterval[0] > plan.minimumEffect ? 'promoted' : effectInterval[1] < 0 ? 'harmful' : 'inconclusive'
         : 'inconclusive';

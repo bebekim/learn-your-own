@@ -54,6 +54,34 @@ test('a fixed prospective comparison changes later delivery and later failure pa
   } finally { f.close(); }
 });
 
+test('a registered exact-binomial trial promotes from a cohort too small for Hoeffding', () => {
+  const f = trialFixture();
+  try {
+    const improvement = { runtime: 'codex' as const,
+      measurement: { ...f.trial.measurement, claim: { ...f.trial.measurement.claim, kind: 'improvement' } },
+      review: { ...f.trial.review, claimKind: 'improvement' } };
+    const evaluation = { sampleSize: 8, minimumEffect: 0, alpha: 0.1, assumptions: 'Synthetic independent workspaces.' };
+    assert.throws(() => registerFindingTrial(f.store, { ...f.trial, ...improvement,
+      evaluation: { ...evaluation, sampleSize: 1001, method: 'exact-binomial' } }), /at most 1000/);
+    registerFindingTrial(f.store, { ...f.trial, ...improvement, evaluation: { ...evaluation, method: 'exact-binomial' } });
+    const trial = findingTrials(f.store.db)[0];
+    assert.equal(trial.evaluation?.method, 'exact-binomial');
+    for (let n = 0; n < 8; n++) {
+      const name = `exact-${n}`, draw = n % 2 ? 0.9 : 0.1;
+      const event = { ...f.event, cwd: f.workspace(name).cwd, session_id: name };
+      const output = ordinaryFindingTrialFeedback('codex', event, f.storePath, () => draw);
+      const action = { ...event, tool_use_id: `action:${name}`, tool_input: { command: 'repair' } };
+      f.complete('codex', action, { applicable: true, followed: Boolean(output.additionalContext), predicted: draw < 0.5 });
+      ordinaryFindingTrialFeedback('codex', action, f.storePath);
+    }
+    const report = reconcileFindingTrial(f.store, trial).content;
+    assert.deepEqual([report.arms.advice.pass, report.arms['no-advice'].fail], [4, 4]);
+    assert.equal(report.status, 'promoted');
+    assert.equal(reconcileFindingTrial(f.store, { ...trial, evaluation: { ...evaluation } }).content.status, 'inconclusive',
+      'the same counts under Hoeffding cannot clear zero');
+  } finally { f.close(); }
+});
+
 test('a closed missing outcome stays unknown and a replacement scope starts with fresh evidence', () => {
   const f = trialFixture();
   try {

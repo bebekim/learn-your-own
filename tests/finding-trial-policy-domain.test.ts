@@ -58,3 +58,29 @@ test('cohort decisions precede monitoring, suspension, and replacement overrides
   assert.deepEqual(evaluateFindingTrialPolicy([...cohort, monitored], plan, current).arms,
     evaluateFindingTrialPolicy(cohort, plan, current).arms, 'monitoring must not enter the randomized cohort');
 });
+
+const perfect = (n: number): FindingTrialOutcome[] => Array.from({ length: n }, (_, index) => ({
+  assignment: { action: index % 2 ? 'no-advice' : 'advice', probability: 0.5 },
+  closed: true, outcome: index % 2 ? 'fail' : 'pass',
+}));
+
+test('the exact-binomial method decides from arm counts where Hoeffding cannot', () => {
+  const plan = { sampleSize: 8, minimumEffect: 0, alpha: 0.1, assumptions: 'Independent fair assignments.' };
+  assert.equal(evaluateFindingTrialPolicy(perfect(8), plan, current).status, 'inconclusive');
+  const exact = evaluateFindingTrialPolicy(perfect(8), { ...plan, method: 'exact-binomial' }, current);
+  assert.equal(exact.status, 'promoted');
+  assert.ok(exact.effectInterval![0] > 0 && exact.effectInterval![1] === 1);
+  const reversed = perfect(8).map(row => ({ ...row, outcome: row.outcome === 'pass' ? 'fail' as const : 'pass' as const }));
+  assert.equal(evaluateFindingTrialPolicy(reversed, { ...plan, method: 'exact-binomial' }, current).status, 'harmful');
+  const demanding = evaluateFindingTrialPolicy(perfect(8), { ...plan, minimumEffect: 0.9, method: 'exact-binomial' }, current);
+  assert.equal(demanding.status, 'inconclusive', 'the bound must clear minimumEffect, not merely zero');
+});
+
+test('exact-binomial unknown outcomes take worst and best cases', () => {
+  const plan = { sampleSize: 12, minimumEffect: 0, alpha: 0.1, assumptions: 'Independent fair assignments.', method: 'exact-binomial' as const };
+  const known = evaluateFindingTrialPolicy(perfect(12), plan, current).effectInterval!;
+  const withUnknown = perfect(12).map((row, index) => index === 1 ? { ...row, outcome: 'unknown' as const } : row);
+  const widened = evaluateFindingTrialPolicy(withUnknown, plan, current);
+  assert.deepEqual(widened.arms['no-advice'], { assigned: 6, pass: 0, fail: 5, unknown: 1 });
+  assert.ok(widened.effectInterval![0] < known[0], 'an unknown control outcome counts as a pass for the lower bound');
+});
