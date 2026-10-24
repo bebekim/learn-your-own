@@ -35,6 +35,20 @@ lyo decide --input request.json --env-file ~/repositories/individual/.env
 `--env-file` loads variables with Node's `process.loadEnvFile` without overriding
 ones already set.
 
+## Calibration
+
+`lyo decide calibrate --cases cases.jsonl --questions questions.json --out decisions.jsonl`
+asks each Noul question about each labelled case. Cases are JSONL rows of
+`{ id, text, stratum?, labels: { <question>: true | false | "ambiguous" } }`. Every
+decision is appended to `--out` and reused on later runs with the same questions, so
+re-analysis costs nothing. For each question and stratum, the report shows labelled
+positives, negatives and ambiguous cases. For each threshold band (0.3/0.7, 0.2/0.8,
+0.1/0.9) it also shows false positives, recall and how many cases stay unknown. It
+reports `sufficient: false` until there are at least 20 labelled positives and 20
+negatives, and no threshold should be chosen before then.
+A random stratum estimates the real false-positive rate; a keyword-enriched stratum
+only helps estimate recall.
+
 ## What a decision establishes
 
 - **Disclosure.** Each request sends its `state` to TypeSafe. Its legal page states a

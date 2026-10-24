@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add `lyo decide calibrate`: Noul threshold bands against labelled cases per stratum (false positives, recall, unknowns), with retained, reusable decisions and an explicit insufficient-sample flag below 20 positives or negatives.
 - Add a `TypedDecisionProvider` interface for Choice/Score/Noul decisions, a TypeSafe Jev adapter (`POST /v1/systemone`, `GET /v1/models`, pinned `jev-1.14.0`, contract-checked responses, 429/529 backoff), unknown-preserving verdict bands, and `lyo decide` / `lyo decide models`. Enabled only by `TYPESAFE_API_KEY`; not yet wired into hooks or trials. See `docs/typed-decisions.md`.
 - Add `lyo lab run` / `lyo lab report` (Spec 9): parallel paired advice/no-advice runs of registered tasks in isolated worktrees, analysed with the task-stratified exact test. Whole tasks are admitted against the token budget before launch; changed verifier files make an outcome unknown. Tested with a scripted executor only.
 - Add session-unit trials: `enrollment: { unit: "session", maxPerRepository }` with the required `evaluation.method: "stratified-exact"`, an exact repository-stratified randomization test of no effect (`minimumEffect: 0`). Validity needs fair assignment and no interference between sessions, not independent outcomes. The cap applies only while the cohort is collecting.
