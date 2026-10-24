@@ -1,0 +1,2078 @@
+
+===== PAGE 1 =====
+Score-informed Neural Operator for
+Enhancing Ordering-based Causal Discovery
+Jiyeon Kang1,2∗, Songseong Kim1,2∗, Chanhui Lee1,3, Doyeong Hwang1,2,
+Joanie Hayoun Chung2, Yunkyung Ko2, Sumin Lee2, Sungwoong Kim3†, Sungbin Lim1,2†
+1LG AI Research
+2Department of Statistics, Korea University
+3Department of Artificial Intelligence, Korea University
+Abstract
+Ordering-based approaches to causal discovery identify topological orders of causal
+graphs, providing scalable alternatives to combinatorial search methods. Under the
+Additive Noise Model (ANM) assumption, recent causal ordering methods based
+on score matching require an accurate estimation of theHessian diagonalof the
+log-densities. In this paper, we aim to improve the approximation of the Hessian
+diagonal of the log-densities, thereby enhancing the performance of ordering-
+based causal discovery algorithms. Existing approaches that rely on Stein gradient
+estimators are computationally expensive and memory-intensive, while diffusion-
+model-based methods remain unstable due to the second-order derivatives of score
+models. To alleviate these problems, we proposeScore-informedNeuralOperator
+(SciNO), a probabilistic generative model in smooth function spaces designed to
+stably approximate the Hessian diagonal and to preserve structural information
+during the score modeling. Empirical results show that SciNO reduces order di-
+vergence by 42.7% on synthetic graphs and by 31.5% on real-world datasets on
+average compared to DiffAN, while maintaining memory efficiency and scalability.
+Furthermore, we propose a probabilistic control algorithm for causal reasoning
+with autoregressive models that integrates SciNO’s probability estimates with au-
+toregressive model priors, enabling reliable data-driven causal ordering informed
+by semantic information. Consequently, the proposed method enhances causal
+reasoning abilities of LLMs without additional fine-tuning or prompt engineering.
+1 Introduction
+Ordering-based causal discovery aims to identify a topological ordering of nodes in a causal graph,
+typically represented as a Directed Acyclic Graph (DAG), such that the order reflects the underlying
+cause-effect relationships. The combinatorial search over DAG structures is known to be NP-hard,
+with complexity increasing sharply as the number of variables grows [6]. In contrast, ordering-based
+approaches first infer a topological order of the causal graph, and then determine the direction of
+edges based on this order, which substantially reduces the number of candidate graph structures.
+By leveraging Large Language Models (LLMs), predicting causal orderings rather than full graph
+structures, improves consistency and reduces structural errors [ 42]. Moreover, such causal order
+suffices to identify valid backdoor adjustment sets, without full graph discovery [42, Proposition 3.2].
+Recently, causal ordering methods based on score matching have been proposed [33, 35, 45] under
+the ANM (Additive Noise Model) assumption. All of these approaches determine the causal order by
+∗Equal contribution.
+†Corresponding Authors.{swkim01, sungbin}@korea.ac.kr.
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+arXiv:2508.12650v2  [cs.LG]  27 Oct 2025
+===== PAGE 2 =====
+iteratively identifying and removing leaf nodes—i.e., variables that do not influence any others in the
+causal graph. To accomplish this, they require the estimation of theJacobian of the score function
+S(x) =∇ x logP(x), in particular its diagonal, denoted as theHessian diagonalfunctionD(x):
+D(x) :=diag(H logP ) (x) =
+
+∂xj Sj(x) :j= 1, . . . , D
+
+.(1)
+Score matching based causal ordering methods sequentially identify leaf nodes from a causal graph by
+estimating variance or mean of the Jacobian of the score function after each leaf removal. SCORE [33]
+and CaPS [45] use the second-order Stein gradient estimator [23]. However, kernel-based estimators
+exhibit cubic computational complexity with respect to the number of samples N, and suffer from
+numerical instability due to the kernel matrix inversion. Since the score function must be re-estimated
+iteratively at every step, the procedure becomes computationally problematic in large-scale causal
+graphs as causal discovery algorithms require more data samples as the number of nodes D increases.
+Contrary to kernel-based approaches, DiffAN [35] estimates the Jacobian of the score through the
+Denoising Diffusion Model [13]. Instead of retraining the score model, DiffAN approximates residue
+terms by computing the second-order derivatives of initially trained score model at each ordering step.
+These residual approximations reduce computational burden and allow scalable causal ordering when
+the number of data points increases, but their performance degrade in high-dimensional settings.
+Fundamentally, to identify leaf nodes via the score information, more reliable derivative estimation
+of score models is necessary; otherwise errors may accumulate throughout the ordering process,
+ultimately degrading the causal discovery performance. In particular, we focus on improving the
+approximation of the Hessian diagonal of the log-densities, which is critical for reliable ordering-
+based causal discovery. While modeling the score function via diffusion models is suitable from a
+generative perspective, injecting noise into the data can destroy the functional information inherent
+in the original score function. To address this challenge, inspired by recent advances in score-based
+generative modeling in Hilbert spaces [25, 26], we propose SciNO (Score-informedNeuralOperator),
+a functional diffusion model framework which aims to stably approximate the Hessian diagonal of
+the data distribution by modeling the score function with neural operators [16, 24, 26]. To stably learn
+the derivatives of the score function, we introduce two key modifications to the time-conditioned
+Fourier neural operator architecture used in [ 26]. First, instead of using positional embeddings
+[43], we incorporate a Learnable Time Encoding (LTE) module that enables the model to jointly
+learn spatiotemporal derivatives. Second, signals in Fourier layers are decomposed into their real
+and imaginary parts in the spectral domain, allowing more expressive representation of functional
+information. Consequently, SciNO enables stabilizing the estimation of both the score function and
+its second-order derivatives, thus it significantly improves performances of causal ordering methods,
+including DiffAN and CaPS, especially in high-dimensional settings. Compared to the original
+DiffAN, SciNO achieves a 42.7% reduction in order divergence on synthetic datasets and a 31.5%
+reduction on real-world datasets.
+Building on the stable estimation of SciNO and motivated by [42], we introduce a method to control
+autoregressive generative models, e.g. LLMs and Mamba [ 12], for causal reasoning tasks. While
+recent studies leverage prior knowledge of LLMs to improve causal reasoning accuracy [2, 8, 21, 27,
+42], these approaches often treat LLM responses as binary decisions, failing to reflect uncertainty
+in prior knowledge [ 5] and remaining structurally incompatible with ordering-based approaches
+that sequentially predict leaf nodes. To address these limitations, we propose a probabilistic control
+method which leverages score-informed statistics inferred by SciNO, guiding autoregressive models
+to generate more reliable causal reasoning. Applied to real-world datasets, our method reduces
+order divergence by 64% on average, achieving up to a 79% reduction over uncontrolled models.
+Furthermore, our approach can lower the computational complexity of LLM queries from O(|V| 2) to
+O(|V|) contrary to pairwise prompting methods [1, 8, 15, 20, 27]. Notably, these improvements are
+achieved without fine-tuning or intensive prompt engineering. The main contributions of our work
+are summarized as follows:
+• We propose a functional diffusion model framework with neural operators, SciNO, that
+enables stable estimation of both the score function and its derivatives, which are crucial
+statistics for score matching based causal ordering algorithms assuming ANMs.
+• SciNO enables accurate and scalable causal discovery in high-dimensional settings. We
+empirically show improved performances over existing score matching based causal ordering
+methods in a memory-efficient way, enhancing its scalability to real-world problems.
+2
+===== PAGE 3 =====
+• We also propose a probabilistic control method that enhances causal reasoning ability
+of autoregressive generative models. Without requiring fine tuning, instruction tuning, or
+prompt engineering, it is particularly effective on high-dimensional causal graphs.
+2 Preliminaries
+In this section, we briefly introduce preliminaries for understanding score matching based causal
+ordering methods—SCORE [ 33], DiffAN [35], and CaPS [45]—which differ in terms of identifiability
+assumptions, Hessian approximation, and leaf node selection criteria.
+Additive Noise Models and IdentifiabilityGiven a causal Directed Acyclic Graph (DAG) G, a
+causal order π:V → V is a non-unique permutation of the set of nodes V={1, . . . , D} such that
+for any directed edge from node i to j in G, it holds π(i) < π(j) [30]. Let πk ⊂π k+1 ⊂π denote a
+sequence of causal order corresponding to selected nodes at each step k= 1, . . . ,|V| −1 , and write
+−πk :=V \π k, the indices of remaining nodes. To identify a causal order from observational data D,
+we impose a functional assumption known as the Additive Noise Models (ANMs) [31]:
+xi =f i(Pa(xi)) +ϵ i, ϵ i ∼p i.(2)
+SCORE [33]Assuming (2) with Gaussian noise pi =N(0, σ 2
+i ), where each fi is supposed to be
+nonlinearand twice-continuously differentiable, SCORE proposes an identifiability criterion for
+inferring a topological order of the causal graph G by investigating the variance of the diagonal
+Hessian iteratively. Due to [33, 35, Lemma 1], Var[Dj(x−πk)] = 0 holds if and only if j∈ V \π k is
+a leaf node at stepk+ 1. SCORE proposes an ordering algorithm as follows:
+leaf=argmin
+j∈V\π k
+Varx∼D [Dj(x−πk)].(3)
+CaPS [45]Under conditions on variance of noises, CaPS proposes an identifiability criterion, where
+each fi can be eitherlinearornonlinear, extending its applicability to a wider range of structural
+functions. Under the ANM assumption [45, Theorem 1], CaPS utilizes the expectation of the Hessian
+diagonal to identify leaf nodes according to the following criterion:
+leaf=argmax
+j∈V\π k
+Ex∼D [Dj(x−πk)].(4)
+DiffAN [35]SCORE and CaPS require re-estimating the diagonal Hessian in (3) and (4) for each
+step, resulting in computational overhead when the number of nodes |V|=D increases. DiffAN
+replaces the re-estimation procedure by approximating thedeciduous score S(x−πk), referring to the
+score function over the remaining variables after removing leaf nodes. Due to [35, Theorem 1],
+Sj(x−πk) =S j(x) +
+X
+l∈πk
+
+∂xj Sl(x)· Sl(x)
+∂xl Sl(x)
+
+, j∈ V \π k.(5)
+Based on (5), DiffAN leverages diffusion models to learn the score function S(x) via score model
+bSθ(t,x)neart≈0for approximating the Hessian diagonalD(x −πk)at each step:
+Dj(x−πk)≈∂ xj
+bSθ
+j(t,x) +
+X
+l∈πk
+∂xj
+ 
+∂xj
+bSθ
+l (t,x)·
+bSθ
+l (t,x)
+∂xl
+bSθ
+l (t,x)
+!
+, j∈ V \π k.(6)
+3 Score-informed Neural Operator
+3.1 Score Matching in Function Spaces
+While approximation (6) reduces computational cost, numerical instability is implicit in the computing
+second-order derivatives of score models. Conventional MLPs frequently struggle to accurately
+estimate derivatives [23], so that the curvature information of score models can be deviated from that
+of the true score function. To address this limitation, we employ Hilbert Diffusion Model (HDM,
+[26]), which enables functional diffusion modeling in Hilbert spaces H rather than applying diffusion
+models in Euclidean space. Due to Sobolev embedding theorem [17], we consider the Sobolev space
+H=W k
+2 , where k denotes the order of differentiability, and adopt a class of neural operators [16] to
+learn higher-order derivatives of the score function. See Definition A.1 and Remark A.2 for details.
+3
+===== PAGE 4 =====
+Theorem 3.1(Pointwise Approximation).Let k∈N such that k >2 + D
+2 . For any compect subset
+K⊂Ω⊂ Xandϵ >0, there exists a neural operator bSθ such that
+sup
+x∈K
+X
+|α|≤m
+∂α
+x S(x)−∂ α
+xbSθ(x)
+ ≤ε, m=⌊k− D
+2 ⌋.(7)
+Details of Theorem 3.1 are discussed in Appendix A.2.2. Since we assume k >2 + D
+2 , we have
+m≥2 so thatbSθ is at leasttwice continuously differentiablewhich can approximate the target score
+function S∗ with respect to the Hölder norm ∥ · ∥Ck− D
+2
+. Theorems A.1 and A.2 are crucial for the
+approximation (6) to the Hessian diagonal D(x) since they supports the numerical stability (35) and
+guarantees the approximation power (37) for computing the second-order derivatives of score models.
+Note that our theory is designed to approximate the target score functionS∗ =∇xlogP data via neural
+operators. The connection to the marginal score model follows a fundamental procedure in diffusion
+models. Approximation to marginal score functions with a time variable via neural operators in Hilbert
+space,bSθ(t,·)≈S(t,·) for each t, is proved in prior work on HDM [26]. Hence the completeness of
+Hilbert space implies that the distance betweenbSθ(·) and the sequence of functional diffusion models
+will close to zero as we train score models accurately. Based on HDM and the above approximation
+power of neural operators, we introduce the architecture of SciNO (Score-informedNeuralOperator)
+in the following section, a specially designed neural operator which aims to stably approximate the
+Hessian diagonalD(x)to enhance score matching based causal discovery algorithms.
+3.2 Architecture of SciNO
+(a) Time-conditioned FNO (b) SciNO with LTE
++ +
+Fourier Layer
+Skip-connection Skip-connection
+iFFTFFT Factorized 
+SpectralConv
+Positional  
+Embedding
+<latexit sha1_base64="PDkh6F7R6CbK+Snno2BKb5H+BH8=">AAACSXicbVDLTgIxFO2AD8QX6NJNIzFxRWaMryWJG5eQyCMBQjrlDjR0OpP2jkIIX+BWv8ov8DPcGVd2gIWAN2lycs59nB4/lsKg6346mezW9s5ubi+/f3B4dFwonjRMlGgOdR7JSLd8ZkAKBXUUKKEVa2ChL6Hpjx5SvfkM2ohIPeEkhm7IBkoEgjO0VA17hZJbdudFN4G3BCWyrGqv6Fx1+hFPQlDIJTOm7bkxdqdMo+ASZvlOYiBmfMQG0LZQsRBMdzp3OqMXlunTINL2KaRz9u/ElIXGTELfdoYMh2ZdS8l/tZTRJjBWpJtq36Tn1rxhcN+dChUnCIovrAWJpBjRNCjaFxo4yokFjGthf0f5kGnG0ca5sl3BC44RxqsHFvTccN6m7K1nugkaV2XvtnxTuy5VKsu8c+SMnJNL4pE7UiGPpErqhBMgr+SNvDsfzpfz7fwsWjPOcuaUrFQm+wvIK7N3</latexit>
+t
+MLPspec
+Learnable Time Encoding
+concat 
+& norm
+Skip-connection
++
+Fourier Layer
+FFT ×
+real
+imag
+MLPspec Complexconcat iFFT
+<latexit sha1_base64="PDkh6F7R6CbK+Snno2BKb5H+BH8=">AAACSXicbVDLTgIxFO2AD8QX6NJNIzFxRWaMryWJG5eQyCMBQjrlDjR0OpP2jkIIX+BWv8ov8DPcGVd2gIWAN2lycs59nB4/lsKg6346mezW9s5ubi+/f3B4dFwonjRMlGgOdR7JSLd8ZkAKBXUUKKEVa2ChL6Hpjx5SvfkM2ohIPeEkhm7IBkoEgjO0VA17hZJbdudFN4G3BCWyrGqv6Fx1+hFPQlDIJTOm7bkxdqdMo+ASZvlOYiBmfMQG0LZQsRBMdzp3OqMXlunTINL2KaRz9u/ElIXGTELfdoYMh2ZdS8l/tZTRJjBWpJtq36Tn1rxhcN+dChUnCIovrAWJpBjRNCjaFxo4yokFjGthf0f5kGnG0ca5sl3BC44RxqsHFvTccN6m7K1nugkaV2XvtnxTuy5VKsu8c+SMnJNL4pE7UiGPpErqhBMgr+SNvDsfzpfz7fwsWjPOcuaUrFQm+wvIK7N3</latexit>
+t MLPLTE
+cos
+sin
+Linear 
+ProjectionLinear 
+Projection
+addition
+Figure 1: Architectures of time-conditioned FNO [26] and SciNO with Learnable Time Encoding.
+Table 1: Comparison of order divergence in Erdös-Rényi synthetic datasets forD∈ {10,30,50,100}
+between DiffAN w/ MLP [35], DiffAN w/ SciNO (PE), and DiffAN w/ SciNO (LTE).
+Method\Dataset ER(d10) ER(d30) ER(d50) ER(d100)
+DiffAN w/ MLP [35] 3.2±1.99 26.7±8.1 45.5±7.51 117.0±12.78
+DiffAN w/ SciNO (PE) 2.5±1.36 19.0±6.91 41.4±11.33 100.7±15.62
+DiffAN w/ SciNO (LTE) 2.7±1.1916.9±6.1232.8±6.5586.6±12.99
+Score-based generative modeling necessitates time-conditioning to model score functionsbSθ(t,x)
+over continuous time. Following the approach in DDPM [13], HDM implements time-conditioned
+Fourier Neural Operator (FNO, [24]) by adding projected tensors from Positional Embedding (PE,
+[43]) module into each Fourier layer, which transforms the input into the spectral domain and
+performs spectral convolution to capture global patterns while supporting stable estimation of
+function derivatives. However, while the time-conditioned FNO performs well in functional generative
+modeling, it shows slight improvements over the MLP-based DiffAN in causal orderings tasks. This
+is due to the instability in estimating the derivatives of the score functionS(x)neart≈0.
+To stably learn the derivatives of the score function, we propose two major modifications to the
+architecture used in [26]. First, signals in Fourier layers are decomposed into their real and imaginary
+parts in the spectral domain, allowing more expressive representation of functional information. With
+the modified Fourier layer, SciNO achieves improved causal ordering performance compared to the
+original DiffAN. However, this performance gain relatively decreases as the number of variables
+4
+===== PAGE 5 =====
+increases (see SciNO (PE) in Table 1). To scale-up SciNO for high-dimensional graphs, rather
+than assigning fixed embedding vectors to discrete positions as in PE, we propose a learnable
+encoding function defined over a continuum,Learnable Time Encoding(LTE) module, that enables
+the model to jointly learn derivatives in both spatial and temporal directions. The detailed architectural
+specifications for time-conditioned FNO [26] and SciNO are provided in Appendix A.3.
+Learnable Time Encoding in SciNOWe first project the time variable t using F -dimensional
+learnable weights wproj ∈R F , to get a projected vector twproj. Then, we obtain a normalized signal
+Φ(t) = [cos(tw proj),sin(tw proj)]/
+√
+2F , which is passed through an MLPLTE :R 2F →R H layer.
+This embedding is similar to [22], which is designed for multi-dimensional spatial PE. Then, we inject
+the time encoding via elementwise multiplication into both the real and imaginary parts before the
+input of MLPspec in Fourier layers (see Figure 1). This continuous encoding aims to learn functional
+information, including spatiotemporal derivatives, and aligns with the objective of fitting higher-order
+derivatives by enabling a more flexible representation. Consequently, the LTE module contributes to
+more stable Jacobian estimation and allows SciNO to outperform baselines more clearly as graph
+dimensionality increases, highlighting its scalability (see SciNO (LTE) in Table 1; additional ablation
+results are provided in Appendix A.5.1).
+1 2 3 4 5 6 7 8 9
+Graph Index
+0.4
+0.2
+0.0
+0.2
+0.4
+Residual
+DiffAN w/ MLP
+DiffAN w/ SciNO
+Figure 2: Boxplots of residuals in estimation error of Hessian diagonals corresponding to leaf nodes
+across 9 synthetic 2D datasets generated from Structural Equation Models (SEMs).
+1.07 1.08 1.09 1.10 1.11 1.12
+Best MMD
+12.5
+15.0
+17.5
+20.0
+22.5
+25.0
+27.5
+30.0Order Divergence
+Spearman  = 0.226
+ER(d30)
+1.34 1.36 1.38 1.40
+Best MMD
+35
+40
+45
+50
+55Order Divergence
+Spearman  = 0.042
+ER(d50)
+0.014 0.016 0.018 0.020 0.022
+Best MMD
+25.0
+27.5
+30.0
+32.5
+35.0
+37.5
+40.0
+42.5Order Divergence
+Spearman  = 0.453
+ER(d30)
+0.025 0.030 0.035 0.040
+Best MMD
+35
+40
+45
+50
+55
+60Order Divergence
+Spearman  = 0.561
+ER(d50)
+DiffAN w/ MLP DiffAN w/ SciNO
+Figure 3: Comparion of correlation between the best MMD and order divergence in Erdös-Rényi
+synthetic datasets forD∈ {30,50}between DiffAN [35] and DiffAN w/ SciNO.
+SciNO elaboratesmore explicitCausal RelationshipFigure 2 shows that DiffAN with SciNO
+consistently achieves residuals closer to zero when approximating Hessian diagonal D(x) than the
+original DiffAN. This result indicates that functional diffusion modeling upon SciNO provides more
+stable approximation of the score function and its derivatives. We also investigate whether SciNO
+learns causal relationship explicitly by evaluating the goodness-of-fit between generated samples and
+data distributions, and analyzing its alignment with causal ordering. Leveraging diffusion models on
+Erdös-Rényi synthetic datasets, we first generate samples by using trained score models implemented
+by DiffAN with MLP and SciNO. We then measure the Maximum Mean Discrepancy (MMD, [11])
+between the generated samples and the data, and estimate the Spearman rank correlation between
+the best MMD and order divergence for each model. Figure 3 shows significant positive correlation
+(ER(d30): 0.453, ER(d50): 0.561) between the goodness-of-fit and causal ordering by SciNO contrary
+5
+===== PAGE 6 =====
+to MLP. Overall, these findings indicate that SciNO’s stable approximation of the score function and
+its derivatives leads the model to learn an explicit causal relationship.
+SciNO enablesmemory efficientHessian ApproximationFor scalable causal ordering across
+both linear and nonlinear ANM settings, one can directly replace the score matching in DiffAN and
+CaPS by SciNO to approximate the Hessian diagonal D(x) through (6). Alternatively, one can apply
+a probing strategy built upon pretrained SciNO during the causal ordering, by freezing the Fourier
+layers and post-optimize MLPfinal to match the Stein gradient estimator [23]. This probing strategy
+proves useful when applying SciNO to CaPS, which allows fast and memory-efficient adaptation
+to the Hessian of marginalized density by avoiding the computation of kernel matrix inverse with
+whole dataset for each iteration, and does not require retraining of the entire network (Figure 4).
+While CaPS requires O(N 3) computational complexity depending on the number of samples N, the
+probing requiresO(T B 2N)with training epochsT(≪N) and mini-batches of sizeB(≪N). We
+also provide the runtime comparison in Figure A.5 for empirical reference.
+3.3 Probabilistic Control of Autoregressive Causal Ordering
+While SciNO is a stable and scalable method for ordering-based causal discovery, its performance
+can be further enhanced by incorporating semantic information [2, 8, 21, 27, 42]. Motivated by [42]
+demonstrating the benefits of using LLMs for ordering tasks, we introduce a probabilistic control
+method that bridges ordering-based causal discovery and LLM-based reasoning.
+Our approach reinterprets the sequence generation of autoregressive models, e.g. Large Language
+Models (LLMs), as a causal ordering process. These models generate a sequence due to the
+conditional distribution PAR(xt+1|x1:t,context) over the next position xt+1 given a sequence
+x1:t = (x1, . . . , xt). Here, context refers to contextual information such as documental guidance
+(e.g. variable names or descriptions) or domain knowledge that helps to infer a causal structurea
+prioriamong the variables. From a causal ordering perspective, x1:t represents variables whose
+causal orders are predicted, while xt+1 corresponds to a candidate variable for the next leaf node. We
+construct an evidence (likelihood) based on statistics estimated from observed data using SciNO, and
+propose a method to integrate the prior and the evidence to infer the posterior probability as follows:
+P(xt+1|x1:t,stat,context)∝P AR(xt+1|x1:t,context)×P SciNO(stat|x1:t+1).(8)
+Here, stat in the evidence term PSciNO(stat|x1:t+1) denotes a statistic based on D(x), which can
+be used to determine the leaf node due to the identifiability criterion (3) or (4), proposed in SCORE
+[33] and CaPS [45], respectively. In this paper, we focus on the criterion(3) without loss of generality.
+We propose two estimators for computing PSciNO(stat|x1:t+1) based on statistics, average rank and
+confidence interval of Varx∼D[Di(x)] of each node i∈ V . The node set V represents all variables
+in the causal graph, where |V|=D is the number of variables. To compute these statistics, a
+multiple number of variance samples is essential and can be obtained by applying the MCMC,
+bootstrapping, or ensemble technique. We apply Deep Ensembles [19] to train multiple independent
+models with different initializations. Note that due to the probing strategy, one can train multiple
+models from a single pretrained SciNO, enabling a memory-efficient ensemble strategy. Let σ(m)
+i
+denote
+p
+Varx∼D[Di(x)] for a given independently trained model m∈ {1, . . . , M} and node i∈ V .
+Rank-based ControlRank-based control uses the statistic of the rank of Var x∼D[Di(x)]:
+P(rank)
+SciNO (Varx∼D [Di(x)]<Var x∼D [Dj(x)]|x 1:t, xt+1 =i), j∈ V \π t.(9)
+Let πt denote the partial causal order fixed by x1:t. Motivated from Plackett–Luce model [32], we
+approximate (9) by computing the average rank¯r(i)for each nodei∈ Vacross models:
+bP (rank)
+m∼M (σ(m)
+i < σ (m)
+j |x1:t, xt+1 =i) = exp (−¯r(i))P
+j∈V\π t exp (−¯r(j)),¯r(i) = 1
+M
+MX
+m=1
+r(m)
+i .(10)
+Here r(m)
+i denotes the rank of σ(m)
+i , sorted in ascending order for each model. A lower average rank
+implies that the node consistently exhibits minimal variance across models. Rank-based estimator
+(10) provides a scale-invariant and outlier-robust way to compare variances across models.
+6
+===== PAGE 7 =====
+Confidence Interval-based ControlDue to the Central Limit Theorem (CLT), the sample mean of
+(σ(m)
+i )2 approximates a Gaussian distribution, from which we derive the confidence intervalCI(i). Let
+CIlower(i) and CIupper(i) denote the lower and the upper bound of the confidence interval. Confidence
+interval-based control utilizes the following statistic of the uncertainty in(σ (m)
+i )2 estimation:
+P(CI)
+SciNO(CIlower(i)≤CI upper(j∗)|x1:t, xt+1 =i), j ∗ =argmin
+j∈V\π t
+Varx∼D [Dj(x)].(11)
+We approximate the probability (11) using the following empirical estimator:
+bP (CI)
+m∼M(CIlower(i)≤CI upper(j(m)
+min)|x1:t, xt+1 =i) =
+MX
+m=1
+1
+h
+CIlower(i)≤CI upper(j(m)
+min)
+i
+M .(12)
+Here, j(m)
+min denotes the node j of minimal σ(m)
+j , and 1[·] is the indicator function. Instead of directly
+comparing variance estimates, estimator (12) can account for the uncertainty across different models.
+Algorithm 1:Probabilistic Control of Autoregressive Causal Ordering
+Input:Variable listV=V context ∪ V¬context
+Output:Causal orderπ
+1Initializeπ← ∅
+2whileV −π ̸=∅do
+3Letx π ←(x π(i) :i= 1, . . . ,|π|)and setV −π :=V \π
+4foreachv∈ V −π do
+5Compute priorP AR(v|xπ,context)
+6Compute evidence bPSciNO(v);// by(10)or(12)
+7ifv∈ V context then
+8ComputeP(v)←P AR(v|xπ,context)· bPSciNO(v);// soft supervision
+9else
+10ComputeP(v)← 1
+|V−π|
+bPSciNO(v);// hard supervision
+11Select leaf nodev ∗ =argmax
+v∈V−π
+P(v)and updateπ←π∪ {v ∗}
+12returnπ
+Algorithm 1 presents our probabilistic control of autoregressive causal ordering, by using the esti-
+mators proposed in (10) or (12). Each variable belongs to either Vcontext, which contains variables
+with contextual information or domain knowledge, or V¬context otherwise. The posterior computation
+differs depending on which set the variable belongs to. For v∈ V context, the algorithm appliessoft
+supervisionwhich updates the prior prediction of autoregressive model by multiplying the evidence
+term (10) or (12). If variables in v∈ V ¬context, then the algorithm applieshard supervisionby impos-
+ing a uninformative prior, which selects a leaf node based on the evidence term. These supervisions
+enable the autoregressive model to operate reliably with mixed levels of contextual information.
+4 Empirical Results
+We evaluate whether the proposed method improves existing ordering-based methods, DiffAN [35]
+and CaPS [45]. Additional baseline comparisons are provided in Appendix A.5.2. Given the inferred
+order, we apply a pruning based on feature selection [4] to compare the structural accuracies achieved
+by the resulting causal graphs across different ordering methods. We also validate causal ordering
+performances by applying a probabilistic control to LLMs and analyze the resulting changes in
+probability distributions. Evaluation metrics include Order Divergence (OD, [33]) for causal ordering,
+Structural Hamming Distance (SHD, [29]) and Structural Intervention Distance (SID, [41]) for causal
+discovery. See Appendix A.4.2 for details on each metric.
+4.1 Synthetic Data: Erdös-Renyi Random Graphs
+DatasetWe generate causal DAGs using the Erdös–Rényi (ER) model [ 9]. For a graph with D
+nodes, we set the expected number of edges to 4D. We sample node values according to a nonlinear
+7
+===== PAGE 8 =====
+ANM with Gaussian noise, where the functions are generated by a Gaussian Process with a Radial
+Basis Function (RBF) kernel with fixed bandwidth 1. To evaluate model’s scalability, we vary the
+number of nodes across 2, 3, 5, 10, 30, 50, and 100. For each case, we generate 10 random graphs
+and produce 1,000 samples per graph.
+ResultsTable 2 shows that SciNO improves the performance of DiffAN in most metrics, particularly
+in terms of OD, and remains scalable in high-dimensional settings, notably reducing OD from 117.0
+to 86.6 when D= 100 . The top line graphs in Figure A.4 show the cumulative order divergence,
+which measures the inaccurate prediction over the leaf nodes. Original DiffAN accumulates OD more
+rapidly as the ordering progresses, while SciNO maintains more accurate prediction, particularly in
+high-dimensional settings (D∈ {30,50}) . The bottom of heatmap in Figure A.4 visualizes the ranked
+variance of the estimated Hessian diagonal for each variable at ordering steps {10,20,30} on ER
+graphs with 30 nodes. SciNO provides more accurate leaf node predictions and assigns consistently
+lower variances to ground-truth leaves, due to the stable estimation of the Hessian diagonal.
+Table 2: Comparison of causal discovery metrics(OD/SHD/SID) between DiffAN [35] and DiffAN
+with SciNO in (a) synthetic datasets and (b) real and semi-synthetic datasets: Physics, Sachs, and
+BNLearn withnonlinearANM. Each score is recorded over 10 random graphs for synthetic datasets,
+and over 10 independent runs for real and semi-synthetic datasets.
+Dataset\Metric DiffAN [35] DiffAN w/ SciNO (Ours)
+OD (↓) SHD (↓) SID (↓) OD (↓) SHD (↓) SID (↓)
+ER(d2) 0.2±0.4 0.3±0.64 0.3±0.64 0.0±0.00.0±0.00.0±0.0
+ER(d3) 0.4±0.49 0.7±0.9 1.1±1.58 0.1±0.30.2±0.60.4±1.2
+ER(d5) 1.1±1.22 1.8±1.78 3.6±4.32 0.9±1.141.7±1.95 4.8±4.94
+ER(d10) 3.2±1.99 21.9±3.47 47.8±10.20 2.7±1.1920.5±3.541.6±9.31
+ER(d30) 26.7±8.1 94.2±17.57 546.3±82.80 16.9±6.1288.8±16.5492.0±91.64
+ER(d50) 45.5±7.51 184.2±14.63 1690.3±133.5532.8±6.55180.0±15.451622.0±110.92
+ER(d100) 117.0±12.78 463.3±27.64 7562.2±435.9486.6±12.99445.9±32.847259.2±653.27
+Physics(d7) 3.3±0.78 8.6±2.06 16.8±4.73 1.9±0.545.8±1.608.2±4.62
+Sachs(d8) 5.7±2.69 22.8±4.56 26.1±10.34 5.6±2.65 23.1±3.8623.3±9.10
+MAGIC-NIAB(d44)8.8±6.85 89.1±25.85 227.2±157.64 4.1±0.7072.0±4.52125.5±28.08
+ECOLI70(d46) 21.8±4.26 111.0±11.47 684.8±80.67 12.8±3.1990.3±7.13500.9±58.16
+MAGIC-IRRI(d64)12.0±3.87 146.9±13.46 321.9±64.64 10.6±1.69144.5±4.43254.4±39.66
+ARTH150(d107) 43.3±15.77 613.3±72.49 2456.0±953.0821.4±2.76515.6±15.261186.7±104.19
+Table 3: Comparison of causal discovery metrics(OD/SHD/SID) between CaPS [45] and CaPS with
+SciNO in BNLearn datasets withlinearANM. Each score is recorded over 10 independent runs.
+Dataset\Metric CaPS [45] CaPS w/ SciNO (Ours)
+OD (↓) SHD (↓) SID (↓) OD (↓) SHD (↓) SID (↓)
+MAGIC-NIAB(d44)36 160 1024 37.5±0.50 165.4±0.50 1185.9±5.61
+ECOLI70(d46) 25 134 786 25.4±0.80 141.3±4.78 882.4±13.02
+MAGIC-IRRI(d64)41 179 1192 41.6±0.80 183.5±2.97 1280.7±36.83
+ARTH150(d107) 49 406 3051 48.2±0.87380.0±4.632799.1±73.26
+4.2 Real and Semi-Synthetic Data
+DatasetWe use three datasets to evaluate causal structure learning in real-world graphs: (i) A
+Physics commonsense-based synthetic dataset comprising 5,000 nonlinear-SEM samples generated
+over a 7-variable water-evaporation DAG [20]. (ii) The Sachs flow-cytometry dataset [34] comprises
+7,466 single-cell measurements of 8 proteins after removing cyclic terminal nodes. (iii) The BNLearn
+collection of four real-world graphs— MAGIC-NIAB [ 38] (44 nodes/ 66 edges), ECOLI70 [ 36]
+(46 nodes/ 70 edges), MAGIC-IRRI [37] (64 nodes/ 102 edges), ARTH150 [28] (107 nodes/ 150
+edges)—each simulated with 10,000 samples under both linear and nonlinear Structural Equation
+Models (SEMs). Detailed sampling procedures are provided in the Appendix A.4.1.
+ResultsConsistent with the results on ER synthetic graphs, DiffAN with SciNO outperforms the
+MLP-based model across all real datasets (see Table 2). As discussed in Section 3.2, SciNO can
+be applied to both methods that assume nonlinear relationships, such as DiffAN [35], and methods
+based on linear structures, such as CaPS [ 45]. Table 3 compares the performances of the original
+8
+===== PAGE 9 =====
+CaPS and CaPS with probed SciNO on BNLearn datasets under linear ANM. SciNO achieves
+comparable performances across all datasets in terms of OD, with improved results observed on
+higher-dimensional graphs such as MAGIC-IRRI and ARTH150. As shown in Figure 4, while CaPS
+fails to scale to large datasets due to memory constraints, probed SciNO exhibits significantly lower
+memory usage.
+102 103 104 105
+Sample Size
+101
+102
+103
+104
+105
+106
+107
+108
+Memory Usage (MB)
+OOM
+MAGIC-NIAB(d44)
+DiffAN
+CaPS
+DiffAN w/ SciNO
+CaPS w/ SciNO
+102 103 104 105
+Sample Size
+101
+102
+103
+104
+105
+106
+107
+108
+OOM
+ECOLI70(d46)
+DiffAN
+CaPS
+DiffAN w/ SciNO
+CaPS w/ SciNO
+102 103 104 105
+Sample Size
+101
+102
+103
+104
+105
+106
+107
+108
+OOM
+MAGIC-IRRI(d64)
+DiffAN
+CaPS
+DiffAN w/ SciNO
+CaPS w/ SciNO
+102 103 104 105
+Sample Size
+101
+102
+103
+104
+105
+106
+107
+108
+OOM
+ARTH150(d107)
+DiffAN
+CaPS
+DiffAN w/ SciNO
+CaPS w/ SciNO
+Figure 4: Comparison of GPU memory usage of DiffAN [35], CaPS [45], SciNO during the causal
+ordering process while scaling up the sample size. SciNO demonstrates memory efficiency while
+CaPS suffers out-of-memory (OOM) errors when the number of samples is larger than 100,000.
+Identify the most likely leaf node in a causal structure. 
+A leaf node is a variable that does not causally influence 
+any other variable in the given `Unordered Variables` set. 
+Input: 
+  Unordered Variables: ["TSI", "SAT", "WS"] 
+  Data Description: Physics-based environmental variables 
+with causal relations 
+  Variable Descriptions: [ 
+    {"TSI": "Total Solar Irradiance"}, 
+    {"SAT": "Surface Air Temperature"}, 
+    {"WS": "Wind Speed"}, 
+ ]
+LLM Prompt
+WS
+Uncontrolled 
+LLM Output
+Wgt ER…
+SAT
+Controlled 
+LLM OutputControl by SciNO
+Unordered Variables
+Select leaf node
+[ ]
+<latexit sha1_base64="njmz3pH7HOk03iaHaFWqDyh/edI=">AAACl3icdVFbS+QwFE6762287Kz6Ir4EB0FRhnYRV3xRVMQHLyM6KkyHkmYyGkyTkpwuDrV/yR/jm//GdKas4+1AyMc55/vOLUoEN+B5L4774+fI6Nj4RGVyanrmV/X37JVRqaasSZVQ+iYihgkuWRM4CHaTaEbiSLDr6H6/iF//Y9pwJS+hl7B2TG4l73JKwLrC6lMQE7iLoqyRrzyEGaz5+aP9/W3I1wNgD5AZIP8xVbL481UcJFoloPAbPcwGOcfHJ/l3WkN84DEzX9AvKD89swJDxUsRK7caVmte3esb/gz8EtRQaY2w+hx0FE1jJoEKYkzL9xJoZ0QDp4LllSA1LCH0ntyyloWS2K7aWX+vOV62ng7uKm2fBNz3DjMyEhvTiyObWcxhPsYK51exVgrdrXbGZZICk3RQqJsKbBdaHAl3uGYURM8CQjW3vWJ6RzShYE9ZsUvwP478GVz9qfub9c3zjdruXrmOcbSIltAK8tFftIuOUAM1EXXmnW1n3zlwF9wd99A9GqS6TsmZQ+/MPX8FWYnOtQ==</latexit>
+P(xt+1 |x1: t,stat ,context) → PLLM (xt+1 |x1: t,context) ↑ PSciNO (stat |x1: t+1 )
+xt+1
+TSI SAT WS
+Current Causal Order x1:t
+?
+Variable
+TSI 0.1125 0.3350 0.1047
+SAT 0.6237 0.2872 0.6772
+WS 0.2641 0.3778 0.2180
+selected
+True causal graph
+TSI
+RNFL Wgt
+SAT
+ER
+WS
+MC
+1
+<latexit sha1_base64="njmz3pH7HOk03iaHaFWqDyh/edI=">AAACl3icdVFbS+QwFE6762287Kz6Ir4EB0FRhnYRV3xRVMQHLyM6KkyHkmYyGkyTkpwuDrV/yR/jm//GdKas4+1AyMc55/vOLUoEN+B5L4774+fI6Nj4RGVyanrmV/X37JVRqaasSZVQ+iYihgkuWRM4CHaTaEbiSLDr6H6/iF//Y9pwJS+hl7B2TG4l73JKwLrC6lMQE7iLoqyRrzyEGaz5+aP9/W3I1wNgD5AZIP8xVbL481UcJFoloPAbPcwGOcfHJ/l3WkN84DEzX9AvKD89swJDxUsRK7caVmte3esb/gz8EtRQaY2w+hx0FE1jJoEKYkzL9xJoZ0QDp4LllSA1LCH0ntyyloWS2K7aWX+vOV62ng7uKm2fBNz3DjMyEhvTiyObWcxhPsYK51exVgrdrXbGZZICk3RQqJsKbBdaHAl3uGYURM8CQjW3vWJ6RzShYE9ZsUvwP478GVz9qfub9c3zjdruXrmOcbSIltAK8tFftIuOUAM1EXXmnW1n3zlwF9wd99A9GqS6TsmZQ+/MPX8FWYnOtQ==</latexit>
+P(xt+1 |x1: t,stat ,context) → PLLM (xt+1 |x1: t,context) ↑ PSciNO (stat |x1: t+1 )
+<latexit sha1_base64="njmz3pH7HOk03iaHaFWqDyh/edI=">AAACl3icdVFbS+QwFE6762287Kz6Ir4EB0FRhnYRV3xRVMQHLyM6KkyHkmYyGkyTkpwuDrV/yR/jm//GdKas4+1AyMc55/vOLUoEN+B5L4774+fI6Nj4RGVyanrmV/X37JVRqaasSZVQ+iYihgkuWRM4CHaTaEbiSLDr6H6/iF//Y9pwJS+hl7B2TG4l73JKwLrC6lMQE7iLoqyRrzyEGaz5+aP9/W3I1wNgD5AZIP8xVbL481UcJFoloPAbPcwGOcfHJ/l3WkN84DEzX9AvKD89swJDxUsRK7caVmte3esb/gz8EtRQaY2w+hx0FE1jJoEKYkzL9xJoZ0QDp4LllSA1LCH0ntyyloWS2K7aWX+vOV62ng7uKm2fBNz3DjMyEhvTiyObWcxhPsYK51exVgrdrXbGZZICk3RQqJsKbBdaHAl3uGYURM8CQjW3vWJ6RzShYE9ZsUvwP478GVz9qfub9c3zjdruXrmOcbSIltAK8tFftIuOUAM1EXXmnW1n3zlwF9wd99A9GqS6TsmZQ+/MPX8FWYnOtQ==</latexit>
+P(xt+1 |x1: t,stat ,context) → PLLM (xt+1 |x1: t,context) ↑ PSciNO (stat |x1: t+1 )
+<latexit sha1_base64="njmz3pH7HOk03iaHaFWqDyh/edI=">AAACl3icdVFbS+QwFE6762287Kz6Ir4EB0FRhnYRV3xRVMQHLyM6KkyHkmYyGkyTkpwuDrV/yR/jm//GdKas4+1AyMc55/vOLUoEN+B5L4774+fI6Nj4RGVyanrmV/X37JVRqaasSZVQ+iYihgkuWRM4CHaTaEbiSLDr6H6/iF//Y9pwJS+hl7B2TG4l73JKwLrC6lMQE7iLoqyRrzyEGaz5+aP9/W3I1wNgD5AZIP8xVbL481UcJFoloPAbPcwGOcfHJ/l3WkN84DEzX9AvKD89swJDxUsRK7caVmte3esb/gz8EtRQaY2w+hx0FE1jJoEKYkzL9xJoZ0QDp4LllSA1LCH0ntyyloWS2K7aWX+vOV62ng7uKm2fBNz3DjMyEhvTiyObWcxhPsYK51exVgrdrXbGZZICk3RQqJsKbBdaHAl3uGYURM8CQjW3vWJ6RzShYE9ZsUvwP478GVz9qfub9c3zjdruXrmOcbSIltAK8tFftIuOUAM1EXXmnW1n3zlwF9wd99A9GqS6TsmZQ+/MPX8FWYnOtQ==</latexit>
+P(xt+1 |x1: t,stat ,context) → PLLM (xt+1 |x1: t,context) ↑ PSciNO (stat |x1: t+1 )
+Figure 5:(Top)Overview of the LLM control. The LLM is prompted to output the most likely
+leaf node among unordered variables. Prior probabilities are multiplied by SciNO’s data-informed
+evidence terms to compute posteriors. The variable with the highest posterior probability is selected
+as the leaf node.(Bottom)Updated posterior probabilities ■ obtained by the SciNO-based control
+versus LLM prior probabilities ■ of ground-truth leaf nodes at each causal reasoning step (ECOLI70).
+4.3 Controlling LLM for Causal Ordering
+SettingWe prompt LLMs (Llama-3.1-8B-Instruct [ 10], GPT-4o [14]) to predict the leaf node
+among unordered variables, then LLMs output the prior probability PLLM(xt+1|x1:t,context) in
+an autogressive manner (see Figure 5). Compared to pairwise prompt methods [ 1, 8, 15, 20, 27],
+this approach reduces the number of LLM calls from O(|V| 2) to O(|V|). To mitigate bias due to the
+variable name length, we apply a length normalization for α∈ {0.5,1.0} . Full experimental details
+are provided in Appendix A.6.1.
+We evaluate the impact of evidence quality by computing the evidence termP(stat|x1:t+1) with three
+models: SCORE [33], DiffAN [35], and SciNO. For this computation, we employ the estimators from
+(10) and (12). While DiffAN and SciNO are implemented with Deep Ensembles of M= 30 models,
+SCORE uses bootstrapping with 1000 replicates due to its incompatibility with Deep Ensembles.
+9
+===== PAGE 10 =====
+Table 4: Comparison of the OD in BNLearn datasets between GPT-4o, uncontrolled Llama, and
+controlled Llama via SciNO. Differences are expressed as percent change relative to the uncontrolled
+result. Each score is recorded over 10 independent runs.
+Method\Dataset MAGIC-NIAB(d44) ECOLI70(d46) MAGIC-IRRI(d64) ARTH150(d107)
+GPT-4o 11.9±0.94 41.1±2.30 20.9±2.30 77.1±7.46
+Llama-3.1-8b(1-norm)9 32 18 80
+w/ control(rank) 3.2±0.40(▼64.4%)10.6±0.49(▼66.9%)9.9±0.54(▼45.0%)20.4±0.92(▼74.5%)
+w/ control(CI) 2.0±0.00(▼77.8%)9.9±1.97(▼69.1%)11.1±0.83(▼38.3%)18.9±1.14(▼76.4%)
+Llama-3.1-8b(0.5-norm)14 32 17 80
+w/ control(rank) 4.1±0.83(▼70.7%)10.5±0.92(▼67.2%)9.1±0.30(▼46.5%)20.4±0.92(▼74.5%)
+w/ control(CI) 2.9±0.30(▼79.3%)9.8±1.83(▼69.4%)10.1±0.83(▼40.6%)18.9±1.14(▼76.4%)
+ResultsLlama-3.1 and GPT-4o, recognized as high-performance reasoning LLMs, exhibit signif-
+icant limitations when confronted with high-dimensional causal graphs. Figure 5 shows the LLM
+prior and updated posterior probabilities of ground-truth leaf nodes at each reasoning step on the
+ECOLI70 dataset. Prior probabilities remain predominantly below 0.2, indicating poor predictive per-
+formance when faced with a large number of variables. In contrast, updated posterior probabilities in
+overall steps show that LLM control can reduce inaccurate leaf prediction, thereby enhancing causal
+reasoning. Consequently, Table 4 shows that the SciNO-based control improves performance across
+all datasets with more than 40 nodes, achieving up to 75% improvement on ARTH150. Note that the
+control method also outperforms the results reported in Table 2, which indicates that incorporating
+semantic information contributes in causal ordering.
+We benchmarked our SciNO-based control against the same algorithm using evidence from DiffAN
+and SCORE. The full results are presented in Table A.7. On high-dimensional datasets, the SciNO-
+based control yields a 64% average OD reduction, substantially higher than the 46% reduction from
+DiffAN. This indicates that the performance gain is attributable to both the novel control method and
+reliable evidence provided by SciNO. The results in Table 4 are obtained under the setting where all
+variables are well-described, i.e., Vcontext =V in Algorithm 1. See Appendix A.6.2 for other settings
+whenV context ̸=V.
+5 Conclusion and Limitation
+We propose SciNO, a functional diffusion model framework that enables accurate causal ordering
+through stable approximation of the Hessian diagonal. SciNO consistently enhances existing score
+matching based causal ordering methods in both accuracy and scalability across diverse synthetic
+and real-world causal graph benchmarks. We further propose a probabilistic control method for
+supervising autoregressive generative models to generate more reliable causal reasoning by using
+score-informed statistics estimated by SciNO. In real-world decision making, the inaccuracy of causal
+discovery algorithms may cause detrimental consequences. Our method improves the reliability of
+causal ordering by contributing to more trustworthy reasoning and safer downstream applications.
+While SciNO demonstrates its effectiveness in various causal ordering tasks, several aspects of its
+applicability remain to be explored. First, the score matching based causal discovery frameworks
+mainly assume ANMs, whose identifiability is restricted within additive functional relations. Second,
+SciNO is currently limited to continuous random variables. Future research will explore extending
+the framework to accommodate discrete or mixed-type datasets, as well as multimodal or structured
+inputs such as images, text, or temporal sequences.
+Acknowledgments and Disclosure of Funding
+This work was supported by LG AI Research and also supported by the NRF grant funded by the Korea
+government (MSIT) (No.RS-2024-00410082, 50%) and (No. NRF-2022M3J6A1063595), and also
+supported by Institute of Information & communications Technology Planning & Evaluation(IITP)
+grant funded by the Korea government (MSIT)(No.2022-0-00612, 50%), (No. RS-2024-00436857,
+ITRC, 20%) and (No.RS-2019-II190079, Artificial Intelligence Graduate School Program (Korea
+University)).
+10
+===== PAGE 11 =====
+References
+[1] Alessandro Antonucci, Gregorio Piqué, and Marco Zaffalon. Zero-shot causal graph extrapola-
+tion from text via LLMs.arXiv preprint arXiv:2312.14670, 2023.
+[2] Taiyu Ban, Lyuzhou Chen, Xiangyu Wang, and Huanhuan Chen. From query tools to causal
+architects: Harnessing large language models for advanced causal discovery from data.CoRR,
+2023.
+[3] Daniel Bernstein, Basil Saeed, Chandler Squires, and Caroline Uhler. Ordering-based causal
+structure learning in the presence of latent variables. InInternational conference on artificial
+intelligence and statistics, pages 4098–4108. PMLR, 2020.
+[4] Peter Bühlmann, Jonas Peters, and Jan Ernest. CAM: Causal additive models, high-dimensional
+order search and penalized regression.The Annals of Statistics, pages 2526–2556, 2014.
+[5] Haoang Chi, He Li, Wenjing Yang, Feng Liu, Long Lan, Xiaoguang Ren, Tongliang Liu, and
+Bo Han. Unveiling causal reasoning in large language models: Reality or mirage?Advances in
+Neural Information Processing Systems, 37:96640–96670, 2024.
+[6] David Maxwell Chickering. Learning Bayesian networks is NP-complete.Learning from data:
+Artificial intelligence and statistics V, pages 121–130, 1996.
+[7] David Maxwell Chickering. Optimal structure identification with greedy search.Journal of
+machine learning research, 3(Nov):507–554, 2002.
+[8] Victor-Alexandru Darvariu, Stephen Hailes, and Mirco Musolesi. Large Language Models are
+Effective Priors for Causal Graph Discovery.arXiv e-prints, 2024.
+[9] Paul Erdos and Alfred Renyi. On the evolution of random graphs.Publ. Math. Inst. Hung. Acad.
+Sci., 5(1):17–60, 1960.
+[10] Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian,
+Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Alex Vaughan, et al. The llama
+3 herd of models.arXiv preprint arXiv:2407.21783, 2024.
+[11] Arthur Gretton, Karsten M. Borgwardt, Malte J. Rasch, Bernhard Schölkopf, and Alexander
+Smola. A Kernel Two-Sample Test.Journal of Machine Learning Research, 13(25):723–773,
+2012.
+[12] Albert Gu and Tri Dao. Mamba: Linear-Time Sequence Modeling with Selective State Spaces.
+InFirst Conference on Language Modeling, 2024.
+[13] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising diffusion probabilistic models.Advances
+in neural information processing systems, 33:6840–6851, 2020.
+[14] Aaron Hurst, Adam Lerer, Adam P Goucher, Adam Perelman, Aditya Ramesh, Aidan Clark,
+AJ Ostrow, Akila Welihinda, Alan Hayes, Alec Radford, et al. Gpt-4o system card.arXiv
+preprint arXiv:2410.21276, 2024.
+[15] Emre Kiciman, Robert Ness, Amit Sharma, and Chenhao Tan. Causal Reasoning and Large
+Language Models: Opening a New Frontier for Causality.Transactions on Machine Learning
+Research, 2024. Featured Certification.
+[16] Nikola Kovachki, Zongyi Li, Burigede Liu, Kamyar Azizzadenesheli, Kaushik Bhattacharya,
+Andrew Stuart, and Anima Anandkumar. Neural operator: Learning maps between function
+spaces with applications to pdes.Journal of Machine Learning Research, 24(89):1–97, 2023.
+[17] Nicolai Vladimirovich Krylov.Lectures on Elliptic and Parabolic Equations in Sobolev Spaces,
+volume 96. American Mathematical Soc., 2008.
+[18] Sébastien Lachapelle, Philippe Brouillard, Tristan Deleu, and Simon Lacoste-Julien. Gradient-
+Based Neural DAG Learning. InInternational Conference on Learning Representations, 2020.
+11
+===== PAGE 12 =====
+[19] Balaji Lakshminarayanan, Alexander Pritzel, and Charles Blundell. Simple and scalable
+predictive uncertainty estimation using deep ensembles.Advances in neural information
+processing systems, 30, 2017.
+[20] Chanhui Lee, Juhyeon Kim, YongJun Jeong, Yoonseok Yeom, Juhyun Lyu, Jung-Hee Kim,
+Sangmin Lee, Sangjun Han, Hyeokjun Choe, Soyeon Park, Woohyung Lim, Kyunghoon Bae,
+Sungbin Lim, and Sanghack Lee. On Incorporating Prior Knowledge Extracted from Pre-trained
+Language Models into Causal Discovery. InCausality and Large Models @NeurIPS 2024,
+2024.
+[21] Peiwen Li, Xin Wang, Zeyang Zhang, Yuan Meng, Fang Shen, Yue Li, Jialong Wang, Yang
+Li, and Wenwu Zhu. RealTCD: temporal causal discovery from interventional data with large
+language model. InProceedings of the 33rd ACM International Conference on Information and
+Knowledge Management, pages 4669–4677, 2024.
+[22] Yang Li, Si Si, Gang Li, Cho-Jui Hsieh, and Samy Bengio. Learnable Fourier Features for
+Multi-Dimensional Spatial Positional Encoding.Advances in Neural Information Processing
+Systems, 34:15816–15829, 2021.
+[23] Yingzhen Li and Richard E Turner. Gradient Estimators for Implicit Models. InInternational
+Conference on Learning Representations, 2018.
+[24] Zongyi Li, Nikola Borislavov Kovachki, Kamyar Azizzadenesheli, Kaushik Bhattacharya,
+Andrew Stuart, Anima Anandkumar, et al. Fourier Neural Operator for Parametric Partial
+Differential Equations. InInternational Conference on Learning Representations, 2021.
+[25] Jae Hyun Lim, Nikola B Kovachki, Ricardo Baptista, Christopher Beckham, Kamyar Azizzade-
+nesheli, Jean Kossaifi, Vikram V oleti, Jiaming Song, Karsten Kreis, Jan Kautz, et al. Score-based
+diffusion models in function space.arXiv preprint arXiv:2302.07400, 2023.
+[26] Sungbin Lim, Eunbi Yoon, Taehyun Byun, Taewon Kang, Seungwoo Kim, Kyungjae Lee, and
+Sungjoon Choi. Score-based Generative Modeling through Stochastic Evolution Equations in
+Hilbert Spaces. InThirty-seventh Conference on Neural Information Processing Systems, 2023.
+[27] Stephanie Long, Alexandre Piché, Valentina Zantedeschi, Tibor Schuster, and Alexandre Drouin.
+Causal Discovery with Language Models as Imperfect Experts. InICML 2023 Workshop on
+Structured Probabilistic Inference & Generative Modeling, 2023.
+[28] Rainer Opgen-Rhein and Korbinian Strimmer. From correlation to causation networks: a simple
+approximate learning algorithm and its application to high-dimensional plant gene expression
+data.BMC systems biology, 1:1–10, 2007.
+[29] Jonas Peters and Peter Bühlmann. Structural Intervention Distance for Evaluating Causal
+Graphs.Neural Computation, 27(3):771–799, 03 2015.
+[30] Jonas Peters, Dominik Janzing, and Bernhard Schölkopf.Elements of Causal Inference: Foun-
+dations and Learning Algorithms. MIT Press, 2017.
+[31] Jonas Peters, Joris M Mooij, Dominik Janzing, and Bernhard Schölkopf. Causal discovery with
+continuous additive noise models.The Journal of Machine Learning Research, 15(1):2009–
+2053, 2014.
+[32] Robin L Plackett. The analysis of permutations.Journal of the Royal Statistical Society Series
+C: Applied Statistics, 24(2):193–202, 1975.
+[33] Paul Rolland, V olkan Cevher, Matthäus Kleindessner, Chris Russell, Dominik Janzing, Bernhard
+Schölkopf, and Francesco Locatello. Score Matching Enables Causal Discovery of Nonlinear
+Additive Noise Models. InInternational Conference on Machine Learning, pages 18741–18753.
+PMLR, 2022.
+[34] Karen Sachs, Omar Perez, Dana Pe’er, Douglas A Lauffenburger, and Garry P Nolan.
+Causal Protein-Signaling Networks Derived from Multiparameter Single-Cell Data.Science,
+308(5721):523–529, 2005.
+12
+===== PAGE 13 =====
+[35] Pedro Sanchez, Xiao Liu, Alison Q O’Neil, and Sotirios A Tsaftaris. Diffusion Models for
+Causal Discovery via Topological Ordering. InThe Eleventh International Conference on
+Learning Representations, 2023.
+[36] Juliane Schäfer and Korbinian Strimmer. A shrinkage approach to large-scale covariance matrix
+estimation and implications for functional genomics.Statistical applications in genetics and
+molecular biology, 4(1), 2005.
+[37] M Scutari. Bayesian networks, magic populations and multiple trait prediction. InInvited Talk
+at the 5th International Conference on Quantitative Genetics (ICQG 2016), 2016.
+[38] Marco Scutari, Phil Howell, David J Balding, and Ian Mackay. Multiple quantitative trait
+analysis using Bayesian networks.Genetics, 198(1):129–137, 2014.
+[39] Yang Song, Jascha Sohl-Dickstein, Diederik P Kingma, Abhishek Kumar, Stefano Ermon, and
+Ben Poole. Score-Based Generative Modeling through Stochastic Differential Equations. In
+International Conference on Learning Representations, 2021.
+[40] Peter Spirtes, Clark N Glymour, and Richard Scheines.Causation, prediction, and search. MIT
+press, 2000.
+[41] Ioannis Tsamardinos, Laura Brown, and Constantin Aliferis. The Max-Min Hill-Climbing
+Bayesian Network Structure Learning Algorithm.Machine Learning, 65:31–78, 10 2006.
+[42] Aniket Vashishtha, Abbavaram Gowtham Reddy, Abhinav Kumar, Saketh Bachu, Vineeth N.
+Balasubramanian, and Amit Sharma. Causal Order: The Key to Leveraging Imperfect Experts
+in Causal Inference. InThe Thirteenth International Conference on Learning Representations,
+2025.
+[43] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez,
+Łukasz Kaiser, and Illia Polosukhin. Attention is all you need.Advances in neural information
+processing systems, 30, 2017.
+[44] Yonghui Wu, Mike Schuster, Zhifeng Chen, Quoc V Le, Mohammad Norouzi, Wolfgang
+Macherey, Maxim Krikun, Yuan Cao, Qin Gao, Klaus Macherey, et al. Google’s neural machine
+translation system: Bridging the gap between human and machine translation.arXiv preprint
+arXiv:1609.08144, 2016.
+[45] Zhuopeng Xu, Yujie Li, Cheng Liu, and Ning Gui. Ordering-Based Causal Discovery for
+Linear and Nonlinear Relations. InThe Thirty-eighth Annual Conference on Neural Information
+Processing Systems, 2024.
+[46] Yue Yu, Jie Chen, Tian Gao, and Mo Yu. DAG-GNN: DAG structure learning with graph neural
+networks. InInternational conference on machine learning, pages 7154–7163. PMLR, 2019.
+13
+===== PAGE 14 =====
+A Supplementary Material
+In this supplementary material, we provide the information for understanding SciNO with detailed ex-
+planations. The supplementary material is organized as follows: Section A.1 introduces related works
+in ordering based causal discovery, score matching methods, and LLM-assisted causal discovery.
+Section A.2 provides theoretical derivations and proofs for preliminaries and the proposed method.
+Section A.3 explains a detailed description of the architecture of SciNO with layer-by-layer formu-
+lations on how to implement it. Section A.4 describes the experimental setup, datasets, evaluation
+metrics and implementation details of empirical results in Sections 4.1 and 4.2. Section A.5 presents
+additional ablation studies and comparisons with causal discovery baselines. Section A.6 presents
+experimental details in Section 4.3 and additional results on controlling LLMs for causal ordering.
+A.1 Related Works
+A.1.1 Ordering-based Causal Discovery
+Ordering-based causal discovery methods are typically categorized into score matching based and
+non-score matching based approaches. SCORE [33], DiffAN [35], and CaPS [45] are score matching
+based methods that estimate the Hessian of the log density to identify leaf nodes and construct causal
+order. Non-score matching methods such as CAM [4] and GSPo[3] recover the causal order using
+functional assumptions and conditional independence tests, respectively. In this work, we focus on
+the score matching based approaches [33, 35, 45], which estimate gradients of the log-density for
+causal ordering.
+A.1.2 Score Matching and Score-based Generative Models
+A common approach to estimating the score function of a data distribution is to use a gradient
+estimator based on the Stein identity [23]. Stein kernel-based methods allow score estimation without
+an explicit density and have been used in SCORE [33] and CaPS [45]. However, these methods require
+computing the inverse of a kernel matrix, leading to high computational and memory costs. In recent
+work, Diffusion models [13, 39] have emerged as a key method for score estimation in generative
+modeling. However, the commonly used Denoising Diffusion Model [13, 39] is defined over finite-
+dimensional spaces and thus struggle to handle functional data such as derivatives. Functional
+diffusion models [25, 26] address this issue by defining the diffusion process over a Hilbert space
+and learning it directly via score-based modeling. [25, 26] utilize the Neural Operators [16, 24] to
+learn mappings between functions, allowing the model to capture both the functional form and its
+derivatives.
+A.1.3 Causal Discovery with Large Language Models
+Recent studies leverage domain knowledge inferred from LLM as priors or constraints to enhance
+data-driven causal discovery [2, 8, 20, 21, 27, 42]. Most methods adopt pairwise prompts to construct
+causal graphs via repeated queries on variable pairs [1, 8, 15, 20, 27]. To address inability of LLMs
+to distinguish between direct and indirect effects, [ 42] introduces a triplet prompt that queries
+relationships among three variables simultaneously, deriving causal order rather than graph structures.
+Existing methods treat LLMs as a black-box and directly convert generated tokens into binary
+decisions. This obscures uncertainty and limits the scientific explanatory power of causal inference.
+[8] partially addresses this by extracting pairwise edge-direction probabilities from the LLM and
+combining them with mutual information, but this approach remains limited, as it does not directly
+reflect causal relationships, limiting its explanatory power.
+A.2 Proof of Theorems
+A.2.1 Derivation of the Hessian diagonal approximation
+In this section, we derive approximations (5) and (6), which are suggested by DiffAN [35], for the
+sake of completeness. Under the ANM assumption (2), the score functionS(x)can be derived as:
+Sj(x) =∂ xj logP(x) =∂ xj log
+DY
+i=1
+P(x i |Pa(x i)) =∂ xj
+DX
+i=1
+logP(x i |Pa(x i)), j∈ V,(13)
+14
+===== PAGE 15 =====
+where D denotes the number of nodes |V|. Let ϵi =x i −f i. By the change of variable, it holds that
+∂xj
+DX
+i=1
+logP(x i |Pa(x i)) =∂ xj
+DX
+i=1
+logp i(xi −f i)(14)
+= ∂logp j(xj −f j)
+∂xj
+−
+X
+i∈Ch(xj)
+∂fi
+∂xj
+∂logp i(xi −f i)
+∂ϵi
+.(15)
+When a leaf nodex l is marginalized out, the resulting scoreS j(x−l)forx j ∈Pa(x l)becomes:
+Sj(x−l) =S j(x) + ∂fl
+∂xj
+∂logp l(xl −f l)
+∂ϵl
+.(16)
+Letδ j,l denote the residue term added to the score ofx j upon marginalizing outx l:
+δj,l := ∂fl
+∂xj
+· ∂logp l(xl −f l)
+∂ϵl
+.(17)
+Note that the residue termδ j,l vanishes ifx j /∈Pa(xl). For a leaf nodex l, it holds that:
+Sl(x) = ∂logp l(xl −f l)
+∂xl
+= ∂logp l(xl −f l)
+∂ϵl
+· ∂(xl −f l)
+∂xl
+= ∂logp l(xl −f l)
+∂ϵl
+.(18)
+The partial derivatives of the scoreS l(x)with respect tox j for anyj∈ Vare given by:
+∂xj Sl(x) = ∂2 logp l(xl −f l)
+∂ϵ2
+l
+· ∂fl
+∂xj
+.(19)
+In particular, whenj=l, this reduces to:
+∂xl Sl(x) = ∂2 logp l(xl −f l)
+∂ϵ2
+l
+.(20)
+Thus,δ j,l can be rewritten as:
+δj,l = ∂fl
+∂xj
+∂logp l(xl −f l)
+∂ϵl
+(21)
+= ∂2 logp l(xl −f l)
+∂ϵl2 · ∂fl
+∂xj
+· ∂logp l(xl −f l)
+∂ϵl
+. ∂2 logp l(xl −f l)
+∂ϵl2 (22)
+=∂ xj Sl(x)· Sl(x)
+∂xl Sl(x) (23)
+Let πk ⊂π denote the set of selected leaf nodes up to stepk, and −πk =V \π k denote the remaining
+ones. The deciduous score on the remaining variablesS(x −πk)∈R D−|πk| are approximated by:
+Sj(x−πk) =S j(x) +
+X
+l∈πk
+
+∂xj Sl(x)· Sl(x)
+∂xl Sl(x)
+
+, j∈ V \π k.(24)
+Hence we obtain (5). Finally, the Hessian diagonalD(x −πk) =
+
+∂xj Sj(x−πk) :j∈ V \π k
+
+is:
+Dj(x−πk) =∂ xj Sj(x) +
+X
+l∈πk
+∂xj
+
+∂xj Sl(x)· Sl(x)
+∂xl Sl(x)
+
+(25)
+≈∂ xj
+bSθ
+j(t,x) +
+X
+l∈πk
+∂xj
+ 
+∂xj
+bSθ
+l (t,x)·
+bSθ
+l (t,x)
+∂xl
+bSθ
+l (t,x)
+!
+, j∈ V \π k.(26)
+Thus, we obtain the approximation (6).
+Remark A.1.Note that (25) requires the second-order derivatives ofS(x) and so does approximation
+(6) replacing the score function by the score modelbSθ(t,x).
+15
+===== PAGE 16 =====
+A.2.2 Approximation Power of Neural Operators
+Score-based Generative Modeling in Function SpacesFor readers who are not familiar with
+functional diffusion modeling, we briefly introduce a time-reversal theory of score-based generative
+modeling in Hilbert spaces [26].
+Consider the following stochastic evolution equations in the Hilbert spaceH:
+dXt =B t(Xt)dt+G tdWt,d bXt = bBt(bXt)dt+ bGtdWt, t∈[0, T],(27)
+where (Xt,bXt) is a pair of forward and reverse stochastic processes with coefficients(Bt,G t)t∈[0,T]
+and (bBt,bGt)t∈[0,T] , and Wt is an H-valued Wiener process. [26, Theorem 2.1] provides the time-
+reversal formula which connects pairs(X t,bXt)to have the same marginal distribution:
+bBt(u) =−B T−t (u) +S T−t (u), bGt =G T−t , t∈[0, T].(28)
+Here St denotes the score operator for each marginal probability measures (µt)t∈[0,T] of the solution
+to the forward equation. Therefore, we can generate samples frombXT ∼P data and approximate the
+score operator of Pdata in function spaces by training the score modelbSθ(t,·) and running the reverse
+equation with replacing the score operator S(t,·) in (28) by the trained score modelbSθ(t,·) for each
+t∈[0, T] . Therefore, the learning objective of score-based generative modeling in function spaces is
+equivalent to the score matching betweenS(t,·)and bSθ(t,·)in the Hilbert spaceH[25, 26].
+Proof of Theorem 3.1To explain the statement in Theorem 3.1 precisely, let us introduce necessary
+definitions and theorems. We first introduce Sobolev spaces and Sobolev embedding theorem [17],
+which are main elements for understanding a fundamental theory in neural operators [16].
+Definition A.1([17, Chapter 1.3]).LetW k
+2 =W k
+2 (X)be the Sobolev space with the norm:
+∥f∥ W k
+2
+:=
+X
+|α|≤k
+∥∂α
+x f∥ L2(X) (29)
+with the inner-product:
+⟨f, g⟩W k
+2
+:=
+X
+|α|≤k
+⟨∂α
+x f, ∂ α
+x g⟩L2 .(30)
+Remark A.2.Note that the inner-product (30) induces the norm which is equivalent to the Sobolev
+norm (29). Due to the Sobolev embedding theorem [17, Chapter 10], it holds that
+W k
+2 ⊂C k− D
+2 ,(31)
+whereC k− D
+2 denotes the Hölder space with the following Hölder-norm:
+∥f∥ Ck− D
+2
+:= max
+|α|≤m
+sup
+x∈X
+∂β
+x f(x)
+ + max
+|β|=m
+∂β
+x f
+
+Ck− D
+2 −m , m=⌊k− D
+2 ⌋.(32)
+Sobolev embedding (31) implies that for anyf∈W k
+2 , it holds
+∥f∥ Ck− D
+2
+>∥f∥ W k
+2
+,(33)
+where the notation > means the inequality ≤ holds up to constant factors. Therefore, we can
+approximate a function including its derivatives by (33) if we can control the Sobolev norm (29).
+Let us set a:= (B t,G t)t∈[0,T] assmoothcoefficients defined on [0, T] and consider their function
+class as A=C([0, T]) , which determines the probability measure µT by simulating the forward
+stochastic evolution equation Xt in (27). For a given a∈ A , let us define an operator G†(a) =
+S∗ which maps smooth coefficients a to the target score function S∗ =∇ x logP data of the data
+distribution Pdata on the data space X . In this paper, we assume the target score function satisfies
+S∗ ∈W k
+2 (Ω) for any Lipschitz domain Ω⊂ X where k >2 + D
+2 . This is a natural assumption for
+many probability densities which are continuously differentiable on Lipschitz subsets ofX.
+16
+===== PAGE 17 =====
+Theorem A.1.Suppose the map G† :C([0, T])→W k
+2 (Ω) is continuous for any Lipschitz subset
+Ω⊂ X such that G†(a) =S ∗. Then for any ε >0 and compact set ¯A⊂ A , there exists a neural
+operatorG:C([0, T])→W k
+2 (Ω)such that
+sup
+a∈ ¯A
+G†(a)− G(a)
+
+W k
+2 (Ω) ≤ε.(34)
+Furthermore, the neural operatorG:C ∞([0, T])→W k
+2 (Ω)is discretization-invariant such that
+sup
+a∈A
+∥G(a)∥>sup
+a∈A
+G†(a)
+ ,(35)
+where the notation>means the inequality≤holds up to constant factors.
+Proof. Due to [24, Theorem 8] and Remark A.2, the neural operator G is discretization-invariant
+since W k
+2 (Ω) is continuously embedded in C( ¯Ω). We apply [24, Theorem 11] to show (34) and (35).
+Note that Assumption 9 holds since we set A=C([0, T]) and so does Assumption 10 since we set
+U=W k
+2 (Ω). Therefore, for a given ε >0 and a compact set ¯A⊂ A , by [24, Theorem 11], there
+exists a neural operatorGsuch that
+sup
+a∈ ¯A
+G†(a)− G(a)
+
+W k
+2 (Ω) ≤ϵ.(36)
+Thus, (34) is proved. Also, (35) holds automatically because U=W k
+2 (Ω) is a Hilbert space with the
+inner product (30). The theorem is proved.
+Remark A.3.Theorem A.1 implies that there exists a set of L-layer neural operators which can
+approximate the operator G† which acts on a set of smooth coeffcients a= (B t,G t)t∈[0,T] . Since
+(Bt,G t)t∈[0,T] determines marginal densities (µt :t∈[0, T]) of stochastic equations (27), the
+inequality (34) in Theorem A.1 enhances the approximation toweakderivatives of the target score
+function S∗ in the Sobolev space. To obtain the desired approximation result in Hölder space, we
+utilize the Sobolev embedding theorem (see Remark A.2), upon Theorem A.1.
+Now we prove the main result. Let us restate Theorem 3.1 formally.
+Theorem A.2.Let k∈N such that k >2 + D
+2 . For any compect subset K⊂Ω⊂ X and ϵ >0 ,
+there exists a neural operatorbSθ such that
+sup
+x∈K
+X
+|α|≤m
+∂α
+x S(x)−∂ α
+xbSθ(x)
+ ≤ε, m=⌊k− D
+2 ⌋.(37)
+Proof. Let ε >0 be given and fix a compact set K⊂Ω . Due to Theorem A.1, there exists a neural
+operator G which maps a smooth coeffcients a= (B t,G t)t∈[0,T] ∈ A to W k
+2 (Ω)-valued function,
+G(a) =bSθ : Ω→R D, with the approximation power (34). Therefore, by (34), it holds that
+S∗ −bSθ
+
+W k
+2 (Ω)
+≤ε/C,(38)
+where the constantCis determined by (31). HavingK⊂Ωin mind, by (31) and (32),
+sup
+x∈K
+X
+|α|≤m
+∂α
+x S(x)−∂ α
+xbSθ(x)
+ ≤
+S∗ −bSθ
+
+Ck− D
+2 (Ω)
+≤C
+S∗ −bSθ
+
+W k
+2 (Ω)
+≤ε,(39)
+hence we obtain (37). The theorem is proved.
+17
+===== PAGE 18 =====
+A.3 Architectural Details
+A.3.1 Architecture of SciNO
+: Element-wise multiplication
+̂Sθ(t,X)MLPinit
+Fourier 
+Layer 1
+[B, D]
+×
+B: Batch          D: Data Dimension          H: Hidden Dimension          F: Fourier Feature Dimension          L: Number of Fourier Layers
+[B, D]
+[B, 1]
+…
+<latexit sha1_base64="PDkh6F7R6CbK+Snno2BKb5H+BH8=">AAACSXicbVDLTgIxFO2AD8QX6NJNIzFxRWaMryWJG5eQyCMBQjrlDjR0OpP2jkIIX+BWv8ov8DPcGVd2gIWAN2lycs59nB4/lsKg6346mezW9s5ubi+/f3B4dFwonjRMlGgOdR7JSLd8ZkAKBXUUKKEVa2ChL6Hpjx5SvfkM2ohIPeEkhm7IBkoEgjO0VA17hZJbdudFN4G3BCWyrGqv6Fx1+hFPQlDIJTOm7bkxdqdMo+ASZvlOYiBmfMQG0LZQsRBMdzp3OqMXlunTINL2KaRz9u/ElIXGTELfdoYMh2ZdS8l/tZTRJjBWpJtq36Tn1rxhcN+dChUnCIovrAWJpBjRNCjaFxo4yokFjGthf0f5kGnG0ca5sl3BC44RxqsHFvTccN6m7K1nugkaV2XvtnxTuy5VKsu8c+SMnJNL4pE7UiGPpErqhBMgr+SNvDsfzpfz7fwsWjPOcuaUrFQm+wvIK7N3</latexit>
+t
+[B, H] [B, D]
+MLPﬁnal
+[B, H] [B, H]
+<latexit sha1_base64="VoOWk9a+t7ASCdqqaZ8fNMftFqM=">AAACUnicbVLLTgIxFO3gCxEVdOmmkZi4IjPG15LEjUtM5BGBkE65Aw2dzqS9o5AJf+FWv8qNv+LKDrAQ8CZNTs65t/f0pH4shUHX/XZyW9s7u3v5/cJB8fDouFQ+aZoo0RwaPJKRbvvMgBQKGihQQjvWwEJfQssfP2R66xW0EZF6xmkMvZANlQgEZ2ipl27IcOQH6WTWL1Xcqjsvugm8JaiQZdX7ZeeqO4h4EoJCLpkxHc+NsZcyjYJLmBW6iYGY8TEbQsdCxUIwvXRueUYvLDOgQaTtUUjn7N+JlIXGTEPfdmYWzbqWkf9qGaNNYKxIN9WBydatecPgvpcKFScIii+sBYmkGNEsMToQGjjKqQWMa2FfR/mIacbR5rpyu4I3nCBMVhcs6Lnhgk3ZW890EzSvqt5t9ebpulKrLfPOkzNyTi6JR+5IjTySOmkQThR5Jx/k0/lyfnL2lyxac85y5pSsVK74CxSStZ0=</latexit>
+x
+Complex: Constructs a complex value
+Skip-connection
+Learnable  
+Time Encoding
+[B, H]
++
++: Element-wise addition
+[B, D] [B, H][B, F] [B, 2F]
+[B, H] [B, H] [B, 2H] [B, H] [B, H]
+Fourier Layer
+Learnable Time Encoding
+Fourier 
+Layer ()ℓ
+Fourier 
+Layer L
+…
+[B, H]
+FFT
+MLPLTE
+LTE(t)Linear 
+Projection
+cos
+sin
+×
+real
+imag
+MLPspec Complex
+concat & norm
+concat
+[B, 2H]
+iFFT
+Figure A.1: Architecture of Score-informed Neural Operator
+AD-dimensional input dataX∈R D is passed through the initial MLPinit :R D →R H layer:
+X(1) =MLP init(X).(40)
+To explain the intermediate layers in SciNO, let ℓ∈ {1, . . . , L} denote the index of Fourier layers.
+Then we transformX (ℓ) into the spectral domain to get the followingC H-dimensional tensor:
+ξ(ℓ) =FFT(X (ℓ))⊙LTE(t), t∈[0,1](41)
+where FFT means the Fast Fourier Transform, ⊙ denotes the element-wise multiplication, and
+LTE: [0,1]→R H is theLearnable Time Encodingmodule. The real ℜ(ξ(ℓ)) and imaginary ℑ(ξ(ℓ))
+parts are then split to construct an R2H-valued tensor χ(ℓ) =
+
+ℜ(ξ(ℓ)),ℑ(ξ (ℓ))
+
+. Then we plug the
+tensor into an MLP(ℓ)
+spec :R 2H →R 2H layer in the spectral domain:
+Z(ℓ) =MLP (ℓ)
+spec(χ(ℓ)).(42)
+Then we combineZ (ℓ) = [Z(ℓ)
+real,Z (ℓ)
+imag]to get aC H-valued tensorζ (ℓ) =Z (ℓ)
+real +iZ (ℓ)
+imag. Next, we
+transform the signal ζ(ℓ) from the spectral domain to the spatial domain with skip connection, which
+helps alleviate gradient vanishing during training:
+X(ℓ+1) =X (ℓ) +iFFT(ζ (ℓ)),(43)
+where iFFT(·) denotes the inverse Fourier transformation. By repeating the above procedure for
+ℓ∈ {1, . . . , L} , we get the output of the Fourier layer X(L+1). Then X(L+1) is passed through the
+final MLPfinal :R H →R D layer for final processing:
+bSθ(t,X) =MLP final(X(L+1)).(44)
+A.3.2 MLP Modules in SciNO
+The MLP modules used in SciNO are organized as follows.
+Initial MLP Layer.The input dataX∈R D is first projected intoR H through MLPinit:
+MLPinit(X) =Dropout 0.2 (LayerNorm(LeakyReLU(W initX)))∈R H ,(45)
+whereW init ∈R H×D .
+18
+===== PAGE 19 =====
+Spectral MLP Layer. MLPspec is designed to effectively capture differential information in the
+frequency domain. The inputχ (ℓ) ∈R 2H is processed as follows:
+MLP(ℓ)
+spec(χ(ℓ)) =BatchNorm
+
+LeakyReLU
+
+W (ℓ)
+specχ(ℓ) +b (ℓ)
+spec
+
+∈R 2H .(46)
+The layer is parameterized byW (ℓ)
+spec andb (ℓ)
+spec, with shapesR 2H×2H andR 2H.
+Final MLP Layer.The output X(L+1) ∈R H from the final Fourier layer is mapped to RD via
+MLPfinal:
+h1 =LeakyReLU(W (1)
+finalX(L+1) +b (1)
+final),(47)
+h2 =LeakyReLU(W (2)
+finalh1 +b (2)
+final),(48)
+MLPfinal(X(L+1)) =W (3)
+finalh2 +b (3)
+final.(49)
+Here, W (1)
+final ∈R H×H , b(1)
+final ∈R H, W (2)
+final ∈R S×H , b(2)
+final ∈R S, W (3)
+final ∈R D×S, and b(3)
+final ∈R D
+denote the weights and biases of the MLPfinal. The dimension S denotes an intermediate hidden
+dimension betweenDandH.
+Time Encoding MLP Layer.Given the Fourier feature Φ(t)∈R 2F , the time encoding LTE(t) is
+computed via MLPLTE:
+MLPLTE(Φ(t)) =W (2)
+LTEGeLU
+
+W (1)
+LTEΦ(t) +b (1)
+LTE
+
++b (2)
+LTE ∈R H ,(50)
+where W (1)
+LTE ∈R M×2F , b(1)
+LTE ∈R M , W (2)
+LTE ∈R H×M , and b(2)
+LTE ∈R H. Here, M denotes the hidden
+dimension of the intermediate layer in the Time Encoding MLP.
+A.3.3 Architecture of Time-Conditioned FNO
+We describe the architecture of the time-conditioned Fourier Neural Operator (FNO) [26] for tabular
+data, following the same setting as SciNO for consistent comparison.
+The time-conditioned FNO takes an input X∈R D and first maps it to a H-dimensional hidden
+representation via a lifting layer:
+X(1) =Linear(X).(51)
+A time encoding TE∈R H is obtained from the scalar diffusion time t using sinusoidal positional
+encoding [43] defined as a mapping PE: [0,1]→R H and an MLPPE :R H →R H layer:
+TE=MLP PE(PE(t)), t∈[0,1].(52)
+ThisH-dimensional encoding is added to the lifted input:
+X(1) ←X (1) +TE.(53)
+For each Fourier layer ℓ∈ {1, . . . , L} , we transform the hidden representation X(ℓ) into the spectral
+domain via FFT. The time encoding, processed by MLP, is then injected into the Fourier coefficients
+through element-wise addition to get theC H-dimensional tensor:
+ξ(ℓ) =FFT(X (ℓ)) +MLP (ℓ)
+TE (TE).(54)
+Then we apply spectral weightsW (ℓ)
+spec ∈C H×H :
+eξ(ℓ) =W (ℓ)
+specξ(ℓ).(55)
+The transformed CH-dimensional signal is brought back to the RH-dimensional spatial domain via
+inverse FFT:
+Z(ℓ) =iFFT(eξ(ℓ)).(56)
+19
+===== PAGE 20 =====
+A residual connection is applied:
+˜X(ℓ) =X (ℓ) +Z (ℓ).(57)
+Then, an MLP(ℓ)
+spatial :R H →R H layer is applied with a residual connection followed by a GeLU
+activation:
+X(ℓ+1) =GeLU( ˜X(ℓ) +MLP (ℓ)
+spatial( ˜X(ℓ))).(58)
+After processing through L layers, the final hidden representation X(L+1) is projected back to the
+originalD-dimension via an MLP final :R H →R D layer:
+bSθ(t,X) =MLP final(X(L+1)).(59)
+A.4 Experimental Setting
+A.4.1 Datasets
+PhysicsWe generate a Physics commonsense-based synthetic dataset using the physics-based
+causal DAG introduced in [20], which models causal relations among 7 variables related to water
+evaporation. Each edge weight is sampled from the following uniform distributions:
+e∼ U(−1,−0.1)∪ U(0.1,1).(60)
+Using the sampled adjacency matrix A, we generate 5,000 samples via the following nonlinear
+Structural Equation Model (SEM):
+x= 2 sin(A ⊤(x+ 0.5·1)) +A ⊤(x+ 0.5·1) +z, z∼ N(0,1).(61)
+TSI
+RNFL Wgt
+SA T
+ER
+WS
+MC
+Figure A.2: Physics commonsense-based synthetic graph with 7 nodes: Rainfall (RNFL), Total
+Solar Irradiance (TSI), Surface Air Temperature (SAT), Wind Speed (WS), Evaporation Rate (ER),
+Moisture Content (MC), and Object Weight (Wgt).
+SachsThe Sachs dataset [ 34] contains 7,466 single-cell measurements of 11 proteins and phospho-
+proteins involved in human immune signaling, collected under various stimulation conditions using
+flow cytometry. To ensure a DAG structure for evaluating causal order, we exclude terminal nodes
+(praf,plcg, andPIP2) involved in cycles and use the remaining 8-node graph for experiments.
+BNLearnWe use four real-world DAGs from the BNLearn repository— MAGIC-NIAB [ 38] (44
+nodes/ 66 edges), ECOLI70 [36] (46 nodes/ 70 edges), MAGIC-IRRI [37] (64 nodes/ 102 edges),
+and ARTH150 [28] (107 nodes/ 150 edges)—and generate data based on their causal structures. For
+the linear case, samples are generated using the graph structures and linear functional relationships
+provided by BNLearn. For the nonlinear case, we generate data using nonlinear SEMs defined over
+the same graphs, where each functional relationship is parameterized by Multilayer Perceptron (MLP).
+We generate 10,000 samples per graph in both linear and nonlinear settings for evaluation.
+A.4.2 Metrics
+Order Divergence.Given a causal order π and a true adjacency matrix G, the Order Divergence
+(OD, [33]) is defined as:
+Dtop(π,G) =
+DX
+i=1
+X
+j:πi>πj
+Gij.(62)
+20
+===== PAGE 21 =====
+Order divergence counts the number of edges in G that are inconsistent with the order π. A smaller
+value indicates a closer alignment betweenπandG.
+SHD.Structural Hamming Distance (SHD, [ 41]) measures the structural discrepancy between a
+predicted graph bG and the ground-truth graph G. It is defined as the total number of edge insertions,
+deletions, and reversals required to convertbGintoG:
+SHD(G,bG) = #
+n
+(i, j)∈ V 2
+ Gand bGdo not have the same type of edge betweeniandj
+o
+.
+(63)
+A lower SHD indicates that the predicted graph bG is closer to the true causal graph G in terms of
+structural similarity.
+SID.Structural Intervention Distance (SID, [ 29]) quantifies how similarly a predicted graphbG and
+the ground-truth graphGinfer causal relationships under intervention:
+SID(G,bG) = #
+
+(i, j), i̸=j
+ Pa
+bG(Xi)not a valid adjustment set for
+the interventionX j|do(Xi)in graphG
+
+.(64)
+A lower SID indicates that the predicted graph bG is more causally consistent with the true causal
+graph G under interventions, making SID a suitable metric for evaluating the reliability of causal
+inference.
+A.4.3 Implementation Details
+For synthetic datasets, we set the number of Fourier layers to L= 10 , and for real-world datasets,
+we use L= 1 . The Fourier feature dimension in the LTE module (50) is fixed at F= 32 . We set the
+hidden dimensions of the model as H= max(1024,5D) , and S= max(128,3D) in (45), (46), and
+(47), where D denotes the number of nodes |V|. All experiments are conducted on a single NVIDIA
+A6000 GPU. Data, checkpoints, and all training configurations are publicly available3.
+3https://github.com/LGAI-Research/SciNO
+21
+===== PAGE 22 =====
+A.5 Additional Experiments
+A.5.1 Ablation Studies
+We conduct a series of ablation studies to evaluate the impact of key architectural choices.
+PE vs. LTEIn Table A.1, we provide additional evidence comparing standard PE and LTE on
+datasets beyond the ER graphs. Consistent with Table 1, LTE yields lower OD, especially as the
+number of variables increases, confirming its effectiveness in diverse graph settings.
+Table A.1: Comparison of OD in real and semi-synthetic datasets between PE and LTE in SciNO.
+Each score is recorded over 10 independent runs.
+Method\Dataset Physics(d7) Sachs(d8) MAGIC-NIAB(d44) ECOLI70(d46) MAGIC-IRRI(d64) ARTH150(d107)
+DiffAN w/ SciNO (PE)2.7±0.464.4±1.504.0±1.55 30.6±2.42 16.6±1.12 33.9±3.94
+DiffAN w/ SciNO (LTE)1.9±0.54 5.6±2.65 4.1±0.7012.8±3.1910.6±1.6921.4±2.76
+Additive vs. Multiplicative LTETo validate our design choice of using a multiplicative form of
+LTE, we compare it against the more common additive variant in Table A.2. Across ER graph settings,
+the multiplicative variant consistently achieves lower OD, with the performance gap becoming more
+pronounced as the number of variables increases.
+Table A.2: Comparison of OD in ER datasets between additive and multiplicative LTE in SciNO.
+Each score is recorded over 10 random graphs.
+Method\Dataset ER(d10) ER(d30) ER(d50) ER(d100)
+DiffAN w/ SciNO (Additive LTE) 2.8±1.74 17.67±5.64 38.86±11.42 99.2±14.27
+DiffAN w/ SciNO (Multiplicative LTE) 2.7±1.1916.9±6.1232.8±6.5586.6±12.99
+DiffAN with LTEWe applied LTE to DiffAN to assess whether LTE alone explains the perfor-
+mance gain. As shown in Table A.3, simply injecting LTE into DiffAN does not yield performance
+improvement. This suggests that LTE alone is insufficient, and that the performance gain results from
+combining LTE with our architectural design.
+Table A.3: Comparison of OD on synthetic and real datasets between DiffAN with LTE and SciNO.
+Each score is recorded over 10 random graphs for synthetic datasets, and over 10 independent runs
+for real and semi-synthetic datasets.
+Dataset\Method DiffAN w/ MLP (LTE) DiffAN w/ SciNO (LTE)
+ER(d2) 0.2±0.40.0±0.0
+ER(d3) 0.1±0.30.1±0.3
+ER(d5) 0.8±0.75 0.9±1.14
+ER(d10) 3.9±1.512.7±1.19
+ER(d30) 37.1±7.3316.9±6.12
+ER(d50) 62.0±11.9632.8±6.55
+ER(d100) 120.3±17.1286.6±12.99
+Physics(d7) 5.0±1.12.0±0.0
+Sachs(d8) 7.2±2.715.8±2.93
+MAGIC-NIAB(d44) 10.6±12.723.8±0.75
+ECOLI70(d46) 20.4±1.8514.4±3.61
+MAGIC-IRRI(d64) 25.0±23.0610.0±0.89
+ARTH150(d107) 82.0±23.2820.8±2.32
+22
+===== PAGE 23 =====
+A.5.2 Comparison with Causal Discovery Baselines
+ANM-based BaselinesWe compare SciNO against ANM-based baselines: CAM [ 4] and SCORE
+[33]. As shown in Table A.4, SciNO achieves consistently lower SHD than CAM on the high-
+dimensional ER datasets and superior performance on the semi-synthetic benchmarks, except for
+ARTH150. Compared to SCORE, SciNO yields similar performance on low-dimensional graphs and
+demonstrates a significant advantage on high-dimensional settings, achieving higher accuracy than
+second-order Stein gradient methods. Overall, SciNO demonstrates reliable performance across both
+synthetic and real datasets, particularly in high-dimensional regimes.
+Table A.4: Comparison of causal discovery metrics(OD/SHD/SID) between CAM [4], SCORE [33],
+and SciNO in (a) synthetic datasets and (b) real and semi-synthetic datasets: Physics, Sachs, and
+BNLearn withnonlinearANM. Each score is recorded over 10 random graphs for synthetic datasets,
+and over 10 independent runs for real and semi-synthetic datasets.
+Dataset\Metric CAM [4] SCORE [33] DiffAN w/ SciNO (Ours)
+SHD (↓) SID (↓) OD (↓) SHD (↓) SID (↓) OD (↓) SHD (↓) SID (↓)
+ER(d2) 0.0± 0.00.0± 0.0 0.1 ± 0.3 0.2 ± 0.6 0.2 ± 0.5 0.0± 0.00.0± 0.00.0± 0.0ER(d3) 0.0± 0.00.0± 0.0 0.0± 0.00.0± 0.00.0± 0.0 0.1 ± 0.3 0.2 ± 0.6 0.4 ± 1.2ER(d5) 0.0± 0.00.0± 0.0 0.0± 0.0 0.1 ± 0.3 0.1 ± 0.3 0.9 ± 1.14 1.7 ± 1.95 4.8 ± 4.94ER(d10) 16.6± 4.4530.9± 11.964.2 ± 2.6 21.5 ± 5.24 41.2 ± 13.242.7± 1.19 20.5 ± 3.5 41.6 ± 9.31ER(d30) 129.0 ± 14.99450.2± 99.224.8 ± 11.97 92.8 ± 16.27 510.8 ± 90.7716.9± 6.1288.8± 16.5 492.0 ± 91.64ER(d50) 238.5 ± 17.291503.6± 201.3549.3 ± 14.37 180.8 ± 15.99 1527.1 ± 179.6132.8± 6.55180.0± 15.45 1622.0 ± 110.92ER(d100) 537.2 ± 45.376289.9± 533.87120.0 ± 18.49 455.3 ± 26.34 7175.0 ± 435.086.6± 12.99445.9± 32.84 7259.2 ± 653.27
+Physics(d7) 12 11 1 212 1.9 ± 0.54 5.8 ± 1.608.2± 4.62Sachs(d8) 37 41 61630 5.6± 2.65 23.1 ± 3.8623.3± 9.10MAGIC-NIAB(d44)167 384 861189 4.1± 0.70 72.0 ± 4.52125.5± 28.08ECOLI70(d46) 184 828 7 80771 12.8 ± 3.19 90.3 ± 7.13500.9± 58.16MAGIC-IRRI(d64)261 791 17 175 529 10.6± 1.69144.5± 4.43254.4± 39.66ARTH150(d107)4372133 38 460 2709 21.4± 2.76 515.6 ± 15.261186.7± 104.19
+Non-ANM BaselinesWe further compare SciNO with classical Causal Discovery algorithms that
+do not rely on ANM assumptions, the constraint-based PC [ 40] and the score-based GES [ 7]. To
+ensure a fair comparison, we convert the predicted graphs of all methods into CPDAGs and report
+results using Structural Hamming Distance for CPDAGs (SHD-C). As shown in Table A.5, SciNO
+consistently outperforms both PC and GES across ER datasets of various sizes. This highlights the
+advantages of our approach against these classical methods: it achieves superior accuracy while
+also being more scalable, overcoming the high computational complexity. Beyond these statistical
+algorithms, we also consider gradient-based approaches such as DAG-GNN [46] and GraN-DAG [18],
+which parameterize causal mechanisms via deep generative models and gradient-based optimization.
+The results are summarized in Table A.6. While DAG-GNN and GraN-DAG perform competitively
+on small graphs, their accuracy deteriorates as dimensionality increases. In contrast, SciNO maintains
+consistently low error even forD= 50, clearly demonstrating its scalability.
+Table A.5: Comparison of SHD-C between PC [40], GES [7] and SciNO in ER datasets. Each score
+is recorded over 10 random graphs.
+Dataset\Method PC [40] GES [7] DiffAN w/ SciNO (Ours)
+ER(d2) 0.1±0.3 0.2±0.40.0±0.0
+ER(d3) 0.6±0.92 1.3±1.010.0±0.0
+ER(d5) 9.03±0.64 8.4±1.431.3±2.41
+ER(d10) 34.6±2.93 35.2±2.9623.8±5.49
+ER(d30) 108.5±15.69 105.7±15.388.3±18.11
+ER(d50) 195.9±12.08 180.2±12.45174.3±14.48
+23
+===== PAGE 24 =====
+Table A.6: Comparison of causal discovery metrics (SHD/SID) between DAG-GNN [46], GraNDAG
+[18], and SciNO across ER synthetic datasets with varying node sizes. Results are averaged over 10
+random graphs.
+Dataset\Metric DAG-GNN [46] GraN-DAG [18] DiffAN w/ SciNO (Ours)
+SHD (↓) SID (↓) SHD (↓) SID (↓) SHD (↓) SID (↓)
+ER(d2) 0.9 ± 0.3 0.9 ± 0.3 0.0± 0.00.0± 0.0 0.0± 0.00.0± 0.0
+ER(d3) 2.1 ± 0.94 2.9 ± 1.37 0.3 ± 0.90.4± 1.2 0.2± 0.60.4± 1.2
+ER(d5) 9.3 ± 0.78 14.0 ± 2.1 0.0± 0.00.0± 0.0 1.7 ± 1.95 4.8 ± 4.94
+ER(d10) 34.4 ± 21.62 71.3 ± 7.26 20.7 ± 8.930.4± 19.86 20.5± 3.5 41.6 ± 9.31
+ER(d30) 108.0 ± 16.37 651.9 ± 60.35140.9 ± 14.54 614.1 ± 31.44 88.8± 16.5492.0± 91.64
+ER(d50) 192.8 ± 10.81 1900.9 ± 206.39232.5 ± 16.76 1802.1 ± 40.28180.0± 15.451622.0± 110.92
+ER(d100) 396.0 ± 22.12 7586.4 ± 585.98232.5± 31.81 7623.4 ± 455.73445.9 ± 32.847259.2± 653.27
+                  x1
+ = 0.0633Var(𝒟2(x))
+ = 0.0456Var(𝒟1(x))  = 0.0037Var(𝒟2(x))
+ = 0.3883Var(𝒟1(x))
+Squared error of ∂2
+x1
+logP(x) Squared error of ∂2
+x2
+logP(x)
+Squared error of ∂2
+x1
+logP(x) Squared error of ∂2
+x2
+logP(x)
+                                                                                                                                                                                                                                          
+DiffAN w/ MLP
+DiffAN w/ SciNO
+                 
+                  x1
+Sampled Data
+                  x1
+                  x2                  x2
+                       P(x)
+                                                                                                                                                                                                                                          
+Figure A.3: Comparison of Hessian diagonal approximation between DiffAN with MLP (top row)
+and DiffAN with SciNO (bottom row). The left column shows sampled data and its true density.
+The center and right columns illustrate the squared approximation error of the second derivatives of
+logP(x)with respect tox 1 andx 2, computed over a meshgrid.
+24
+===== PAGE 25 =====
+Figure A.4:(Top)Order divergence in ER datasets per each step. The solid lines represent the average
+order divergence, and the shaded regions indicate the 95% confidence intervals across 10 random
+graphs with D∈ {3,30,50} .(Bottom)Heatmaps of variance of the Hessian diagonal estimated by
+DiffAN with MLP and SciNO, respectively. Darker colors indicate lower estimated variance. Red
+boxes □ denote ground-truth causal leaves, and white stars ☆ indicate the variables selected by
+models. Green boxes□denote cases where the model predicts leaf node correctly.
+102 103 104 105
+Sample Size
+100
+101
+102
+103
+Runtime (seconds)
+OOM
+MAGIC-NIAB(d44)
+CaPS
+CaPS w/ SciNO
+102 103 104 105
+Sample Size
+100
+101
+102
+103
+ OOM
+ECOLI70(d46)
+CaPS
+CaPS w/ SciNO
+102 103 104 105
+Sample Size
+100
+101
+102
+103
+ OOM
+MAGIC-IRRI(d64)
+CaPS
+CaPS w/ SciNO
+102 103 104 105
+Sample Size
+101
+102
+103
+ OOM
+ARTH150(d107)
+CaPS
+CaPS w/ SciNO
+Figure A.5: Runtime in seconds of CaPS [ 45] and CaPS with SciNO across four real datasets
+(MAGIC-NIAB, ECOLI70, MAGIC-IRRI, and ARTH150) for different sample sizes. Since SciNO
+involves iterative training, we report its runtime per epoch. CaPS fails with OOM at 100,000 samples.
+A.6 Controlling LLM for Causal Ordering
+A.6.1 Experimental Details in Section 4.3
+Implementation Details in LLM ControlThe LLM prompt is designed to select a leaf node, a
+variable among the unordered variables that does not causally influence any other variable. Each
+prompt consists of an Unordered Variables list, a Data Description summarizing the overall
+data context, and Variable Descriptions providing natural language descriptions of each variable
+(as illustrated in Figure A.7). Simple input-output examples are provided within the prompt to clarify
+the task objective and promote consistent output behavior. To avoid formatting inconsistencies such
+as stray whitespace or mismatched capitalization, each variable name is prefixed with node_ and
+presented in the formatnode_variable_name.
+For each variable name, the LLM generates token-level conditional probabilities for the sequence of
+tokens t1, t2, . . . , tn that constitute v, where v= (t 1, . . . , tn). The probability of generating the full
+variable namevis computed using the chain rule:
+PLLM(v|context) =
+nY
+i=1
+PLLM(ti |t 1, . . . , ti−1,context).(65)
+25
+===== PAGE 26 =====
+Here, context refers to contextual information, including variable descriptions or domain knowledge.
+In practice, we construct the full input sequence by appending each variable name to the prompt in the
+form of node_variable_name, and then feed the entire sequence to the model in a single forward
+pass. To compute the probability of each variable name, we consider only the tokens following the
+common prefix node, since tokenization often splits strings like node_v into node and _v. This
+allows us to isolate the informative portion of the name and compute joint probabilities efficiently,
+without repeatedly modifying the prompt.
+Length NormalizationSince variable names typically consist of multiple tokens with varying
+length, using raw probabilities introduces a bias against longer names. To address this, we apply
+length normalization by exponentiating the average of the log-likelihoods of the tokens composing
+the variable name [44]. To further mitigate over-penalization of longer names, we normalize the value
+by dividing it by lengthα (0< α≤1). In this paper, we useα∈ {0.5,1.0}.
+Pα-norm(v|context) = exp
+ 
+1
+nα
+nX
+i=1
+logP LLM(ti |t 1, . . . , ti−1,context)
+!
+.(66)
+Leaf node selection through LLM control.Llama-3 provides token-level probabilities directly,
+enabling us to compute the leaf node probabilities using (66). The leaf node is selected as v∗ =
+arg maxv∈V\π k Pα-norm(v), i.e., the variable with the highest length-normalized probability, where
+πk denotes the set of selected leaf nodes up to stepk. For GPT-4o, we treat the variables mentioned
+in the final response as leaf nodes, since the model’s probability distribution cannot be externally
+controlled during generation. We set the temperature to its default value of 1.
+ResultsFigure A.6 presents the results under the setting where all variables are well-described,
+i.e., Vcontext =V . The top plot compares the LLM prior probabilities with the posterior probabili-
+ties—updated via control—of the ground-truth leaf nodes at each step of the causal reasoning process.
+A substantial increase in the posterior probability is consistently observed across high-dimensional
+datasets such as ECOLI70, MAGIC-NIAB, MAGIC-IRRI, and ARTH150. The effect is especially
+pronounced in the early stages of the causal ordering process, where the true causal structure must be
+inferred from a large pool of candidate nodes. Furthermore, the bottom plot illustrates several cases
+in which the posterior successfully identifies the true leaf node, even when SciNO alone fails to do so.
+These results indicate that the LLM prior can be complemented through integration with SciNO’s
+data-informed evidence, while the semantic knowledge embedded in the LLM can also compensate
+for incomplete or uncertain statistical inference.
+Table A.7 presents the complete benchmark results of the LLM control method using evidence from
+SCORE [33], DiffAN [35], and SciNO. SciNO shows clear superiority on high-dimensional datasets,
+achieving an average 64% OD reduction, compared to 46% from DiffAN. While SCORE-based
+control yields improvements on some datasets, it fails to surpass its data-only baseline on ECOLI70
+and ARTH150, as shown in Table A.4. Overall, these findings indicate that the synergy between LLM
+priors and data-driven evidence is most robust with stable, diffusion-based methods like SciNO.
+A.6.2 Additional Experiments on LLM Control
+In many domains such as biomedicine, healthcare, and finance, variable names are deliberately
+abstracted and metadata is often scarce and uncertain. To account for this practical challenge, we
+conduct an additional experiment in which all variable names are masked and the proportion of
+variables accompanied by descriptions is systematically varied.
+Experimental SettingWe consider an experiment to simulate practical conditions involving a
+mixture of Vcontext and V¬context ̸=∅ , where Vcontext refers to variables that contain contextual or
+domain-specific information, whereas V¬context includes variables without such information. Variable
+names are replaced with randomly generated four-letter alphabetic strings (e.g., ‘zntr’, ‘lgvp’,
+‘aqsm’), and descriptions are provided for 10%, 40%, or 70% of the variables. Each experiment is
+repeated three times, with randomization applied to both the selection of context-given variables and
+their input order. We use semi-synthetic datasets from BNLearn: MAGIC-NIAB (7/44 variables have
+descriptions), ECOLI70 (41/46), MAGIC-IRRI (10/64), and ARTH150 (105/107). Due to the limited
+availability of variable descriptions in MAGIC-NIAB and MAGIC-IRRI, we restrict experiments on
+these two datasets to the 10% description setting.
+26
+===== PAGE 27 =====
+Table A.7: Comparison of OD in real and semi-synthetic datasets between GPT-4o, uncontrolled
+Llama, and controlled Llama via SCORE [33], DiffAN [35] and SciNO. Differences are expressed as
+percent change relative to the uncontrolled result. Each score is recorded over 10 independent runs.
+Method\Dataset Physics(d7) Sachs(d8) MAGIC-NIAB(d44) ECOLI70(d46) MAGIC-IRRI(d64) ARTH150(d107)
+GPT-4o 1.1±0.54 4.4±1.11 11.9±0.94 41.1±2.30 20.9±2.30 77.1±7.46
+SCORE [33]
+Llama-3.1-8b(1-norm)3 3 9 32 18 80w/ control(rank)0.0±0.00 9.0±0.001.0±0.0014.7±0.46 11.6±0.4942.9±1.04w/ control(CI) 0.0±0.00 6.0±0.00 1.8±0.40 18.3±0.4611.1±0.30 45.4±6.22
+Llama-3.1-8b(0.5-norm)1 3 14 32 17 80w/ control(rank)0.0±0.00 9.0±0.002.0±0.6314.9±0.30 9.9±0.3042.9±1.04w/ control(CI) 0.0±0.00 7.0±0.002.0±0.00 18.1±0.308.3±1.62 45.4±6.22
+DiffAN [35]
+Llama-3.1-8b(1-norm)3 3 9 32 18 80w/ control(rank)3.9±0.30 4.0±1.001.9±0.70 21.1±2.027.4±0.6621.5±2.54w/ control(CI) 3.6±0.49 3.7±0.46 5.3±1.1018.3±1.42 14.3±1.27 67.9±9.80
+Llama-3.1-8b(0.5-norm)1 3 14 32 17 80w/ control(rank)4.0±0.00 4.4±1.201.7±0.64 20.8±1.897.5±0.8121.5±2.54w/ control(CI) 4.0±0.00 5.0±0.00 8.2±1.7218.2±1.33 13.3±1.85 67.9±9.80
+SciNO (Ours)
+Llama-3.1-8b(1-norm)3 3 9 32 18 80w/ control(rank)1.3±0.64 3.5±1.28 3.2±0.40 10.6±0.499.9±0.54 20.4±0.92w/ control(CI) 1.3±0.64 3.7±0.642.0±0.009.9±1.97 11.1±0.8318.9±1.14
+Llama-3.1-8b(0.5-norm)1 3 14 32 17 80w/ control(rank)1.3±0.64 3.8±0.98 4.1±0.83 10.5±0.929.1±0.30 20.4±0.92w/ control(CI) 1.3±0.64 4.8±0.402.9±0.309.8±1.83 10.1±0.8318.9±1.14
+Figure A.6:(Top)Comparison of LLM prior and posterior probabilities for the true leaf nodes across
+four datasets (ECOLI70, MAGIC-NIAB, MAGIC-IRRI, and ARTH150). Posterior probabilities are
+computed by multiplying the LLM prior with SciNO computed probabilities.(Bottom)Heatmap
+of SciNO probabilities for the SciNO-selected nodes at each ordering step across datasets. Red
+boxes □ denote steps where SciNO alone fails to select the correct leaf node, but the correct node is
+successfully recovered via integration with LLM priors.
+Control withHardandSoftSupervisionUnder the above experimental conditions, we follow the
+causal ordering procedure described in Algorithm 1. The control mechanism is formalized as:
+P(xt+1|x1:t,stat,context)∝P AR(xt+1|x1:t,context)×P SciNO(stat|x1:t+1).(67)
+Let πt denote the partial causal order determined by x1:t, the sequence of nodes selected in the
+previous steps. The evidence term PSciNO(stat|x1:t+1) is estimated using two approaches introduced
+in Section 3.3. The first estimator relies on the average rank ¯r(i)for each node i∈ V \π t across
+models:
+bP (rank)
+m∼M (σ(m)
+i < σ (m)
+j |x1:t, xt+1 =i) = exp (−¯r(i))P
+j∈V\π t exp (−¯r(j)),¯r(i) = 1
+M
+MX
+m=1
+r(m)
+i .(68)
+Here, r(m)
+i is the rank of node i in model m, based on the variance of its Hessian diagonal. The
+second estimator is based on confidence intervals:
+bP (CI)
+m∼M(CIlower(i)≤CI upper(j(m)
+min)|x1:t, xt+1 =i) = 1
+M
+MX
+m=1
+1
+h
+CIlower(i)≤CI upper(j(m)
+min)
+i
+.(69)
+27
+===== PAGE 28 =====
+wherej (m)
+min is the node with the smallest variance of the Hessian diagonal in modelm.
+Depending on whether variable descriptions are available, we apply two supervision strategies. For
+variables without descriptions V¬context, we usehard supervision, relying exclusively on the evidence
+term estimated by (10) or (12):
+P(v)∝ 1
+|V \π t|
+bPSciNO(stat|πt, xt+1 =v).(70)
+For variables with descriptions Vcontext, we applysoft supervisionby multiplying the LLM-derived
+prior (65) to the evidence term (10) or (12):
+P(v)∝P α-norm(xt+1 =v|π t,context)· bPSciNO(stat|πt, xt+1 =v).(71)
+To adapt the soft supervision signal, one can use a temperature parameterτ≥0:
+bPτ(stat|πt, xt+1 =v) =
+
+bPSciNO(stat|πt, xt+1 =v)
+τ
+,(72)
+bPτ−soft(stat|πt, v) =softmax( bPτ(stat|πt, xt+1 =v)).(73)
+We choose τ∈ {0,1,2,3,4,5} for experiments. When τ >5 , the evidence term grows exponentially
+and overwhelms the prior, leading to predictions that are nearly indistinguishable from using the data
+statistic alone. Applying the above τ-temperature to the soft supervision, the posterior predictive term
+is computed by:
+P(v)∝P α-norm(v|πt,context)· bPτ−soft(stat|πt, xt+1 =v), v∈ V \π t.(74)
+Then we select the variable with the highest posterior probability as the next leaf node:
+v∗ =argmax
+v∈V\π t
+P(v).(75)
+ResultsTable A.8 reports the order divergence under the setting where Vcontext ̸=V , across varying
+levels of description proportions and τ values. Compared to the results in Table 4, performance
+without control reveals that the LLM’s ability to infer causality deteriorates as descriptive content
+decreases and variable names are masked. Across all datasets, increasing τ from 0 to 1 consistently
+improves performance, even under low description conditions (e.g., 10%), indicating robustness in the
+combination of LLM prior and SciNO evidence. When the description is limited, performance tends
+to plateau after τ= 1 , suggesting that the contribution from LLM priors has been fully exploited,
+leaving SciNO as the dominant signal. Conversely, with a higher description ratio, the effect of
+soft supervision becomes more pronounced as τ varies, allowing the model to better leverage both
+semantic and structural signals. Interestingly, a higher τ does not always lead to better results. This
+highlights the importance of finding an optimal balance between the LLM’s semantic knowledge and
+the evidence from SciNO. We compare various combinations of description proportions and τ values.
+Among them, the configuration using 70% descriptions with τ= 5 achieves the highest performance
+on the ARTH150 dataset. It outperforms all other tested combinations, including those with lower
+description ratios, different τ values, and even the use of SciNO alone. This suggests that when
+richer semantic information is available, the integration with SciNO becomes especially effective. In
+conclusion, these results demonstrate that even under limited description conditions, combining LLM
+semantic knowledge with data-driven causal inference can lead to improved performance.
+28
+===== PAGE 29 =====
+Table A.8: Comparison of OD across semi-synthetic datasets under the control with hard and soft
+supervision setting with varying description proportions (70%, 40%, 10%) and temperature parameters
+τ∈ {0,1,2,3,4,5} . The lowest OD for each dataset and description proportion is highlighted in
+bold. Each score is recorded over 3 independent runs.
+Dataset Proportion Method w/o controlτ= 0τ= 1τ= 2τ= 3τ= 4τ= 5
+MAGIC-NIAB 10%
+Llama-3.1-8b(1-norm) w/ control(rank) 24.7±9.3 5.3±0.63.3±0.6 3.3±0.6 3.3±0.63.7±0.6 3.7±0.6Llama-3.1-8b(0.5-norm) w/ control(rank) 22.3±7.6 4.7±0.63.3±0.6 3.3±0.6 3.3±0.63.7±0.6 3.7±0.6Llama-3.1-8b(1-norm) w/ control(CI) 24.7±9.3 5.0±1.0 4.0±0.0 4.0±0.0 4.0±0.0 4.0±0.6 4.0±0.0Llama-3.1-8b(0.5-norm) w/ control(CI) 22.3±7.6 5.0±1.0 4.0±0.0 4.0±0.0 4.0±0.0 4.3±0.6 4.3±0.6
+ECOLI70
+70%
+Llama-3.1-8b(1-norm) w/ control(rank) 30.3±2.1 35.7±2.9 8.7±0.6 8.3±0.68.0±0.0 8.0±0.08.3±0.6Llama-3.1-8b(0.5-norm) w/ control(rank) 28.7±2.9 39.0±4.0 9.0±0.0 8.3±0.6 8.3±0.6 8.3±0.6 8.7±0.6Llama-3.1-8b(1-norm) w/ control(CI) 30.3±2.1 24.0±2.0 11.3±1.5 11.7±2.3 12.7±1.5 12.0±1.0 11.7±1.2Llama-3.1-8b(0.5-norm) w/ control(CI) 28.7±2.9 27.3±4.2 11.0±2.7 12.7±1.5 12.0±1.0 12.3±3.8 10.0±2.0
+40%
+Llama-3.1-8b(1-norm) w/ control(rank) 33.0±1.7 21.7±8.5 8.3±0.68.0±0.0 8.0±0.0 8.0±0.0 8.0±0.0Llama-3.1-8b(0.5-norm) w/ control(rank) 36.7±9.7 20.7±7.5 9.3±0.6 8.3±0.6 8.3±0.6 8.3±0.6 8.3±0.6Llama-3.1-8b(1-norm) w/ control(CI) 33.0±1.7 17.0±4.4 12.3±4.0 11.7±0.6 11.7±0.6 11.7±0.6 11.7±0.6Llama-3.1-8b(0.5-norm) w/ control(CI) 36.7±9.7 16.3±3.2 12.7±4.0 11.0±1.7 11.0±1.7 11.0±1.7 11.0±1.7
+10%
+Llama-3.1-8b(1-norm) w/ control(rank) 34.3±3.8 13.0±3.68.0±0.0 8.0±0.0 8.0±0.0 8.0±0.0 8.0±0.0Llama-3.1-8b(0.5-norm) w/ control(rank) 33.3±2.5 14.0±2.08.0±0.0 8.0±0.0 8.0±0.0 8.0±0.0 8.0±0.0Llama-3.1-8b(1-norm) w/ control(CI) 34.3±3.8 13.0±3.6 11.3±0.6 11.0±1.0 10.7±0.6 10.7±1.5 10.7±1.5Llama-3.1-8b(0.5-norm) w/ control(CI) 33.3±2.5 12.7±3.8 11.0±0.0 10.7±0.6 10.7±1.5 10.7±1.5 11.0±1.0
+MAGIC-IRRI 10%
+Llama-3.1-8b(1-norm) w/ control(rank) 29.7±1.5 11.3±1.2 10.3±0.6 9.7±0.69.3±0.69.7±0.6 9.7±0.6Llama-3.1-8b(0.5-norm) w/ control(rank) 25.3±2.9 9.7±2.1 9.7±1.2 9.7±0.6 9.7±0.69.3±0.69.7±0.6Llama-3.1-8b(1-norm) w/ control(CI) 29.7±1.5 10.0±1.0 9.7±0.6 9.7±0.6 9.7±0.6 9.7±0.6 9.7±0.6Llama-3.1-8b(0.5-norm) w/ control(CI) 25.3±2.9 10.3±1.5 9.7±0.6 9.7±0.6 9.7±0.6 9.7±0.6 9.7±0.6
+ARTH150
+70%
+Llama-3.1-8b(1-norm) w/ control(rank) 73.0±3.5 80.7±1.2 20.3±1.2 20.7±0.6 21.3±1.2 21.0±1.0 21.0±1.0Llama-3.1-8b(0.5-norm) w/ control(rank) 64.3±3.5 73.3±8.6 19.7±0.6 19.7±0.6 20.0±0.0 20.3±0.6 20.3±0.6Llama-3.1-8b(1-norm) w/ control(CI) 73.0±3.5 77.3±5.5 20.0±1.7 19.7±1.2 19.0±1.7 20.0±2.0 19.3±2.1Llama-3.1-8b(0.5-norm) w/ control(CI) 64.3±3.5 71.3±8.1 17.7±0.6 17.0±1.0 16.7±2.116.3±1.2 16.3±1.2
+40%
+Llama-3.1-8b(1-norm) w/ control(rank) 76.0±10.4 81.3±12.9 19.7±1.2 20.0±1.0 20.0±0.0 20.0±0.0 20.0±0.0Llama-3.1-8b(0.5-norm) w/ control(rank) 87.7±1.2 77.7±9.019.0±0.019.3±0.6 20.0±0.0 20.0±0.0 20.0±0.0Llama-3.1-8b(1-norm) w/ control(CI) 76.0±10.4 57.0±25.5 22.3±1.2 20.7±1.2 20.7±1.2 20.0±1.7 20.0±2.0Llama-3.1-8b(0.5-norm) w/ control(CI) 87.7±1.2 59.3±18.5 19.3±1.5 21.7±0.6 20.7±1.2 20.7±1.2 19.7±1.5
+10%
+Llama-3.1-8b(1-norm) w/ control(rank) 76.0±7.6 40.7±17.4 19.7±0.6 20.0±1.0 20.0±1.0 20.7±1.2 20.7±1.2Llama-3.1-8b(0.5-norm) w/ control(rank) 88.7±6.4 37.0±13.8 19.7±0.6 19.7±0.6 20.3±1.5 20.7±1.2 20.7±1.2Llama-3.1-8b(1-norm) w/ control(CI) 76.0±7.6 24.7±8.1 19.3±1.5 19.3±1.5 19.7±2.119.0±1.0 19.0±1.0Llama-3.1-8b(0.5-norm) w/ control(CI) 88.7±6.4 25.0±7.0 19.3±1.5 19.3±1.5 19.7±2.119.0±1.0 19.0±1.0
+29
+===== PAGE 30 =====
+B Miscellaneous
+You are an AI assistant tasked with identifying the most likely leaf node in a causal structure.
+A leaf node is a variable that does not cause any other variables in the unordered variables set.  
+Your goal is to determine the best leaf node among Unordered Variables using the given information.
+Selection Criteria:
+-A leaf node does not act as a cause for any other variable in Unordered Variables.
+-If multiple candidates exist, select the one that is inﬂuenced by others but does not inﬂuence any other 
+variable in Unordered Variables.
+Important Formatting Rules:
+-Respond only with the variable name of the selected leaf node.
+-Do not include any punctuation, reasoning, quotes, or formatting.
+-Leaf Node must be exactly one variable name as plain text, matching one from the Unordered Variables 
+list.
+-Do not include any additional text before or after the variable name.
+Example 1:
+Input :
+Unordered Variables: [“node_CloudCover”, “node_Humidity”, “node_Pressure”, “node_Temperature”]
+Data Description: The dataset contains weather data recorded hourly with multiple atmospheric variables.
+Variable Descriptions: 
+[
+“node_CloudCover”: “The fraction of the sky covered by clouds.”,
+“node_Humidity”: “The amount of water vapor in the air.”,
+“node_Pressure”: “The atmospheric pressure at a given location.”,
+“node_Temperature”: “The measure of how hot or cold the air is.”
+]
+Output : node_Temperature
+Input :
+Unordered Variables: {unordered_variables}
+Data Description: {data_description}
+Variable Descriptions: {variable_description}
+Output :
+Figure A.7: Prompting for Leaf Node Selection
+30
+===== PAGE 31 =====
+=== Causal Ordering Step  t=1 === 
+LLM Prior: {'Weight of object': 0.303, 'Moisture Content of object': 0.205, 'Rainfall': 0.144, …, 'Total Solar 
+Irradiance': 0.071, 'Surface Air Temperature': 0.068} 
+SciNO Likelihood: {'Weight of object': 0.635, 'Rainfall': 0.233, 'Moisture Content of object': 0.086, …, 'Wind 
+Speed': 0.003, 'Total Solar Irradiance': 0.002} 
+Updated Posterior: {'Weight of object': 0.776, 'Rainfall': 0.136, 'Moisture Content of object': 0.071, …, 'Wind 
+Speed': 0.001, 'Total Solar Irradiance': 0.001} 
+ 
+Current Causal Order : [Weight of object]
+=== Causal Ordering Step t=2 === 
+LLM Prior: {'Moisture Content of object': 0.288, 'Rainfall': 0.220, 'Rate of Evaporation': 0.219, …, 'Total Solar 
+Irradiance': 0.086, 'Surface Air Temperature': 0.086} 
+SciNO Likelihood: {'Rainfall': 0.644, 'Moisture Content of object': 0.214, 'Surface Air Temperature': 0.084, …, 
+'Wind Speed': 0.010, 'Total Solar Irradiance': 0.005} 
+Updated Posterior: {'Rainfall': 0.641, 'Moisture Content of object': 0.278, 'Rate of Evaporation': 0.040, …, 
+'Wind Speed': 0.005, 'Total Solar Irradiance': 0.002} 
+ 
+Current Causal Order : [Weight of object, Rainfall]
+(…..)
+=== Causal Ordering Step t=5 === 
+LLM Prior: {'Wind Speed': 0.464, 'Total Solar Irradiance': 0.300, 'Surface Air Temperature': 0.235} 
+SciNO Likelihood: {'Surface Air Temperature': 0.677, 'Wind Speed': 0.218, 'Total Solar Irradiance': 0.104} 
+Updated Posterior: {'Surface Air Temperature': 0.545, 'Wind Speed': 0.346, 'Total Solar Irradiance': 0.107} 
+ 
+Current Causal Order : [Weight of object, Rainfall, … ,  Surface Air Temperature]
+=== Causal Ordering Step t=6 === 
+LLM Prior: {'Wind Speed': 0.584, 'Total Solar Irradiance': 0.415} 
+SciNO Likelihood: {'Wind Speed': 0.704, 'Total Solar Irradiance': 0.295} 
+Updated Posterior: {'Wind Speed': 0.769, 'Total Solar Irradiance': 0.230} 
+ 
+Current Causal Order : [Weight of object, Rainfall, …. ,  Wind Speed]
+=== Final Results === 
+Complete Causal Order: [Total Solar Irradiance, Wind Speed, …, Rainfall, Weight of object] 
+Order Divergence: 1
+π1
+π2
+π5
+π6
+Physics ( (=alpha)=0.5, Control: rank-based )α
+Figure A.8: LLM control log on the Physics dataset.
+31
+===== PAGE 32 =====
+Sachs ( (=alpha)=1.0, Control: CI-based )α
+=== Causal Ordering Step  t=1 ===
+LLM Prior: {'pakts473': 0.195, 'p44/42': 0.166, 'pjnk': 0.163, …, 'PIP3': 0.077, 'P38': 0.071}   
+SciNO Likelihood: {'pmek': 0.125, 'PIP3': 0.125, 'p44/42': 0.125, …, 'P38': 0.125, 'pjnk': 0.12}   
+Updated Posterior: {'pakts473': 0.195, 'p44/42': 0.166, 'pjnk': 0.163, …, 'PIP3': 0.077, 'P38': 0.071}   
+ 
+Current Causal Order : [pakts473]
+=== Causal Ordering Step t=2 ===
+LLM Prior: {'p44/42': 0.213, 'PKC': 0.210, 'pjnk': 0.204, …, 'PIP3': 0.089, 'P38': 0.074}   
+SciNO Likelihood: {'pmek': 0.142, 'PIP3': 0.142, 'p44/42': 0.143, …, 'P38': 0.143, 'pjnk': 0.142}   
+Updated Posterior: {'p44/42': 0.213, 'PKC': 0.210, 'pjnk': 0.204, …, 'PIP3': 0.089, 'P38': 0.074}   
+Current Causal Order : [pakts473, p44/42]
+(…..)
+=== Causal Ordering Step t=6 ===
+LLM Prior: {'P38': 0.496, 'PKA': 0.286, 'PIP3': 0.217}   
+SciNO Likelihood: {'PIP3': 0.416, 'P38': 0.416, 'PKA': 0.166}   
+Updated Posterior: {'P38': 0.599, 'PIP3': 0.262, 'PKA': 0.138}   
+ 
+Current Causal Order : [pakts473, p44/42, …, P38]
+=== Causal Ordering Step t=7 ===
+LLM Prior: {'PIP3': 0.605, 'PKA': 0.394}   
+SciNO Likelihood: {'PIP3': 0.500, 'PKA': 0.500}   
+Updated Posterior: {'PIP3': 0.605, 'PKA': 0.394}   
+ 
+Current Causal Order : [pakts473, p44/42, …, P38, PIP3]
+=== Final Results ===
+Complete Causal Order: [PKA, PIP3, … , p44/42, pakts473]   
+Order Divergence: 3
+π1
+π2
+π6
+π7
+Figure A.9: LLM control log on the Sachs dataset.
+32
+===== PAGE 33 =====
+MAGIC-NIAB ( (=alpha)=0.5, Control: rank-based )α
+=== Causal Ordering Step  t=1 ===
+LLM Prior: {‘YR.GLASS': 0.176, 'YLD': 0.142, 'HT': 0.118, …, 'G1750': 0.019, 'G1276': 0.016} 
+SciNO Likelihood: {'YR.FIELD': 0.328, 'FT': 0.296, 'YLD': 0.297, …, 'G1294': 0.000, 'G1276': 0.000} 
+Updated Posterior: {'YLD': 0.424, 'FT': 0.311, 'YR.FIELD': 0.216, …, 'G1276': 0.000, 'G1294': 0.000} 
+ 
+Current Causal Order : [YLD]
+=== Causal Ordering Step t=2 ===
+LLM Prior: {'FT': 0.161, 'HT': 0.149, 'G43': 0.108, …, 'G1750': 0.022, 'G800': 0.015} 
+SciNO Likelihood: {'YR.FIELD': 0.443, 'FT': 0.414, 'FUS': 0.102, …, 'G1276': 0.000, 'G1263': 0.000} 
+Updated Posterior: {'FT': 0.712, 'YR.FIELD': 0.171, 'FUS': 0.111, …, 'G1294': 0.000, 'G1263': 0.000} 
+ 
+Current Causal Order : [YLD, FT]
+(…..)
+=== Causal Ordering Step t=42 ===
+LLM Prior: {'G418': 0.359, 'G1750': 0.347, 'G1217': 0.292} 
+SciNO Likelihood: {'G418': 0.685, 'G1750': 0.193, 'G1217': 0.121} 
+Updated Posterior: {'G418': 0.706, 'G1750': 0.192, 'G1217': 0.101} 
+ 
+Current Causal Order : [YLD, FT, …, G418]
+=== Causal Ordering Step t=43 ===
+LLM Prior: {'G1750': 0.527, 'G1217': 0.472} 
+SciNO Likelihood: {'G1217': 0.660, 'G1750': 0.339} 
+Updated Posterior: {'G1217': 0.635, 'G1750': 0.364} 
+ 
+Current Causal Order : [YLD, FT, …, G418, G1217]
+=== Final Results ===
+Complete Causal Order: [G1750, G1217, …, G38, FT, YLD] 
+Order Divergence: 2
+π1
+π2
+π42
+π43
+Figure A.10: LLM control log on the MAGIC-NIAB dataset.
+33
+===== PAGE 34 =====
+ECOLI70 ( ɑ(=alpha)=0.5, Control: rank-based )
+=== Causal Ordering Step t=1 === 
+LLM Prior: {'atpG': 0.072, 'asnA': 0.054, 'atpD': 0.054, …, 'b1191': 0.030, 'yedE': 0.027} 
+SciNO Likelihood: {'ygbD': 0.742, 'tnaA': 0.193, 'nmpC': 0.030, …, 'sucD': 0.000, 'yecO': 0.000} 
+Updated Posterior: {'ygbD': 0.476, 'tnaA': 0.440, 'atpG': 0.058, …, 'yecO': 0.000, 'sucD': 0.000} 
+ 
+Current Causal Order : [ygbD]
+=== Causal Ordering Step t=2 === 
+LLM Prior: {'atpG': 0.060, 'yheI': 0.048, 'asnA': 0.046, …, 'b1583': 0.033, 'b1191': 0.032} 
+SciNO Likelihood: {'cspA': 0.720, 'tnaA': 0.274, 'pspA': 0.003, …, 'dnaG': 0.000, 'yecO': 0.000} 
+Updated Posterior: {'cspA': 0.579, 'tnaA': 0.418, 'pspA': 0.001, …, 'dnaG': 0.000, 'icdA': 0.000} 
+ 
+Current Causal Order : [ygbD, cspA]
+(…..)
+=== Causal Ordering Step t=44 === 
+LLM Prior: {'b1191': 0.359, 'cspG': 0.352, 'eutG': 0.287} 
+SciNO Likelihood: {'b1191': 0.669, 'eutG': 0.214, 'cspG': 0.115} 
+Updated Posterior: {'b1191': 0.701, 'eutG': 0.179, 'cspG': 0.118} 
+ 
+Current Causal Order  : [ygbD, cspA, …, b1191]
+=== Causal Ordering Step t=45 === 
+LLM Prior: {'eutG': 0.540, 'cspG': 0.459} 
+SciNO Likelihood: {'eutG': 0.673, 'cspG': 0.326} 
+Updated Posterior: {'eutG': 0.708, 'cspG': 0.291} 
+ 
+Current Causal Order : [ygbD, cspA, …, b1191, eutG]
+=== Final Results === 
+Complete Causal Order: [cspG, eutG, …, cspA, ygbD] 
+Order Divergence: 10
+π1
+π2
+π44
+π45
+Figure A.11: LLM control log on the ECOLI70 dataset.
+34
+===== PAGE 35 =====
+MAGIC-IRRI ( (=alpha)=0.5, Control: rank-based )α
+=== Causal Ordering Step t=1 === 
+LLM Prior: {'YLD': 0.238, 'HT': 0.070, 'BROWN': 0.069, …, 'G3092': 0.023, 'AMY': 0.021} 
+SciNO Likelihood: {'CHALK': 0.664, 'GW': 0.158, 'YLD': 0.134, …, 'FT': 0.000, 'AMY': 0.000} 
+Updated Posterior: {'YLD': 0.518, 'CHALK': 0.445, 'BROWN': 0.026, …, 'AMY': 0.000, 'FT': 0.000} 
+ 
+Current Causal Order : [YLD]
+=== Causal Ordering Step t=2 === 
+LLM Prior: {'HT': 0.119, 'CHALK': 0.099, 'BROWN': 0.093, …, 'G3927': 0.030, 'G3098': 0.024} 
+SciNO Likelihood: {'CHALK': 0.652, 'GW': 0.232, 'BROWN': 0.068, …, 'AMY': 0.000, 'GTEMP': 0.000} 
+Updated Posterior: {'CHALK': 0.866, 'BROWN': 0.084, 'GW': 0.045, …, 'FT': 0.000, 'HT': 0.000} 
+ 
+Current Causal Order : [YLD, CHALK]
+(…..)
+=== Causal Ordering Step t=62 === 
+LLM Prior: {'G3925': 0.379, 'G3823': 0.360, 'G4156': 0.260} 
+SciNO Likelihood: {'G4156': 0.439, 'G3925': 0.284, 'G3823': 0.275} 
+Updated Posterior: {'G4156': 0.355, 'G3925': 0.335, 'G3823': 0.308} 
+ 
+Current Causal Order : [YLD, CHALK, …, G4156]
+=== Causal Ordering Step t=63 === 
+LLM Prior: {'G3823': 0.690, 'G3925': 0.309} 
+SciNO Likelihood: {'G3925': 0.689, 'G3823': 0.310} 
+Updated Posterior: {'G3823': 0.500, 'G3925': 0.499} 
+ 
+Current Causal Order : [YLD, CHALK, …, G4156, G3823]
+=== Final Results === 
+Complete Causal Order: [G3925, G3823, …, CHALK, YLD] 
+Order Divergence: 9
+π1
+π2
+π62
+π63
+Figure A.12: LLM control log on the MAGIC-IRRI dataset.
+35
+===== PAGE 36 =====
+ARTH150 ( (=alpha)=0.5, Control: CI-based )α
+=== Causal Ordering Step t=1 === 
+LLM Prior: {‘519': 0.066, '78': 0.044, '93': 0.037, …, '4': 0.025, '96': 0.024} 
+SciNO Likelihood: {'496': 0.500, '677': 0.500, '4': 0.000, …, '47': 0.000, '61': 0.000} 
+Updated Posterior: {'496': 0.662, '677': 0.337, '4': 0.000, …, '47': 0.000, '61': 0.000} 
+ 
+Current Causal Order : [496]
+=== Causal Ordering Step t=2 === 
+LLM Prior: {'519': 0.073, '78': 0.047, '93': 0.040, …, '783': 0.026, '539': 0.025} 
+SciNO Likelihood: {'677': 1.000, '4': 0.000, '8': 0.000, …, '61': 0.000, '63': 0.000} 
+Updated Posterior: {‘677': 1.000, '4': 0.000, '8': 0.000, …, '61': 0.000, '63': 0.000} 
+ 
+Current Causal Order : [496, 677]
+(…..)
+=== Causal Ordering Step t=105 === 
+LLM Prior: {'738': 0.378, '539': 0.311, '783': 0.309} 
+SciNO Likelihood: {'539': 0.333, '738': 0.333, '783': 0.333} 
+Updated Posterior: {'738': 0.378, '539': 0.311, '783': 0.309} 
+ 
+Current Causal Order  : [496, 677, …, 738]
+=== Causal Ordering Step t=106 === 
+LLM Prior: {'783': 0.533, '539': 0.466} 
+SciNO Likelihood: {'539': 0.967, '783': 0.032} 
+Updated Posterior: {'539': 0.963, '783': 0.036} 
+ 
+Current Causal Order  : [496, 677, …, 738, 539]
+=== Final Results === 
+Complete Causal Order: [783, 539, …, 677, 496] 
+Order Divergence: 18
+π1
+π2
+π105
+π106
+Figure A.13: LLM control log on the ARTH150 dataset.
+36

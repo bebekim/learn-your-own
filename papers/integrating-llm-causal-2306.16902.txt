@@ -1,0 +1,2039 @@
+
+===== PAGE 1 =====
+This article has been accepted for publication in IEEE Transactions on Artificial Intelligence. This is the author’s version which has not
+been fully edited and content may change prior to final publication. Citation information: DOI 10.1109/TAI.2025.3560927
+Integrating Large Language Model for
+Improved Causal Discovery
+Taiyu Ban, Lyuzhou Chen, Derui Lyu, Xiangyu Wang ∗, Qinrui Zhu, Qiang Tu, Huanhuan Chen ∗, Fellow, IEEE
+Abstract—Recovering the structure of causal graphical models
+from observational data is an essential yet challenging task for
+causal discovery in scientific scenarios. Domain-specific causal
+discovery usually relies on expert validation or prior analysis to
+improve the reliability of recovered causality, which is yet limited
+by the scarcity of expert resources. Recently, Large Language
+Models (LLM) have been used for causal analysis across various
+domain-specific scenarios, suggesting its potential as autonomous
+expert roles in guiding data-based structure learning. However,
+integrating LLMs into causal discovery faces challenges due to in-
+accuracies in LLM-based reasoning on revealing the actual causal
+structure. To address this challenge, we propose an error-tolerant
+LLM-driven causal discovery framework. The error-tolerant
+mechanism is designed three-fold with sufficient consideration
+on potential inaccuracies. In the LLM-based reasoning process,
+an accuracy-oriented prompting strategy restricts causal analysis
+to a reliable range. Next, a knowledge-to-structure transition
+aligns LLM-derived causal statements with structural causal
+interactions. In the structure learning process, the goodness-of-
+fit to data and adherence to LLM-derived priors are balanced
+to further address prior inaccuracies. Evaluation of eight real-
+world causal structures demonstrates the efficacy of our LLM-
+driven approach in improving data-based causal discovery, along
+with its robustness to inaccurate LLM-derived priors. Codes are
+available at https://github.com/tyMadara/LLM-CD.
+Impact Statement—Structure learning of causal graphical mod-
+els from observational data is essential for uncovering causal
+relationships in scientific research. However, recovering true
+causal structures is challenging due to data insufficiency and noise
+in real-world scenarios. To address this, our paper integrates
+Large Language Models (LLMs) to derive variable metadata and
+apply metadata-driven causality to enhance data-based structure
+learning. This approach significantly improves the accuracy of
+recovered causal structures across eight diverse domain-specific
+datasets, ready to support reliable causal discovery in various
+research domains. It offers a novel expert-free alternative to
+traditional data-based methods, paving the way for low-cost,
+high-quality causal discovery systems in various fields.
+Index Terms —Causal structure learning, Causal discovery,
+Large Language Model.
+I. I NTRODUCTION
+This research was supported in part by the National Key R&D Program
+of China (No. 2021ZD0111700), in part by the National Nature Science
+Foundation of China (No. 62137002, 62176245, 62406302), in part by the
+Natural Science Foundation of Anhui province (No. 2408085QF195), in part
+by the Fundamental Research Funds for the Central Universities under Grant
+WK2150110035.
+Taiyu Ban, Lyuzhou Chen, Derui Lyu, Xiangyu Wang, Qinrui Zhu and
+Huanhuan Chen are with the School of Computer Science and Technology,
+University of Science and Technology of China, Hefei 230026, China. Qinrui
+Zhu is also with Laboratory for Big Data and Decision, University of Science
+and Technology of China. Qiang Tu is with First Affiliated Hospital of
+University of Science and Technology of China, Hefei 230026, China.
+∗Corresponding authors: Xiangyu Wang (sa312@ustc.edu.cn) and Huan-
+huan Chen (hchen@ustc.edu.cn).
+L
+EARNING directed acyclic graph (DAG) structures from
+observational data is essential for analyzing and discover-
+ing causal mechanisms in scientific research [1–6]. This task,
+known as causal structure learning (CSL) [7–10], is NP-hard
+due to the exponentially growing hypothesis space with the
+number of nodes [11]. Besides, the limitations of real-world
+data, such as its insufficiency and noise, further challenge
+the practical application of structure learning algorithms for
+domain-specific causal discovery [12, 13].
+Integrating expert knowledge to validate learned structures
+or provide prior constraints is an effective strategy for ensuring
+the quality of recovered causal structures [14–16]. However,
+this approach is limited by the scarcity of expert resources
+available to verify data-based structure learning seamlessly.
+Recently, LLMs, as autonomous cross-domain experts, have
+shown promise in causal analysis across various domain-
+specific cases [17–20]. This indicates LLM’s potential as sub-
+stitutes for human experts to address the scarcity of expertise
+in domain-specific causal discovery.
+However, LLM’s recognition of causality is limited to the
+semantic aspect and existing knowledge, challenging its utility
+in causal discovery. Firstly, the investigated causal mecha-
+nisms underlying observational data can remain mysterious
+to humans. In this context, LLMs can struggle to justify
+causal relationships between variables with unclear causal
+mechanisms [21, 22]. This limitation indicates the unreliability
+of LLM-based causal reasoning on all pairs of variables, which
+is a dominant approach in current studies of LLM-based causal
+analysis [18, 23]. Moreover, graphical models regard causality
+as a direct interaction or influence implied by data, a view
+of causality that is not consistent with LLM’s recognition,
+which can be qualitative and ambiguous. Many commonsense
+causalities derived by LLMs may actually correspond to
+distinct causal mechanisms, such as direct interactions, multi-
+step interactions, or confounding by other variables. This
+inconsistency can compromise the recovered structure if not
+properly addressed in the structure learning process.
+To address these challenges, this paper proposes an LLM-
+driven structure learning framework incorporating error-
+tolerant mechanisms to mitigate the inaccuracies of LLM-
+based causal reasoning in data-based structure learning. The
+error-tolerant mechanisms are designed in three-fold: 1) Re-
+striction of LLM-based reasoning to clear causal knowledge;
+2) Employment of LLM-derived prior as indirect causal in-
+teractions; 3) Soft application of prior constraints in structure
+learning. Next, we delve into the details of these mechanisms.
+For LLM-based reasoning, an accuracy-oriented prompting
+strategy is designed to address the inaccuracies of LLM-based
+©2025 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See
+https://www.ieee.org/publications/rights/index.html for more information.
+arXiv:2306.16902v2  [cs.AI]  26 Aug 2025
+===== PAGE 2 =====
+This article has been accepted for publication in IEEE Transactions on Artificial Intelligence. This is the author’s version which has not
+been fully edited and content may change prior to final publication. Citation information: DOI 10.1109/TAI.2025.3560927
+Variables and 
+Descriptions
+```Identify existing 
+causal relations``` 
+Prompt Large 
+Language Model
+Ancestral constraints
+Observed data,
+ Learn Causal DAG
+Extra edge
+Reversed edge
+E
+R
+x1 x2 x3
+x4
+E
+R R
+x1 x2 x3
+x4
+E
+R R
+x1 x2 x3
+LLM-based Causal Analysis
+Data-based Causal Discovery
+E
+E
+LLM-inferred 
+Causal relations
+√
+True edge√
+LLM-driven Causal Discovery from Data
+x1 x3
+x4
+√√
+x1 x3
+x4
+√√
+x1 x2
+x4
+√ √
+DAG
+constraint
+ x1 x2E
+x1 x2
+Hard
+Soft
+Variables and 
+Descriptions
+```Identify existing 
+causal relations``` 
+Prompt Large 
+Language Model
+Ancestral constraints
+Observed data,
+ Learn Causal DAG
+Extra edge
+Reversed edge
+E
+R
+x1 x2 x3
+x4
+E
+R R
+x1 x2 x3
+x4
+E
+R R
+x1 x2 x3
+LLM-based Causal Analysis
+Data-based Causal Discovery
+E
+E
+LLM-inferred 
+Causal relations
+√
+True edge√
+LLM-driven Causal Discovery from Data
+x1 x3
+x4
+√√
+x1 x3
+x4
+√√
+x1 x2
+x4
+√ √
+DAG
+constraint
+ x1 x2E
+x1 x2
+Hard
+Soft
+Observational Data
+Variables
+Actual Causal Mechanism
+LLM-based
+Knowledge Recognition
+Derived
+Derived
+Associated× NOT 
+Completely Clear
+Our Exploration
+Pure Data-based
+Structure Learning
+LLM-driven Structure Learning
+...
+Metadata Causality Validated Causality
+LLM-based Causal Reasoning
+ Knowledge-to-Structure Transition
+Presence of Qualitive Causality
+Pure Data-based
+Structure Learning
+× NOT
+Reliable
+GT
+×
+DAG 
+space
+Knowledge-based√Reliablility 
+and Data-based √Authenticity
+Balance
+Soft Application
+√
+LLM-reshaped
+DAG space
+Metadata
+Value
+Set
+Value
+Set
+Semantic
+Symbol
+Semantic
+Symbol
+(Without Value set)
+“Disease”“Disease”
+{PFC, TGA, ...}{PFC, TGA, ...}
+(With Value set)
+“A general term 
+that could represent 
+any illness being 
+tracked or relevant 
+in the dataset.”
+“Identifies specific 
+congenital heart or 
+lung diseases affec-
+ting the newborn”
+PreciseAmbiguous
+Metadata
+ Causality
+(CO2, CO2Report)
+(HypoxiaInO2, ChestXray)
+(LungFlow, Disease)
+...
+(CO2, CO2Report)
+(HypoxiaInO2, ChestXray)
+(LungFlow, Disease)
+... ...
+(CO2, CO2Report) <True>
+Analysis: The levels of ...
+(LungFlow, Disease) <False>
+Analysis: The blood flow ...
+(HypoxiaInO2, ChestXray) <True>
+Analysis: The severity of hypoxia ...
+ Validated
+Causality
+Metadata
+Derivation
+Fig. 1. An illustrative diagram of our LLM-driven causal discovery framework. Elliptical blocks represent the input or intermediate results. Rounded
+rectangular blocks represent two aspects of causality among the investigated variables, the actual causal mechanisms (structure) underlying data, and the
+knowledge recognition of causality among variables. Rectangular blocks with the solid border represent a specific process. Rectangular blocks with the dotted
+border represent modules or sub-processes. Circles with colored faces in the block ‘LLM-based Causal Reasoning’ represent the reasoning traces of the LLM.
+reasoning on unclear causal mechanisms. This strategy in-
+cludes three stages: metadata derivation, causal extraction, and
+causal validation. The LLM begins by inferring metadata that
+precisely describes variables based on their semantic symbols
+and value sets. Using these metadata, the LLM is prompted to
+extract causality by restricted single-step reasoning, focusing
+on clear causal knowledge. The extracted causality undergoes
+a chain-of-thought (CoT) [24] reasoning and validation process
+to filter out errors. Compared to previous pairwise causal
+reasoning strategies [18], this approach avoids forcing the
+LLM to derive answers about causal relationships between
+variables with unclear causal mechanisms, thereby ensuring
+knowledge reliability. Additionally, it requires O(1) complex-
+ity in prompting rather than O(n2) when analyzing all variable
+pairs, leading to significantly better efficiency.
+To align the LLM-derived knowledge with the causal
+structure, each causal relationship is employed as a positive
+ancestral constraint where a directed path (or edge) from the
+cause to effect node exists in the structure. We do not directly
+specify the existence of edges as the LLM-derived causal
+knowledge are essentially qualitative and can represent indirect
+interactions, represented by paths rather than edges. This is
+a critical distinction of this study from previous studies that
+use LLM to identify edges for causal graph construction. By
+this transition, the causal structure specified by LLM-derived
+knowledge is aligned with its qualitative nature.
+In the structure learning process, we employ a soft ap-
+proach to apply LLM-derived prior constraints to filter out
+the remaining errors after the preceding two steps. These
+errors include misunderstandings due to insufficient meta-
+data or seemingly reasonable statements that actually involve
+non-causal mechanisms 1. Concretely, the scoring criteria for
+goodness-of-fit to data is extended with a term that evaluates
+the degree of adherence to prior structures. It creates a balance
+between goodness-of-fit to data and prior adherence, ensuring
+1Here, the non-causal mechanism means that the interaction between two
+variables is not represented by a directed path or edge in the causal structure.
+that any structural constraint that severely compromises the
+graphical model’s ability to represent the data is not accepted.
+This mechanism addresses the inconsistency between causality
+derived from the metadata and the actual causality underlying
+the observational data, thus improving robustness.
+Experimental results on eight real-world datasets spanning
+diverse domains demonstrate the effectiveness of the proposed
+LLM-driven causal discovery framework in improving recov-
+ered causal structures. An illustrative diagram is provided in
+Fig. 1. The main contributions are summarized as follows:
+• This paper proposes a novel LLM-driven causal discovery
+framework, which shows a promise in using LLM to aid
+discovering new causal mechanisms.
+• The paper adapts LLM-based reasoning to the causal
+discovery context by limiting the reasoning range to
+clear, knowledge-based causal relationships, ensuring the
+quality of LLM-derived priors.
+• The paper aligns LLM-derived causality with its quali-
+tative nature as ancestral constraints on the causal struc-
+ture and applies them softly. This knowledge-to-structure
+transition and balancing ensures the stability of recovered
+causality by LLM-driven structure learning.
+The rest of the paper is organized as follows. Section II
+introduces the background of this study. Section III introduces
+the proposed LLM-driven CSL method. Section IV reports
+the experimental results and performs the analysis. Section V
+concludes this paper.
+II. B ACKGROUND
+This section reviews related studies on the application of
+LLM-based causal reasoning in causal tasks, followed by
+preliminaries of structure learning in causal discovery.
+A. LLM-based Reasoning in Causal Analysis
+The research interest in exploring LLM’s reasoning ability
+in causal analysis has emerged recently [25]. In the context
+©2025 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See
+https://www.ieee.org/publications/rights/index.html for more information.
+===== PAGE 3 =====
+This article has been accepted for publication in IEEE Transactions on Artificial Intelligence. This is the author’s version which has not
+been fully edited and content may change prior to final publication. Citation information: DOI 10.1109/TAI.2025.3560927
+of LLM performance measurement, Jin et al. [26] propose a
+novel task that evaluates LLM’s ability in extracting causality
+among a set of correlation statements. Similarly, Willig et al.
+[27] investigate LLM’s proficiency in responding to causality-
+based queries, assessing their capability to discern causality
+and correlation. In domian-specific causal analysis contexts,
+Long et al. [20] employ LLM to generate simple causal
+structures for small variable sets (3-4 variables), examining
+LLM’s accuracy in determining causal directions between
+pairs of variables. Another study by Tu et al. [23], challenges
+LLM with the task of discovering causal structures within
+the medical pain diagnosis domain. Their findings indicate
+suboptimal performance of LLM in this task. For the same
+dataset, Kiciman et al. [18] obtain more refined results with
+LLM by optimizing the prompting strategies. Moreover, they
+extend their investigation to a wider array of causal tasks,
+including pairwise causal discovery [28] and counterfactual
+reasoning [29], where LLM demonstrate notable accuracy.
+In addition to these promises, there are some doubts about
+LLM’s genuine understanding of causality. Zeˇcevi´c et al. [21]
+present empirical analyses questioning the ability of LLM to
+reason about causality, suggesting that they do not exhibit
+authentic causal understanding. Lu et al. [22] raise doubts
+about whether LLM’s apparent reasoning abilities are merely
+the result of in-context learning and provide experimental
+evidences across various tasks. These findings indicate that
+LLM alone can fail to discover new causal relationships in
+domain-specific cases.
+Unlike previous studies that use LLM as standalone systems
+for causal analysis, we deploy LLM as supplementary tools
+in causal discovery. This integration compensates for the
+LLM’s limitations in revealing new causality by incorporating
+observational data, while simultaneously enhancing data-based
+analysis with the guidance of the LLM’s causal insights.
+B. Use of LLM Prior in Data-based Analysis
+The closest studies to this work are those by Choi et al. [30]
+and Long et al. [20], which incorporate LLM-derived priors
+into the process of data-based analysis. Choi et al. [30] explore
+the use of LLM-based reasoning results as priors in three data-
+based analysis tasks, including causal directionality inference
+between pairwise variables, and have observed improved re-
+sults. Long et al. [20] integrate LLM-reasoned directionality
+results of edges between pairwise variables using a greedy
+strategy to orient edges in an undirected causal graph.
+A major difference between these studies and this paper
+is our investigation into the potential of LLM for a more
+complex and applicable task: data-based structure learning
+for causal discovery. Unlike the study by Long et al. , which
+operates on a pre-existing skeleton of causality, our approach
+directly recovers structures from observational data. Moreover,
+the reliability of LLM-based causal reasoning on pairwise vari-
+ables is significantly lower in our context, as causal discovery
+involves a large number of variable pairs with unclear causal
+mechanisms. This complexity presents unique challenges that
+our framework aims to address.
+C. Causal Structure Learning
+We employ the Bayesian network (BN) [31] as the causal
+graphical model2, which represents the conditional dependen-
+cies among nodes X = {xi}n
+i=1 via a directed acyclic graph
+(DAG). The joint probability distribution governed by the BN
+is defined as follows:
+P (x1, x2, ..., xn) =
+nY
+i=1
+P (xi | pa(xi)) (1)
+where pa (xi) is the set of parent nodes of xi in the BN.
+Structure Learning of a BN is to deduce its DAG structure
+from a set of i.i.d samples generated accordingly [34].
+Methods for BN structure learning are typically categorized
+into constraint-based, score-based, and hybrid approaches [9].
+Constraint-based methods utilize conditional independence
+tests to establish the graph, resulting in a partial DAG [35].
+Score-based methods evaluate the graph’s goodness-of-fit to
+the data using a scoring criteria and search for the DAG with
+the optimal score [36]. Hybrid methods are a combination of
+these approaches [37].
+In this paper, we use score-based methods as structure
+learning algorithms given that their extensibility to prior
+structural constraints [15, 38]. Given the Markov property of
+joint data distributions, as shown in Eq. (1), the mainstream
+scoring functions like Bayesian Information Criterion (BIC)
+[39], Minimum Description Length (MDL) [40], and Bayesian
+Dirichlet equivalent uniform (BDeu) [41], are decomposable
+[42]. They can be presented as the following form:
+σ(G; D) =
+nX
+i=1
+σ (xi, pa (xi) ;D) (2)
+where G denotes the BN structure and D represents the
+observational data. Score-based structure learning is framed
+as a combinatorial optimization task aimed at maximizing
+σ(G; D), while ensuring that G remains acyclic. Representa-
+tive search strategies in score-based structure learning include
+Greedy Equivalent Search [43], Tabu Search [38], A* [44],
+and Markov chain Monte Carlo [45] algorithms, etc.
+III. LLM- DRIVEN CAUSAL STRUCTURE LEARNING
+This section illustrates the proposed LLM-driven structure
+learning approach. We begin by introducing the LLM-based
+causal reasoning among variables with a focus on accuracy pri-
+oritization. Then, we describe the LLM-derived prior transition
+to structural constraints and apply them softly in the scoring
+criteria of graphs. Next, we present the search algorithm used
+to find the optimal LLM-guided causal structure. Finally, we
+discuss the error-tolerance ability and introduce an alternative
+hard approach for applying LLM-derived priors.
+To set the stage, we assume that the variable set is
+X = {xi}n
+i=1, and the set of observational data is discrete,
+denoted as D ∈ Nm×n. A directed graph with these variables
+is denoted as G(X, E(G)), where X is the node set, and
+E(G) ⊆ X × X is the edge set of this graph. The scoring
+2In additional to BNs, the structural equation model (SEM) is also a well-
+known causal graphical model, which typically models the causality among
+continuous variables as functions with additive noise [32, 33].
+©2025 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See
+https://www.ieee.org/publications/rights/index.html for more information.
+===== PAGE 4 =====
+This article has been accepted for publication in IEEE Transactions on Artificial Intelligence. This is the author’s version which has not
+been fully edited and content may change prior to final publication. Citation information: DOI 10.1109/TAI.2025.3560927
+Variables and 
+Descriptions
+```Identify existing 
+causal relations``` 
+Prompt Large 
+Language Model
+Ancestral constraints
+Observed data,
+ Learn Causal DAG
+Extra edge
+Reversed edge
+E
+R
+x1 x2 x3
+x4
+E
+R R
+x1 x2 x3
+x4
+E
+R R
+x1 x2 x3
+LLM-based Causal Analysis
+Data-based Causal Discovery
+E
+E
+LLM-inferred 
+Causal relations
+√
+True edge√
+LLM-driven Causal Discovery from Data
+x1 x3
+x4
+√√
+x1 x3
+x4
+√√
+x1 x2
+x4
+√ √
+DAG
+constraint
+ x1 x2E
+x1 x2
+Hard
+Soft
+Variables and 
+Descriptions
+```Identify existing 
+causal relations``` 
+Prompt Large 
+Language Model
+Ancestral constraints
+Observed data,
+ Learn Causal DAG
+Extra edge
+Reversed edge
+E
+R
+x1 x2 x3
+x4
+E
+R R
+x1 x2 x3
+x4
+E
+R R
+x1 x2 x3
+LLM-based Causal Analysis
+Data-based Causal Discovery
+E
+E
+LLM-inferred 
+Causal relations
+√
+True edge√
+LLM-driven Causal Discovery from Data
+x1 x3
+x4
+√√
+x1 x3
+x4
+√√
+x1 x2
+x4
+√ √
+DAG
+constraint
+ x1 x2E
+x1 x2
+Hard
+Soft
+Observational Data
+Variables
+Actual Causal Mechanism
+LLM-based
+Knowledge Recognition
+Derived
+Derived
+Associated× NOT 
+Completely Clear
+Our Exploration
+Pure Data-based
+Structure Learning
+LLM-driven Structure Learning
+...
+Metadata Causality Validated Causality
+LLM-based Causal Reasoning
+ Structural Constraint Adaption
+Presence of Qualitive Causality
+Pure Data-based
+Structure Learning
+× NOT
+Reliable
+GT
+×
+DAG 
+space
+Knowledge-based√Reliablility 
+and Data-based √Authenticity
+Balance
+Soft Application
+√
+√
+LLM-reshaped
+DAG space
+Metadata
+Value
+Set
+Value
+Set
+Semantic
+Symbol
+Semantic
+Symbol
+(Without Value set)
+“Disease”“Disease”
+{PFC, TGA, ...}{PFC, TGA, ...}
+(With Value set)
+“A general term 
+that could represent 
+any illness being 
+tracked or relevant 
+in the dataset.”
+“Identifies specific 
+congenital heart or 
+lung diseases affec-
+ting the newborn”
+PreciseAmbiguous
+Metadata
+ Causality
+(CO2, CO2Report)
+(HypoxiaInO2, ChestXray)
+(LungFlow, Disease)
+...
+(CO2, CO2Report)
+(HypoxiaInO2, ChestXray)
+(LungFlow, Disease)
+...
+(CO2, CO2Report)
+(HypoxiaInO2, ChestXray)
+(LungFlow, Disease)
+... ...
+(CO2, CO2Report) <True>
+Analysis: The levels of ...
+(LungFlow, Disease) <False>
+Analysis: The blood flow ...
+(HypoxiaInO2, ChestXray) <True>
+Analysis: The severity of hypoxia ...
+ Validated
+Causality
+Metadata
+Derivation
+Fig. 2. An illustrative diagram of the metadata derivation stage of the
+prompting strategy. The example in the figure is selected from outputs of
+GPT-4 on the Child dataset, where integration of semantic symbols and value
+sets leads to more precise and contextually accurate metadata.
+criteria of the goodness-of-fit to data of a graph is denoted as
+σ(G; D), which is decomposable as defined in Eq. (2).
+A. Accuracy-Oriented Causal Reasoning with LLM
+This section introduces the accuracy-oriented prompting
+strategy for LLM-based causal reasoning among variables. The
+LLM-based reasoning consists of three stages, which are the
+metadata derivation, causal extraction, and causal validation.
+Assume that the observational data of causal discovery task
+contains basic descriptive information, including variables’
+semantic symbols, value sets and the overall research context.
+The details of the prompting strategy are illustrated as follows.
+In the metadata derivation D stage, the LLM is prompted to
+identify richer metadata on the variables given their symbols,
+value sets, and context. Note that the value set is crucial for
+enhancing the precision of metadata. Some variable symbols
+represent general concepts and can be ambiguous; integrating
+possible values helps the LLM provide more precise descrip-
+tions that align with their reference in the research context.
+Representative examples are reported in Table I, comparing the
+differences between derived metadata using only symbols and
+those using both symbols and value sets. The derived metadata
+for variables is denoted as M = {metai}n
+i=1, with meta i as
+descriptive texts for variable xi. An illustrative diagram of the
+metadata derivation is presented in Fig. 2.
+In the causal extraction E stage, the LLM is prompted
+to extract the most confident causal relationships among the
+variables {xi}n
+i=1 given their metadata {metai}n
+i=1. We avoid
+providing pairwise variables individually to the LLM, as
+this can lead to unreliable causality extraction for variable
+pairs whose interaction mechanisms are unclear. Studies have
+shown that LLM can perform more fine-grained reasoning
+on complex tasks when decomposed into sub-tasks [46, 47].
+Conversely, by restricting the LLM to single-step reasoning,
+we focus on the relatively easier part of the causal extraction
+task, allowing the LLM to output the most clear causality in its
+knowledge to prioritize accuracy. The set of extracted causality
+is denoted as C = {(u, v) | u, v ∈ X}.
+In the causal validation V stage, the extracted causality set C
+is validated through decomposition and CoT prompting. This
+validation stage is necessary because the LLM’s reasoning
+ability is limited in complex tasks, which can lead to erro-
+neous results. To address this inaccuracy, we have the LLM
+decompose each causal relationship in C and conduct a CoT
+reasoning to validate its correctness. By this stage, errors in the
+extracted causality are filtered out to ensure the accuracy of the
+prior causality that guides data-based structure learning. The
+validated causality is denoted as C ′. An illustrative diagram
+of causal extraction and validation stages is shown in Fig. 3.
+B. Soft Scoring Criteria with LLM-derived Prior
+This section introduces how to softly extend the scoring
+criteria to incorporate LLM-derived priors. We begin with
+the structural constraints of the LLM-derived causality in C ′,
+which is converted to a set of positive ancestral constraints on
+the causal graph G:
+A = {Directed path u ⇝ v is in G for (u, v) ∈ C ′} (3)
+To softly incorporate A in structure learning, we require
+a prior probability set P to construct the prior Π⟨A, P⟩.
+Each constraint xi ⇝ xj within A is associated with a
+prior probability Pij, constrained within the range (0.5, 1) to
+indicate the presence of the path. Given observational data
+D and the prior knowledge of ancestral constraints Π, the
+posterior probability of a DAG G is formulated as follows:
+P (G | D, Π) = P (D | G)P (G | Π)
+P (D | Π) (4)
+Eliminating the constant P (D | Π), the typical form of scoring
+functions is derived by the logarithmic transformation of Eq.
+(4):
+log P (G | D, Π) = log P (D | G) + logP (G | Π) (5)
+Here, log P (D | G) assesses the goodness-of-fit of the graph to
+data. The term log P (G | Π) evaluates the adherence to prior
+constraints of the graph, which is discussed subsequently.
+For the set of ancestral constraints A, the existence of
+paths typically involves interdependencies, leading to complex
+joint distribution forms. Nevertheless, given that the ancestral
+constraints specified are generally sparse, we can approximate
+the probability distribution by calculating the existence of each
+path independently. This approach simplifies the computation
+of the score while maintaining the ancestral constraints’ appro-
+priate impact on the data-consistency term within the scoring
+criteria. This factorization is expressed as follows:
+log P (G | Π) = c0+X
+xi⇝xj ∈A
+log
+
+Ixi⇝xj ∈GPij + Ixi⇝xj ̸∈G(1 − Pij)
+ (6)
+Here, c0 is a constant, and Icondition is an indicator func-
+tion that returns 1 if condition is true and 0 otherwise.
+Combining Equations (5) and (6) and dropping constants, the
+ancestral constraint-based scoring function is formulated as:
+σS(G; D, Π) = σ(G; D)+X
+xi⇝xj ∈A
+log
+
+Ixi⇝xj ∈GPij + Ixi⇝xj ̸∈G(1 − Pij)
+ (7)
+©2025 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See
+https://www.ieee.org/publications/rights/index.html for more information.
+===== PAGE 5 =====
+This article has been accepted for publication in IEEE Transactions on Artificial Intelligence. This is the author’s version which has not
+been fully edited and content may change prior to final publication. Citation information: DOI 10.1109/TAI.2025.3560927
+TABLE I
+COMPARATIVE EXAMPLES OF LLM- DERIVED METADATA USING ONLY SYMBOLS VERSUS USING BOTH SYMBOLS AND VALUE SETS .
+Symbol Value set Metadata with Both Symbol and Value Set Metadata with Only Symbol
+BirthAsphyxia {yes, no} Indicates if birth complications led to oxygen deprivation ... suffered from lack of oxygen ...
+HypDistrib {Equal, Unequal} Shows the balance of oxygen deficiency across tissues Describes the distribution pattern of ..
+Disease {PFC, TGA, ... } Identifies specific congenital heart or lung diseases ... Represents any specific illness ...
+LungFlow {Normal, Low, High } Measures the amount of blood flow through the lungs ... air or blood ...
+LowerBodyO2 {<5, 5-12, 12+ } Measures peripheral oxygen saturation ... ... oxygen saturation ...
+XrayReport {Oligaemic, Plethoric, ... } Provides a summary of X-ray findings on lung health ... ... bone structures, organs ...
+These examples are generated by GPT-4 on the Child dataset. Red text indicates inaccurate descriptions of variables in the overall research context of the
+Child dataset, while green text indicates precise descriptions.
+Variables and 
+Descriptions
+```Identify existing 
+causal relations``` 
+Prompt Large 
+Language Model
+Ancestral constraints
+Observed data,
+ Learn Causal DAG
+Extra edge
+Reversed edge
+E
+R
+x1 x2 x3
+x4
+E
+R R
+x1 x2 x3
+x4
+E
+R R
+x1 x2 x3
+LLM-based Causal Analysis
+Data-based Causal Discovery
+E
+E
+LLM-inferred 
+Causal relations
+√
+True edge√
+LLM-driven Causal Discovery from Data
+x1 x3
+x4
+√√
+x1 x3
+x4
+√√
+x1 x2
+x4
+√ √
+DAG
+constraint
+ x1 x2E
+x1 x2
+Hard
+Soft
+Variables and 
+Descriptions
+```Identify existing 
+causal relations``` 
+Prompt Large 
+Language Model
+Ancestral constraints
+Observed data,
+ Learn Causal DAG
+Extra edge
+Reversed edge
+E
+R
+x1 x2 x3
+x4
+E
+R R
+x1 x2 x3
+x4
+E
+R R
+x1 x2 x3
+LLM-based Causal Analysis
+Data-based Causal Discovery
+E
+E
+LLM-inferred 
+Causal relations
+√
+True edge√
+LLM-driven Causal Discovery from Data
+x1 x3
+x4
+√√
+x1 x3
+x4
+√√
+x1 x2
+x4
+√ √
+DAG
+constraint
+ x1 x2E
+x1 x2
+Hard
+Soft
+Observational Data
+Variables
+Actual Causal Mechanism
+LLM-based
+Knowledge Recognition
+Derived
+Derived
+Associated× NOT 
+Completely Clear
+Our Exploration
+Pure Data-based
+Structure Learning
+LLM-driven Structure Learning
+...
+Metadata Causality Validated Causality
+LLM-based Causal Reasoning
+ Structural Constraint Adaption
+Presence of Qualitive Causality
+Pure Data-based
+Structure Learning
+× NOT
+Reliable
+GT
+×
+DAG 
+space
+Knowledge-based√Reliablility 
+and Data-based √Authenticity
+Balance
+Soft Application
+√
+√
+LLM-reshaped
+DAG space
+Metadata
+Value
+Set
+Value
+Set
+Semantic
+Symbol
+Semantic
+Symbol
+(Without Value set)
+“Disease”“Disease”
+{PFC, TGA, ...}{PFC, TGA, ...}
+(With Value set)
+“A general term 
+that could represent 
+any illness being 
+tracked or relevant 
+in the dataset.”
+“Identifies specific 
+congenital heart or 
+lung diseases affec-
+ting the newborn”
+PreciseAmbiguous
+Metadata
+ Causality
+(CO2, CO2Report)
+(HypoxiaInO2, ChestXray)
+(LungFlow, Disease)
+...
+(CO2, CO2Report)
+(HypoxiaInO2, ChestXray)
+(LungFlow, Disease)
+...
+(CO2, CO2Report)
+(HypoxiaInO2, ChestXray)
+(LungFlow, Disease)
+... ...
+(CO2, CO2Report) <True>
+Analysis: The levels of ...
+(LungFlow, Disease) <False>
+Analysis: The blood flow ...
+(HypoxiaInO2, ChestXray) <True>
+Analysis: The severity of hypoxia ...
+ Validated
+Causality
+Metadata
+Derivation
+Fig. 3. An illustrative diagram of the causal extraction and validation stages. The LLM is first prompted to extract causality among variables using their
+metadata, followed by a decomposition and validation process to ensure the correctness of each extracted causal statement.
+In this equation, σS denotes the soft constraint scoring
+function, integrating ancestral constraints A with the prior
+probability set P. The term σ(G; D) is the scoring function
+that estimates log P (D | G).
+The soft constraint scoring function in Eq. (7) is used as
+the optimization objective during the DAG search process.
+In practice, the specific prior probability of each individual
+constraint is often unknown, and the prior probability P is
+assigned a uniform value that represents the overall confidence
+of the ancestral constraints, denoted as Pij ← c.
+This confidence level has a significant impact on the search
+results, as it affects the impact strength of prior constraints
+on the search process. A higher confidence level will lead
+to a greater tendency to accept constraints, while a lower
+confidence level will result in a greater willingness to consider
+alternative solutions that may better fit the data.
+The choice of confidence level is problem-dependent and re-
+quires careful consideration. A too-high confidence level may
+lead to an excessive reliance on prior knowledge, potentially
+overlooking important aspects of the data. Conversely, a too-
+low confidence level may result in an lack of consideration of
+prior knowledge, leading to suboptimal solutions.
+In Section III-D, we will discuss the impact of confidence
+levels on the search results and how to choose an appropriate
+confidence level for a given problem.
+C. Search with LLM-driven Scoring Criteria
+To search for the optimal structure with LLM-driven scoring
+criteria, we employ an ordering-based search strategy that
+assumes a total ordering of variables ≺o. Within this ordering,
+the acyclicity naturally holds by assigning the candidate parent
+set of each variable as variables preceding it in ≺o. The search
+strategy consists of two paradigms: one for search in the
+graph space within total ordering ≺o, and another for search
+in the order space. We use the MCMC method proposed by
+O’Donnell et al. [45] for implementation.
+The data-driven scoring function σ(G; D) is extended to
+the LLM-driven scoring function σS(G; D, Π) as illustrated
+earlier. For the two search paradigms, the mappings of a
+sample to its neighbor are defined as follows:
+1) The neighbor of an ordering ≺o (N≺o): swap the posi-
+tion of two random variables in ≺o.
+2) The neighbor of a DAG G (NG): With adherence to
+the ordering, toggle a single edge between arbitrary two
+nodes, toggle two edges from arbitrary two nodes to one,
+and then swap the parent node of one node to another.
+With the above neighborhood definition, an MCMC search
+strategy is employed, starting with an initial best ordering
+≺0
+o and its corresponding DAG G0 derived by Simulated
+Annealing. Then, a random neighbor of the initial ordering
+is sampled, denoted as N≺0o, followed by sampling a random
+neighbor of the initial DAG NG0 with adherence to the new
+ordering N≺0o. The new ordering sample is accepted with the
+following condition:
+σS(NG0; D, Π) − σS(G0; D, Π)
+T > log U[0, 1] (8)
+where T is the temperature 3 and U[0, 1] is a uniform ran-
+dom number from 0 to 1. If N≺0o is accepted, a weight
+exp(σS(NG0;D,Π)−exp(σ0)
+T is contributed to the ‘clean’ DAG of
+NG0, where σ0 is a constant to avoid underflow. The ‘clean’
+DAG is derived by eliminating any single edge of G0 that can
+refine the score σS. Then the new ordering N≺0o and DAG NG0
+are taken as the input to the next iteration of samples until a set
+number of samples are complete. When the sampling process
+is over, the clean DAGs are grouped using a Kullback-Leibler
+3T is set to 1.8 as default.
+©2025 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See
+https://www.ieee.org/publications/rights/index.html for more information.
+===== PAGE 6 =====
+This article has been accepted for publication in IEEE Transactions on Artificial Intelligence. This is the author’s version which has not
+been fully edited and content may change prior to final publication. Citation information: DOI 10.1109/TAI.2025.3560927
+(KL) divergence test, and the DAG with highest weight is
+taken as the solution.
+D. Impact of Confidence Level
+The confidence level, denoted by the prior probability c,
+is pivotal in shaping the error tolerance of the algorithm. It
+directly affects the penalty imposed for violating ancestral
+constraints, as detailed in Eq. (7). As the confidence level
+nears unity, the associated penalty value escalates sharply.
+To elucidate the effect of the confidence level on penalty
+severity, consider c = 1 −10−n, where n belongs to the set of
+positive integers, N+. This assumption enables the formulation
+of the penalty function as follows:
+log c
+1 − c = log(1 − 10−n) + n log 10 ≈ n log 10, (9)
+where the approximation is valid for larger values of n. This
+demonstrates that the penalty value increases linearly with n,
+while the confidence level is taken as 1 − 10−n.
+The correlation between the confidence level and penalty
+strength underscores a crucial point: if the algorithm accepts
+fewer prior constraints than anticipated, adjusting the confi-
+dence level to 1 −10−n enables the modification of constraint
+strength through alterations in n. This adjustment facilitates
+the calibration of the algorithm’s tolerance to errors, allowing
+it to be tailored to the specific demands of the task.
+E. A Hard Alternative of LLM-driven Structure Learning
+This paper also investigates the hard approach of applying
+LLM-derived ancestral constraints in the CSL process. This
+approach strictly adheres to all constraints, provided that they
+are not in conflict. It can be regarded as an equivalent operation
+to setting the prior probability of all prior constraints to 1.
+Considering the prior probability-based scoring function in Eq.
+(7), we set Pij = 1, which makes the violation to a constraint
+result in a negative infinity penalty to the score (limc→0 log c−
+log 1). Therefore, the hard constraint scoring function can be
+factorized as follows:
+σH(G; D, A) = σ(G; D) − inf ×ψ(G; A) (10)
+where ψ(G; A) represents the count of ancestral constraints
+that are not satisfied in the graph G, and inf is a positive
+value large enough to ensure that all graphs fully satisfying
+A score higher than those that do not. To find the solution
+with the optimal hard prior constraint scoring function σH,
+we use an order-based search proposed by Lee et al. [48].
+This method employs a Memetic search algorithm with a tabu
+list and an Insert Neighbourhood definition in the order space.
+IV. E XPERIMENTS
+A. Datasets and Setup
+This study utilizes eight datasets from the Bayesian Net-
+work repository4 to conduct experiments. These datasets span
+various domains and complexities and are detailed in terms of
+variables, edges, parameters, directed paths (which represent
+4https://www.bnlearn.com/bnrepository/
+TABLE II
+THE USED CASUAL STRUCTURE DATASETS .
+Dataset # V # E # Para Domain of Research
+Cancer 5 4 10 Smoking and cancer
+Asia 8 8 18 Reasons causing dyspnoea
+Child 20 25 230 Childhood diseases
+Alarm 37 46 509 ALARM monitoring system
+Insurance 27 52 1008 Car insurance cost
+Water 32 66 10k Waste water control systems
+Mildew 35 46 540k Winter wheat mildew control
+Barley 48 84 114k Pesticides use in growing malt
+Column headers ‘# V’, ‘# E’, and ‘# Para’ represent the number of
+variables, edges, and parameters, respectively.
+TABLE III
+COMPARISON BETWEEN CSL WITH MERE DATA AND WITH LLM- DERIVED
+PRIOR BY THE SOFT CONSTRAINT APPROACH (MML SCORE ).
+Dataset N F1↑ / SHD↓
+Data-based LLM-driven Improvement
+Cancer 250 0.67 / 2.0 0.75 / 2.0 +12% / -0%
+1000 0.45 / 2.5 0.83 / 1.3 +84% / -47%
+Asia 250 0.68 / 3.5 0.99 / 0.2 +46% / -95%
+1000 0.78 / 2.2 1.00 / 0.0 +28% / -100%
+Child 500 0.83 / 6.0 0.82 / 7.0 -1% / +17%
+2000 0.92 / 2.0 0.96 / 1.2 +4% / -42%
+Insurance 500 0.48 / 34.3 0.62 / 28.3 +29% / -17%
+2000 0.54 / 31.7 0.64 / 26.0 +19% / -18%
+Alarm 1000 0.82 / 11.0 0.91 / 6.8 +11% / -38%
+4000 0.87 / 8.2 0.97 / 2.5 +11% / -69%
+Water 1000 0.25 / 59.0 0.28 / 63.5 +12% / +8%
+4000 0.33 / 53.2 0.37 / 55.0 +12% / +3%
+Mildew 8000 0.28 / 48.2 0.18 / 55.2 -36% / +15%
+32000 0.21 / 62.2 0.20 / 62.3 -5% / +0%
+Barley 2000 0.29 / 81.5 0.28 / 85.7 -3% / +5%
+8000 0.33 / 81.2 0.34 / 81.7 +3% / +1%
+TABLE IV
+COMPARISON BETWEEN CSL WITH MERE DATA AND WITH LLM- DERIVED
+PRIOR BY THE HARD CONSTRAINT APPROACH (BD EU SCORE ).
+Dataset N F1↑ / SHD↓
+Data-based LLM-driven Improvement
+Cancer 250 0.58 / 3.0 0.94 / 0.5 +%62 / -%83
+1000 0.60 / 1.8 1.00 / 0.0 +%67 / -%100
+Asia 250 0.68 / 4.2 0.88 / 2.0 +%29 / -%48
+1000 0.75 / 2.5 0.98 / 0.3 +%31 / -%87
+Child 500 0.72 / 9.5 0.74 / 10.5 +%3 / +%11
+2000 0.82 / 5.3 0.78 / 7.8 -%5 / +%47
+Insurance 500 0.68 / 25.7 0.70 / 24.5 +%3 / -%5
+2000 0.81 / 15.0 0.78 / 16.2 -%4 / +%8
+Alarm 1000 0.88 / 9.5 0.85 / 12.3 -%3 / +%30
+4000 0.91 / 6.5 0.88 / 8.8 -%3 / +%36
+Water 1000 0.38 / 62.3 0.34 / 66.7 -%11 / +%7
+4000 0.48 / 53.7 0.47 / 55.7 -%2 / +%4
+Mildew 8000 0.63 / 22.8 0.42 / 40.5 -%33 / +%77
+32000 0.67 / 21.0 0.71 / 21.5 +%6 / +%2
+Barley 2000 0.62 / 47.0 0.63 / 52.0 +%2 / +%11
+8000 0.73 / 33.7 0.57 / 54.5 -%22 / +%62
+qualitative causality), and domains of application. The specific
+characteristics of each dataset are presented in Table II. For
+our experiments, we employ observational data as provided
+by Li et al. [38]. This synthetic data comprises 12 groups,
+each containing two subsets of differing sizes, across all
+datasets. In addition, we use two private datasets that were
+not published, thus not included in the training of LLMs for
+evaluation. The first dataset, RECTUM, contains clinical data
+©2025 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See
+https://www.ieee.org/publications/rights/index.html for more information.
+===== PAGE 7 =====
+This article has been accepted for publication in IEEE Transactions on Artificial Intelligence. This is the author’s version which has not
+been fully edited and content may change prior to final publication. Citation information: DOI 10.1109/TAI.2025.3560927
+TABLE V
+COMPARISON OF SID ↓ BETWEEN CSL WITH MERE DATA AND WITH LLM- DERIVED PRIOR .
+Method Cancer Asia Child Insurance Alarm Water Mildew Barley
+250 1000 250 1000 500 2000 500 2000 1000 4000 1000 4000 8000 32000 2000 8000
+Data-based MCMC 2.00 8.00 14.5 9.67 87.0 27.5 464 396 119 89.3 537 554 693 698 1235 1209
+LLM-driven MCMC 1.00 0.67 0.00 0.00 75.2 4.00 427 347 47.2 26.2 520 543 731 683 1222 1196
+Improvement -50% -92% -100% -100% -14% -85% -8.0% -13% -60% -71% -3.2% -1.9% +5.6% -2.1% -1.1% -1.1%
+Data-based Tabu 6.25 6.83 12.2 10.7 126 86.3 344 260 57.3 38.7 465 435 426 350 886 730
+LLM-driven Tabu 0.50 0.00 1.50 0.00 100 82.2 342 278 50.5 30.7 487 454 552 291 837 906
+Improvement -92% -100% -88% -100% -21% -4.8% -0.8% +6.9% -12% -21% +4.6% +4.3% +30% -17% -5.6% +24%
+TABLE VI
+ACCURACY OF PRIOR ANCESTRAL CONSTRAINTS DERIVED FROM VARIOUS LLM S ON VARIOUS DATASETS .
+LLM Cancer Asia Child Insurance Alarm Water Mildew Barley Truth Error Accuracy
+Chatsonic 3 / 5 7 / 7 6 / 14 16 / 24 10 / 20 0 / 5 8 / 24 3 / 9 53 55 0.51
+HuggingChat 1 / 4 2 / 6 2 / 9 3 / 5 0 / 1 0 / 0 0 / 0 0 / 2 8 19 0.30
+Whispr 4 / 5 6 / 7 1 / 13 9 / 14 15 / 29 2 / 8 24 / 30 7 / 16 68 54 0.56
+Xinhuo 1 / 1 1 / 1 1 / 1 4 / 20 0 / 2 0 / 0 1 / 29 1 / 1 9 46 0.16
+Yiyan 8 / 15 6 / 7 4 / 19 10 / 26 3 / 10 0 / 12 0 / 18 4 / 12 35 84 0.29
+ChatGLM 1 / 4 6 / 7 2 / 12 9 / 23 3 / 11 0 / 16 4 / 13 7 / 12 32 66 0.33
+Sage 5 / 5 6 / 7 2 / 15 12 / 27 14 / 28 0 / 20 47 / 61 9 / 18 95 86 0.52
+davinci-text-001 4 / 5 4 / 6 1 / 4 15 / 23 7 / 19 0 / 0 3 / 9 0 / 1 34 33 0.51
+davinci-text-002 4 / 4 6 / 6 13 / 28 6 / 26 8 / 24 0 / 4 11 / 32 9 / 15 57 82 0.41
+davinci-text-003 4 / 4 6 / 7 2 / 11 6 / 26 5 / 17 8 / 8 3 / 8 10 / 18 44 55 0.44
+Claude+ 4 / 5 9 / 10 1 / 7 10 / 15 12 / 15 0 / 56 2 / 14 5 / 11 43 90 0.32
+Claude-100k 4 / 4 6 / 7 6 / 14 16 / 20 5 / 13 0 / 28 7 / 12 5 / 11 49 60 0.45
+GPT-3.5-turbo 4 / 6 6 / 7 6 / 22 5 / 8 21 / 35 1 / 20 11 / 27 7 / 12 61 76 0.45
+GPT-4 5 / 5 9 / 9 8 / 10 10 / 10 20 / 21 9 / 15 18 / 27 17 / 24 95 25 0.79
+For each dataset and LLM, we report the number of LLM-derived causal statements and the number of correct ones. An instance of the value ‘4 / 5’
+indicates that an LLM produces 5 causal statements, of which 4 correspond to a directed path in the actual structure.
+TABLE VII
+COMPARATIVE ACCURACY OF LLM- DERIVED CAUSALITY : A S PATHS V .S.
+AS EDGES . T HE BETTER ACCURACY IS HIGHLIGHTED IN BOLD .
+Accuracy of Paths / Accuracy of Edges w.r.t. LLM-derived causality
+Dataset GPT-4 GPT-3.5-turbo Claude+ Claude-100k
+Cancer 1.00 / 0.80 0.67 / 0.67 0.80 / 0.80 1.00 / 1.00
+Asia 1.00 / 0.78 0.86 / 0.86 0.90 / 0.70 0.86 / 0.57
+Child 0.80 / 0.70 0.27 / 0.27 0.14 / 0.00 0.43 / 0.43
+Insurance 1.00 / 0.70 0.63 / 0.38 0.67 / 0.60 0.80 / 0.60
+Alarm 0.95 / 0.67 0.60 / 0.51 0.80 / 0.27 0.38 / 0.38
+Water 0.60 / 0.60 0.05 / 0.00 0.00 / 0.00 0.00 / 0.00
+Mildew 0.67 / 0.48 0.41 / 0.22 0.14 / 0.14 0.58 / 0.50
+Barley 0.71 / 0.46 0.58 / 0.33 0.45 / 0.36 0.45 / 0.36
+from rectal cancer patients and includes nine variables. The
+second dataset, HEAD&NECK, involves data from patients
+with head and neck tumors, comprising fourteen variables.
+For LLM-based causal reasoning, we use a range of models
+operational as of June 2023, including GPT-3.5-turbo, GPT-4
+[49], Claude+ [50], Claude-100k [51], various GPT text mod-
+els5, ChatGLM [52], Sage [53], Chatsonic 6, HuggingChat 7,
+Whispr8, Xinhuo 9, and Yiyan 10. For structure learning, we
+5https://platform.openai.com/docs/api-reference
+6https://writesonic.com/
+7https://huggingface.co/chat/
+8https://whispr.chat/
+9https://passport.xfyun.cn/
+10https://yiyan.baidu.com/welcome
+employ the Minimum Message Length (MML) [45] scoring
+function, an instance of the MDL scoring criteria, and MCMC
+search [45] in the soft approach and the BDeu [42] scoring
+function and Tabu search [48] in the hard one.
+The experiments are executed on a single core of an AMD
+Ryzen9 7950x CPU with a clock speed of 4.5GHz.
+B. Evaluation Metrics
+We utilize the structural Hamming distance (SHD) [54],
+F1 score and structural intervention distance (SID) [55–57]
+to quantify the quality of recovered causal structure 11.
+The SHD represents the discrepancy in edges between the
+inferred and actual causal DAGs, with a lower SHD indicating
+superior model performance. The F1 score is computed as
+2·precision·recall
+precision+recall . In the context of structure learning, precision
+denotes the proportion of correctly identified edges to all
+edges identified by the approach. Recall is the fraction of
+accurately identified edges relative to the total number of edges
+in the actual causal structure. The SID quantifies the closeness
+between two DAGs in terms of causal inference statements.
+C. Comparative Analysis
+We conduct a comparative analysis between the LLM-driven
+CSL and the traditional data-based CSL across eight datasets.
+11The reported results use DAGs rather than completed partially DAGs,
+which represent Markov Equivalence Classes, because we consider the causal
+DAG as a knowledge-level outcome in which the orientation of all edges is
+essential for understanding causal mechanisms.
+©2025 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See
+https://www.ieee.org/publications/rights/index.html for more information.
+===== PAGE 8 =====
+This article has been accepted for publication in IEEE Transactions on Artificial Intelligence. This is the author’s version which has not
+been fully edited and content may change prior to final publication. Citation information: DOI 10.1109/TAI.2025.3560927
+InsuranceWaterBarley Asia
+Mildew ChildAlarm Cancer
+ 
+0
+0.5
+1
+0.8
+0.9
+1
+0.8
+0.9
+1
+0
+0.5
+1
+0.8
+0.9
+1
+0
+0.5
+1
+0.6 0.8 1
+0
+0.5
+1
+0.6 0.8 1 0.6 0.8 1
+0
+0.5
+1
+0.6 0.8 1
+Smaller Sample Size Larger Sample Size Smaller Sample Size Larger Sample Size
+Score value of the metrics
+Confidence level Prior precision Prior recall  F1 (structure) Hard precision
+0.6 0.8 1
+0
+0.5
+1
+Cancer, Size: 250
+0.6 0.8 1
+0
+0.5
+1
+Cancer, Size: 1000
+0.6 0.8 1
+0.8
+0.9
+1
+Asia, Size: 250
+0.6 0.8 1
+0.8
+0.9
+1
+0.6 0.8 1
+0.8
+0.9
+1
+Child, Size: 500
+0.6 0.8 1
+0.8
+0.9
+1
+Child, Size: 2000
+0.6 0.8 1
+0
+0.5
+1
+Insurance, Size: 500
+0.6 0.8 1
+0
+0.5
+1
+0.6 0.8 1
+0.8
+0.9
+1
+Alarm, Size: 1000
+0.6 0.8 1
+0.8
+0.9
+1
+Alarm, Size: 4000
+0.6 0.8 1
+0
+0.5
+1
+Water, Size: 1000
+0.6 0.8 1
+0
+0.5
+1
+0.6 0.8 1
+0
+0.5
+1
+Mildew, Size: 8000
+0.6 0.8 1
+0
+0.5
+1
+Mildew, Size: 32000
+0.6 0.8 1
+0
+0.5
+1
+Barley, Size: 2000
+0.6 0.8 1
+0
+0.5
+1
+Fig. 4. Results of the soft approach with varying confidence levels in terms of the precision and recall of accepted priors, and the F1 score of the recovered
+causal structure. The dotted blue line represents the accuracy of LLM-derived priors, equivalent to the prior precision in the hard approach. The colored areas
+illustrate changes in prior precision when utilizing the soft approach compared to the original accuracy of LLM-derived priors.
+This comparison leverages the methodologies outlined in Sec-
+tions III-B, III-C (for the soft approach), and Section III-E (for
+the hard approach). The comparative outcomes for the soft and
+hard approaches are reported in Tables III, IV, and V. GPT-4
+is used to derive prior constraints, and the confidence level12 is
+set to 0.99999. For comparison purpose, we present the relative
+performance difference, calculated by (∆LLM − ∆Data)/∆Data.
+Here, ∆LLM and ∆Data denote the performances of the LLM-
+driven and data-based CSL approaches, respectively. Instances
+where the LLM-driven CSL outperforms the data-based ap-
+proach are highlighted in red or bold.
+Observations reveal that the soft approach generally yields
+more consistent enhancements in CSL performance compared
+to the hard approach. This is particularly notable as over half of
+the instances exhibit a decline in performance when applying
+LLM-derived priors via the hard approach, whereas the soft
+approach typically enhances the performance of data-based
+CSL. This discrepancy is attributed to the imperfections in
+the LLM-derived prior constraints, as detailed in Table VI.
+The soft approach’s error tolerance effectively mitigates the
+negative impact of erroneous constraints, thereby preserving
+or enhancing performance despite the presence of inaccuracies
+in LLM-derived prior constraints.
+12Refer to Section III-D for the discussion on confidence level settings.
+D. Quality of LLM-derived Prior as Different Structures
+We investigate various LLMs on deriving causal statements
+with our prompting strategy. The number of LLM-derived
+statements, along with the number of ones that correspond to
+a path13 in the actual causal structure, is reported in Table VI.
+To further investigate the rationale of our use of LLM-derived
+priors as ancestral constraints, we compare the accuracy of
+them as paths and edges, with results reported in Table VII.
+For the results outlined in Table VI, we observe that GPT-
+4 excels in deriving accurate causal statements, achieving
+an overall accuracy rate of 0.79. The performance of other
+models varies, with accuracy rates ranging from 0.16 to 0.56.
+In smaller datasets, such as Cancer and Asia, most LLMs
+demonstrate high accuracy in deriving causal statements. How-
+ever, in larger datasets, the performance of most LLMs is
+inconsistent, excelling in some domains but underperforming
+in others. Notably, GPT-4 exhibits stable performance across
+all datasets, indicating its robustness in capturing detailed
+metadata information across diverse domains.
+For the results presented in Table VII, we observe that
+the accuracy of paths with respect to LLM-derived causality
+is generally higher than that of edges, particularly for GPT-
+4. This finding supports our approach of using LLM-derived
+causal statements as ancestral constraints (existence of paths)
+13Here, the path includes both edges and indirect paths.
+©2025 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See
+https://www.ieee.org/publications/rights/index.html for more information.
+===== PAGE 9 =====
+This article has been accepted for publication in IEEE Transactions on Artificial Intelligence. This is the author’s version which has not
+been fully edited and content may change prior to final publication. Citation information: DOI 10.1109/TAI.2025.3560927
+rather than directly as edge existence constraints.
+E. Error Tolerance of the Soft Approach
+In this experiment, we investigate the error-tolerant capabil-
+ity of the soft approach and the impact of varying confidence
+levels on it. For the LLM-derived prior constraint set, we
+report the precision and recall rates of the constraints accepted
+by the soft approach under different confidence levels, ranging
+from 0.5 to 0.99999. We also compare this precision with
+the original precision of the constraints (referred to as hard
+precision). Additionally, we evaluate the changes in the output
+structure quality using F1 scores to assess the impact of the
+quality of accepted priors on the quality of recovered causality.
+These results are depicted in Figure 4.
+We observe that 1) In most cases, the precision of accepted
+priors is higher than their original accuracy (hard precision),
+demonstrating the effectiveness of filtering prior errors. 2) In
+some cases, there is an increasing trend in structural quality
+as the confidence level increases. This is evidenced by consis-
+tently high precision of accepted priors and increasing recall
+rates, as seen in the Alarm and Asia datasets. 3) Conversely, in
+some cases such as the Child and Barley datasets, the precision
+of accepted priors decreases as the confidence level increases
+from 0.9 to 0.99999, where some erroneous priors are forced
+to be accepted, leading to decreased structural quality.
+These findings underscore the soft approach’s error toler-
+ance, effectively filtering out erroneous priors and ensuring
+the accuracy of the accepted ones. Additionally, setting the
+confidence level properly is crucial for optimal performance.
+In some instances, a confidence level of 0.9 outperforms
+the previously used 0.99999 setting. Confidence levels can
+be adjusted based on practical scenarios, with lower levels
+suitable for high-quality observational data and higher levels
+needed for lower-quality data.
+F . Errors in GPT4-derived Causal Statements
+In this examination, we detail the errors made by GPT-4 in
+inferring causal statements, as highlighted in Table VIII. The
+predominant categories of these mistakes include: 1) Unclear
+Causal Mechanism. A significant source of error arises from
+GPT-4’s inherent difficulty in interpreting unclear mechanisms.
+For example, in the Barley dataset, there appears to be a quali-
+tative causality from nitrogen content in grain (ngodnt) to opti-
+mal nitrogen content ( nopt). However, this perceived causality
+is actually driven by other interaction mechanisms rather than
+a directed causal path. 2) Insufficient Metadata. Errors also
+arise when GPT-4 adopts a too-generalized view, misaligning
+with the dataset’s specific context due to limited contextual
+or metadata information. In the Child dataset, the model
+inaccurately posits that low oxygen levels ( HypoxiaInO2) lead
+to Grunting, ignoring the dataset’s specific focus on infant
+hypoxia conditions and the nuanced relationships between
+symptoms and underlying health issues.
+These errors underscore the challenges faced by GPT-4
+in accurately extracting causal knowledge that aligns with
+the actual structure, especially for unclear mechanisms or
+insufficient metadata. To enhance the performance of LLM-
+driven causal discovery, it is crucial to use LLM-derived
+priors more carefully in structure learning and to provide more
+sufficient and clear metadata.
+G. Results on Private Real-World Data
+This experiment compares LLM-driven causal discovery
+with data-based methods on private real-world datasets that
+were not part of the LLM’s training data, thereby evaluating
+the generalizability of our approach. We present the visualized
+structures obtained using CaMML as the backbone algorithm,
+highlighting the distinct edges between our LLM-driven and
+data-based causal discovery methods in Fig. 5.
+The LLM-driven causal discovery results show a more
+connected and meaningful causal structure compared to the
+data-based approach. Notably, even without explicit edge
+constraints, LLM-driven structure learning effectively recovers
+missing edges representing causal mechanisms that cannot be
+identified by data alone, while also removing erroneous edges
+without being explicitly instructed by priors. These results
+demonstrate the strong generalizability of our LLM-driven
+approach and its effectiveness in handling real-world data.
+V. D ISCUSSIONS
+A. Conclusions
+This paper introduces a novel approach to causal discovery
+by integrating LLMs to provide prior constraints. We design a
+three-fold error-tolerant mechanism to address the inaccuracies
+of LLM-derived priors in revealing the actual causal structure.
+Specifically, we propose 1) an accuracy-oriented prompting
+strategy that adapts LLM-based causal reasoning to the causal
+discovery context, 2) a knowledge-to-structure transition that
+aligns LLM-derived causality with its qualitative nature, and
+3) a soft approach for integrating LLM-derived priors in struc-
+ture learning, introducing tolerance for remaining prior errors
+that escape the previous two steps. The experimental results
+demonstrate the promise of employing LLMs as innovative
+tools to advance causal discovery. We expect to inspire further
+exploration of combining LLMs with causal research.
+B. Limitations and Future Directions
+Despite promising results in many cases, limitations remain
+in the current strategy of using LLMs to augment data-
+based causal discovery. Even when employing looser structural
+constraints, such as modeling LLM-derived priors through the
+existence of paths rather than edges, inaccurate priors can still
+negatively impact structure learning. This issue is particularly
+pronounced in temporal contexts, as seen in the Water and
+Mildew datasets, where the performance of MINOBSx is
+notably affected. Additionally, our focus has primarily been
+on combinatorial structure learning for causal discovery. The
+integration of LLM-derived priors within continuous structure
+learning frameworks [32] remains largely unexplored, par-
+ticularly for ancestral constraints, for which no integration
+methods currently exist.
+©2025 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See
+https://www.ieee.org/publications/rights/index.html for more information.
+===== PAGE 10 =====
+This article has been accepted for publication in IEEE Transactions on Artificial Intelligence. This is the author’s version which has not
+been fully edited and content may change prior to final publication. Citation information: DOI 10.1109/TAI.2025.3560927
+TABLE VIII
+REPRESENTATIVE EXAMPLES OF ERRONEOUS PRIOR CAUSALITY DERIVED FROM GPT-4.
+Dataset Variable Description Erroneous Causal Statements
+Child
+HypoxiaInO2 Severity of hypoxia
+(HypoxiaInO2,Grunting);
+(LungFlow,HypDistrib)
+LungFlow Blood flow in the lungs
+Grunting Presence of grunting
+HypDistrib Distribution of blood flow in the body
+Alarm HRSAT Heart Rate Saturation (HRSAT,HR)HR Heart Rate
+Barley
+forfrugt Preceding crop
+(forfrugt,nmin);
+(ngodnt,nopt)
+ngodnt Nitrogen content in the grain at optimal nitrogen treatment
+nmin Mineral nitrogen content in the soil
+nopt Optimal nitrogen content
+Water
+CKNI H M Concentration of Kjeldahl nitrogen inorganic ions at hour H minute M (CKNI 12 00,C NI 12 15);
+(CKND 12 00,CNOD 12 15);
+(CKNI 12 15,C NI 12 30);
+(CKND 12 15,CNOD 12 30)
+C NI H M Number of nitrogen inorganic ions at hour H minute M
+CKND H M Concentration of Kjeldahl nitrogen degradable ions at hour H minute M
+CNOD H M Concentration of Kjeldahl nitrogen degradable ions at hour H minute M
+Mildew
+mikro k Microclimate conditions at stage k (mikro 1,meldug 1); (middel 1,meldug 1);
+(nedboer 1,meldug 1); (mikro 2,meldug 2);
+(middel 2,meldug 2); (nedboer 2,meldug 3)
+meldug k Degree of mildew infestation at stage k
+middel k Average amount of fungicide applied stage k
+nedboer k Amount of precipitation stage k
+AgeAge
+KPS_ScoreKPS_Score
+PreRadiotherapy_NRS2002PreRadiotherapy_NRS2002
+PreRadiotherapy_AlbuminPreRadiotherapy_Albumin
+PostRadiotherapy_AlbuminPostRadiotherapy_Albumin
+Skin_Mucosa_StatusSkin_Mucosa_Status
+Oral_Mucosa_StatusOral_Mucosa_Status Gastrointestinal_ReactionGastrointestinal_Reaction
+SexSex
+Smoking_StatusSmoking_Status
+Drinking_StatusDrinking_Status
+TT
+Clinical_StageClinical_Stage
+NN
+Age
+KPS_Score
+PreRadiotherapy_NRS2002
+PreRadiotherapy_Albumin
+PostRadiotherapy_Albumin
+Skin_Mucosa_Status
+Oral_Mucosa_Status Gastrointestinal_Reaction
+Sex
+Smoking_Status
+Drinking_Status
+T
+Clinical_Stage
+N
+CEACEA
+DifferentiationDifferentiation
+CA199CA199
+TT
+NN
+Progression_TimeProgression_Time
+DiameterDiameter
+CEA
+Differentiation
+CA199
+T
+N
+Progression_Time
+Diameter
+CEA
+Differentiation
+CA199
+T
+N
+Progression_Time
+Diameter
+LLM-driven LLM-driven
+RECTUM HEAD & NECK
+CEACEA
+CA199CA199 TT
+Progression_TimeProgression_Time
+DifferentiationDifferentiationCEA
+CA199 T
+Progression_Time
+DifferentiationCEA
+CA199 T
+Progression_Time
+Differentiation
+Data-based
+CEA
+CA199 T
+Progression_Time
+Differentiation
+Data-based
+PreRadiotherapy_AlbuminPreRadiotherapy_Albumin
+KPS_ScoreKPS_Score
+PreRadiotherapy_Albumin
+KPS_Score Skin_Mucosa_StatusSkin_Mucosa_Status
+Oral_Mucosa_StatusOral_Mucosa_Status
+Skin_Mucosa_Status
+Oral_Mucosa_Status TT NN
+Clinical_StageClinical_Stage
+T N
+Clinical_StageSexSex
+Smoking_StatusSmoking_Status
+Drinking_StatusDrinking_Status
+Sex
+Smoking_Status
+Drinking_StatusPreRadiotherapy_Albumin
+KPS_Score Skin_Mucosa_Status
+Oral_Mucosa_Status T N
+Clinical_StageSex
+Smoking_Status
+Drinking_Status
+Data-based
+PreRadiotherapy_Albumin
+KPS_Score Skin_Mucosa_Status
+Oral_Mucosa_Status T N
+Clinical_StageSex
+Smoking_Status
+Drinking_Status
+Data-based
+Age
+KPS_Score
+PreRadiotherapy_NRS2002
+PreRadiotherapy_Albumin
+PostRadiotherapy_Albumin
+Skin_Mucosa_Status
+Oral_Mucosa_Status Gastrointestinal_Reaction
+Sex
+Smoking_Status
+Drinking_Status
+T
+Clinical_Stage
+N
+CEA
+Differentiation
+CA199
+T
+N
+Progression_Time
+Diameter
+LLM-driven LLM-driven
+RECTUM HEAD & NECK
+CEA
+CA199 T
+Progression_Time
+Differentiation
+Data-based
+PreRadiotherapy_Albumin
+KPS_Score Skin_Mucosa_Status
+Oral_Mucosa_Status T N
+Clinical_StageSex
+Smoking_Status
+Drinking_Status
+Data-based
+Fig. 5. Visualization of LLM-driven and data-based structure learning outcomes on private data. The recovered missing causality is highlighted by GREEN
+arrows, while the removed erroneous causality is highlighted by RED arrows.
+Therefore, future research can aim to improve LLM accu-
+racy in identifying causal relationships, especially in distin-
+guishing between direct and indirect influences. Enhancing
+methods for extracting high-quality causal statements from
+LLMs could also boost interpretability. Moreover, exploring
+alternative forms of prior constraints and developing algo-
+rithms that more effectively filter reliable information from
+LLM-generated data could significantly increase the robust-
+ness and trustworthiness of LLM-augmented causal discovery.
+C. Emerging LLM-driven Causal Discovery Studies
+Since this study was first conducted, a series of studies
+have proposed various strategies to leverage LLM-based causal
+reasoning for aiding causal discovery.
+Several studies have introduced iterative approaches to in-
+tegrate LLM-derived causal reasoning into structure learning.
+Abdulaal et al. [58] proposed a causal agent by prompting pair-
+wise causal relationships among variables as edge constraints
+to inform structure learning. Ban et al. [59] restricted pairwise
+causal reasoning within the bounds of data-implied causal
+structures, showing improved accuracy in priors. Takayama
+et al. [60] further refined the integration between LLM-based
+causal reasoning and data-driven causal discovery, proposing
+advanced prompting and knowledge integration strategies.
+Vashishtha et al. [61, 62] focused on extracting causal
+orders, a crucial information for causal discovery, by designing
+effective LLM prompting strategies to derive variable order-
+ings, thereby reducing the complexity of causal discovery.
+The authors also introduced an innovative axiomatic training
+©2025 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See
+https://www.ieee.org/publications/rights/index.html for more information.
+===== PAGE 11 =====
+This article has been accepted for publication in IEEE Transactions on Artificial Intelligence. This is the author’s version which has not
+been fully edited and content may change prior to final publication. Citation information: DOI 10.1109/TAI.2025.3560927
+scheme to enhance LLMs’ causal reasoning abilities [63].
+Additionally, Ban et al. [64] explored how to incorporate
+partial orders into differentiable structure learning, unlocking
+the potential of LLM-driven differentiable causal discovery.
+In the context of dynamic causal discovery, some studies
+have utilized LLM-based causal reasoning to focus on tem-
+poral causal relationships, employing specialized prompting
+schemes [65–67]. Other studies have developed end-to-end
+LLM-driven causal discovery tools that integrate data-based
+structure learning, using code interpreters to enable LLMs to
+automatically invoke causal learning packages [68, 69].
+Additional explorations include using LLMs to discover hid-
+den variables in datasets [70] and building foundational models
+for causal inference [71]. For a comprehensive overview,
+related surveys are available that cover various aspects of using
+LLMs for causality [72–75].
+REFERENCES
+[1] K. Sachs, O. Perez, D. Pe’er, D. A. Lauffenburger, and G. P. Nolan,
+“Causal protein-signaling networks derived from multiparameter single-
+cell data,” Science, vol. 308, no. 5721, pp. 523–529, 2005.
+[2] T. Kyono and M. Van der Schaar, “Exploiting causal structure for robust
+model selection in unsupervised domain adaptation,” IEEE Transactions
+on Artificial Intelligence , vol. 2, no. 6, pp. 494–507, 2021.
+[3] S. Mascaro, Y . Wu, O. Woodberry, E. P. Nyberg, R. Pearson, J. A.
+Ramsay, A. O. Mace, D. A. Foley, T. L. Snelling, A. E. Nicholson
+et al., “Modeling COVID-19 disease processes by remote elicitation of
+causal bayesian networks from medical experts,”BMC Medical Research
+Methodology, vol. 23, no. 1, p. 76, 2023.
+[4] J. Yang, L. Jiang, A. Shen, and A. Wang, “Online streaming features
+causal discovery algorithm based on partial rank correlation,” IEEE
+Transactions on Artificial Intelligence, vol. 4, no. 1, pp. 197–208, 2022.
+[5] Z. Chen and Z. Ge, “Directed acyclic graphs with tears,” IEEE Trans-
+actions on Artificial Intelligence , vol. 4, no. 4, pp. 972–983, 2022.
+[6] S. J. Moe, J. F. Carriger, and M. Glendell, “Increased use of Bayesian
+network models has improved environmental risk assessments,” Inte-
+grated Environmental Assessment and Management , vol. 17, no. 1, pp.
+53–61, 2021.
+[7] M. Scutari, C. E. Graafland, and J. M. Guti ´errez, “Who learns better
+Bayesian network structures: Accuracy and speed of structure learning
+algorithms,” International Journal of Approximate Reasoning , vol. 115,
+pp. 235–253, 2019.
+[8] G. Xiang, H. Wang, K. Yu, X. Guo, F. Cao, and Y . Song, “Bootstrap-
+based layerwise refining for causal structure learning,” IEEE Transac-
+tions on Artificial Intelligence , vol. 5, no. 6, pp. 2708–2722, 2024.
+[9] M. J. V owels, N. C. Camgoz, and R. Bowden, “D’ya like DAGs? A
+survey on structure learning and causal discovery,” ACM Computing
+Surveys, vol. 55, no. 4, pp. 1–36, 2022.
+[10] C. Heinze-Deml, M. H. Maathuis, and N. Meinshausen, “Causal struc-
+ture learning,” Annual Review of Statistics and Its Application , vol. 5,
+pp. 371–391, 2018.
+[11] D. M. Chickering, “Learning bayesian networks is NP-complete,” Learn-
+ing from data: Artificial intelligence and statistics V, pp. 121–130, 1996.
+[12] D. Heckerman, D. Geiger, and D. M. Chickering, “Learning bayesian
+networks: The combination of knowledge and statistical data,” Machine
+Learning, vol. 20, pp. 197–243, 1995.
+[13] C. P. De Campos and Q. Ji, “Efficient structure learning of Bayesian
+networks using constraints,”The Journal of Machine Learning Research,
+vol. 12, pp. 663–689, 2011.
+[14] H. Amirkhani, M. Rahmati, P. J. Lucas, and A. Hommersom, “Exploiting
+experts’ knowledge for structure learning of Bayesian networks,” IEEE
+Transactions on Pattern Analysis and Machine Intelligence , vol. 39,
+no. 11, pp. 2154–2170, 2016.
+[15] A. C. Constantinou, Z. Guo, and N. K. Kitson, “The impact of prior
+knowledge on causal structure learning,” Knowledge and Information
+Systems, pp. 1–50, 2023.
+[16] A. Maydeu-Olivares, D. Shi, and A. J. Fairchild, “Estimating causal
+effects in linear regression models with observational data: The instru-
+mental variables regression model.” Psychological Methods , vol. 25,
+no. 2, p. 243, 2020.
+[17] C. Zhang, D. Janzing, M. van der Schaar, F. Locatello, and P. Spirtes,
+“Causality in the time of LLMs: Round table discussion results of clear
+2023,” Proceedings of Machine Learning Research vol TBD, vol. 1, p. 7,
+2023.
+[18] E. Kıcıman, R. Ness, A. Sharma, and C. Tan, “Causal reasoning and
+large language models: Opening a new frontier for causality,” arXiv
+preprint arXiv:2305.00050, 2023.
+[19] H. Nori, N. King, S. M. McKinney, D. Carignan, and E. Horvitz,
+“Capabilities of GPT-4 on medical challenge problems,” arXiv preprint
+arXiv:2303.13375, 2023.
+[20] S. Long, T. Schuster, A. Pich ´e, S. Research et al., “Can large language
+models build causal graphs?” arXiv preprint arXiv:2303.05279 , 2023.
+[21] M. Ze ˇcevi´c, M. Willig, D. S. Dhami, and K. Kersting, “Causal parrots:
+Large language models may talk causality but are not causal,” arXiv
+preprint arXiv:2308.13067, 2023.
+[22] S. Lu, I. Bigoulaeva, R. Sachdeva, H. T. Madabushi, and I. Gurevych,
+“Are emergent abilities in large language models just in-context learn-
+ing?” arXiv preprint arXiv:2309.01809 , 2023.
+[23] R. Tu, C. Ma, and C. Zhang, “Causal-discovery performance of chat-
+GPT in the context of neuropathic pain diagnosis,” arXiv preprint
+arXiv:2301.13819, 2023.
+[24] J. Wei, X. Wang, D. Schuurmans, M. Bosma, F. Xia, E. Chi, Q. V .
+Le, D. Zhou et al. , “Chain-of-thought prompting elicits reasoning in
+large language models,” in Advances in Neural Information Processing
+Systems, vol. 35, 2022, pp. 24 824–24 837.
+[25] C. Zhang, S. Bauer, P. Bennett, J. Gao, W. Gong, A. Hilmkil, J. Jennings,
+C. Ma, T. Minka, N. Pawlowski et al. , “Understanding causality with
+large language models: Feasibility and opportunities,” arXiv preprint
+arXiv:2304.05524, 2023.
+[26] Z. Jin, J. Liu, L. Zhiheng, S. Poff, M. Sachan, R. Mihalcea, M. T.
+Diab, and B. Sch ¨olkopf, “Can large language models infer causation
+from correlation?” in The Twelfth International Conference on Learning
+Representations, 2023.
+[27] M. Willig, M. Ze ˇcevi´c, D. S. Dhami, and K. Kersting, “Can foundation
+models talk causality?” arXiv preprint arXiv:2206.10591 , 2022.
+[28] P. Hoyer, D. Janzing, J. M. Mooij, J. Peters, and B. Sch ¨olkopf,
+“Nonlinear causal discovery with additive noise models,” Advances in
+Neural Information Processing Systems , vol. 21, 2008.
+[29] J. Frohberg and F. Binder, “Crass: A novel data set and benchmark to
+test counterfactual reasoning of large language models,” arXiv preprint
+arXiv:2112.11941, 2021.
+[30] K. Choi, C. Cundy, S. Srivastava, and S. Ermon, “LMPriors: Pre-trained
+language models as task-specific priors,” in Proceedings of the NeurIPS
+2022 Foundation Models for Decision Making Workshop , 2022.
+[31] J. Pearl, Causality. Cambridge university press, 2009.
+[32] X. Zheng, B. Aragam, P. K. Ravikumar, and E. P. Xing, “DAGs with
+no tears: Continuous optimization for structure learning,” Advances in
+Neural Information Processing Systems , vol. 31, 2018.
+[33] J. Yang, T. Lu, and Y . Zhu, “Additive noise model structure learning
+based on spatial coordinates,” IEEE Transactions on Artificial Intelli-
+gence, 2024.
+[34] C. P. De Campos, Z. Zeng, and Q. Ji, “Structure learning of Bayesian
+networks using constraints,” in Proceedings of the 26th Annual Interna-
+tional Conference on Machine Learning , 2009, pp. 113–120.
+[35] M. Scutari, “Bayesian network constraint-based structure learning al-
+gorithms: Parallel and optimized implementations in the bnlearn R
+package,” Journal of Statistical Software , vol. 77, pp. 1–20, 2017.
+[36] L. Bouchaala, A. Masmoudi, F. Gargouri, and A. Rebai, “Improving
+algorithms for structure learning in Bayesian networks using a new
+implicit score,” Expert Systems with Applications , vol. 37, no. 7, pp.
+5470–5475, 2010.
+[37] M. Gasse, A. Aussem, and H. Elghazel, “An experimental comparison
+of hybrid algorithms for Bayesian network structure learning,” in Joint
+European Conference on Machine Learning and Knowledge Discovery
+in Databases. Springer, 2012, pp. 58–73.
+[38] A. Li and P. Beek, “Bayesian network structure learning with side
+constraints,” in International Conference on Probabilistic Graphical
+Models. PMLR, 2018, pp. 225–236.
+[39] G. Schwarz, “Estimating the dimension of a model,” The Annals of
+Statistics, vol. 6, pp. 461–464, 1978.
+[40] J. Rissanen, “Modeling by shortest data description,” Automatica,
+vol. 14, no. 5, pp. 465–471, 1978.
+[41] W. Buntine, “Theory refinement on Bayesian networks,” in Uncertainty
+Proceedings. Elsevier, 1991, pp. 52–60.
+[42] D. Heckerman and D. Geiger, “Learning Bayesian networks: A unifi-
+cation for discrete and gaussian domains,” in Proceedings of the 11th
+Conference on Uncertainty in Artificial Intelligence, 1995, pp. 274–284.
+©2025 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See
+https://www.ieee.org/publications/rights/index.html for more information.
+===== PAGE 12 =====
+This article has been accepted for publication in IEEE Transactions on Artificial Intelligence. This is the author’s version which has not
+been fully edited and content may change prior to final publication. Citation information: DOI 10.1109/TAI.2025.3560927
+[43] D. M. Chickering, “Optimal structure identification with greedy search,”
+Journal of Machine Learning Research , vol. 3, no. Nov, pp. 507–554,
+2002.
+[44] C. Yuan, B. Malone, and X. Wu, “Learning optimal Bayesian networks
+using A* search,” in Proceedings of the 21nd International Joint
+Conference on Artificial Intelligence , 2011, pp. 2186–2191.
+[45] R. T. O’Donnell, L. Allison, and K. B. Korb, “Learning hybrid Bayesian
+networks by MML,” inAI 2006: Advances in Artificial Intelligence: 19th
+Australian Joint Conference on Artificial Intelligence . Springer, 2006,
+pp. 192–203.
+[46] X. Zhao, M. Li, W. Lu, C. Weber, J. H. Lee, K. Chu, and S. Wermter,
+“Enhancing zero-shot chain-of-thought reasoning in large language
+models through logic,” arXiv preprint arXiv:2309.13339 , 2023.
+[47] D. Zhou, N. Sch ¨arli, L. Hou, J. Wei, N. Scales, X. Wang, D. Schuur-
+mans, C. Cui, O. Bousquet, Q. V . Le et al. , “Least-to-most prompting
+enables complex reasoning in large language models,” in The Eleventh
+International Conference on Learning Representations , 2022.
+[48] C. Lee and P. van Beek, “Metaheuristics for score-and-search Bayesian
+network structure learning,” in Advances in Artificial Intelligence: 30th
+Canadian Conference on Artificial Intelligence . Springer, 2017, pp.
+129–141.
+[49] OpenAI, “GPT-4 technical report,” OpenAI, 2023.
+[50] Y .-T. Lin and Y .-N. Chen, “LLM-Eval: Unified multi-dimensional au-
+tomatic evaluation for open-domain conversations with large language
+models,” arXiv preprint arXiv:2305.13711 , 2023.
+[51] Z. Zheng, X. Ren, F. Xue, Y . Luo, X. Jiang, and Y . You, “Response
+length perception and sequence scheduling: An LLM-Empowered LLM
+inference pipeline,” arXiv preprint arXiv:2305.13144 , 2023.
+[52] B. Yang, A. Raza, Y . Zou, and T. Zhang, “Customizing general-purpose
+foundation models for medical report generation,” arXiv preprint
+arXiv:2306.05642, 2023.
+[53] B. Y . Lin, Y . Fu, K. Yang, P. Ammanabrolu, F. Brahman, S. Huang,
+C. Bhagavatula, Y . Choi, and X. Ren, “SwiftSage: A generative agent
+with fast and slow thinking for complex interactive tasks,”arXiv preprint
+arXiv:2305.17390, 2023.
+[54] D. M. Chickering, “Learning equivalence classes of bayesian-network
+structures,” The Journal of Machine Learning Research, vol. 2, pp. 445–
+498, 2002.
+[55] J. Peters and P. B ¨uhlmann, “Structural intervention distance for evalu-
+ating causal graphs,” Neural Computation, vol. 27, no. 3, pp. 771–799,
+2015.
+[56] L. Henckel, T. W ¨urtzen, and S. Weichwald, “Adjustment identifica-
+tion distance: A gadjid for causal structure learning,” arXiv preprint
+arXiv:2402.08616, 2024.
+[57] K.-H. Cohrs, E. Diaz, V . Sitokonstantinou, G. Varando, and G. Camps-
+Valls, “Large language models for causal hypothesis generation in
+science,” Machine Learning: Science and Technology , vol. 6, no. 1, p.
+013001, 2025.
+[58] A. Abdulaal, N. Montana-Brown, T. He, A. Ijishakin, I. Drobnjak, D. C.
+Castro, D. C. Alexander et al., “Causal modelling agents: Causal graph
+discovery through synergising metadata- and data-driven reasoning,” in
+Proceedings of the 12th International Conference on Learning Repre-
+sentations, 2023.
+[59] T. Ban, L. Chen, D. Lyu, X. Wang, and H. Chen, “Causal struc-
+ture learning supervised by large language model,” arXiv preprint
+arXiv:2311.11689, 2023.
+[60] M. Takayama, T. Okuda, T. Pham, T. Ikenoue, S. Fukuma, S. Shimizu,
+and A. Sannai, “Integrating large language models in causal discovery:
+A statistical causal approach,” arXiv preprint arXiv:2402.01454 , 2024.
+[61] A. Vashishtha, A. G. Reddy, A. Kumar, S. Bachu, V . N. Balasubrama-
+nian, and A. Sharma, “Causal inference using LLM-guided discovery,”
+arXiv preprint arXiv:2310.15117 , 2023.
+[62] ——, “Causal order: The key to leveraging imperfect experts in causal
+inference,” in Causality and Large Models@ NeurIPS 2024 , 2024.
+[63] A. Vashishtha, A. Kumar, A. Pandey, A. G. Reddy, V . N. Balasubrama-
+nian, and A. Sharma, “Teaching transformers causal reasoning through
+axiomatic training,” in Causality and Large Models@ NeurIPS 2024 ,
+2024.
+[64] T. Ban, L. Chen, X. Wang, X. Wang, D. Lyu, and H. Chen, “Dif-
+ferentiable structure learning with partial orders,” in The Thirty-eighth
+Annual Conference on Neural Information Processing Systems , 2024.
+[Online]. Available: https://openreview.net/forum?id=B2cTLakrhV
+[65] P. Li, X. Wang, Z. Zhang, Y . Meng, F. Shen, Y . Li, J. Wang, Y . Li,
+and W. Zhu, “RealTCD: Temporal causal discovery from interventional
+data with large language model,” in Proceedings of the 33rd ACM
+International Conference on Information and Knowledge Management ,
+2024, pp. 4669–4677.
+[66] ——, “LLM-enhanced causal discovery in temporal domain from inter-
+ventional data,” arXiv preprint arXiv:2404.14786 , 2024.
+[67] C. Lee, J. Kim, Y . Jeong, Y . Y . Seok, J. Lyu, J.-H. Kim, S. Lee, S. Han,
+H. Choe, S. Park et al. , “On incorporating prior knowledge extracted
+from pre-trained language models into causal discovery,” in Causality
+and Large Models@ NeurIPS 2024 , 2024.
+[68] H. Jiang, L. Ge, Y . Gao, J. Wang, and R. Song, “Llm4causal: Democ-
+ratized causal tools for everyone via large language model,” in First
+Conference on Language Modeling , 2024.
+[69] E. Khatibi, M. Abbasian, Z. Yang, I. Azimi, and A. M. Rahmani,
+“ALCM: Autonomous llm-augmented causal discovery framework,”
+arXiv preprint arXiv:2405.01744 , 2024.
+[70] C. Liu, Y . Chen, T. Liu, M. Gong, J. Cheng, B. Han, and K. Zhang,
+“Discovery of the hidden world with large language models,” in The
+Thirty-eighth Annual Conference on Neural Information Processing
+Systems, 2024. [Online]. Available: https://openreview.net/forum?id=
+w50ICQC6QJ
+[71] J. Zhang, J. Jennings, A. Hilmkil, N. Pawlowski, C. Zhang, and C. Ma,
+“Towards causal foundation model: on duality between optimal balanc-
+ing and attention,” in Forty-first International Conference on Machine
+Learning, 2024.
+[72] X. Liu, P. Xu, J. Wu, J. Yuan, Y . Yang, Y . Zhou, F. Liu, T. Guan,
+H. Wang, T. Yu et al. , “Large language models and causal in-
+ference in collaboration: A comprehensive survey,” arXiv preprint
+arXiv:2403.09606, 2024.
+[73] J. Sun, C. Zheng, E. Xie, Z. Liu, R. Chu, J. Qiu, J. Xu, M. Ding, H. Li,
+M. Geng et al., “A survey of reasoning with foundation models,” arXiv
+preprint arXiv:2312.11562, 2023.
+[74] J. Ma, “Causal inference with large language model: A survey,” arXiv
+preprint arXiv:2409.09822, 2024.
+[75] G. Zhou, S. Xie, G. Hao, S. Chen, B. Huang, X. Xu, C. Wang, L. Zhu,
+L. Yao, and K. Zhang, “Emerging synergies in causality and deep
+generative models: A survey,” arXiv preprint arXiv:2301.12351 , 2023.
+Taiyu Ban received the B.Sc. degree in computer
+science and technology from the University of Sci-
+ence and Technology of China, Hefei, China, in
+2020, where he is currently pursuing the Ph.D.
+degree in computer science and technology with the
+School of Computer Science and Technology.
+His current research interests include causal dis-
+covery and causal-based machine learning.
+Lyuzhou Chen received the B.Sc. degree in mathe-
+matics and applied mathematics from the University
+of Science and Technology of China, Hefei, China,
+in 2020, where he is currently pursuing the Ph.D.
+degree in computer science and technology with the
+School of Artificial Intelligence and Data Science.
+His current research interests include causal dis-
+covery and causal-based machine learning.
+Derui Lyu received the B.Sc. degree in intelligence
+science and technology from the School of Artificial
+Intelligence, Xidian University, Xi’an, China, in
+2021. He is currently pursuing the Ph.D. degree in
+computer science and technology with the School
+of Computer Science and Technology, University of
+Science and Technology of China (USTC), Hefei,
+China.
+His current research interests include machine
+learning and knowledge engineering.
+©2025 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See
+https://www.ieee.org/publications/rights/index.html for more information.
+===== PAGE 13 =====
+This article has been accepted for publication in IEEE Transactions on Artificial Intelligence. This is the author’s version which has not
+been fully edited and content may change prior to final publication. Citation information: DOI 10.1109/TAI.2025.3560927
+Xiangyu Wang received the B.Sc. degree from the
+Donghua University, Shanghai, China, and the Ph.D.
+degree in data science from the University of Science
+and Technology of China (USTC). He is currently
+an associate researcher with the School of Computer
+Science and Technology, USTC.
+His current research interests include causal dis-
+covery and causal-based machine learning.
+Qinrui Zhu received the B.Sc. degree in com-
+puter science and technology from the University
+of Science and Technology of China, Hefei, China,
+in 2020, where he is currently pursuing the Ph.D.
+degree in computer science and technology with the
+School of Computer Science and Technology, and
+Laboratory for Big Data and Decision.
+His research interests include large language mod-
+els.
+Qiang Tu received the Ph.D. degree in computer sci-
+ence and technology from the University of Science
+and Technology of China (USTC). He is currently
+the director of the West District Information Center
+of the First Affiliated Hospital of USTC.
+His research interests include machine learning
+and data mining.
+Huanhuan Chen (Fellow, IEEE) received the B.Sc.
+degree from the University of Science and Technol-
+ogy of China (USTC), Hefei, China, and the Ph.D.
+degree in computer science from the University of
+Birmingham, Birmingham, U.K. He is currently a
+Full Professor with the School of Computer Science
+and Technology, USTC. His current research inter-
+ests include neural networks, Bayesian inference,
+and evolutionary computation. Dr. Chen received the
+2015 International Neural Network Society Young
+Investigator Award, the 2012 IEEE Computational
+Intelligence Society Outstanding Ph.D. Dissertation Award, the IEEE T RANS -
+ACTIONS ON NEURAL NETWORKS Outstanding Paper Award (bestowed in
+2011 and only one paper in 2009), and the 2009 British Computer Society
+Distinguished Dissertations Award. He is now associate editor of the IEEE
+TRANSACTIONS ON NEURAL NETWORKS AND LEARNING SYSTEMS , and
+the IEEE T RANSACTIONS ON EMERGING TOPICS IN COMPUTATIONAL
+INTELLIGENCE .
+©2025 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See
+https://www.ieee.org/publications/rights/index.html for more information.
