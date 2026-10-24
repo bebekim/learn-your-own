@@ -82,6 +82,42 @@ test('a registered exact-binomial trial promotes from a cohort too small for Hoe
   } finally { f.close(); }
 });
 
+test('session enrollment pools capped sessions per repository under the stratified test', () => {
+  const f = trialFixture();
+  try {
+    const base = { ...f.trial, runtime: 'codex' as const,
+      measurement: { ...f.trial.measurement, claim: { ...f.trial.measurement.claim, kind: 'improvement' } },
+      review: { ...f.trial.review, claimKind: 'improvement' } };
+    const evaluation = { sampleSize: 8, minimumEffect: 0, alpha: 0.1, assumptions: 'No interference between sessions.',
+      method: 'stratified-exact' as const };
+    const enrollment = { unit: 'session' as const, maxPerRepository: 4 };
+    assert.throws(() => registerFindingTrial(f.store, { ...base, enrollment, evaluation: { ...evaluation, method: 'exact-binomial' } }),
+      /requires evaluation.method stratified-exact/);
+    assert.throws(() => registerFindingTrial(f.store, { ...base, evaluation }), /needs session enrollment/);
+    assert.throws(() => registerFindingTrial(f.store, { ...base, enrollment, evaluation: { ...evaluation, minimumEffect: 0.1 } }),
+      /requires minimumEffect 0/);
+    registerFindingTrial(f.store, { ...base, enrollment, evaluation });
+    const trial = findingTrials(f.store.db)[0];
+    const run = (repository: string, n: number) => {
+      const name = `${repository}-${n}`, draw = n % 2 ? 0.9 : 0.1;
+      const event = { ...f.event, cwd: f.workspace(repository).cwd, session_id: name };
+      const output = ordinaryFindingTrialFeedback('codex', event, f.storePath, () => draw);
+      const action = { ...event, tool_use_id: `action:${name}`, tool_input: { command: 'repair' } };
+      f.complete('codex', action, { applicable: true, followed: Boolean(output.additionalContext), predicted: draw < 0.5 });
+      ordinaryFindingTrialFeedback('codex', action, f.storePath);
+      return output;
+    };
+    for (let n = 0; n < 4; n++) run('repo-a', n);
+    assert.throws(() => run('repo-a', 4), /session limit/, 'one repository cannot fill the randomized cohort');
+    for (let n = 0; n < 4; n++) run('repo-b', n);
+    const report = reconcileFindingTrial(f.store, trial).content;
+    assert.equal(report.arms.advice.assigned, 4);
+    assert.equal(report.status, 'promoted');
+    assert.ok(Math.abs(report.pValues!.benefit - 1 / 36) < 1e-12, 'two repositories, each 2/2 versus 0/2');
+    assert.ok(run('repo-a', 5).additionalContext, 'a capped repository still receives promoted advice');
+  } finally { f.close(); }
+});
+
 test('a closed missing outcome stays unknown and a replacement scope starts with fresh evidence', () => {
   const f = trialFixture();
   try {

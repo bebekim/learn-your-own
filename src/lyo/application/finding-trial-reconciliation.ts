@@ -29,9 +29,10 @@ export interface TrialPolicyRecord {
     status: string;
     arms: ReturnType<typeof evaluateFindingTrialPolicy>['arms'];
     effectInterval: [number, number] | null;
+    pValues?: { benefit: number; harm: number };
     evidence: TrialObservationReference[];
     definition: { findingVersion: string; model: string; runtime: 'codex' | 'claude' | null; roots: string[];
-      evaluation: FindingTrialPolicyDefinition['evaluation'] | null };
+      evaluation: FindingTrialPolicyDefinition['evaluation'] | null; enrollment?: FindingTrialPolicyDefinition['enrollment'] };
   };
 }
 
@@ -52,10 +53,12 @@ export function reconcileFindingTrial(port: FindingTrialReconciliationPort, tria
   const suspended = state.version !== trial.findingVersion || ['needs-revision', 'needs-reassessment'].includes(state.validity)
     || port.verifiersChanged(trial.measurement.verifierFiles, port.hash(trial.verifierFiles));
   const superseded = port.superseded(trial.id);
-  const { status, arms, effectInterval } = evaluateFindingTrialPolicy(rows, trial.evaluation, { suspended, superseded });
-  const content = { trialId: trial.id, trialHash: trial.hash, status, arms, effectInterval,
+  const { status, arms, effectInterval, pValues } = evaluateFindingTrialPolicy(rows, trial.evaluation, { suspended, superseded });
+  // Optional fields appear only when used, so existing trials keep their policy hashes.
+  const content = { trialId: trial.id, trialHash: trial.hash, status, arms, effectInterval, ...(pValues ? { pValues } : {}),
     evidence: rows.map(row => row.reference), definition: { findingVersion: trial.findingVersion, model: trial.model,
-      runtime: trial.runtime ?? null, roots: trial.roots, evaluation: trial.evaluation ?? null } };
+      runtime: trial.runtime ?? null, roots: trial.roots, evaluation: trial.evaluation ?? null,
+      ...(trial.enrollment ? { enrollment: trial.enrollment } : {}) } };
   const previous = port.latestPolicy(trial.hash), hash = port.hash(content);
   const id = previous?.hash === hash ? previous.id : `finding-policy:${port.hash([hash, previous?.id ?? null])}`;
   const record: TrialPolicyRecord = { id, source: 'session-finding-policy@1', content, hash,
@@ -72,7 +75,13 @@ export function findingTrialAllocation(port: FindingTrialReconciliationPort, opp
   if (!trialHash) throw new Error('policy allocation requires an automatic trial opportunity');
   const policy = port.latestPolicy(trialHash);
   const current = port.observations(trialHash).filter(row => row.id !== opportunity.id);
-  if (current.some(row => row.unit === opportunity.prospective!.automatic!.unit)) throw new Error('repository or directory already enrolled in this trial');
+  const unit = opportunity.prospective!.automatic!.unit, enrollment = policy?.content.definition.enrollment;
+  if (enrollment?.unit === 'session') {
+    // The cap bounds each repository's share of the randomized cohort; it never blocks later delivery.
+    const randomized = current.filter(row => row.unit === unit && row.assignment.probability === 0.5).length;
+    if (policy!.content.status === 'collecting' && randomized >= enrollment.maxPerRepository)
+      throw new Error('repository reached its session limit for this trial');
+  } else if (current.some(row => row.unit === unit)) throw new Error('repository or directory already enrolled in this trial');
   if (policy?.id !== ref || port.hash(current.map(row => row.reference)) !== port.hash(policy.content.evidence))
     throw new Error('finding policy changed; recheck before assignment or delivery');
   return policy.content.status === 'collecting' ? null : policy.content.status === 'promoted' ? 'advice' : 'no-advice';

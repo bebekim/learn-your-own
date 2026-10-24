@@ -84,3 +84,23 @@ test('exact-binomial unknown outcomes take worst and best cases', () => {
   assert.deepEqual(widened.arms['no-advice'], { assigned: 6, pass: 0, fail: 5, unknown: 1 });
   assert.ok(widened.effectInterval![0] < known[0], 'an unknown control outcome counts as a pass for the lower bound');
 });
+
+test('stratified-exact compares sessions within each repository', () => {
+  const plan = { sampleSize: 12, minimumEffect: 0, alpha: 0.1, assumptions: 'No interference between sessions.', method: 'stratified-exact' as const };
+  // Repository baselines differ sharply; advice wins inside both.
+  const rows: FindingTrialOutcome[] = [
+    ...['pass', 'pass', 'pass'].map(outcome => ({ unit: 'easy', assignment: { action: 'advice' as const, probability: 0.5 as const }, closed: true, outcome: outcome as 'pass' })),
+    ...['pass', 'fail', 'fail'].map(outcome => ({ unit: 'easy', assignment: { action: 'no-advice' as const, probability: 0.5 as const }, closed: true, outcome: outcome as 'pass' | 'fail' })),
+    ...['pass', 'pass', 'fail'].map(outcome => ({ unit: 'hard', assignment: { action: 'advice' as const, probability: 0.5 as const }, closed: true, outcome: outcome as 'pass' | 'fail' })),
+    ...['fail', 'fail', 'fail'].map(outcome => ({ unit: 'hard', assignment: { action: 'no-advice' as const, probability: 0.5 as const }, closed: true, outcome: outcome as 'fail' })),
+  ];
+  const result = evaluateFindingTrialPolicy(rows, plan, current);
+  assert.equal(result.status, 'promoted');
+  assert.equal(result.effectInterval, null);
+  assert.ok(result.pValues!.benefit <= 0.05 && result.pValues!.harm > 0.05);
+  assert.equal(evaluateFindingTrialPolicy(rows, { ...plan, minimumEffect: 0.1 }, current).status, 'inconclusive',
+    'a no-effect test cannot certify a margin');
+  const unknownControl = rows.map(row => row.unit === 'hard' && row.assignment.action === 'no-advice' ? { ...row, outcome: 'unknown' as const } : row);
+  assert.equal(evaluateFindingTrialPolicy(unknownControl, plan, current).status, 'inconclusive',
+    'unknown control outcomes count as passes against promotion');
+});

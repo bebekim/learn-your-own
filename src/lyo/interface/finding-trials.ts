@@ -24,13 +24,23 @@ const trialSchema = z.object({ id: text, findingId: text, findingVersion: text, 
   supersedes: text.optional(),
   // Absent method means Hoeffding, so registered definitions keep their hashed semantics.
   evaluation: z.object({ sampleSize: z.number().int().min(2).max(10000), minimumEffect: z.number().min(0).lt(1),
-    alpha: z.number().gt(0).max(0.1), assumptions: text, method: z.enum(['hoeffding', 'exact-binomial']).optional() })
+    alpha: z.number().gt(0).max(0.1), assumptions: text,
+    method: z.enum(['hoeffding', 'exact-binomial', 'stratified-exact']).optional() })
     .strict().refine(plan => plan.method !== 'exact-binomial' || plan.sampleSize <= 1000,
-      'exact-binomial trials allow at most 1000 assignments').optional(),
+      'exact-binomial trials allow at most 1000 assignments')
+    .refine(plan => plan.method !== 'stratified-exact' || (plan.minimumEffect === 0 && plan.sampleSize <= 1000),
+      'stratified-exact tests no effect: it requires minimumEffect 0 and at most 1000 assignments').optional(),
+  // Absent enrollment means one session per repository or directory.
+  enrollment: z.object({ unit: z.literal('session'), maxPerRepository: z.number().int().min(2).max(100) }).strict().optional(),
   trigger: z.object({ toolName: text, toolInput: z.union([z.record(z.string(), z.unknown()), text]), result: z.literal('failure') }).strict(),
   measurement: measurementSchema,
   review: semanticReviewSchema.omit({ id: true, opportunityId: true, supersedes: true, verdict: true }),
-}).strict().refine(input => !input.evaluation || input.runtime, 'comparative trials require a declared runtime');
+}).strict().refine(input => !input.evaluation || input.runtime, 'comparative trials require a declared runtime')
+  // Same-repository sessions are alike, so only the repository-stratified test may pool them.
+  .refine(input => !input.enrollment || input.evaluation?.method === 'stratified-exact',
+    'session enrollment requires evaluation.method stratified-exact')
+  .refine(input => input.evaluation?.method !== 'stratified-exact' || input.enrollment,
+    'stratified-exact needs session enrollment; one session per repository leaves no within-repository comparison');
 type Trial = z.infer<typeof trialSchema>;
 export type FindingTrial = ReturnType<typeof findingTrials>[number];
 
