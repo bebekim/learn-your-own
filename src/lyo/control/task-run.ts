@@ -4,6 +4,14 @@ import { dirname, resolve } from 'node:path';
 import { createKernel, closeKernel } from '../../ledger.ts';
 import { TaskFeedback } from './task-feedback.ts';
 
+/** Headless, non-persistent host arguments whose JSON trace `hostUsage` can measure. */
+export function hostArgs(runtime: 'codex' | 'claude', model: string, cwd: string, prompt: string): string[] {
+  return runtime === 'codex'
+    ? ['exec', '--ephemeral', '--json', '--sandbox', 'workspace-write', '--model', model, '--cd', cwd, prompt]
+    : ['-p', '--output-format', 'stream-json', '--verbose', '--include-hook-events', '--no-session-persistence',
+      '--model', model, '--permission-mode', 'acceptEdits', '--allowedTools', 'Bash(rtk *)', prompt];
+}
+
 /** Register before launch and collect host usage plus independent verifier results after exit. */
 export function runTask(inputPath: string, dbPath: string, tracePath: string, hostBinary?: string) {
   const kernel = createKernel({ dbPath });
@@ -16,10 +24,7 @@ export function runTask(inputPath: string, dbPath: string, tracePath: string, ho
     mkdirSync(dirname(tracePath), { recursive: true });
     const configPath = `${tracePath}.lyo-config.json`;
     writeFileSync(configPath, JSON.stringify({ rootDir: input.cwd, corpusPath: resolve(dbPath), adaptiveFeedback: { mode: 'explore' } }), { flag: 'wx' });
-    const args = input.runtime === 'codex'
-      ? ['exec', '--ephemeral', '--json', '--sandbox', 'workspace-write', '--model', input.model, '--cd', input.cwd, input.task.prompt]
-      : ['-p', '--output-format', 'stream-json', '--verbose', '--include-hook-events', '--no-session-persistence',
-        '--model', input.model, '--permission-mode', 'acceptEdits', '--allowedTools', 'Bash(rtk *)', input.task.prompt];
+    const args = hostArgs(input.runtime, input.model, input.cwd, input.task.prompt);
     const invocation = { binary: hostBinary ?? input.runtime, args, cwd: input.cwd,
       registrationHash: attempt.registration.hash, startedAt: new Date().toISOString() };
     writeFileSync(`${tracePath}.launch.json`, JSON.stringify(invocation, null, 2), { flag: 'wx' });

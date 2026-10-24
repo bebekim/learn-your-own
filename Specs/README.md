@@ -36,6 +36,7 @@ alone does not establish completion.
 | [6 Causal components](6-causal-discovery-framework-integration.md) | Partial | Six prototypes; no demonstrated integrated causal learner |
 | [7 Session bridge](7-session-telemetry-lesson-bridge.md) | Partial | Registered checks constrain finding feedback; misfires request scope review and withdrawal suspends dependent wording; real benefit remains open |
 | [8 Learning evidence loop](8-learning-evidence-loop.md) | Partial | Reviewed ordinary trials feed scoped promotion, pause and correction; product benefit still open |
+| [9 Parallel lab screen](9-parallel-lab-screen.md) | Partial | Parallel paired runs in isolated worktrees, task-stratified exact test, pre-launch token budget; scripted-executor tests only, no live screen yet |
 
 ## Dated designs
 

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add `lyo lab run` / `lyo lab report` (Spec 9): parallel paired advice/no-advice runs of registered tasks in isolated worktrees, analysed with the task-stratified exact test. Whole tasks are admitted against the token budget before launch; changed verifier files make an outcome unknown. Tested with a scripted executor only.
 - Add session-unit trials: `enrollment: { unit: "session", maxPerRepository }` with the required `evaluation.method: "stratified-exact"`, an exact repository-stratified randomization test of no effect (`minimumEffect: 0`). Validity needs fair assignment and no interference between sessions, not independent outcomes. The cap applies only while the cohort is collecting.
 - Add an opt-in `evaluation.method: "exact-binomial"` for prospective trials: exact unconditional bounds on the pass-rate difference, needing about a fifth of the Hoeffding sample at equal power. It assumes independent outcomes; definitions without `method` keep Hoeffding.
 - Withhold legacy lessons with no validated outcome from session banners; banner delivery cannot earn them credit. `LYO_SESSION_UNVALIDATED_LESSONS=1` restores the previous behavior.
