@@ -1,0 +1,29 @@
+{
+  "provider": "typesafe-jev",
+  "model": "jev-1.14.0",
+  "apiKeyEnvFile": "~/repositories/individual/.env",
+  "maxCallsPerSession": 30,
+  "timeoutMs": 1500,
+  "activities": {
+    "transfer-review": {
+      "question": {
+        "type": "noul",
+        "instructions": "The agent's action reuses an existing repair, fix or implementation from one place in another.",
+        "criteria": {
+          "true": "Porting, mirroring or copying a specific existing fix, file, table or implementation into a different file, module, repository, language or framework",
+          "false": "New code, a fix made in place, reading, running or committing without reusing a specific implementation from elsewhere"
+        }
+      },
+      "band": {
+        "no": 0.3,
+        "yes": 0.5
+      },
+      "calibration": {
+        "positives": 30,
+        "negatives": 217,
+        "heldOut": "Thresholds chosen on batch 1 (caught 7/8, false alarms 2/137) and checked on held-out batch 2: caught 20/22, false alarms 2/80. Random 100 actions: 4% prevalence, false alarms 2/90.",
+        "evidence": "2026-10-25 calibration of 261 personal-repo Claude Code actions; labels provisional except 15 user-reviewed disagreements; jev-1.14.0."
+      }
+    }
+  }
+}

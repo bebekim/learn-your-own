@@ -49,6 +49,35 @@ negatives, and no threshold should be chosen before then.
 A random stratum estimates the real false-positive rate; a keyword-enriched stratum
 only helps estimate recall.
 
+## Action-scoped finding delivery
+
+Findings normally reach a session through explicit `[lyo:<activity>]` tags or a
+matching repository. Action scope adds a third route. After an agent's `Edit`,
+`Write`, `MultiEdit`, `NotebookEdit` or `Bash` call, the Claude/Codex hook asks a calibrated Noul question about
+that action. If the answer clears the band's `yes` threshold, the matching findings
+are delivered as hook context.
+
+- **Opt-in.** Set `LYO_ACTION_SCOPE_FILE` in the hook environment to a config such as
+  `eval/action-scope/transfer-review.json`. Without it, nothing is sent.
+- **Calibrated activities only.** Each activity needs its question, band and a
+  calibration record with at least 20 labelled positives and 20 negatives. The
+  shipped config holds the 25 October 2026 transfer-review calibration: 0.3/0.5 band,
+  held-out batch caught 20 of 22 with 2 false alarms in 80. Experiment design is not
+  included because its held-out check failed, and learning budget never occurred.
+- **Same input as calibration.** The action is rendered with the agent's latest plan
+  text from the transcript, in exactly the calibrated format. Changing that format
+  invalidates the thresholds.
+- **Cost bounds.** One call per new agent plan in a session, reused for later actions
+  under the same plan; at most `maxCallsPerSession` calls (default 30); a
+  `timeoutMs` limit (default 1500) with no retries. A failed or slow call leaves the
+  activity unknown.
+- **Delivery semantics.** Asking happens first, but delivery waits until the trial
+  check: a trial-managed session receives nothing. A finding is delivered at most once
+  per version per session, and not when its repository already brings it into
+  context. The delivery receipt carries `scope` with the decision reference, so
+  inferred deliveries stay distinguishable from tagged ones. Decision records keep
+  hashes, scores, model and usage, never the plan or code.
+
 ## What a decision establishes
 
 - **Disclosure.** Each request sends its `state` to TypeSafe. Its legal page states a

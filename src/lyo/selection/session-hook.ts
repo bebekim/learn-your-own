@@ -200,26 +200,52 @@ export function emitSessionLessons(
     if (!refresh && sessionId && selection.selected.length && !claimSessionBanner(sessionId, selection.storePath)) selection.selected = [];
     if (!refresh && sessionId) selection.findings = selection.findings.filter(row => claimSessionBanner(sessionId, selection.storePath, `${row.id}:${row.version}`));
     if (!selection.selected.length && !selection.findings.length) return;
-    if (sessionId) {
-      const store = new LessonStore(selection.storePath);
-      try {
-        const firstTraceId = `session-delivery:${sessionId}`;
-        const traceId = store.getTrace(firstTraceId)
-          ? `${firstTraceId}:${hashValue([payload.cwd, selection.selected.map(row => row.lesson_id),
-            selection.findings.map(row => [row.id, row.version, row.context])])}` : firstTraceId;
-        write(formatSelection(selection) + (selection.findings.length
-          ? `Finding delivery: ${traceId}. Store: ${selection.storePath}. Before applying advice, use lyo finding inspect --finding-id <id> --store <path> for registration and semantic-review templates. Register the opportunity and exact planned capture action, then review evaluator semantics with finding semantics. Codex/Claude hooks capture paired actions and record assessments automatically. Without a sound evaluator leave the outcome unknown. Use the same --store throughout.\n` : ''));
-        for (const row of selection.selected) store.recordApplication({ lesson_id: row.lesson_id,
-          run_id: sessionId, trigger_message_id: 'session-banner', task_cue: payload.cwd ?? null });
-        if (!store.getTrace(traceId)) store.recordTrace({ trace_id: traceId, run_id: sessionId,
-          kind: 'protocol_application', summary: 'Session banner emitted.',
-          payload: { cwd: payload.cwd, promptHash: typeof payload.prompt === 'string' ? hashValue(payload.prompt) : null,
-            lessons: selection.selected, findings: selection.findings, evidenceKind: 'delivery-only' } });
-      } finally { store.close(); }
-    } else write(formatSelection(selection));
+    if (sessionId) deliverSelection(selection, payload, sessionId, write);
+    else write(formatSelection(selection));
   } catch {
     // fail-open: never block the session
   }
+}
+
+function deliverSelection(selection: { selected: LessonRow[]; findings: SessionFinding[]; storePath: string },
+  payload: SessionHookPayload, sessionId: string, write: (text: string) => void, scope?: Record<string, unknown>): void {
+  const store = new LessonStore(selection.storePath);
+  try {
+    const firstTraceId = `session-delivery:${sessionId}`;
+    const traceId = store.getTrace(firstTraceId)
+      ? `${firstTraceId}:${hashValue([payload.cwd, selection.selected.map(row => row.lesson_id),
+        selection.findings.map(row => [row.id, row.version, row.context])])}` : firstTraceId;
+    write(formatSelection(selection) + (selection.findings.length
+      ? `Finding delivery: ${traceId}. Store: ${selection.storePath}. Before applying advice, use lyo finding inspect --finding-id <id> --store <path> for registration and semantic-review templates. Register the opportunity and exact planned capture action, then review evaluator semantics with finding semantics. Codex/Claude hooks capture paired actions and record assessments automatically. Without a sound evaluator leave the outcome unknown. Use the same --store throughout.\n` : ''));
+    for (const row of selection.selected) store.recordApplication({ lesson_id: row.lesson_id,
+      run_id: sessionId, trigger_message_id: 'session-banner', task_cue: payload.cwd ?? null });
+    if (!store.getTrace(traceId)) store.recordTrace({ trace_id: traceId, run_id: sessionId,
+      kind: 'protocol_application', summary: 'Session banner emitted.',
+      payload: { cwd: payload.cwd, promptHash: typeof payload.prompt === 'string' ? hashValue(payload.prompt) : null,
+        lessons: selection.selected, findings: selection.findings, evidenceKind: 'delivery-only', ...(scope ? { scope } : {}) } });
+  } finally { store.close(); }
+}
+
+/**
+ * Deliver findings for activities inferred from an agent action, at most once per finding
+ * version per session. Findings the repository already brings into context are skipped.
+ */
+export function emitActionScopedFindings(input: { cwd: string; sessionId: string; activities: string[]; scope: Record<string, unknown> },
+  write: (text: string) => void): SessionFinding[] {
+  const storePath = resolveSessionLessonStorePath(input.cwd);
+  if (!storePath || !input.activities.length) return [];
+  const repository = repositoryKey(input.cwd);
+  const db = new DatabaseSync(storePath, { readOnly: true });
+  let findings: SessionFinding[];
+  try {
+    const query = (prompt: string) => selectSessionFindings(db, { cwd: input.cwd, prompt, repository: () => repository });
+    const alreadyInContext = new Set(query('').map(row => row.id));
+    findings = query(input.activities.map(activity => `[lyo:${activity}]`).join(' '))
+      .filter(row => input.activities.includes(row.activity) && !alreadyInContext.has(row.id));
+  } finally { db.close(); }
+  findings = findings.filter(row => claimSessionBanner(input.sessionId, storePath, `action:${row.id}:${row.version}`));
+  if (findings.length) deliverSelection({ selected: [], findings, storePath }, { cwd: input.cwd }, input.sessionId, write, input.scope);
+  return findings;
 }
 
 function runCli(): void {

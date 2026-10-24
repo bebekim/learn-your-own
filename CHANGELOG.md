@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add opt-in action-scoped finding delivery (`LYO_ACTION_SCOPE_FILE`): after an agent edit or shell call, a calibrated Jev Noul question decides whether a finding's activity applies; matching findings are delivered once per session after the trial check, with a `scope` field on the receipt. Ships the transfer-review calibration (held-out: 20/22 caught, 2/80 false alarms); one call per plan, a per-session cap and a 1.5 s timeout bound cost.
 - Add `lyo decide calibrate`: Noul threshold bands against labelled cases per stratum (false positives, recall, unknowns), with retained, reusable decisions and an explicit insufficient-sample flag below 20 positives or negatives.
 - Add a `TypedDecisionProvider` interface for Choice/Score/Noul decisions, a TypeSafe Jev adapter (`POST /v1/systemone`, `GET /v1/models`, pinned `jev-1.14.0`, contract-checked responses, 429/529 backoff), unknown-preserving verdict bands, and `lyo decide` / `lyo decide models`. Enabled only by `TYPESAFE_API_KEY`; not yet wired into hooks or trials. See `docs/typed-decisions.md`.
 - Add `lyo lab run` / `lyo lab report` (Spec 9): parallel paired advice/no-advice runs of registered tasks in isolated worktrees, analysed with the task-stratified exact test. Whole tasks are admitted against the token budget before launch; changed verifier files make an outcome unknown. Tested with a scripted executor only.

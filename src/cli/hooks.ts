@@ -1,7 +1,8 @@
 import { join } from 'node:path';
 import { translateBobEvent } from '../adapters/bob.ts';
 import { translateEcaEvent } from '../adapters/eca.ts';
-import { emitSessionLessons, resolveSessionLessonStorePath } from '../lyo/selection/session-hook.ts';
+import { emitActionScopedFindings, emitSessionLessons, resolveSessionLessonStorePath } from '../lyo/selection/session-hook.ts';
+import { decideActionScope, type ActionScopeResult } from '../lyo/decisions/action-scope.ts';
 import { emitFindingReviewQueue, findingOwnsToolCall } from '../lyo/interface/session-finding-workflow.ts';
 import {
   closeKernel,
@@ -31,7 +32,16 @@ export async function runCodexHookCommand(
 ): Promise<unknown> {
   const input = await readStdin(stdin);
   const event = input.trim() ? JSON.parse(input) : {};
-  return addNativeFeedback(await captureCodexHook(args, event), 'codex', event, args);
+  return addNativeFeedback(await captureCodexHook(args, event), 'codex', event, args, await actionScope(event, args));
+}
+
+/** A failed or slow decision leaves the activity unknown; capture and other feedback continue. */
+async function actionScope(event: Record<string, any>, args: CliArgs): Promise<ActionScopeResult | null> {
+  try { return await decideActionScope({ ...event, cwd: event.cwd || args.cwd }, args.env); }
+  catch (error) {
+    process.stderr.write(`Lyo action scope: ${error instanceof Error ? error.message : String(error)}\n`);
+    return null;
+  }
 }
 
 interface HookPaths {
@@ -98,10 +108,11 @@ export async function runClaudeHookCommand(
 ): Promise<unknown> {
   const input = await readStdin(stdin);
   const event = input.trim() ? JSON.parse(input) : {};
-  return addNativeFeedback(await runClaudeStyleHook(args, event), 'claude', event, args);
+  return addNativeFeedback(await runClaudeStyleHook(args, event), 'claude', event, args, await actionScope(event, args));
 }
 
-function addNativeFeedback(output: any, runtime: 'codex' | 'claude', event: Record<string, any>, args: CliArgs): unknown {
+function addNativeFeedback(output: any, runtime: 'codex' | 'claude', event: Record<string, any>, args: CliArgs,
+  scope: ActionScopeResult | null = null): unknown {
   let trialManaged = false;
   try {
     const cwd = event.cwd || args.cwd;
@@ -115,6 +126,16 @@ function addNativeFeedback(output: any, runtime: 'codex' | 'claude', event: Reco
     process.stderr.write(`Lyo prospective trial: ${error instanceof Error ? error.message : String(error)}\n`);
   }
   if (trialManaged) return output;
+  // Delivered only after the trial check, so a receipt always means the advice was emitted.
+  if (scope?.activities.length) {
+    try {
+      let additionalContext = '';
+      emitActionScopedFindings({ cwd: event.cwd || args.cwd, sessionId: String(event.session_id), activities: scope.activities,
+        scope: scope.scope }, text => { additionalContext += text; });
+      if (additionalContext) output = { ...output, hookSpecificOutput: { ...output.hookSpecificOutput,
+        hookEventName: event.hook_event_name, additionalContext: [output.hookSpecificOutput?.additionalContext, additionalContext].filter(Boolean).join('\n') } };
+    } catch { /* Scoped delivery must not block capture or native feedback. */ }
+  }
   if (['PostToolUse', 'PostToolUseFailure'].includes(event.hook_event_name)) {
     try {
       const cwd = event.cwd || args.cwd, storePath = resolveSessionLessonStorePath(cwd);
