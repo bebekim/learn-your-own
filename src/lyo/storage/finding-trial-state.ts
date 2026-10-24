@@ -1,4 +1,4 @@
-import { hashValue } from '../../contract/refs.ts';
+import { hashValue } from '../contract/refs.ts';
 import type { LessonStore } from './lesson-store.ts';
 import { findingAssignment, findingOpportunity, resolveFindingEvidence } from './finding-evidence.ts';
 import { findingState } from './finding-state.ts';

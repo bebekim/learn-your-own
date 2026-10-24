@@ -252,7 +252,7 @@ credibility
 Examples:
 
 ```text
-src/compiler/workflow-style.ts --verified_by--> tests/compiler-frontend.test.js
+src/lyo/compiler/workflow-style.ts --verified_by--> tests/compiler-frontend.test.js
 local_edit --requires_after--> fresh_verifier
 databricks workspace import --risk_class--> external_write
 manual_orchestrated run --candidate_process--> explicit loop prompt
@@ -278,11 +278,11 @@ incomparable  the observation does not bear on the conjecture
 Examples:
 
 ```text
-edit src/compiler/tokenizer.ts
+edit src/lyo/compiler/tokenizer.ts
 run tests/compiler-frontend.test.js
 test passes
 => supports hypothesis:
-   src/compiler/tokenizer.ts -> tests/compiler-frontend.test.js
+   src/lyo/compiler/tokenizer.ts -> tests/compiler-frontend.test.js
 ```
 
 ```text

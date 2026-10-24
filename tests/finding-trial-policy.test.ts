@@ -6,7 +6,7 @@ import { registerFindingTrial, findingTrials, ordinaryFindingTrialFeedback } fro
 import { reconcileFindingTrial } from '../src/lyo/interface/finding-trial-policy.ts';
 import { findingAssignment, withdrawFindingEvidence } from '../src/lyo/interface/session-finding-evidence.ts';
 import { inspectFinding } from '../src/lyo/interface/session-findings.ts';
-import { spoolCodexHookEvent } from '../src/hooks/runtime.ts';
+import { spoolCodexHookEvent } from '../src/lyo/hooks/runtime.ts';
 
 test('a fixed prospective comparison changes later delivery and later failure pauses that scope', () => {
   const f = trialFixture();

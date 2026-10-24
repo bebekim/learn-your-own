@@ -1,8 +1,8 @@
 // Transcribe the approved wording with its actual drafting-turn cost; no model call.
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { createKernel, closeKernel } from '../../src/ledger.ts';
-import { hashValue } from '../../src/contract/refs.ts';
+import { createKernel, closeKernel } from '../../src/lyo/storage/ledger.ts';
+import { hashValue } from '../../src/lyo/contract/refs.ts';
 import { TaskFeedback } from '../../src/lyo/control/task-feedback.ts';
 import { renderTaskIntervention } from '../../src/lyo/control/task-intervention.ts';
 

@@ -1,4 +1,4 @@
-import { hashValue } from '../../contract/refs.ts';
+import { hashValue } from '../contract/refs.ts';
 import { realpathSync } from 'node:fs';
 import type { LessonStore } from '../storage/lesson-store.ts';
 import { findingOpportunity, findingAssignment, findingOpportunityDelivery } from './session-finding-evidence.ts';

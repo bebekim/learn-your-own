@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
-import { closeKernel } from '../src/ledger.ts';
+import { closeKernel } from '../src/lyo/storage/ledger.ts';
 import { FeedbackController } from '../src/lyo/control/feedback-controller.ts';
 import { deriveTaskIntervention } from '../src/lyo/control/task-intervention.ts';
 import { taskFixture, startTask } from './helpers/task-feedback.js';

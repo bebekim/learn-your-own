@@ -13,15 +13,15 @@ change future delivery from that evidence.
 
 | Responsibility | Relevant code | Boundary |
 |---|---|---|
-| Host observations | [Adapters](../src/adapters), [hook runtime](../src/hooks/runtime.ts) | Records what the host exposes; missing status is unknown |
-| Local and central capture | [Corpus sync](../src/corpus/sync.ts), [workspace sync](../src/corpus/workspace-sync.ts) | Central telemetry is distinct from the lesson store |
+| Host observations | [Adapters](../src/adapters), [hook runtime](../src/lyo/hooks/runtime.ts) | Records what the host exposes; missing status is unknown |
+| Local and central capture | [Corpus sync](../src/lyo/corpus/sync.ts), [workspace sync](../src/lyo/corpus/workspace-sync.ts) | Central telemetry is distinct from the lesson store |
 | Timely guidance | [Session hook](../src/lyo/selection/session-hook.ts) | Turn/compaction refresh, explicit scope, delivery-only receipts |
 | Finding lifecycle | [Domain rules](../src/lyo/domain/finding-lifecycle.ts), [assessment](../src/lyo/application/finding-assessment.ts), [SQLite adapter](../src/lyo/storage/finding-state.ts) | Versioned support, contradiction, revision and correction; inward application/domain dependencies |
 | Ordinary finding workflow | [Selection](../src/lyo/application/finding-selection.ts), [boundary ordering](../src/lyo/application/finding-workflow.ts) | Trial-managed withholding, scoped support, capture before measurement |
 | Prospective ordinary trials | [Trial definitions](../src/lyo/interface/finding-trials.ts), [delivery](../src/lyo/interface/finding-opportunities.ts) | Reviewed trigger/evaluator before action; stable advice/no-advice assignment |
 | Action and evaluator evidence | [Capture](../src/lyo/interface/session-finding-capture.ts), [evidence](../src/lyo/interface/session-finding-evidence.ts), [semantics](../src/lyo/interface/session-finding-semantics.ts) | Paired identity, declared files, explicit claim kind and attributed review |
 | Scoped promotion and pause | [Trial policy](../src/lyo/domain/finding-trial-policy.ts) | Completed fixed cohort; conservative unknown handling; later failures pause scope |
-| Registered task experiments | [Task runner](../src/lyo/control/task-run.ts), [task evidence](../src/lyo/control/task-evidence.ts), [report](../src/eval/task-report.ts) | Acceptance/regressions and cost; separate from a passing retry |
+| Registered task experiments | [Task runner](../src/lyo/control/task-run.ts), [task evidence](../src/lyo/control/task-evidence.ts), [report](../src/lyo/eval/task-report.ts) | Acceptance/regressions and cost; separate from a passing retry |
 | Candidate derivation | [Task intervention](../src/lyo/control/task-intervention.ts) | Retained repair, removal/restoration checks and explicit later trial |
 | Legacy lesson storage | [LessonStore](../src/lyo/storage/lesson-store.ts), [file library](../src/lyo/storage/lesson-library.ts) | Separate credit/gate semantics; session banners excluded from run-level validation credit |
 

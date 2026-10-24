@@ -388,7 +388,7 @@ test('parseFileBlocks accepts a path= line inside the fence followed by code', (
 });
 
 test('loadBlockFormats reads the versioned ruleset artifact with evidence', () => {
-  const ruleset = loadBlockFormats('src/runner/block-formats.json');
+  const ruleset = loadBlockFormats('src/lyo/runner/block-formats.json');
   assert.equal(ruleset.version, 'lyo.block-formats.v1');
   assert.equal(ruleset.rules.length, 4);
   assert.equal(ruleset.rules[0].id, 'info-path-tag');
@@ -466,7 +466,7 @@ test('parseFileBlocks behavior is gated by the rules, not hardcoded', () => {
 });
 
 test('the bundled block-formats artifact is the default ruleset', () => {
-  const bundled = loadBlockFormats(new URL('../src/runner/block-formats.json', import.meta.url).pathname);
+  const bundled = loadBlockFormats(new URL('../src/lyo/runner/block-formats.json', import.meta.url).pathname);
   assert.deepEqual(
     DEFAULT_BLOCK_FORMAT_RULES.map((rule) => rule.id),
     bundled.rules.map((rule) => rule.id)

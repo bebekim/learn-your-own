@@ -2,9 +2,9 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
-import { createKernel, closeKernel } from '../../src/ledger.ts';
-import { recordTrace } from '../../src/reducers/core.ts';
-import { hashValue } from '../../src/contract/refs.ts';
+import { createKernel, closeKernel } from '../../src/lyo/storage/ledger.ts';
+import { recordTrace } from '../../src/lyo/storage/reducers/core.ts';
+import { hashValue } from '../../src/lyo/contract/refs.ts';
 import { LessonStore } from '../../src/lyo/storage/lesson-store.ts';
 import { renderSessionLessons, resolveSessionLessonStorePath } from '../../src/lyo/selection/session-hook.ts';
 

@@ -1,7 +1,7 @@
 /**
  * LYO lesson-delta DDL. Extracted from lesson-store.ts so the schema is
  * inspectable without reading the class implementation. The kernel's own
- * 27-table schema lives in src/schema.ts; this is the LYO lesson store's
+ * 27-table schema lives in src/lyo/storage/ledger-schema.ts; this is the LYO lesson store's
  * separate schema (design doc §3 + §5.3 decision log + v4 pair stats).
  * Migration v5 adds lesson_decision.posterior_snapshot_id and the
  * run_randomness table via LessonStore._migrate (fresh and old databases
@@ -197,7 +197,7 @@ CREATE INDEX IF NOT EXISTS idx_learned_rule_app_run ON learned_rule_application(
 /**
  * Schema relationship map — three DDL systems, three separate databases:
  *
- * 1. src/schema.ts (initLedger) → .agent-learning/learning.sqlite
+ * 1. src/lyo/storage/ledger-schema.ts (initLedger) → .agent-learning/learning.sqlite
  *    Kernel 27-table schema: runs, model_calls, learning_traces, etc.
  *    Written by reducers (recordRun, recordModelCall, recordTrace, ...).
  *

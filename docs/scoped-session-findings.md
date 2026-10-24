@@ -308,7 +308,7 @@ this paired finding-capture path currently supports Codex and Claude.
 
 Relevant code: [registered checks](../src/lyo/interface/session-finding-evidence.ts),
 [feedback/state](../src/lyo/interface/session-findings.ts),
-[hook](../src/lyo/selection/session-hook.ts), [CLI](../src/cli/commands/findings.ts).
+[hook](../src/lyo/selection/session-hook.ts), [CLI](../src/lyo/cli/commands/findings.ts).
 [Evidence tests](../tests/session-finding-evidence.test.ts),
 [feedback tests](../tests/session-finding-feedback.test.ts) and
 [built package tests](../tests/package.test.ts) exercise the path.

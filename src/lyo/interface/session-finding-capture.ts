@@ -1,6 +1,6 @@
 import { realpathSync } from 'node:fs';
-import { hashValue } from '../../contract/refs.ts';
-import type { HookObservation } from '../../hooks/events.ts';
+import { hashValue } from '../contract/refs.ts';
+import type { HookObservation } from '../hooks/events.ts';
 import type { LessonStore } from '../storage/lesson-store.ts';
 import { findingActionBoundary, findingSessionModel } from '../storage/finding-evidence.ts';
 import type { Registered } from '../storage/finding-evidence.ts';

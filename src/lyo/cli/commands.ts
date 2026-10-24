@@ -1,0 +1,63 @@
+import { CliArgs } from './args.ts';
+import { ACTIVATION_COMMANDS } from './commands/activation.ts';
+import { ASSOCIATION_COMMANDS } from './commands/associations.ts';
+import { CONTEXT_COMMANDS } from './commands/context.ts';
+import { CONTROL_COMMANDS } from './commands/control.ts';
+import { CORPUS_COMMANDS } from './commands/corpus.ts';
+import { DEMO_COMMANDS } from './commands/demo.ts';
+import { EVAL_COMMANDS } from './commands/eval.ts';
+import { EXERCISE_COMMANDS } from './commands/exercise.ts';
+import { FINDING_COMMANDS } from './commands/findings.ts';
+import { HARNESS_COMMANDS } from './commands/harness.ts';
+import { HOOK_COMMANDS } from './commands/hooks.ts';
+import { INIT_COMMANDS } from './commands/init.ts';
+import { LAB_COMMANDS } from './commands/lab.ts';
+import { DECIDE_COMMANDS } from './commands/decide.ts';
+import { OBSERVATION_COMMANDS } from './commands/observation.ts';
+import { PIPELINE_COMMANDS } from './commands/pipeline.ts';
+import { RUN_COMMANDS } from './commands/runs.ts';
+import { TAPE_COMMANDS } from './commands/tape.ts';
+import { WORKSPACE_COMMANDS } from './commands/workspace.ts';
+import { WORKTREE_COMMANDS } from './commands/worktree.ts';
+import { WRAP_COMMANDS } from './commands/wrap.ts';
+import type { CommandHandler } from './commands/context.ts';
+import { usage } from './output.ts';
+
+const COMMAND_HANDLERS: Record<string, CommandHandler> = {
+  ...INIT_COMMANDS,
+  ...WRAP_COMMANDS,
+  ...HOOK_COMMANDS,
+  ...HARNESS_COMMANDS,
+  ...OBSERVATION_COMMANDS,
+  ...RUN_COMMANDS,
+  ...TAPE_COMMANDS,
+  ...WORKSPACE_COMMANDS,
+  ...WORKTREE_COMMANDS,
+  ...ACTIVATION_COMMANDS,
+  ...ASSOCIATION_COMMANDS,
+  ...CONTEXT_COMMANDS,
+  ...CONTROL_COMMANDS,
+  ...CORPUS_COMMANDS,
+  ...EXERCISE_COMMANDS,
+  ...FINDING_COMMANDS,
+  ...DEMO_COMMANDS,
+  ...EVAL_COMMANDS,
+  ...PIPELINE_COMMANDS,
+  ...LAB_COMMANDS,
+  ...DECIDE_COMMANDS,
+};
+
+export async function runCommand(args: CliArgs, stdin: AsyncIterable<string | Buffer>): Promise<unknown> {
+  const handler = COMMAND_HANDLERS[commandKey(args)];
+  if (!handler) usage(1);
+  return handler(args, stdin);
+}
+
+function commandKey(args: CliArgs): string {
+  if (!args.command) return '';
+  if (args.subcommand && !args.subcommand.startsWith('-')) {
+    const compound = `${args.command} ${args.subcommand}`;
+    if (Object.hasOwn(COMMAND_HANDLERS, compound)) return compound;
+  }
+  return args.command;
+}

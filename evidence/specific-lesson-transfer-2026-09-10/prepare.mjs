@@ -3,7 +3,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync, appendFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
-import { hashFile } from '../../src/contract/refs.ts';
+import { hashFile } from '../../src/lyo/contract/refs.ts';
 
 const root = '/private/tmp/lyo-specific-transfer-20260910';
 const origin = '/Users/marcus.kim/repositories/oss/clean-domain-driven';

@@ -12,8 +12,8 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { hashFile, hashValue } from '../../contract/refs.ts';
-import type { LyoUpdate } from '../../contract/index.ts';
+import { hashFile, hashValue } from '../contract/refs.ts';
+import type { LyoUpdate } from '../contract/index.ts';
 import { sampleGamma } from '../selection/selection-policies.ts';
 import type { JudgeClassification } from '../application/judgment.ts';
 

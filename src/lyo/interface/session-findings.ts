@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { realpathSync } from 'node:fs';
-import { hashValue } from '../../contract/refs.ts';
+import { hashValue } from '../contract/refs.ts';
 import type { LessonStore } from '../storage/lesson-store.ts';
 import { inspectFindingOpportunities } from '../storage/finding-evidence.ts';
 import { findingState, findingRecords as records, findingSchema, findingAssessmentPort } from '../storage/finding-state.ts';

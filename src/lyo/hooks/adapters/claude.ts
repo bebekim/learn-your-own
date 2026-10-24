@@ -1,0 +1,194 @@
+import { getLyoVersion } from '../../../version.ts';
+import type { CanonicalHookEventName, HookObservation, HookRuntime } from '../events.ts';
+import {
+  createHookEventId,
+  fingerprintHookValue,
+  safeToolStatusSignals,
+  sha256,
+} from './runtime.ts';
+import {
+  buildAssistantPromptBoundary,
+  buildSession,
+  buildUserPromptBoundary,
+} from './shared.ts';
+import { classifyPromptKind } from '../../domain/classification/prompt-kind.ts';
+import type {
+  AssociationOutcome,
+} from '../../domain/types/activation.ts';
+import type {
+  HookEventInput,
+  RecordPromptBoundaryInput,
+  RecordSessionEndedInput,
+  RecordSessionStartedInput,
+} from '../../domain/types/observation.ts';
+
+export interface ClaudeHookInput {
+  platform?: 'eca' | 'bob';
+  client_type?: string;
+  session_id?: string;
+  transcript_path?: string | null;
+  cwd?: string;
+  hook_event_name?: string;
+  model?: string | null;
+  turn_id?: string;
+  prompt?: string;
+  source?: string;
+  tool_name?: string;
+  tool_input?: unknown;
+  tool_response?: unknown;
+  tool_output?: unknown;
+  result?: unknown;
+  error?: unknown;
+  last_assistant_message?: string | null;
+}
+
+export interface ClaudeHookOptions {
+  promptDir?: string;
+  normalizeOnStop?: boolean;
+  normalizeOnToolUse?: boolean;
+  normalizeWorkspaceId?: string;
+  normalizeOutcome?: AssociationOutcome;
+}
+
+export interface ClaudeHookOutput {
+  continue?: true;
+}
+
+export function claudeHookObservation(
+  event: ClaudeHookInput,
+  options: { promptDir?: string; includeRawPrompt: boolean }
+): HookObservation {
+  const runtime = event.platform === 'eca' || event.platform === 'bob' ? event.platform
+    : event.client_type === 'kimi_code_cli' ? 'kimi' : 'claude';
+  const runtimeEventName = event.hook_event_name ?? 'Unknown';
+  const canonicalEventName = canonicalClaudeEventName(runtimeEventName);
+  const sessionId = event.session_id ?? 'unknown-session';
+  const cwd = event.cwd ?? process.cwd();
+  const turnId = event.turn_id ?? null;
+  const hookEvent: HookEventInput = {
+    sessionId,
+    turnId,
+    eventName: canonicalEventName,
+    cwd,
+    model: event.model ?? null,
+    lyoVersion: getLyoVersion(),
+    payload: redactClaudeHookEvent(event, {
+      runtime,
+      runtimeEventName,
+      canonicalEventName,
+    }),
+  };
+  hookEvent.eventId = createHookEventId(hookEvent);
+
+  let session: RecordSessionStartedInput | null = null;
+  let sessionEnd: RecordSessionEndedInput | null = null;
+  let promptBoundary: RecordPromptBoundaryInput | null = null;
+
+  if (runtimeEventName === 'SessionStart') {
+    session = buildSession({ sessionId, repoPath: cwd, platform: runtime, model: event.model ?? null });
+  } else if (runtimeEventName === 'SessionEnd') {
+    sessionEnd = { sessionId };
+  } else if (runtimeEventName === 'UserPromptSubmit' && typeof event.prompt === 'string' && event.prompt) {
+    session = buildSession({ sessionId, repoPath: cwd, platform: runtime, model: event.model ?? null });
+    promptBoundary = buildUserPromptBoundary({
+      sessionId,
+      turnId,
+      kind: classifyPromptKind(event.prompt),
+      promptText: event.prompt,
+      model: event.model ?? null,
+      includeRawPrompt: options.includeRawPrompt,
+      promptDir: options.promptDir,
+    });
+  } else if (runtimeEventName === 'Stop' && typeof event.last_assistant_message === 'string' && event.last_assistant_message) {
+    session = buildSession({ sessionId, repoPath: cwd, platform: runtime, model: event.model ?? null });
+    promptBoundary = buildAssistantPromptBoundary({
+      sessionId,
+      turnId,
+      responseMessage: event.last_assistant_message,
+      model: event.model ?? null,
+    });
+  }
+
+  return {
+    runtime,
+    runtimeEventName,
+    canonicalEventName,
+    sessionId,
+    turnId,
+    cwd,
+    hookEvent,
+    session,
+    sessionEnd,
+    promptBoundary,
+  };
+}
+
+export function emptyClaudeHookOutput(): ClaudeHookOutput {
+  return {};
+}
+
+function canonicalClaudeEventName(eventName: string): CanonicalHookEventName {
+  if (eventName === 'SessionStart') return 'session.start';
+  if (eventName === 'SessionEnd') return 'session.end';
+  if (eventName === 'UserPromptSubmit') return 'prompt.submit';
+  if (eventName === 'PreToolUse') return 'tool.before';
+  if (eventName === 'PermissionRequest') return 'permission.request';
+  if (eventName === 'PostToolUse') return 'tool.after';
+  if (eventName === 'PostToolUseFailure') return 'tool.failure';
+  if (eventName === 'PostToolBatch') return 'tool.batch.after';
+  if (eventName === 'PreCompact') return 'context.compact.before';
+  if (eventName === 'PostCompact') return 'context.compact.after';
+  if (eventName === 'Stop') return 'turn.stop';
+  if (eventName === 'SubagentStart') return 'subagent.start';
+  if (eventName === 'SubagentStop') return 'subagent.stop';
+  if (eventName === 'TaskCreated') return 'task.created';
+  if (eventName === 'TaskCompleted') return 'task.completed';
+  if (eventName === 'ConfigChange') return 'config.change';
+  if (eventName === 'CwdChanged') return 'cwd.changed';
+  if (eventName === 'FileChanged') return 'file.changed';
+  if (eventName === 'WorktreeCreate') return 'worktree.create';
+  if (eventName === 'WorktreeRemove') return 'worktree.remove';
+  if (eventName === 'Notification') return 'notification';
+  if (eventName === 'Elicitation') return 'elicitation';
+  return 'unknown';
+}
+
+function redactClaudeHookEvent(
+  event: ClaudeHookInput,
+  names: { runtime: HookRuntime; runtimeEventName: string; canonicalEventName: CanonicalHookEventName }
+): Record<string, unknown> {
+  const redacted: Record<string, unknown> = {
+    ...event,
+    _lyo: {
+      runtime: names.runtime,
+      lyo_version: getLyoVersion(),
+      runtime_event_name: names.runtimeEventName,
+      canonical_event_name: names.canonicalEventName,
+    },
+  };
+  if (typeof event.prompt === 'string') {
+    redacted.prompt = {
+      sha256: sha256(event.prompt),
+      length: event.prompt.length,
+    };
+  }
+  if (typeof event.last_assistant_message === 'string') {
+    redacted.last_assistant_message = {
+      sha256: sha256(event.last_assistant_message),
+      length: event.last_assistant_message.length,
+    };
+  }
+  for (const key of ['tool_response', 'tool_output', 'result'] as const) {
+    if (event[key] !== undefined) {
+      const fingerprint = fingerprintHookValue(event[key]);
+      redacted[key] = {
+        sha256: fingerprint.sha256,
+        output_size: fingerprint.outputSize,
+        truncated: fingerprint.truncated,
+        recorded: false,
+        ...safeToolStatusSignals(event[key]),
+      };
+    }
+  }
+  return redacted;
+}

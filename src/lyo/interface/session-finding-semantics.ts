@@ -1,4 +1,4 @@
-import { hashValue } from '../../contract/refs.ts';
+import { hashValue } from '../contract/refs.ts';
 import type { LessonStore } from '../storage/lesson-store.ts';
 import { findingSemanticReview, semanticReviewSchema } from '../storage/finding-evidence.ts';
 

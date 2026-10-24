@@ -15,7 +15,7 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
-import { hashValue } from '../../contract/refs.ts';
+import { hashValue } from '../contract/refs.ts';
 import { resolvePolicy } from './selection-policies.ts';
 import { LessonStore } from '../storage/lesson-store.ts';
 import { sessionVerifier } from '../bridge/session-bridge.ts';

@@ -5,7 +5,7 @@
  */
 
 import { z } from 'zod';
-import { hashValue } from '../../contract/refs.ts';
+import { hashValue } from '../contract/refs.ts';
 import type { TypedDecisionProvider, TypedDecisionRecord, TypedDecisionRequest } from '../application/typed-decisions.ts';
 
 // A versioned model, not the moving `jev-latest` alias, so retained decisions stay comparable.

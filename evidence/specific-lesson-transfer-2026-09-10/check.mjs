@@ -1,8 +1,8 @@
 // Offline evidence consistency check. No database writes or model calls.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { buildTaskReport } from '../../src/eval/task-report.ts';
-import { hashValue, hashFile } from '../../src/contract/refs.ts';
+import { buildTaskReport } from '../../src/lyo/eval/task-report.ts';
+import { hashValue, hashFile } from '../../src/lyo/contract/refs.ts';
 const read = name => JSON.parse(readFileSync(new URL(name, import.meta.url), 'utf8'));
 const records = ['baseline', 'learned'].map(arm => read(`${arm}.json`));
 const policy = read('trial-policy.json'), comparison = read('comparison.json'), report = read('report.json');

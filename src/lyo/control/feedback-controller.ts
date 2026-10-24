@@ -1,5 +1,5 @@
-import type { LearningKernel } from '../../ledger.ts';
-import { hashValue } from '../../contract/refs.ts';
+import type { LearningKernel } from '../storage/ledger.ts';
+import { hashValue } from '../contract/refs.ts';
 import { selectAction } from '../domain/tabular-mean-policy.ts';
 import { z } from 'zod';
 

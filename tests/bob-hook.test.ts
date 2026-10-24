@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { translateBobEvent } from '../src/adapters/bob.ts';
-import { claudeHookObservation } from '../src/adapters/claude.ts';
-import { extractHookFacts } from '../src/hooks/normalizer.ts';
+import { translateBobEvent } from '../src/lyo/hooks/adapters/bob.ts';
+import { claudeHookObservation } from '../src/lyo/hooks/adapters/claude.ts';
+import { extractHookFacts } from '../src/lyo/hooks/normalizer.ts';
 
 test('Bob accepts both hook contracts without inventing completion or shell exit evidence', () => {
   for (const bad of [{}, { event: 'Stop', session_id: '' }, { event: 'SessionEnd', session_id: 'bob' }]) {

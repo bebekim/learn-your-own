@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { describe, it } from 'node:test';
 
 import { LessonStore } from '../src/lyo/storage/lesson-store.ts';
-import { claudeHookObservation } from '../src/adapters/claude.ts';
+import { claudeHookObservation } from '../src/lyo/hooks/adapters/claude.ts';
 import {
   createKernel,
   handleClaudeHook,

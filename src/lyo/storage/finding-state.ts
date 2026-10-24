@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import { z } from 'zod';
-import { hashValue } from '../../contract/refs.ts';
+import { hashValue } from '../contract/refs.ts';
 import { findingLifecycle } from '../domain/finding-lifecycle.ts';
 import { receiptSchema, revisionReceiptSchema } from '../application/finding-assessment.ts';
 import type { Feedback, FindingAssessmentPort } from '../application/finding-assessment.ts';

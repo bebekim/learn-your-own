@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { replayTrace } from '../src/eval/replay.ts';
+import { replayTrace } from '../src/lyo/eval/replay.ts';
 import { LessonStore } from '../src/lyo/storage/lesson-store.ts';
 import { runLyoJson } from './helpers/cli.js';
 

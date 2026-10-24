@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fixture } from './session-finding-fixture.ts';
 import { inspectFinding } from '../../src/lyo/interface/session-findings.ts';
-import { spoolClaudeHookEvent, spoolCodexHookEvent } from '../../src/hooks/runtime.ts';
+import { spoolClaudeHookEvent, spoolCodexHookEvent } from '../../src/lyo/hooks/runtime.ts';
 
 export function trialFixture() {
   const f = fixture();

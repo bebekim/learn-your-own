@@ -1,7 +1,7 @@
 import { spawn, execFileSync } from 'node:child_process';
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { runLocalEpisode } from '../../eval/live-runner.ts';
+import { runLocalEpisode } from '../eval/live-runner.ts';
 import { hostUsage } from '../control/task-evidence.ts';
 import { hostArgs } from '../control/task-run.ts';
 import { evaluateFindingTrialPolicy, type FindingTrialOutcome } from '../domain/finding-trial-policy.ts';

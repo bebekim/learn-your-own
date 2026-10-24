@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { hashFile } from '../../src/contract/refs.ts';
+import { hashFile } from '../../src/lyo/contract/refs.ts';
 
 const repo = '/Users/marcus.kim/repositories/individual/agent-learning-workflow';
 const version = JSON.parse(readFileSync('/Users/marcus.kim/.nvm/versions/node/v24.15.0/lib/node_modules/lyo-kernel/package.json', 'utf8')).version;

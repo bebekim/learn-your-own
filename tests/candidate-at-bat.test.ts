@@ -35,7 +35,7 @@ import {
   buildCandidateAtBatReport,
   recordModelCall,
 } from '../src/index.ts';
-import { classifyRiskControl } from '../src/compiler/candidate-at-bat/scoring.ts';
+import { classifyRiskControl } from '../src/lyo/compiler/candidate-at-bat/scoring.ts';
 import { recordPrompt, recordCommand, recordPatch, recordStop } from './helpers/record.js';
 
 function tempDb() {

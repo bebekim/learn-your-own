@@ -6,7 +6,7 @@ import {
   observationLoweringPlanResponse,
   observationReportResponse,
   observationSummaryResponse,
-} from '../src/cli/presenters/observation.ts';
+} from '../src/lyo/cli/presenters/observation.ts';
 
 test('observation presenter wraps report variants under stable top-level keys', () => {
   assert.deepEqual(observationReportResponse('style', { runId: 'run-1' }), {

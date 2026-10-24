@@ -3,8 +3,8 @@ import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSyn
 import { tmpdir } from 'node:os';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import { z } from 'zod';
-import type { LearningKernel } from '../../ledger.ts';
-import { hashFile, hashValue } from '../../contract/refs.ts';
+import type { LearningKernel } from '../storage/ledger.ts';
+import { hashFile, hashValue } from '../contract/refs.ts';
 import { openRouterChat } from '../judge/openrouter.ts';
 import { runVerifier, taskSource, type RegisteredTask, type TaskRecord } from './task-evidence.ts';
 

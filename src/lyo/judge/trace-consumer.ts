@@ -11,8 +11,8 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { hashFile, hashValue } from '../../contract/refs.ts';
-import type { ArtifactRef } from '../../contract/refs.ts';
+import { hashFile, hashValue } from '../contract/refs.ts';
+import type { ArtifactRef } from '../contract/refs.ts';
 import { accumulateEvidence, evidenceThreshold } from './evidence.ts';
 import { installPromotedLessons, loadLessons, recordLessonOutcome } from '../storage/lesson-library.ts';
 import { classifyMechanically } from './mechanical-judge.ts';
@@ -29,15 +29,15 @@ import {
   validateSpecProposal,
   validateTrace,
   validateVerifierReport,
-} from '../../contract/index.ts';
+} from '../contract/index.ts';
 import type {
   LyoUpdate,
   Plan,
   Spec,
   Trace,
   VerifierReport,
-} from '../../contract/index.ts';
-import type { FileBlock } from '../../runner/files.ts';
+} from '../contract/index.ts';
+import type { FileBlock } from '../runner/files.ts';
 
 export { JUDGE_CLASSES, buildJudgePrompt, parseJudgeResponse } from '../application/judgment.ts';
 export type { DisagreementInput, JudgeClassification, JudgeFn, Judgment } from '../application/judgment.ts';

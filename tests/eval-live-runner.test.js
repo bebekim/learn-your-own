@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { runLocalEpisode } from '../src/eval/live-runner.ts';
+import { runLocalEpisode } from '../src/lyo/eval/live-runner.ts';
 import { LearnedRuleStore } from '../src/lyo/storage/learned-rules.ts';
 import { ROOT, runLyoJson } from './helpers/cli.js';
 

@@ -6,11 +6,11 @@ import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { hashFile, hashValue } from '../src/contract/refs.ts';
-import { buildEvalReport, renderEvalReportMarkdown } from '../src/eval/report.ts';
-import type { EvalEpisodeResult } from '../src/eval/live-runner.ts';
-import { createOpenAiCompatibleExecutor } from '../src/runner/executors/openai-compatible.ts';
-import type { StageExecutionResult } from '../src/runner/executors/stage-executor.ts';
+import { hashFile, hashValue } from '../src/lyo/contract/refs.ts';
+import { buildEvalReport, renderEvalReportMarkdown } from '../src/lyo/eval/report.ts';
+import type { EvalEpisodeResult } from '../src/lyo/eval/live-runner.ts';
+import { createOpenAiCompatibleExecutor } from '../src/lyo/runner/executors/openai-compatible.ts';
+import type { StageExecutionResult } from '../src/lyo/runner/executors/stage-executor.ts';
 import { DEFAULT_JUDGE_MODEL, OPENROUTER_URL } from '../src/lyo/judge/openrouter.ts';
 import { extractDisagreements, loadRunEvidence } from '../src/lyo/judge/trace-consumer.ts';
 import { classifyMechanically } from '../src/lyo/judge/mechanical-judge.ts';

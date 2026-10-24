@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { z } from 'zod';
-import { hashValue } from '../../contract/refs.ts';
+import { hashValue } from '../contract/refs.ts';
 import { assessFindingObservation } from '../domain/finding-assessment.ts';
 
 const captureText = z.string().min(1);

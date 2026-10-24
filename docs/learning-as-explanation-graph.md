@@ -345,7 +345,7 @@ The next rigorous implementation path is:
 A read-only prototype once exposed `buildExplanationGraphReport`,
 `computeRivalOutcomeMessage`, and `lyo learn explanation --dry-run`.
 Commit `c92958e` removed that implementation. Those functions, the module
-`src/compiler/explanation-graph.ts`, and the CLI command do not exist in the
+`src/lyo/compiler/explanation-graph.ts`, and the CLI command do not exist in the
 current tree. The algorithm below is a design proposal, not a current capability.
 
 The current learning paths use scoped lesson selection and observation receipts.
@@ -404,7 +404,7 @@ Hypothesis:
 
 ```text
 H:
-  src/compiler/** is usefully verified by tests/compiler-frontend.test.js
+  src/lyo/compiler/** is usefully verified by tests/compiler-frontend.test.js
 ```
 
 Prior:
@@ -568,10 +568,10 @@ Example:
 
 ```text
 H:
-  src/compiler/** is usefully verified by tests/compiler-frontend.test.js
+  src/lyo/compiler/** is usefully verified by tests/compiler-frontend.test.js
 
 Evidence:
-  source files under src/compiler/** changed
+  source files under src/lyo/compiler/** changed
   tests/compiler-frontend.test.js ran after final edit
   verifier passed
   no stronger rival verifier explanation was present

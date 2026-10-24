@@ -57,7 +57,7 @@ test('retained finding evidence reads do not depend on selection, hooks or evalu
         continue;
       }
       const target = resolve(dirname(file), ref);
-      assert.ok(['lyo/storage/', 'lyo/domain/', 'contract/'].some(prefix => relative(SRC, target).startsWith(prefix)),
+      assert.ok(['lyo/storage/', 'lyo/domain/', 'lyo/contract/'].some(prefix => relative(SRC, target).startsWith(prefix)),
         `evidence reader depends on an outer workflow: ${relative(SRC, file)} → ${ref}`);
       visit(target);
     }

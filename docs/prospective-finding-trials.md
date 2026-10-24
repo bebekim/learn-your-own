@@ -90,7 +90,7 @@ checked in an ordinary session after installation.
 - `finding-opportunities.ts`: assignment and host-context emission.
 - `session-finding-capture.ts` / `session-finding-evidence.ts`: retained action boundaries, checks, corrections.
 - `finding-trial-policy.ts`: fixed comparison, window closure, scoped delivery decisions.
-- `src/cli/hooks.ts`: Codex/Claude wiring; no background watcher or mid-generation system-prompt mutation.
+- `src/lyo/cli/hooks.ts`: Codex/Claude wiring; no background watcher or mid-generation system-prompt mutation.
 
 The original policy increment is included in `0.4.3-adaptive.7`; current source is `0.4.3-adaptive.9`. Its tests are not evidence that a real lesson helped. Rollout requires installing the built package and registering one genuinely reusable, reviewed real-task contract in the store the hooks resolve (normally `~/.zeroshot/lyo-lessons.db`, distinct from the telemetry corpus). Ordinary matching tasks then enroll without pasted per-task handoffs. The 2026-09-10 rollout inspection found no registered trial and no matching finding/evaluator for the current MLOps deployment task, so it is not retrospectively enrolled. See `evidence/prospective-trial-rollout-2026-09-10/README.md` in the repository for installation and live-capture verification.
 

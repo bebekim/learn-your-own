@@ -1,8 +1,8 @@
-import { hashValue } from '../../contract/refs.ts';
-import type { LearningKernel } from '../../ledger.ts';
-import { recordTrace } from '../../reducers/core.ts';
-import { extractHookFacts } from '../../hooks/normalizer.ts';
-import { extractExitCode } from '../../hooks/exercise.ts';
+import { hashValue } from '../contract/refs.ts';
+import type { LearningKernel } from '../storage/ledger.ts';
+import { recordTrace } from '../storage/reducers/core.ts';
+import { extractHookFacts } from '../hooks/normalizer.ts';
+import { extractExitCode } from '../hooks/exercise.ts';
 import { LessonStore } from '../storage/lesson-store.ts';
 
 export interface SessionVerifier {

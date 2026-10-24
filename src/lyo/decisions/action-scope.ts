@@ -7,7 +7,7 @@
 import { closeSync, existsSync, openSync, readFileSync, readSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { z } from 'zod';
-import { hashValue } from '../../contract/refs.ts';
+import { hashValue } from '../contract/refs.ts';
 import type { TypedDecisionProvider } from '../application/typed-decisions.ts';
 import { noulVerdict, type TypedQuestion } from '../domain/typed-decision.ts';
 import { LessonStore } from '../storage/lesson-store.ts';

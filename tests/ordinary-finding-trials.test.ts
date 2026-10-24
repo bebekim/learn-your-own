@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { trialFixture } from './helpers/finding-trial-fixture.ts';
 import { inspectFinding } from '../src/lyo/interface/session-findings.ts';
-import { spoolCodexHookEvent, spoolClaudeHookEvent } from '../src/hooks/runtime.ts';
+import { spoolCodexHookEvent, spoolClaudeHookEvent } from '../src/lyo/hooks/runtime.ts';
 import * as trials from '../src/lyo/interface/finding-trials.ts';
 import { measureFindingOpportunity } from '../src/lyo/interface/session-finding-evidence.ts';
 import { emitSessionLessons } from '../src/lyo/selection/session-hook.ts';

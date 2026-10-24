@@ -35,7 +35,7 @@ import {
   spoolCodexHookEvent,
   drainHookSpool,
 } from '../src/index.ts';
-import { extractHookFacts } from '../src/hooks/normalizer.ts';
+import { extractHookFacts } from '../src/lyo/hooks/normalizer.ts';
 
 function tempDb() {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-kernel-'));

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { extractDeployment } from '../src/behavior/deployment-extractor.ts';
-import { extractHookFacts } from '../src/hooks/normalizer.ts';
+import { extractDeployment } from '../src/lyo/domain/behavior/deployment-extractor.ts';
+import { extractHookFacts } from '../src/lyo/hooks/normalizer.ts';
 
 test('extractDeployment: releasectl deploy parses --target as environment', () => {
   const result = extractDeployment('releasectl', 'releasectl deploy --target dev', 'succeeded');

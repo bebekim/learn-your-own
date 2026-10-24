@@ -3,8 +3,8 @@ import { existsSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { z } from 'zod';
-import { hashValue } from '../../contract/refs.ts';
-import { isWithinRoot } from '../../corpus/workspace-sync.ts';
+import { hashValue } from '../contract/refs.ts';
+import { isWithinRoot } from '../corpus/workspace-sync.ts';
 
 const requestSchema = z.object({
   id: z.string().min(1), command: z.string().min(1),

@@ -136,8 +136,8 @@ The report does not automatically deploy a policy into unregistered daily work.
   fingerprints, source artifacts, host usage and measured outcomes.
 - [Native hook](../src/lyo/control/native-feedback.ts): deliver registered task
   decisions at the prompt boundary.
-- [Task report](../src/eval/task-report.ts): compare measured outcomes and include
-  the cost of learning using the [existing gate](../src/eval/report.ts).
+- [Task report](../src/lyo/eval/task-report.ts): compare measured outcomes and include
+  the cost of learning using the [existing gate](../src/lyo/eval/report.ts).
 - [Cycle tests](../tests/task-feedback.test.js) and
   [evidence tests](../tests/task-feedback-evidence.test.js): executable contract
   checks with fixtures. These are not evidence of coding-agent benefit.

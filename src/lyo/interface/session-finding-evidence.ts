@@ -1,8 +1,8 @@
 import { realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
-import { hashValue } from '../../contract/refs.ts';
-import { runLocalEpisode } from '../../eval/live-runner.ts';
+import { hashValue } from '../contract/refs.ts';
+import { runLocalEpisode } from '../eval/live-runner.ts';
 import type { LessonStore } from '../storage/lesson-store.ts';
 import { findingActionEvidence, findingEvidenceTrace, findingOpportunity, inputSchema,
   measurementSchema, opportunitySchema, resolveFindingEvidence } from '../storage/finding-evidence.ts';

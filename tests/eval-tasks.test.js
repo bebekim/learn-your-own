@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { validateEvalTaskDirectory } from '../src/eval/tasks.ts';
+import { validateEvalTaskDirectory } from '../src/lyo/eval/tasks.ts';
 import { runLyoJson } from './helpers/cli.js';
 
 test('committed eval task set validates with explicit train selection and test splits', () => {

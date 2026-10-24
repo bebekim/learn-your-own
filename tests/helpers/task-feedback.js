@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createKernel } from '../../src/ledger.ts';
+import { createKernel } from '../../src/lyo/storage/ledger.ts';
 import { TaskFeedback } from '../../src/lyo/control/task-feedback.ts';
 
 export function startTask(fixture, registration) {

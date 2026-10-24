@@ -1,6 +1,6 @@
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import { z } from 'zod';
-import { hashValue } from '../../contract/refs.ts';
+import { hashValue } from '../contract/refs.ts';
 import type { TypedDecisionProvider, TypedDecisionRecord } from '../application/typed-decisions.ts';
 import { calibrationReport, type CalibrationLabel, type LabelledNoul } from '../domain/typed-decision-calibration.ts';
 import type { TypedQuestion } from '../domain/typed-decision.ts';

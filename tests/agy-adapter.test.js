@@ -52,8 +52,8 @@ test('PostToolUse with null toolCall is filtered as noise', () => {
 });
 
 test('agy-hook PreToolUse returns an explicit allow decision', async () => {
-  const { runAgyHookCommand } = await import('../src/cli/hooks.ts');
-  const { CliArgs } = await import('../src/cli/args.ts');
+  const { runAgyHookCommand } = await import('../src/lyo/cli/hooks.ts');
+  const { CliArgs } = await import('../src/lyo/cli/args.ts');
   const { mkdtempSync, rmSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
   const { join } = await import('node:path');

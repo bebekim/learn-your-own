@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { translateEcaEvent } from '../src/adapters/eca.ts';
-import { claudeHookObservation } from '../src/adapters/claude.ts';
-import { extractHookFacts } from '../src/hooks/normalizer.ts';
+import { translateEcaEvent } from '../src/lyo/hooks/adapters/eca.ts';
+import { claudeHookObservation } from '../src/lyo/hooks/adapters/claude.ts';
+import { extractHookFacts } from '../src/lyo/hooks/normalizer.ts';
 
 test('ECA validates chat identity, redacts text, and trusts only its shell result header', () => {
   const base = { hook_type: 'postToolCall', session_id: 'cache', chat_id: 'one', cwd: '/tmp/project',

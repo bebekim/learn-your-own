@@ -690,8 +690,8 @@ test('runPipeline writes the blindness split to SQLite when a kernel is provided
   await withTmp(async (dir) => {
     const { planPath } = writeSource(dir);
     const dbPath = join(dir, 'learning.sqlite');
-    const { createKernel, closeKernel } = await import('../src/ledger.ts');
-    const { initLedger } = await import('../src/schema.ts');
+    const { createKernel, closeKernel } = await import('../src/lyo/storage/ledger.ts');
+    const { initLedger } = await import('../src/lyo/storage/ledger-schema.ts');
     const kernel = createKernel({ dbPath });
     initLedger(kernel);
     try {

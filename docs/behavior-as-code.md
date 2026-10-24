@@ -46,7 +46,7 @@ tests.
 ### 1. Behavior becomes data (quote)
 
 A Claude or Codex hook fires and the raw event lands in the spool as plain
-JSON, a `HookSpoolPacket` (`src/hooks/events.ts`):
+JSON, a `HookSpoolPacket` (`src/lyo/hooks/events.ts`):
 
 ```json
 {
@@ -67,16 +67,16 @@ operator.
 ### 2. The reader: events become structure (read)
 
 `lyo normalize hooks` drains the spool into the ledger, then the compiler
-frontend (`src/compiler/frontend.ts`) parses it the way Lisp's reader
+frontend (`src/lyo/compiler/frontend.ts`) parses it the way Lisp's reader
 parses text into lists.
 
-Raw event -> `TelemetryToken` (`src/compiler/syntax.ts`), a symbol in a
+Raw event -> `TelemetryToken` (`src/lyo/compiler/syntax.ts`), a symbol in a
 small vocabulary:
 
 ```ts
 { kind: 'EDIT',   // PROMPT | INSPECT | EDIT | TEST | BUILD | GIT | EXTERNAL | STOP
   provenance: { eventId, sessionId, runId, cwd, ordinal, ... },
-  paths: ['src/compiler/parser.ts'] }
+  paths: ['src/lyo/compiler/parser.ts'] }
 ```
 
 Token -> `NormalizedAction`, the AST node:
@@ -86,7 +86,7 @@ Token -> `NormalizedAction`, the AST node:
   eventKind: 'tool_use',
   operation: 'mutate_local',
   intent: 'implement',
-  resources: { read: [], written: [{ type: 'local_file', ref: 'src/compiler/parser.ts' }] },
+  resources: { read: [], written: [{ type: 'local_file', ref: 'src/lyo/compiler/parser.ts' }] },
   risk: 'low',
   status: 'succeeded',
   facets: ['write', 'local'],

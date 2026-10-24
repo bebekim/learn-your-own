@@ -47,7 +47,7 @@ test('packed executables and generated hooks run the installed learning loop', a
     assert.ok(command.endsWith('/src/lyo/selection/session-hook.js'));
     assert.match(execFileSync('/bin/sh', ['-c', command], { cwd: dir, env, encoding: 'utf8',
       input: JSON.stringify({ cwd: dir, session_id: 'init-package' }) }), /Run the narrow test/);
-    const { buildHookBlock } = await import(new URL('../dist/npm/package/src/cli/commands/wrap.js', import.meta.url).href);
+    const { buildHookBlock } = await import(new URL('../dist/npm/package/src/lyo/cli/commands/wrap.js', import.meta.url).href);
     assert.match(buildHookBlock(), /src\/cli\.js claude-hook/);
     assert.match(buildHookBlock(), /selection\/session-hook\.js/);
     assert.doesNotMatch(buildHookBlock(), /\.ts/);

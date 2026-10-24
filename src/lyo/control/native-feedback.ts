@@ -1,11 +1,11 @@
 import { existsSync, mkdirSync, readFileSync, realpathSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { hashValue } from '../../contract/refs.ts';
-import { fingerprintHookValue } from '../../adapters/runtime.ts';
-import { createKernel, closeKernel, type LearningKernel } from '../../ledger.ts';
-import { extractHookFacts } from '../../hooks/normalizer.ts';
-import { isWithinRoot, workspaceSyncConfig } from '../../corpus/workspace-sync.ts';
+import { hashValue } from '../contract/refs.ts';
+import { fingerprintHookValue } from '../hooks/adapters/runtime.ts';
+import { createKernel, closeKernel, type LearningKernel } from '../storage/ledger.ts';
+import { extractHookFacts } from '../hooks/normalizer.ts';
+import { isWithinRoot, workspaceSyncConfig } from '../corpus/workspace-sync.ts';
 import { FeedbackController, type ControlDecision } from './feedback-controller.ts';
 import { nativeCheckReceiptSchema } from './native-check.ts';
 import { TaskFeedback } from './task-feedback.ts';

@@ -353,7 +353,7 @@ baseline attempt:
 
 candidate artifact:
   verifier module:
-    source scope: src/compiler/**
+    source scope: src/lyo/compiler/**
     verifier: node --test tests/compiler-frontend.test.js
 
 treatment attempt:
@@ -387,7 +387,7 @@ lyo experiment \
   --treatment-run-id <A1-run-id> \
   --variant-run-id <A2-run-id> \
   --artifact verifier:compiler-frontend \
-  --association-edge "src/compiler/** -> tests/compiler-frontend.test.js" \
+  --association-edge "src/lyo/compiler/** -> tests/compiler-frontend.test.js" \
   --next-experiment "try related compiler module variant"
 ```
 
@@ -427,7 +427,7 @@ The report should be readable as JSON and prose.
   "associationHypotheses": [
     {
       "id": "hyp-verifier-compiler-frontend-src-compiler-tests-compiler-frontend-test-js",
-      "source": "src/compiler/**",
+      "source": "src/lyo/compiler/**",
       "relation": "verified_by",
       "target": "tests/compiler-frontend.test.js",
       "credibility": "plausible",

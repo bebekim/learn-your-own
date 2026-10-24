@@ -4,7 +4,7 @@ Component specification with proposed extensions. Local/central collection and e
 
 > Here a "packet" means a proposed corpus-slice export, not a distributed
 > consensus or lesson-broadcast protocol. Current central SQLite import is
-> implemented in [corpus sync](../src/corpus/sync.ts).
+> implemented in [corpus sync](../src/lyo/corpus/sync.ts).
 
 ## Purpose
 

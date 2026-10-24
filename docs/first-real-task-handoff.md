@@ -137,7 +137,7 @@ recovered retrospectively from matching transcript outputs. That recovery did
 not establish an automatic, prospectively bound result path.
 
 Investigate the authoritative host response before choosing a fix. The current
-[status extractor](../src/adapters/runtime.ts#L64) accepts structured status;
+[status extractor](../src/lyo/hooks/adapters/runtime.ts#L64) accepts structured status;
 it cannot recover information absent from a stdout string. Do not "fix" this
 by guessing success from text such as `passed`, accepting printed JSON as host
 authority, or selecting the latest unrelated transcript result.

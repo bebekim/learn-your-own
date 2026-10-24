@@ -3,13 +3,13 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { hashValue } from '../../src/contract/refs.ts';
+import { hashValue } from '../../src/lyo/contract/refs.ts';
 import { LessonStore } from '../../src/lyo/storage/lesson-store.ts';
 import { emitSessionLessons } from '../../src/lyo/selection/session-hook.ts';
 import { registerFindingOpportunity } from '../../src/lyo/interface/session-finding-evidence.ts';
 import { reviewFindingSemantics } from '../../src/lyo/interface/session-finding-semantics.ts';
 import { inspectFinding, reviseFinding } from '../../src/lyo/interface/session-findings.ts';
-import { spoolCodexHookEvent, spoolClaudeHookEvent } from '../../src/hooks/runtime.ts';
+import { spoolCodexHookEvent, spoolClaudeHookEvent } from '../../src/lyo/hooks/runtime.ts';
 
 const originalAdvice = 'Reject blank strings using value.trim().length > 0; return the original accepted string.';
 const revisedAdvice = 'For contracts rejecting both ECMAScript and Unicode whitespace, require /[^\\s\\p{White_Space}]/u to match; preserve the accepted string.';

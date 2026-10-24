@@ -3,10 +3,10 @@ import { createHash } from 'node:crypto';
 import { readFileSync, realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
-import { hashFile, hashValue, type ArtifactRef } from '../../contract/refs.ts';
-import { parseEvalTask } from '../../eval/tasks.ts';
-import { runLocalEpisode } from '../../eval/live-runner.ts';
-import type { EvalEpisodeResult } from '../../eval/live-runner.ts';
+import { hashFile, hashValue, type ArtifactRef } from '../contract/refs.ts';
+import { parseEvalTask } from '../eval/tasks.ts';
+import { runLocalEpisode } from '../eval/live-runner.ts';
+import type { EvalEpisodeResult } from '../eval/live-runner.ts';
 import type { ControlDecision, ControlFeedback } from './feedback-controller.ts';
 
 const text = z.string().trim().min(1);

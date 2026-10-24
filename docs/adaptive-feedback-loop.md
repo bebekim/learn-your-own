@@ -341,7 +341,7 @@ use the task report for the declared total-cost limit.
 See [task evidence](../src/lyo/control/task-evidence.ts),
 [task lifecycle](../src/lyo/control/task-feedback.ts),
 [launcher](../src/lyo/control/task-run.ts), and
-[task report](../src/eval/task-report.ts). These are responsibilities with actual
+[task report](../src/lyo/eval/task-report.ts). These are responsibilities with actual
 consumers; the existing controller and evaluation machinery are reused.
 
 ### Release regression checks (0.4.2)

@@ -13,7 +13,7 @@ for (const sourcePath of sourceFiles(join(root, 'src'))) {
   const outputPath = join(outputDir, relativePath.replace(/\.ts$/, '.js'));
   mkdirSync(dirname(outputPath), { recursive: true });
   if (sourcePath.endsWith('.json')) {
-    // Assets ship verbatim (e.g. src/runner/block-formats.json).
+    // Assets ship verbatim (e.g. src/lyo/runner/block-formats.json).
     writeFileSync(outputPath.replace(/\.js$/, '.json'), readFileSync(sourcePath));
     continue;
   }

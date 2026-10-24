@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { analyzePythonLayer2Delta } from '../src/corpus/git-layer2.ts';
+import { analyzePythonLayer2Delta } from '../src/lyo/corpus/git-layer2.ts';
 
 test('python layer 2 separates lexical cues from localized structural body changes', () => {
   const before = [

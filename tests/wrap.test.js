@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { buildHookBlock, writeHooks, removeHooks } from '../src/cli/commands/wrap.ts';
+import { buildHookBlock, writeHooks, removeHooks } from '../src/lyo/cli/commands/wrap.ts';
 import { ROOT } from './helpers/cli.js';
 
 test('buildHookBlock produces 8 hooks with correct markers and paths', () => {

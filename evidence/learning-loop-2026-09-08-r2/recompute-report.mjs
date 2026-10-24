@@ -1,7 +1,7 @@
 // Post-run diagnostic correction: an invalid suite cannot earn mutant-detection credit.
 // Original calls, outputs, verification receipts, registration and reports remain unchanged.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { buildEvalReport, renderEvalReportMarkdown } from '../../src/eval/report.ts';
+import { buildEvalReport, renderEvalReportMarkdown } from '../../src/lyo/eval/report.ts';
 
 const read = name => JSON.parse(readFileSync(new URL(name, import.meta.url), 'utf8'));
 const original = read('episodes.json');

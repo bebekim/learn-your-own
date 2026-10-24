@@ -1,7 +1,7 @@
-import type { HookObservation } from '../../hooks/events.ts';
+import type { HookObservation } from '../hooks/events.ts';
 import { realpathSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { hashValue } from '../../contract/refs.ts';
+import { hashValue } from '../contract/refs.ts';
 import { LessonStore } from '../storage/lesson-store.ts';
 import { captureFindingAction, findingActionEvidence } from './session-finding-capture.ts';
 import { findingOpportunity, measureFindingOpportunity } from './session-finding-evidence.ts';

@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 const [phase, scenario] = process.argv.slice(2);
-const { buildEvalReport } = await import(pathToFileURL(join(process.cwd(), 'src/eval/report.ts')));
-const { readEvalTask } = await import(pathToFileURL(join(process.cwd(), 'src/eval/tasks.ts')));
+const { buildEvalReport } = await import(pathToFileURL(join(process.cwd(), 'src/lyo/eval/report.ts')));
+const { readEvalTask } = await import(pathToFileURL(join(process.cwd(), 'src/lyo/eval/tasks.ts')));
 const options = { baselineId: 'B0', treatmentId: 'B4', ruleId: 'pilot-rule' };
 const budget = { max_turns: 10, max_wall_time_seconds: 60, max_tokens: 100000 };
 function rows(baseTokens = 100, treatmentTokens = 50) {

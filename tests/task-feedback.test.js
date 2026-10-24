@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { appendFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
-import { createKernel, closeKernel } from '../src/ledger.ts';
+import { createKernel, closeKernel } from '../src/lyo/storage/ledger.ts';
 import { TaskFeedback } from '../src/lyo/control/task-feedback.ts';
 import { runLyoJson } from './helpers/cli.js';
 import { taskFixture as fixture } from './helpers/task-feedback.js';

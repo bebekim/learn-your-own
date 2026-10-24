@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { codexHookObservation } from '../src/adapters/codex.ts';
-import { claudeHookObservation } from '../src/adapters/claude.ts';
+import { codexHookObservation } from '../src/lyo/hooks/adapters/codex.ts';
+import { claudeHookObservation } from '../src/lyo/hooks/adapters/claude.ts';
 
 describe('adapter prompt boundary construction', () => {
   describe('codex adapter', () => {

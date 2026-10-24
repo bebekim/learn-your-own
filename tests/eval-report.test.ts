@@ -6,9 +6,9 @@ import test from 'node:test';
 
 import {
   buildEvalReport,
-} from '../src/eval/report.ts';
+} from '../src/lyo/eval/report.ts';
 import { runLyoJson } from './helpers/cli.js';
-import type { EvalBaselineId, EvalEpisodeResult } from '../src/eval/live-runner.ts';
+import type { EvalBaselineId, EvalEpisodeResult } from '../src/lyo/eval/live-runner.ts';
 
 test('eval report aggregates episode rows and accepts an improved treatment gate', () => {
   const report = buildEvalReport(episodes(), {

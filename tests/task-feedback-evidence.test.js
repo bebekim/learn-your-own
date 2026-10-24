@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
-import { closeKernel } from '../src/ledger.ts';
+import { closeKernel } from '../src/lyo/storage/ledger.ts';
 import { taskFixture, startTask } from './helpers/task-feedback.js';
 
 for (const change of ['verifier', 'regression', 'budget']) test(`${change} evidence determines credit independently of a passing acceptance check`, () => {

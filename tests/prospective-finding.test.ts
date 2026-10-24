@@ -7,8 +7,8 @@ import { inspectFinding, recordFindingFeedback } from '../src/lyo/interface/sess
 import { findingOpportunity, registerFindingOpportunity, measureFindingOpportunity, withdrawFindingEvidence, resolveFindingEvidence } from '../src/lyo/interface/session-finding-evidence.ts';
 import { reviewFindingSemantics } from '../src/lyo/interface/session-finding-semantics.ts';
 import { captureFindingAction } from '../src/lyo/interface/session-finding-capture.ts';
-import { codexHookObservation } from '../src/adapters/codex.ts';
-import { spoolCodexHookEvent } from '../src/hooks/runtime.ts';
+import { codexHookObservation } from '../src/lyo/hooks/adapters/codex.ts';
+import { spoolCodexHookEvent } from '../src/lyo/hooks/runtime.ts';
 import * as decisions from '../src/lyo/interface/finding-opportunities.ts';
 import { closeFindingTrialWindow } from '../src/lyo/interface/finding-trial-policy.ts';
 import { pendingFindingReviews } from '../src/lyo/interface/session-finding-workflow.ts';

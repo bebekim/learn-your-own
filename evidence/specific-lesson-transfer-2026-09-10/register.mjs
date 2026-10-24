@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createKernel, closeKernel } from '../../src/ledger.ts';
-import { hashFile } from '../../src/contract/refs.ts';
+import { createKernel, closeKernel } from '../../src/lyo/storage/ledger.ts';
+import { hashFile } from '../../src/lyo/contract/refs.ts';
 import { TaskFeedback } from '../../src/lyo/control/task-feedback.ts';
 
 const read = name => JSON.parse(readFileSync(new URL(name, import.meta.url), 'utf8'));

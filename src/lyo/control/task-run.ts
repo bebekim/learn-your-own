@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { closeSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { createKernel, closeKernel } from '../../ledger.ts';
+import { createKernel, closeKernel } from '../storage/ledger.ts';
 import { TaskFeedback } from './task-feedback.ts';
 
 /** Headless, non-persistent host arguments whose JSON trace `hostUsage` can measure. */

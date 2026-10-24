@@ -1,8 +1,8 @@
 import { readFileSync, realpathSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { z } from 'zod';
-import { hashValue } from '../../contract/refs.ts';
-import { parseEvalTask, type EvalTask } from '../../eval/tasks.ts';
+import { hashValue } from '../contract/refs.ts';
+import { parseEvalTask, type EvalTask } from '../eval/tasks.ts';
 
 const text = z.string().trim().min(1);
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   inferPhaseFromClassification,
   inferPhaseFromActivationKind,
-} from '../src/behavior/phase-inference.ts';
+} from '../src/lyo/domain/behavior/phase-inference.ts';
 
 // --- inferPhaseFromClassification ---
 

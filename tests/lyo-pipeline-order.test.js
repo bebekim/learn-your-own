@@ -9,7 +9,7 @@ import {
 } from '../src/lyo/selection/pipeline-order.ts';
 import { FAILURE_CLASSES } from '../src/lyo/selection/failure-classifier.ts';
 import { LessonStore } from '../src/lyo/storage/lesson-store.ts';
-import { replayTrace } from '../src/eval/replay.ts';
+import { replayTrace } from '../src/lyo/eval/replay.ts';
 
 function makeLesson(store, failureClass, cue) {
   return store.createLesson({

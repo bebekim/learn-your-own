@@ -3,7 +3,7 @@ import test from 'node:test';
 import {
   classifyCommand,
   familyForCommand,
-} from '../src/behavior/command-classifier.ts';
+} from '../src/lyo/domain/behavior/command-classifier.ts';
 
 test('classifyCommand: npm commands', () => {
   assert.equal(classifyCommand('npm', 'npm test'), 'test');

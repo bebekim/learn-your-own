@@ -1,6 +1,6 @@
-export { closeKernel, createKernel } from './ledger.ts';
-export type { CreateKernelInput, LearningKernel } from './ledger.ts';
-export { initLedger } from './schema.ts';
+export { closeKernel, createKernel } from './lyo/storage/ledger.ts';
+export type { CreateKernelInput, LearningKernel } from './lyo/storage/ledger.ts';
+export { initLedger } from './lyo/storage/ledger-schema.ts';
 export { FeedbackController } from './lyo/control/feedback-controller.ts';
 export type {
   ControlSpecification, ControlRequest, ControlDecision, ControlFeedback, ActionEstimate,
@@ -21,7 +21,7 @@ export {
   recordZoneActivation,
   recommendZoneAssociations,
   updateZoneAssociationsFromJob,
-} from './activation.ts';
+} from './lyo/activation.ts';
 export {
   attachEvidence,
   deriveVerifierGatePolicyFromTapes,
@@ -59,47 +59,47 @@ export {
   backfillPromptKindEvidence,
   ensureExerciseAttempt,
   runFixtureReplayDemo,
-} from './reducers.ts';
+} from './lyo/storage/reducers.ts';
 export type {
   ClaudeHookInput,
   ClaudeHookOptions,
   ClaudeHookOutput,
-} from './adapters/claude.ts';
+} from './lyo/hooks/adapters/claude.ts';
 export type {
   CodexHookInput,
   CodexHookOptions,
   CodexHookOutput,
-} from './adapters/codex.ts';
-export { translateGeminiEvent } from './adapters/gemini.ts';
-export type { GeminiHookEvent } from './adapters/gemini.ts';
-export { translateAgyEvent } from './adapters/antigravity.ts';
-export type { AgyHookEvent } from './adapters/antigravity.ts';
-export { translateDcodeEvent } from './adapters/deepagents.ts';
-export type { DcodeHookEvent } from './adapters/deepagents.ts';
+} from './lyo/hooks/adapters/codex.ts';
+export { translateGeminiEvent } from './lyo/hooks/adapters/gemini.ts';
+export type { GeminiHookEvent } from './lyo/hooks/adapters/gemini.ts';
+export { translateAgyEvent } from './lyo/hooks/adapters/antigravity.ts';
+export type { AgyHookEvent } from './lyo/hooks/adapters/antigravity.ts';
+export { translateDcodeEvent } from './lyo/hooks/adapters/deepagents.ts';
+export type { DcodeHookEvent } from './lyo/hooks/adapters/deepagents.ts';
 export type {
   CanonicalHookEventName,
   HookObservation,
   HookRuntime,
   HookSpoolPacket,
-} from './hooks/events.ts';
-export { recordHookEvent } from './hooks/ingestion.ts';
-export { normalizeHooks } from './hooks/normalization-runner.ts';
-export { buildPromptKindReport } from './measurement/prompt-kind.ts';
-export type { PromptKindReport } from './measurement/prompt-kind.ts';
-export { buildPromptEpisodes } from './measurement/episodes.ts';
-export type { PromptEpisode, PromptEpisodeMember } from './measurement/episodes.ts';
+} from './lyo/hooks/events.ts';
+export { recordHookEvent } from './lyo/hooks/ingestion.ts';
+export { normalizeHooks } from './lyo/hooks/normalization-runner.ts';
+export { buildPromptKindReport } from './lyo/measurement/prompt-kind.ts';
+export type { PromptKindReport } from './lyo/measurement/prompt-kind.ts';
+export { buildPromptEpisodes } from './lyo/measurement/episodes.ts';
+export type { PromptEpisode, PromptEpisodeMember } from './lyo/measurement/episodes.ts';
 export {
   drainHookSpool,
   handleClaudeHook,
   handleCodexHook,
   spoolClaudeHookEvent,
   spoolCodexHookEvent,
-} from './hooks/runtime.ts';
-export { tokenizeTelemetryActions, deriveTelemetryTokens, tokenizeTelemetryRun } from './compiler/tokenizer.ts';
-export { parseTelemetryEpisodes } from './compiler/parser.ts';
-export { compileTelemetryRun, compileTelemetryRunAst } from './compiler/frontend.ts';
-export type { CompiledTelemetryRun } from './compiler/frontend.ts';
-export { analyzeTelemetrySemantics } from './compiler/analyzer.ts';
+} from './lyo/hooks/runtime.ts';
+export { tokenizeTelemetryActions, deriveTelemetryTokens, tokenizeTelemetryRun } from './lyo/compiler/tokenizer.ts';
+export { parseTelemetryEpisodes } from './lyo/compiler/parser.ts';
+export { compileTelemetryRun, compileTelemetryRunAst } from './lyo/compiler/frontend.ts';
+export type { CompiledTelemetryRun } from './lyo/compiler/frontend.ts';
+export { analyzeTelemetrySemantics } from './lyo/compiler/analyzer.ts';
 export {
   actionToEffect,
   areConflicting,
@@ -118,19 +118,19 @@ export {
   isExternalAction,
   isInspectAction,
   isTestAction,
-} from './compiler/semantics.ts';
-export { auditEffectLedgers } from './compiler/effect-audit.ts';
-export { buildEffectReport } from './compiler/effect-report.ts';
-export { planSemanticLowering } from './compiler/lowering.ts';
-export { buildWorkflowStyleReport } from './compiler/workflow-style.ts';
+} from './lyo/compiler/semantics.ts';
+export { auditEffectLedgers } from './lyo/compiler/effect-audit.ts';
+export { buildEffectReport } from './lyo/compiler/effect-report.ts';
+export { planSemanticLowering } from './lyo/compiler/lowering.ts';
+export { buildWorkflowStyleReport } from './lyo/compiler/workflow-style.ts';
 export {
   buildCandidateAtBatReport,
   parseCandidateAtBatTaskContext,
-} from './compiler/candidate-at-bat.ts';
+} from './lyo/compiler/candidate-at-bat.ts';
 export {
   compilePromptArtifact,
   compileSeparatedCodeAndTestPromptArtifacts,
-} from './compiler/prompt-artifacts.ts';
+} from './lyo/compiler/prompt-artifacts.ts';
 export {
   checkBlindness,
   CODE_VERSION,
@@ -150,7 +150,7 @@ export {
   validateTestManifest,
   validateTrace,
   validateVerifierReport,
-} from './contract/index.ts';
+} from './lyo/contract/index.ts';
 export type {
   ArtifactRef,
   BlindnessResult,
@@ -164,7 +164,7 @@ export type {
   ValidationIssue,
   ValidationResult,
   VerifierReport,
-} from './contract/index.ts';
+} from './lyo/contract/index.ts';
 export {
   collectFiles,
   DEFAULT_BLOCK_FORMAT_RULES,
@@ -172,39 +172,39 @@ export {
   loadBlockFormats,
   materializeSandbox,
   parseFileBlocks,
-} from './runner/files.ts';
-export type { BlockFormatKind, BlockFormatRule, BlockFormatsArtifact, FileBlock } from './runner/files.ts';
-export { createOpenRouterExecutor } from './runner/executors/openrouter.ts';
+} from './lyo/runner/files.ts';
+export type { BlockFormatKind, BlockFormatRule, BlockFormatsArtifact, FileBlock } from './lyo/runner/files.ts';
+export { createOpenRouterExecutor } from './lyo/runner/executors/openrouter.ts';
 export type {
   OpenRouterChatFn,
   OpenRouterChatMessage,
   OpenRouterExecutorOptions,
-} from './runner/executors/openrouter.ts';
-export { createKimiCliExecutor } from './runner/executors/kimi-cli.ts';
-export type { KimiCliExecutorOptions, SpawnKimiFn } from './runner/executors/kimi-cli.ts';
-export { createUpstageExecutor, UPSTAGE_URL } from './runner/executors/upstage.ts';
-export type { UpstageExecutorOptions } from './runner/executors/upstage.ts';
-export { createOpenAiCompatibleExecutor } from './runner/executors/openai-compatible.ts';
+} from './lyo/runner/executors/openrouter.ts';
+export { createKimiCliExecutor } from './lyo/runner/executors/kimi-cli.ts';
+export type { KimiCliExecutorOptions, SpawnKimiFn } from './lyo/runner/executors/kimi-cli.ts';
+export { createUpstageExecutor, UPSTAGE_URL } from './lyo/runner/executors/upstage.ts';
+export type { UpstageExecutorOptions } from './lyo/runner/executors/upstage.ts';
+export { createOpenAiCompatibleExecutor } from './lyo/runner/executors/openai-compatible.ts';
 export type {
   StageExecutionInput,
   StageExecutionResult,
   StageExecutor,
-} from './runner/executors/stage-executor.ts';
-export { parseTapOutput, runVerifier } from './runner/verifier.ts';
-export type { RunTestsFn, VerifierRun } from './runner/verifier.ts';
-export { applyRun } from './runner/apply.ts';
-export { compileSpecMarkdown } from './runner/spec-compiler.ts';
-export { runPipeline } from './runner/run-pipeline.ts';
-export type { ExecutorFactory, RunPipelineInput, RunPipelineResult } from './runner/run-pipeline.ts';
-export { compareRuns } from './runner/compare-runs.ts';
-export type { RunComparison } from './runner/compare-runs.ts';
-export { computeMergeDecision } from './runner/merge-confidence.ts';
-export type { MergeDecision, MergeSignals } from './runner/merge-confidence.ts';
+} from './lyo/runner/executors/stage-executor.ts';
+export { parseTapOutput, runVerifier } from './lyo/runner/verifier.ts';
+export type { RunTestsFn, VerifierRun } from './lyo/runner/verifier.ts';
+export { applyRun } from './lyo/runner/apply.ts';
+export { compileSpecMarkdown } from './lyo/runner/spec-compiler.ts';
+export { runPipeline } from './lyo/runner/run-pipeline.ts';
+export type { ExecutorFactory, RunPipelineInput, RunPipelineResult } from './lyo/runner/run-pipeline.ts';
+export { compareRuns } from './lyo/runner/compare-runs.ts';
+export type { RunComparison } from './lyo/runner/compare-runs.ts';
+export { computeMergeDecision } from './lyo/runner/merge-confidence.ts';
+export type { MergeDecision, MergeSignals } from './lyo/runner/merge-confidence.ts';
 export {
   corpusReport,
   syncCorpusOnce,
-} from './corpus/sync.ts';
-export { importGitHistory } from './corpus/git-import.ts';
+} from './lyo/corpus/sync.ts';
+export { importGitHistory } from './lyo/corpus/git-import.ts';
 export {
   DEFAULT_POLICY,
   DEFAULT_POLICY_ID,
@@ -347,15 +347,14 @@ export type {
   SelectedLesson,
   TraceRow,
 } from './lyo/storage/lesson-store.ts';
-export { collectGitCorpusPool } from './corpus/pool.ts';
-export { analyzePythonLayer2Delta } from './corpus/git-layer2.ts';
-export type * from './compiler/syntax.ts';
-export type * from './compiler/semantics.ts';
-export type * from './compiler/workflow-style.ts';
-export type * from './compiler/candidate-at-bat.ts';
-export type * from './compiler/prompt-artifacts.ts';
-export type * from './corpus/sync.ts';
-export type * from './corpus/git-import.ts';
-export type * from './corpus/pool.ts';
-export type * from './corpus/git-layer2.ts';
-export * from './telemetry/index.ts';
+export { collectGitCorpusPool } from './lyo/corpus/pool.ts';
+export { analyzePythonLayer2Delta } from './lyo/corpus/git-layer2.ts';
+export type * from './lyo/compiler/syntax.ts';
+export type * from './lyo/compiler/semantics.ts';
+export type * from './lyo/compiler/workflow-style.ts';
+export type * from './lyo/compiler/candidate-at-bat.ts';
+export type * from './lyo/compiler/prompt-artifacts.ts';
+export type * from './lyo/corpus/sync.ts';
+export type * from './lyo/corpus/git-import.ts';
+export type * from './lyo/corpus/pool.ts';
+export type * from './lyo/corpus/git-layer2.ts';

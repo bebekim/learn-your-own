@@ -5,11 +5,11 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 
-import { initCorpusDb } from '../src/corpus/schema.ts';
-import { syncCorpusOnce } from '../src/corpus/sync.ts';
-import { createKernel, closeKernel } from '../src/ledger.ts';
-import { initLedger } from '../src/schema.ts';
-import { recordHookEvent } from '../src/hooks/ingestion.ts';
+import { initCorpusDb } from '../src/lyo/corpus/schema.ts';
+import { syncCorpusOnce } from '../src/lyo/corpus/sync.ts';
+import { createKernel, closeKernel } from '../src/lyo/storage/ledger.ts';
+import { initLedger } from '../src/lyo/storage/ledger-schema.ts';
+import { recordHookEvent } from '../src/lyo/hooks/ingestion.ts';
 import { runLyoJson } from './helpers/cli.js';
 import { seedEditThenVerifierLedger } from './helpers/ledger-fixtures.js';
 

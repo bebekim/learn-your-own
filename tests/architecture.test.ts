@@ -16,12 +16,12 @@ test('implementation modules do not import domain types from the public barrel',
 });
 
 test('hook normalization runner is owned by the hooks layer, not the public barrel', () => {
-  assert.equal(existsSync(join(SRC, 'hooks', 'normalization-runner.ts')), true);
+  assert.equal(existsSync(join(SRC, 'lyo', 'hooks', 'normalization-runner.ts')), true);
   assert.equal(readFileSync(join(SRC, 'index.ts'), 'utf8').includes('export function normalizeHooks'), false);
 });
 
 test('hook adapters share runtime utilities instead of duplicating hashing and prompt storage', () => {
-  assert.equal(existsSync(join(SRC, 'adapters', 'runtime.ts')), true);
+  assert.equal(existsSync(join(SRC, 'lyo', 'hooks', 'adapters', 'runtime.ts')), true);
 
   const duplicatedHelpers = [
     'function createHookEventId',
@@ -29,8 +29,8 @@ test('hook adapters share runtime utilities instead of duplicating hashing and p
     'function writePromptBlob',
   ];
   const adapterFiles = [
-    join(SRC, 'adapters', 'codex.ts'),
-    join(SRC, 'adapters', 'claude.ts'),
+    join(SRC, 'lyo', 'hooks', 'adapters', 'codex.ts'),
+    join(SRC, 'lyo', 'hooks', 'adapters', 'claude.ts'),
   ];
 
   const offenders = [];
@@ -47,7 +47,7 @@ test('hook adapters share runtime utilities instead of duplicating hashing and p
 });
 
 test('hook runtime capture is owned outside the public barrel', () => {
-  assert.equal(existsSync(join(SRC, 'hooks', 'runtime.ts')), true);
+  assert.equal(existsSync(join(SRC, 'lyo', 'hooks', 'runtime.ts')), true);
 
   const publicBarrel = readFileSync(join(SRC, 'index.ts'), 'utf8');
   for (const implementationDetail of [
@@ -60,7 +60,7 @@ test('hook runtime capture is owned outside the public barrel', () => {
 });
 
 test('hook runtime shares event persistence and normalization flow', () => {
-  const runtime = readFileSync(join(SRC, 'hooks', 'runtime.ts'), 'utf8');
+  const runtime = readFileSync(join(SRC, 'lyo', 'hooks', 'runtime.ts'), 'utf8');
   assert.match(runtime, /function persistHookObservation/);
   assert.match(runtime, /function maybeNormalizeHookEvent/);
   assert.equal((runtime.match(/recordSessionStarted\(kernel/g) ?? []).length, 1);
@@ -69,7 +69,7 @@ test('hook runtime shares event persistence and normalization flow', () => {
 
 test('domain type declarations are split by architectural boundary', () => {
   for (const fileName of ['core.ts', 'observation.ts', 'activation.ts']) {
-    assert.equal(existsSync(join(SRC, 'types', fileName)), true, fileName);
+    assert.equal(existsSync(join(SRC, 'lyo', 'domain', 'types', fileName)), true, fileName);
   }
 
   const implementationTypeBarrelImports = sourceFiles(SRC)
@@ -82,15 +82,15 @@ test('domain type declarations are split by architectural boundary', () => {
 
 test('reducer grammar is split by responsibility behind a stable public barrel', () => {
   for (const fileName of ['core.ts', 'protocols.ts', 'observation.ts', 'demo.ts', 'shared.ts']) {
-    assert.equal(existsSync(join(SRC, 'reducers', fileName)), true, fileName);
+    assert.equal(existsSync(join(SRC, 'lyo', 'storage', 'reducers', fileName)), true, fileName);
   }
 
-  const reducerBarrel = readFileSync(join(SRC, 'reducers.ts'), 'utf8');
+  const reducerBarrel = readFileSync(join(SRC, 'lyo', 'storage', 'reducers.ts'), 'utf8');
   assert.equal(reducerBarrel.includes('kernel.db.prepare'), false);
   assert.match(reducerBarrel, /reducers\/core\.ts/);
   assert.match(reducerBarrel, /reducers\/protocols\.ts/);
 
-  const reducerImplementationImports = sourceFiles(join(SRC, 'reducers'))
+  const reducerImplementationImports = sourceFiles(join(SRC, 'lyo', 'storage', 'reducers'))
     .filter((filePath) => /from\s+['"](?:\.\.?\/)+reducers\.ts['"]/.test(readFileSync(filePath, 'utf8')))
     .map((filePath) => relative(ROOT, filePath));
 
@@ -99,17 +99,17 @@ test('reducer grammar is split by responsibility behind a stable public barrel',
 
 test('activation module is a barrel over capture, derivation, and reporting modules', () => {
   for (const fileName of ['records.ts', 'derivation.ts', 'reports.ts', 'matching.ts']) {
-    assert.equal(existsSync(join(SRC, 'activation', fileName)), true, fileName);
+    assert.equal(existsSync(join(SRC, 'lyo', 'activation', fileName)), true, fileName);
   }
 
-  const activationBarrel = readFileSync(join(SRC, 'activation.ts'), 'utf8');
+  const activationBarrel = readFileSync(join(SRC, 'lyo', 'activation.ts'), 'utf8');
   assert.equal(activationBarrel.includes('kernel.db.prepare'), false);
   assert.equal(activationBarrel.includes('function summarizeJobActivations'), false);
 });
 
 test('CLI executable delegates to split command modules', () => {
   for (const fileName of ['args.ts', 'coercion.ts', 'commands.ts', 'hooks.ts', 'output.ts', 'runner.ts']) {
-    assert.equal(existsSync(join(SRC, 'cli', fileName)), true, fileName);
+    assert.equal(existsSync(join(SRC, 'lyo', 'cli', fileName)), true, fileName);
   }
 
   const entrypoint = readFileSync(join(SRC, 'cli.ts'), 'utf8');
@@ -117,11 +117,11 @@ test('CLI executable delegates to split command modules', () => {
   assert.equal(entrypoint.includes('createKernel'), false);
   assert.equal(entrypoint.includes('if (command'), false);
 
-  const runner = readFileSync(join(SRC, 'cli', 'runner.ts'), 'utf8');
+  const runner = readFileSync(join(SRC, 'lyo', 'cli', 'runner.ts'), 'utf8');
   assert.equal(runner.includes('recordWorkspace'), false);
   assert.equal(runner.includes('COMMAND_HANDLERS'), false);
 
-  const commands = readFileSync(join(SRC, 'cli', 'commands.ts'), 'utf8');
+  const commands = readFileSync(join(SRC, 'lyo', 'cli', 'commands.ts'), 'utf8');
   assert.match(commands, /COMMAND_HANDLERS/);
 });
 
@@ -136,22 +136,22 @@ test('CLI command handlers are grouped by command ownership', () => {
     'runs.ts',
     'workspace.ts',
   ]) {
-    assert.equal(existsSync(join(SRC, 'cli', 'commands', fileName)), true, fileName);
+    assert.equal(existsSync(join(SRC, 'lyo', 'cli', 'commands', fileName)), true, fileName);
   }
 
-  const registry = readFileSync(join(SRC, 'cli', 'commands.ts'), 'utf8');
+  const registry = readFileSync(join(SRC, 'lyo', 'cli', 'commands.ts'), 'utf8');
   assert.equal(registry.includes('function sessionStartCommand'), false);
   assert.equal(registry.includes('function recordModelCallCommand'), false);
   assert.equal(registry.includes('function workspaceRegisterCommand'), false);
   assert.equal(registry.includes("from '../activation.ts'"), false);
-  assert.equal(registry.includes("from '../reducers.ts'"), false);
-  assert.equal(registry.includes("from '../ledger.ts'"), false);
+  assert.equal(registry.includes("from '../storage/reducers.ts'"), false);
+  assert.equal(registry.includes("from '../storage/ledger.ts'"), false);
   assert.match(registry, /OBSERVATION_COMMANDS/);
   assert.match(registry, /WORKSPACE_COMMANDS/);
 });
 
 test('CLI enum coercion is table driven', () => {
-  const coercion = readFileSync(join(SRC, 'cli', 'coercion.ts'), 'utf8');
+  const coercion = readFileSync(join(SRC, 'lyo', 'cli', 'coercion.ts'), 'utf8');
   assert.match(coercion, /function oneOf/);
   assert.equal(coercion.includes("value === 'started' ||"), false);
   assert.equal(coercion.includes("value === 'file_read'"), false);
@@ -168,7 +168,7 @@ test('typecheck is part of the local and CI verification surface', () => {
 });
 
 test('candidate at-bat report assembly delegates verifier policy and scoring', () => {
-  const candidateDir = join(SRC, 'compiler', 'candidate-at-bat');
+  const candidateDir = join(SRC, 'lyo', 'compiler', 'candidate-at-bat');
   for (const fileName of [
     'verifiers.ts',
     'scoring.ts',
@@ -180,7 +180,7 @@ test('candidate at-bat report assembly delegates verifier policy and scoring', (
     assert.equal(existsSync(join(candidateDir, fileName)), true, fileName);
   }
 
-  const assembler = readFileSync(join(SRC, 'compiler', 'candidate-at-bat.ts'), 'utf8');
+  const assembler = readFileSync(join(SRC, 'lyo', 'compiler', 'candidate-at-bat.ts'), 'utf8');
   for (const extractedFunction of [
     'function evaluateVerifierSpecs',
     'function verifierQuality',
@@ -233,9 +233,9 @@ test('compiler report tests share telemetry fixture builders', () => {
 });
 
 test('compiler frontend exposes a compiled telemetry run boundary', () => {
-  assert.equal(existsSync(join(SRC, 'compiler', 'frontend.ts')), true);
+  assert.equal(existsSync(join(SRC, 'lyo', 'compiler', 'frontend.ts')), true);
 
-  const frontend = readFileSync(join(SRC, 'compiler', 'frontend.ts'), 'utf8');
+  const frontend = readFileSync(join(SRC, 'lyo', 'compiler', 'frontend.ts'), 'utf8');
   assert.match(frontend, /export \{ compileTelemetryRunAst \}/);
   assert.match(frontend, /function compileTelemetryRun/);
   assert.match(frontend, /compileTelemetryRunAst/);
@@ -247,8 +247,8 @@ test('compiler frontend exposes a compiled telemetry run boundary', () => {
 
   const productionParserConsumers = sourceFiles(SRC)
     .filter((filePath) => ![
-      'src/compiler/frontend.ts',
-      'src/compiler/parser.ts',
+      'src/lyo/compiler/frontend.ts',
+      'src/lyo/compiler/parser.ts',
       'src/index.ts',
     ].includes(relative(ROOT, filePath)))
     .filter((filePath) => /from\s+['"].*\/parser\.ts['"]/.test(readFileSync(filePath, 'utf8')))
@@ -258,9 +258,9 @@ test('compiler frontend exposes a compiled telemetry run boundary', () => {
 });
 
 test('tokenizer delegates command resource inference', () => {
-  assert.equal(existsSync(join(SRC, 'compiler', 'tokenizer', 'command-resources.ts')), true);
+  assert.equal(existsSync(join(SRC, 'lyo', 'compiler', 'tokenizer', 'command-resources.ts')), true);
 
-  const tokenizer = readFileSync(join(SRC, 'compiler', 'tokenizer.ts'), 'utf8');
+  const tokenizer = readFileSync(join(SRC, 'lyo', 'compiler', 'tokenizer.ts'), 'utf8');
   for (const delegatedDetail of [
     "read.push({ type: 'local_repo'",
     "written.push({ type: 'external_resource'",

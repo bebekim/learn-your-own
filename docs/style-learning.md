@@ -10,7 +10,7 @@ For an existing run with retained telemetry:
 lyo report --style --run-id <run-id> --db .agent-learning/learning.sqlite
 ```
 
-[Workflow-style analysis](../src/compiler/workflow-style.ts) reports version
+[Workflow-style analysis](../src/lyo/compiler/workflow-style.ts) reports version
 `lyo/workflow-style/v1`, a classification, metrics, evidence strings and missing
 signals. Classifications are `prompt_driven`, `manual_orchestrated`,
 `loop_assisted`, `loop_driven_candidate` or `insufficient_evidence`.

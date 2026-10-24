@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { hashFile, hashValue } from '../../src/contract/refs.ts';
+import { hashFile, hashValue } from '../../src/lyo/contract/refs.ts';
 import { deriveTaskIntervention } from '../../src/lyo/control/task-intervention.ts';
 
 const read = name => JSON.parse(readFileSync(new URL(name, import.meta.url), 'utf8'));

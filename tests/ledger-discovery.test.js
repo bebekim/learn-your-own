@@ -7,7 +7,7 @@ import test from 'node:test';
 import {
   discoverAgentLearningLedgers,
   findAgentLearningDatabases,
-} from '../src/compiler/ledger-scan.ts';
+} from '../src/lyo/compiler/ledger-scan.ts';
 
 test('ledger discovery scans repo forests with nested child workspaces', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-ledger-forest-'));

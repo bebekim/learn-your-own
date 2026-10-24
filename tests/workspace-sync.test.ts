@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 import { LessonStore } from '../src/lyo/storage/lesson-store.ts';
-import { discoverAgentLearningLedgers } from '../src/compiler/ledger-discovery.ts';
+import { discoverAgentLearningLedgers } from '../src/lyo/compiler/ledger-discovery.ts';
 
 test('a worktree or directory connects on open and all managed agent hooks reach the central corpus', () => {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), 'lyo-connected-workspace-')));
