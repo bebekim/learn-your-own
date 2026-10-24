@@ -7,6 +7,9 @@ import { renderSessionLessons } from '../src/lyo/selection/session-hook.ts';
 import { inspectFinding, recordFindingFeedback, reviseFinding } from '../src/lyo/interface/session-findings.ts';
 import { execFileSync } from 'node:child_process';
 
+// These tests check that findings coexist with ordinary lessons; fixture lessons are unvalidated.
+process.env.LYO_SESSION_UNVALIDATED_LESSONS = '1';
+
 test('an old banner cannot start another application after its finding is contradicted or revised', () => {
   const f = fixture();
   try {

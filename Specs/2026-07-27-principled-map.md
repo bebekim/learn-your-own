@@ -11,10 +11,10 @@ This is the current product path for reviewed Codex/Claude interventions.
 
 | Decision | Mechanism | Evidence limit |
 |---|---|---|
-| Is this claim supported here? | [Finding feedback](../src/lyo/selection/session-findings.ts) consumes registered, reviewed applicability, adherence and check evidence for the exact version | A supported deterministic prediction is not an incremental benefit estimate |
-| May this trial enroll? | [Trial definitions](../src/lyo/selection/finding-trials.ts) bind trigger, roots, model/runtime, finding version and reviewed evaluator | A matching diagnostic still needs the checked precondition; arbitrary telemetry is insufficient |
-| Which action to try? | [Opportunity assignment](../src/lyo/selection/finding-opportunities.ts) records stable 50/50 advice/no-advice allocation while collecting | Allocation precedes action; emission does not prove the agent followed advice |
-| May later sessions receive it routinely? | [Trial policy](../src/lyo/selection/finding-trial-policy.ts) evaluates the predeclared fixed sample; the conservative effect interval must exceed `minimumEffect` | Unknown outcomes widen the interval; benefit concerns the declared proximal check under the stated assumptions |
+| Is this claim supported here? | [Finding feedback](../src/lyo/interface/session-findings.ts) consumes registered, reviewed applicability, adherence and check evidence for the exact version | A supported deterministic prediction is not an incremental benefit estimate |
+| May this trial enroll? | [Trial definitions](../src/lyo/interface/finding-trials.ts) bind trigger, roots, model/runtime, finding version and reviewed evaluator | A matching diagnostic still needs the checked precondition; arbitrary telemetry is insufficient |
+| Which action to try? | [Opportunity assignment](../src/lyo/interface/finding-opportunities.ts) records stable 50/50 advice/no-advice allocation while collecting | Allocation precedes action; emission does not prove the agent followed advice |
+| May later sessions receive it routinely? | [Trial policy](../src/lyo/domain/finding-trial-policy.ts) evaluates the predeclared fixed sample; the conservative effect interval must exceed `minimumEffect` | Unknown outcomes widen the interval; benefit concerns the declared proximal check under the stated assumptions |
 | What happens after promotion? | Probability-1 delivery is monitored; a later closed failed/unknown outcome pauses the scope for review | Pause is not proof of causal harm or false wording |
 | What if evidence changes? | Reconciliation checks current evidence, finding and verifier versions; corrections can revoke promotion | Historical policy receipts remain; support does not transfer to replacement wording or trial definitions |
 

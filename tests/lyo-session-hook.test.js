@@ -15,9 +15,38 @@ import {
 import { fixture } from './helpers/session-finding-fixture.ts';
 import { recordFindingFeedback } from '../src/lyo/interface/session-findings.ts';
 
+// Banner mechanics below use unvalidated fixture lessons; the default gate has its own test.
+process.env.LYO_SESSION_UNVALIDATED_LESSONS = '1';
+
 function tempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'lyo-session-hook-'));
 }
+
+test('LYO session hook: withholds unvalidated lessons by default', () => {
+  const cwd = tempDir();
+  const storeDir = path.join(cwd, '.zeroshot');
+  fs.mkdirSync(storeDir);
+  const store = new LessonStore(path.join(storeDir, 'lyo-lessons.db'));
+  try {
+    store.createLesson({ failure_class: 'output_generation', trigger_cue: 'tests failed',
+      intervention: 'Never-validated advice.' });
+    const validated = store.createLesson({ failure_class: 'goal_deviation', trigger_cue: 'scope drifted',
+      intervention: 'Validated advice.' });
+    store.recordApplication({ lesson_id: validated.lesson_id, run_id: 'pipeline-run', trigger_message_id: 'pipeline' });
+    store.applyValidationOutcome({ run_id: 'pipeline-run', outcome: 'passed' });
+    assert.equal(store.getLesson(validated.lesson_id).helpful_count, 1);
+  } finally { store.close(); }
+
+  const previous = process.env.LYO_SESSION_UNVALIDATED_LESSONS;
+  delete process.env.LYO_SESSION_UNVALIDATED_LESSONS;
+  try {
+    const output = renderSessionLessons({ cwd });
+    assert.match(output, /Validated advice/);
+    assert.doesNotMatch(output, /Never-validated advice/);
+    process.env.LYO_SESSION_UNVALIDATED_LESSONS = '1';
+    assert.match(renderSessionLessons({ cwd }), /Never-validated advice/);
+  } finally { process.env.LYO_SESSION_UNVALIDATED_LESSONS = previous; }
+});
 
 test('LYO session hook: renders lessons from cwd store', () => {
   const cwd = tempDir();

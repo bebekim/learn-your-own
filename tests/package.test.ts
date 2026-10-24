@@ -24,7 +24,9 @@ test('packed executables and generated hooks run the installed learning loop', a
   const store = new LessonStore(storePath);
   store.createLesson({ failure_class: 'output_generation', trigger_cue: 'tests failed',
     explanation: 'tests failed', intervention: 'Run the narrow test before reporting done.' });
-  const env: NodeJS.ProcessEnv = { ...process.env, ZEROSHOT_LYO_STORE_PATH: storePath, TMPDIR: dir };
+  // The fixture lesson is unvalidated; this test checks packed delivery, not the validation gate.
+  const env: NodeJS.ProcessEnv = { ...process.env, ZEROSHOT_LYO_STORE_PATH: storePath, TMPDIR: dir,
+    LYO_SESSION_UNVALIDATED_LESSONS: '1' };
   const run = (bin: string, args: string[], event?: unknown) => execFileSync(process.execPath,
     [join(dir, bin), ...args], { cwd: dir, env, encoding: 'utf8', input: JSON.stringify(event ?? {}) });
   try {

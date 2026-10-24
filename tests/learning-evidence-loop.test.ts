@@ -10,6 +10,9 @@ import { LessonStore } from '../src/lyo/storage/lesson-store.ts';
 import { renderSessionLessons } from '../src/lyo/selection/session-hook.ts';
 import { selfCheck } from '../scripts/semver-learning-experiment.ts';
 
+// Bridged lessons start unvalidated; this loop checks their delivery mechanics.
+process.env.LYO_SESSION_UNVALIDATED_LESSONS = '1';
+
 test('native hooks create scoped advice, record delivery and resolve once without causal credit', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-bridge-check-'));
   mkdirSync(join(dir, '.zeroshot'));

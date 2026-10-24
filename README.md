@@ -104,8 +104,8 @@ comparison → promotion → later pause on controlled outcomes.
 | Scoped policy updates | Fixed prospective comparison, promotion, later monitoring and pause |
 | Other integrations | ECA/Emacs and IBM Bob have capture/delivery adapters; adaptive trial coverage differs |
 
-Source baseline: **`0.4.3-adaptive.9`**. Validation: **689 tests passed, one skipped**,
-plus typecheck and inward dependency checks. The evidence refactor preserves
+Source baseline: **`0.4.3-adaptive.9`**. Validation on 24 October 2026: **712 tests
+passed**, plus typecheck and inward dependency checks. The evidence refactor preserves
 receipt and workflow behavior. [Refactor validation](issues/refactor-evidence-domain.md)
 and [earlier configured-hook checks](evidence/context-refresh-2026-09-11/README.md).
 

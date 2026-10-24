@@ -44,6 +44,12 @@ tags, including replacing them with none; startup/clear resets them. This is exp
 scope matching, not inferred task intent. A failed refresh remains fail-open for
 the session; the already-emitted mandate remains available.
 
+Legacy sampled lessons without any validated outcome (0✓/0✗) are withheld from
+session banners. Banner applications never earn validation credit, so delivering
+such a lesson here cannot move it out of that state. Set
+`LYO_SESSION_UNVALIDATED_LESSONS=1` in the hook environment to restore them.
+Findings are unaffected; their delivery follows the scope and trial rules above.
+
 Trial-managed findings stay out of the ordinary sampler. Compaction/resume can
 restore previously delivered advice from the same assignment only if the model,
 workspace, finding, policy, declared files and unstarted outcome window still match.
@@ -300,8 +306,8 @@ cannot be removed. Upgrade the CLI and session hook together; older hooks do not
 read these decisions. ECA/Bob retain their existing telemetry/delivery coverage;
 this paired finding-capture path currently supports Codex and Claude.
 
-Relevant code: [registered checks](../src/lyo/selection/session-finding-evidence.ts),
-[feedback/state](../src/lyo/selection/session-findings.ts),
+Relevant code: [registered checks](../src/lyo/interface/session-finding-evidence.ts),
+[feedback/state](../src/lyo/interface/session-findings.ts),
 [hook](../src/lyo/selection/session-hook.ts), [CLI](../src/cli/commands/findings.ts).
 [Evidence tests](../tests/session-finding-evidence.test.ts),
 [feedback tests](../tests/session-finding-feedback.test.ts) and

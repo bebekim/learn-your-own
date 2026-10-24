@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Withhold legacy lessons with no validated outcome from session banners; banner delivery cannot earn them credit. `LYO_SESSION_UNVALIDATED_LESSONS=1` restores the previous behavior.
+- Anchor `--*-from-event-cwd` hook records at the checkout root, so events after the agent changes into a subdirectory reach the workspace ledger instead of a stray `.agent-learning/`.
+- Type-check all TypeScript tests by default, with an explicit exclusion list for nine existing files; JavaScript tests remain unchecked.
+- Repoint documentation links to finding modules moved into `src/lyo/interface/` and `src/lyo/domain/`.
+
 ## 0.4.3-adaptive.9 (evidence architecture)
 
 - Extract finding assessment, lifecycle and trial-policy rules into the domain, with application-owned ports for assessment, revision, selection and live-boundary ordering.

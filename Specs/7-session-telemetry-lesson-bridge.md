@@ -198,7 +198,7 @@ evaluator, replacement wording or a generalized scope.
       recovered verifier observations without causal credit.
 - [x] [Finding delivery](../src/lyo/selection/session-hook.ts) records version,
       canonical context, session, delivery identity and available prompt hash.
-- [x] [Feedback](../src/lyo/selection/session-findings.ts) records applicability,
+- [x] [Feedback](../src/lyo/interface/session-findings.ts) records applicability,
       adherence, outcome, verifier identity, evidence reference and rationale.
 - [x] Supported observations are associated with the delivered version/context.
 - [x] Inapplicable applications request scope review without excluding other tasks
@@ -209,7 +209,7 @@ evaluator, replacement wording or a generalized scope.
       provisional versions; late outcomes cannot contaminate replacement wording.
 - [x] Corrections supersede review metadata; withdrawing a measurement removes
       current credit and suspends wording with dependent premises.
-- [x] [Registered local checks](../src/lyo/selection/session-finding-evidence.ts)
+- [x] [Registered local checks](../src/lyo/interface/session-finding-evidence.ts)
       bind the delivered action, application and evaluator/file snapshots. Unknown,
       failed, unrelated or inconsistent evidence cannot award support.
 - [x] [CLI inspection](../src/cli/commands/findings.ts) exposes registration/review

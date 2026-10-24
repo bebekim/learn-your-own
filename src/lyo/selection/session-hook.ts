@@ -112,8 +112,12 @@ function selectSessionLessons(payload: SessionHookPayload): { selected: LessonRo
       .all() as unknown as LessonRow[];
     const findings = selectSessionFindings(db, { ...payload, repository: () => repositoryKey(payload.cwd) });
     const managedAdvice = new Set(trialManagedFindings(db).values());
+    // Session banners never earn validation credit, so an unvalidated lesson
+    // delivered here can never leave 0✓/0✗. Withhold it unless explicitly enabled.
+    const includeUnvalidated = process.env.LYO_SESSION_UNVALIDATED_LESSONS === '1';
     const scoped = rows.filter(row => {
       if (!row.intervention.trim() || managedAdvice.has(row.intervention.trim())) return false;
+      if (!includeUnvalidated && Number(row.helpful_count) + Number(row.harmful_count) === 0) return false;
       const verifier = sessionVerifier(row.explanation);
       return !verifier || verifier.repoPath === payload.cwd;
     });

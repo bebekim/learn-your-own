@@ -23,6 +23,7 @@ import { normalizeOutcome } from './coercion.ts';
 import { autoConnectWorkspace } from '../corpus/workspace-sync.ts';
 import { nativeFeedback } from '../lyo/control/native-feedback.ts';
 import { ordinaryFindingTrialFeedback } from '../lyo/interface/finding-trials.ts';
+import { workspaceRoot } from '../lyo/repository.ts';
 
 export async function runCodexHookCommand(
   args: CliArgs,
@@ -33,17 +34,34 @@ export async function runCodexHookCommand(
   return addNativeFeedback(await captureCodexHook(args, event), 'codex', event, args);
 }
 
-async function captureCodexHook(args: CliArgs, event: Record<string, any>): Promise<unknown> {
+interface HookPaths {
+  eventCwd: string;
+  effectiveDbPath: string;
+  effectivePromptDir: string | undefined;
+  effectiveSpoolDir: string | undefined;
+}
+
+/**
+ * `--*-from-event-cwd` paths anchor at the event's checkout root, so a hook fired
+ * after the agent changed into a subdirectory still reaches the workspace ledger.
+ */
+function hookPaths(args: CliArgs, event: Record<string, unknown>): HookPaths {
   const eventCwd = typeof event.cwd === 'string' && event.cwd ? event.cwd : args.cwd;
-  const effectiveDbPath = args.hasFlag('--db-from-event-cwd')
-    ? join(eventCwd, '.agent-learning', 'learning.sqlite')
-    : args.dbPath;
-  const effectivePromptDir = args.hasFlag('--prompt-dir-from-event-cwd')
-    ? join(eventCwd, '.agent-learning', 'prompts')
-    : args.promptDir;
-  const effectiveSpoolDir = args.hasFlag('--spool-dir-from-event-cwd')
-    ? join(eventCwd, '.agent-learning', 'hook-spool')
-    : args.flagValue('--spool-dir') ?? args.env.LEARNLOOP_HOOK_SPOOL_DIR;
+  const fromEventCwd = ['--db-from-event-cwd', '--prompt-dir-from-event-cwd', '--spool-dir-from-event-cwd']
+    .some(flag => args.hasFlag(flag));
+  const learningDir = fromEventCwd ? join(workspaceRoot(eventCwd), '.agent-learning') : '';
+  return {
+    eventCwd,
+    effectiveDbPath: args.hasFlag('--db-from-event-cwd') ? join(learningDir, 'learning.sqlite') : args.dbPath,
+    effectivePromptDir: args.hasFlag('--prompt-dir-from-event-cwd') ? join(learningDir, 'prompts') : args.promptDir,
+    effectiveSpoolDir: args.hasFlag('--spool-dir-from-event-cwd')
+      ? join(learningDir, 'hook-spool')
+      : args.flagValue('--spool-dir') ?? args.env.LEARNLOOP_HOOK_SPOOL_DIR,
+  };
+}
+
+async function captureCodexHook(args: CliArgs, event: Record<string, any>): Promise<unknown> {
+  const { eventCwd, effectiveDbPath, effectivePromptDir, effectiveSpoolDir } = hookPaths(args, event);
 
   if (effectiveSpoolDir) {
     spoolCodexHookEvent(event, {
@@ -194,16 +212,7 @@ async function runClaudeStyleHook(
   args: CliArgs,
   event: Record<string, unknown>
 ): Promise<unknown> {
-  const eventCwd = typeof event.cwd === 'string' && event.cwd ? event.cwd : args.cwd;
-  const effectiveDbPath = args.hasFlag('--db-from-event-cwd')
-    ? join(eventCwd, '.agent-learning', 'learning.sqlite')
-    : args.dbPath;
-  const effectivePromptDir = args.hasFlag('--prompt-dir-from-event-cwd')
-    ? join(eventCwd, '.agent-learning', 'prompts')
-    : args.promptDir;
-  const effectiveSpoolDir = args.hasFlag('--spool-dir-from-event-cwd')
-    ? join(eventCwd, '.agent-learning', 'hook-spool')
-    : args.flagValue('--spool-dir') ?? args.env.LEARNLOOP_HOOK_SPOOL_DIR;
+  const { eventCwd, effectiveDbPath, effectivePromptDir, effectiveSpoolDir } = hookPaths(args, event);
 
   if (effectiveSpoolDir) {
     spoolClaudeHookEvent(event, {

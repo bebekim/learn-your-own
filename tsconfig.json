@@ -14,29 +14,19 @@
   },
   "include": [
     "src/**/*.ts",
-    "tests/architecture.test.ts",
-    "tests/finding-architecture.test.ts",
-    "tests/finding-lifecycle.test.ts",
-    "tests/finding-assessment.test.ts",
-    "tests/finding-workflow.test.ts",
-    "tests/finding-selection.test.ts",
-    "tests/finding-exposure.test.ts",
-    "tests/package.test.ts",
-    "tests/eval-report.test.ts",
-    "tests/native-feedback.test.ts",
-    "tests/session-finding-feedback.test.ts",
-    "tests/session-finding-evidence.test.ts",
-    "tests/prospective-finding.test.ts",
-    "tests/ordinary-finding-trials.test.ts",
-    "tests/finding-trial-policy.test.ts",
-    "tests/finding-trial-policy-domain.test.ts",
-    "tests/finding-trial-reconciliation.test.ts",
-    "tests/injection-weight.test.ts",
-    "tests/credit-fidelity-domain.test.ts",
-    "tests/tabular-mean-policy.test.ts",
-    "tests/session-finding-semantics.test.ts",
-    "tests/session-finding-capture.test.ts",
-    "tests/helpers/session-finding-fixture.ts",
-    "tests/helpers/finding-trial-fixture.ts"
+    "tests/**/*.ts"
+  ],
+  // Type-check debt: these TypeScript tests predate strict test checking.
+  // Remove an entry once its file passes; do not add new ones.
+  "exclude": [
+    "tests/pipeline.test.ts",
+    "tests/trace-consumer.test.ts",
+    "tests/delivery.test.ts",
+    "tests/lyo-credit-fidelity.test.ts",
+    "tests/adaptive-control-experiment.test.ts",
+    "tests/report-cli.test.ts",
+    "tests/session-ended.test.ts",
+    "tests/candidate-at-bat.test.ts",
+    "tests/activation-cli.test.ts"
   ]
 }

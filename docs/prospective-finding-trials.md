@@ -26,7 +26,7 @@ Completion requires a real chain from opportunity through outcome and revision t
 
 ## Ordinary-session adapter
 
-Register a reviewed definition once with `lyo finding trial-register --input trial.json --store <central-lessons.db>`; inspect definitions with `lyo finding trials --store <central-lessons.db>`. This is configuration of a reusable mechanism and evaluator, not per-ticket registration. See [the strict schema](../src/lyo/selection/finding-trials.ts) and [a synthetic fixture](../tests/helpers/finding-trial-fixture.ts).
+Register a reviewed definition once with `lyo finding trial-register --input trial.json --store <central-lessons.db>`; inspect definitions with `lyo finding trials --store <central-lessons.db>`. This is configuration of a reusable mechanism and evaluator, not per-ticket registration. See [the strict schema](../src/lyo/interface/finding-trials.ts) and [a synthetic fixture](../tests/helpers/finding-trial-fixture.ts).
 
 A definition fixes the finding version, repository roots, model, exact diagnostic tool/input, source paths relative to each workspace, absolute verifier paths, claim/checks, and attributed semantic review. A non-interrupted failure of that diagnostic creates a prospective opportunity; a checked precondition must still pass before random assignment. Missing model identity, changed verifiers, and suspended/revised findings cannot enroll. The opportunity retains the definition hash and triggering tool identity/hashes. An ineligible registration remains unassigned and inspectable; it contributes no comparative result.
 

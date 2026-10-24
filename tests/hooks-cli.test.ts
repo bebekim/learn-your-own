@@ -224,6 +224,26 @@ test('lyo codex-hook can store records under the event cwd', () => {
   }
 });
 
+test('event-cwd hook records anchor at the checkout root when the agent is in a subdirectory', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lyo-event-subdir-'));
+  try {
+    execFileSync('git', ['init', '-q'], { cwd: dir });
+    const nested = join(dir, 'src', 'lyo');
+    mkdirSync(nested, { recursive: true });
+    for (const runtime of ['codex', 'claude']) {
+      execFileSync(process.execPath, ['src/cli.ts', `${runtime}-hook`, '--db-from-event-cwd', '--spool-dir-from-event-cwd'], {
+        cwd: ROOT, encoding: 'utf8',
+        input: JSON.stringify({ session_id: `subdir-${runtime}`, cwd: nested, hook_event_name: 'PostToolUse',
+          tool_name: 'Bash', tool_input: { command: 'true' }, tool_response: { exit_code: 0 } }),
+      });
+    }
+    assert.equal(existsSync(join(nested, '.agent-learning')), false, 'a subdirectory must not receive its own ledger');
+    assert.equal(readdirSync(join(dir, '.agent-learning', 'hook-spool', 'incoming')).length, 2);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('lyo codex-hook can spool events before normalize hooks drains them', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-hook-spool-cli-'));
   try {
