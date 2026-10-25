@@ -37,6 +37,8 @@ alone does not establish completion.
 | [7 Session bridge](7-session-telemetry-lesson-bridge.md) | Partial | Registered checks constrain finding feedback; misfires request scope review and withdrawal suspends dependent wording; real benefit remains open |
 | [8 Learning evidence loop](8-learning-evidence-loop.md) | Partial | Reviewed ordinary trials feed scoped promotion, pause and correction; product benefit still open |
 | [9 Parallel lab screen](9-parallel-lab-screen.md) | Partial | Parallel paired runs in isolated worktrees, task-stratified exact test, pre-launch token budget; scripted-executor tests only, no live screen yet |
+| [10 Harness² entry trial](10-harness2-entry-trial.md) | Draft | Screens a Harness² library entry on unseen tasks and tests its per-task refinement against a same-execution best-of-four baseline; needs an entry importer and file-tree lab advice |
+| [11 Harness² borrowings](11-harness2-borrowings.md) | Draft | Decides which Harness² library features LYO adopts: open, revisable activity scopes and hashed runnable attachments; rejects self-rated confidence and ordered replay |
 
 ## Dated designs
 
