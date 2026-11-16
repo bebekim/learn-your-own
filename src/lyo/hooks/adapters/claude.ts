@@ -12,6 +12,7 @@ import {
   buildUserPromptBoundary,
 } from './shared.ts';
 import { classifyPromptKind } from '../../domain/classification/prompt-kind.ts';
+import { hookValueText, testSummaryField } from '../test-summary.ts';
 import type {
   AssociationOutcome,
 } from '../../domain/types/activation.ts';
@@ -198,6 +199,7 @@ function redactClaudeHookEvent(
         truncated: fingerprint.truncated,
         recorded: false,
         ...safeToolStatusSignals(event[key]),
+        ...testSummaryField(hookValueText(event[key])),
       };
     }
   }
@@ -211,6 +213,7 @@ function redactClaudeHookEvent(
       truncated: fingerprint.truncated,
       recorded: false,
       ...(exitCode === null ? {} : { exit_code: exitCode }),
+      ...testSummaryField(event.error),
     };
   }
   return redacted;

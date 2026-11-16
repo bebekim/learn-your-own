@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.4.3-adaptive.11 (bridge evidence coverage)
+
+- Retain test-runner summary counts at capture. Before a Claude or Codex tool result is redacted, the final summary line of pytest, `node --test`, jest or vitest is kept as `test_summary: { runner, passed, failed }`; output text is still discarded. Agents usually pipe test output (`pytest 2>&1 | tail`), and with `pipefail` off the pipeline's exit status is the filter's; the summary line is then the only record of the result.
+- The session bridge accepts a verifier piped through pass-through filters (`tail`, `head`, `grep`, `tee`, `cat`) and judges it from the retained summary. A piped result without a summary is skipped, and so is a result whose exit status contradicts its summary.
+- Bridge sessions that never recorded SessionEnd (392 of 613 sessions). On SessionStart, sessions quiet for 12 hours are bridged with `closure: "stale"` in the receipt, at most 20 per hook; `ended_at` is not written. `lyo bridge --all --include-stale` does the same for a whole ledger.
+- Record the key names and value types of Codex `tool_response` (`shape`), never values, so the location of Codex's result status can be observed.
+
 ## 0.4.3-adaptive.10 (session bridge repair)
 
 - Fix the session bridge, the only automatic source of lessons from ordinary work. It required a numeric `exit_code` in the stored tool result, which no host sends and capture redacts, so it never recorded a command (0 of 76,955 captured shell results across 199 workspace ledgers). It now uses the normalizer's command status: Claude `PostToolUse` is a pass, `PostToolUseFailure` a failure, and anything else stays unknown.

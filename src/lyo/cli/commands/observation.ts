@@ -24,7 +24,7 @@ import {
 } from '../presenters/observation.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
 import { withKernel } from './context.ts';
-import { bridgeSessionOnEnd } from '../../bridge/session-bridge.ts';
+import { bridgeSessionOnEnd, bridgeStaleSessions } from '../../bridge/session-bridge.ts';
 import { resolveSessionLessonStorePath } from '../../selection/session-hook.ts';
 
 export const OBSERVATION_COMMANDS: Record<string, CommandHandler> = {
@@ -47,9 +47,12 @@ function bridgeCommand(args: CommandArgs): unknown {
     const sessions = args.hasFlag('--all')
       ? (kernel.db.prepare('SELECT session_id FROM agent_sessions WHERE ended_at IS NOT NULL ORDER BY started_at, session_id').all() as unknown as Array<{ session_id: string }>).map(row => row.session_id)
       : [args.requiredFlag('--session')];
-    return { ok: true, sessions: sessions.map(sessionId => ({
-      sessionId, ...bridgeSessionOnEnd(kernel, sessionId, storePath),
-    })) };
+    const ended = sessions.map(sessionId => ({ sessionId, ...bridgeSessionOnEnd(kernel, sessionId, storePath) }));
+    // --include-stale also bridges sessions with no SessionEnd that have been quiet
+    // for the stale window, recorded with closure "stale".
+    const stale = args.hasFlag('--all') && args.hasFlag('--include-stale')
+      ? bridgeStaleSessions(kernel, storePath, { limit: Number.MAX_SAFE_INTEGER }) : [];
+    return { ok: true, sessions: ended, staleSessions: stale };
   });
 }
 

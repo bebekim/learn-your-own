@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { createKernel, handleClaudeHook, initLedger } from '../src/index.ts';
-import { bridgeSessionOnEnd } from '../src/lyo/bridge/session-bridge.ts';
+import { bridgeSessionOnEnd, bridgeStaleSessions } from '../src/lyo/bridge/session-bridge.ts';
 import { hashValue } from '../src/lyo/contract/refs.ts';
 import { LessonStore } from '../src/lyo/storage/lesson-store.ts';
 import { renderSessionLessons } from '../src/lyo/selection/session-hook.ts';
@@ -28,9 +28,9 @@ function fixture() {
   // Shapes observed from Claude Code on 2026-11-16 (a deliberate `exit 3` in a live
   // session): success fires PostToolUse with no exit-code field; a nonzero exit fires
   // PostToolUseFailure whose `error` string starts "Exit code N".
-  const passed = (session: string, command: string, toolInput: Record<string, unknown> = {}) =>
+  const passed = (session: string, command: string, toolInput: Record<string, unknown> = {}, stdout = 'ok 12 tests') =>
     hook(session, 'PostToolUse', { tool_name: 'Bash', tool_use_id: `t${n++}`, tool_input: { command, ...toolInput },
-      tool_response: { stdout: 'ok 12 tests', stderr: '', interrupted: false, isImage: false } });
+      tool_response: { stdout, stderr: '', interrupted: false, isImage: false } });
   const failed = (session: string, command: string) =>
     hook(session, 'PostToolUseFailure', { tool_name: 'Bash', tool_use_id: `t${n++}`, tool_input: { command },
       error: 'Exit code 1\nnot ok 3 - private customer row 4471', is_interrupt: false });
@@ -122,6 +122,49 @@ test('sessions recorded empty by the v1 bridge are re-observed; non-empty v1 rec
     assert.ok(f.store.getTrace(`session-outcome:v2:${hashValue('empty-v1')}`));
     assert.equal(f.store.getTrace(`session-outcome:v2:${hashValue('full-v1')}`), null);
     assert.deepEqual(bridgeSessionOnEnd(f.kernel, 'empty-v1', f.storePath), { created: 0, observed: 0 });
+  } finally { f.close(); }
+});
+
+test('a piped test is judged by its retained summary line, not the pipe exit status', () => {
+  const f = fixture();
+  const piped = 'cd repo && uv run pytest tests/a.py 2>&1 | tail -3';
+  try {
+    // With pipefail off, a failing pytest piped to tail still reports PostToolUse.
+    f.hook('s1', 'SessionStart');
+    f.passed('s1', piped, {}, 'E assert 1 == 2\n==== 1 failed, 4 passed in 0.31s ====');
+    f.passed('s1', piped, {}, '==== 5 passed in 0.29s ====');
+    f.hook('s1', 'SessionEnd');
+    const row = f.kernel.db.prepare("SELECT payload_json FROM hook_events WHERE event_name = 'tool.after' LIMIT 1").get() as { payload_json: string };
+    assert.doesNotMatch(row.payload_json, /assert 1 == 2/);
+    assert.deepEqual(JSON.parse(row.payload_json).tool_response.test_summary, { runner: 'pytest', passed: 4, failed: 1 });
+    const lessons = f.store.db.prepare('SELECT intervention FROM lesson').all() as Array<{ intervention: string }>;
+    assert.deepEqual(lessons.map(l => l.intervention), ['Run pytest tests/a.py after the final edit; it caught a failure in earlier work in this repository.']);
+  } finally { f.close(); }
+});
+
+test('a piped test without a summary, or a summary contradicting the exit status, is not evidence', () => {
+  const f = fixture();
+  try {
+    f.hook('s1', 'SessionStart');
+    f.failed('s1', 'npm test');
+    f.passed('s1', 'npm test 2>&1 | tail -1', {}, 'done'); // pipe exit 0 says nothing
+    f.passed('s1', 'npm test', {}, 'ℹ pass 3\nℹ fail 1'); // exit 0 but the runner reports a failure
+    f.hook('s1', 'SessionEnd');
+    assert.equal(f.lessonCount(), 0);
+  } finally { f.close(); }
+});
+
+test('sessions with no SessionEnd are bridged once quiet, recorded as a stale closure', () => {
+  const f = fixture();
+  try {
+    f.hook('quiet', 'SessionStart'); f.failed('quiet', 'npm test'); f.passed('quiet', 'npm test');
+    assert.deepEqual(bridgeStaleSessions(f.kernel, f.storePath), []); // not yet quiet for 12 hours
+    const later = Date.now() + 13 * 60 * 60 * 1000;
+    assert.deepEqual(bridgeStaleSessions(f.kernel, f.storePath, { now: later }), [{ sessionId: 'quiet', created: 1, observed: 0 }]);
+    assert.deepEqual(bridgeStaleSessions(f.kernel, f.storePath, { now: later }), []); // once only
+    const receipt = f.store.getTrace(`session-outcome:v2:${hashValue('quiet')}`)!;
+    assert.equal(JSON.parse(receipt.payload_json!).closure, 'stale');
+    assert.equal((f.kernel.db.prepare("SELECT ended_at FROM agent_sessions WHERE session_id = 'quiet'").get() as { ended_at: string | null }).ended_at, null);
   } finally { f.close(); }
 });
 

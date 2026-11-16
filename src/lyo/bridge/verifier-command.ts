@@ -3,47 +3,68 @@ import { summarizeCommand } from '../domain/behavior/commands.ts';
 
 export type VerifierClass = 'test' | 'build' | 'lint';
 
+export interface Verifier {
+  command: string;
+  classification: VerifierClass;
+  /** The verifier's output passes through filters; its exit status is not the line's. */
+  piped: boolean;
+}
+
+const FILTER_STAGE = /^(?:tail|head|grep|egrep|tee|cat)(?:\s|$)/;
+
 /**
- * The verifier inside a real agent shell line, or null when the line's exit status
- * cannot be attributed to that verifier.
+ * The verifier inside a real agent shell line, or null when the line cannot be
+ * attributed to one.
  *
- * Agents rarely run a bare `npm test`; they run `cd repo && uv run pytest x 2>&1`.
- * The exit status of `a && b` fails if either fails, so leading `cd` segments can be
- * dropped. The status of `a | b`, `a; b`, `a || b` or a backgrounded `a &` belongs to
- * a different command (or none), so those lines are rejected rather than guessed:
- * `pytest | tail` exits 0 when the tests fail. Command substitution and multi-line
- * scripts are rejected for the same reason. Rejection only loses data.
+ * Agents rarely run a bare `npm test`; they run `cd repo && uv run pytest x 2>&1 | tail`.
+ * The status of `a && b` fails if either fails, so leading `cd` segments are dropped.
+ * A final pipeline is accepted only when every stage after the verifier is a
+ * pass-through filter, and is marked `piped`: with `pipefail` off its exit status is
+ * the filter's, so callers must judge it from the runner's summary line instead.
+ * `a; b`, `a || b`, a backgrounded `a &`, command substitution and multi-line
+ * scripts are rejected. Rejection only loses data.
  */
-export function verifierCommand(commandText: string): { command: string; classification: VerifierClass } | null {
+export function verifierCommand(commandText: string): Verifier | null {
   const withoutRedirects = commandText.replace(/\s\d*>&\d+/g, ' ').replace(/\s&>>?\s*\S+/g, ' ');
-  const segments = splitAndChain(withoutRedirects);
-  if (!segments) return null;
+  const chain = parseChain(withoutRedirects);
+  if (!chain || chain.slice(0, -1).some(stages => stages.length > 1)) return null;
+  const [verifierStage, ...filters] = chain.at(-1)!;
+  if (!filters.every(stage => FILTER_STAGE.test(stage))) return null;
+  const segments = [...chain.slice(0, -1).map(stages => stages[0]), verifierStage];
   const verifiers = segments.filter(segment => !/^cd(\s|$)/.test(segment)).map(stripWrappers);
   if (verifiers.length === 0) return null;
   const classes = verifiers.map(segment => classifyCommand(segment.split(/\s+/)[0], segment));
   if (!classes.every((c): c is VerifierClass => c === 'test' || c === 'build' || c === 'lint')) return null;
-  return { command: summarizeCommand(verifiers.join(' && ')), classification: classes.at(-1)! };
+  return { command: summarizeCommand(verifiers.join(' && ')), classification: classes.at(-1)!, piped: filters.length > 0 };
 }
 
-/** Split on unquoted `&&`; null if any other unquoted control operator appears. */
-function splitAndChain(text: string): string[] | null {
-  const segments: string[] = [];
-  let current = '', quote: string | null = null;
+/**
+ * Unquoted `&&` segments, each split into `|` stages. Null if any other unquoted
+ * control operator appears.
+ */
+function parseChain(text: string): string[][] | null {
+  const chain: string[][] = [];
+  let stages: string[] = [], current = '', quote: string | null = null;
+  const endStage = () => { stages.push(current.trim()); current = ''; };
   for (let i = 0; i < text.length; i += 1) {
     const ch = text[i], next = text[i + 1];
     if (quote) { if (ch === quote) quote = null; current += ch; continue; }
     if (ch === '"' || ch === "'") { quote = ch; current += ch; continue; }
-    if (ch === '\n' || ch === ';' || ch === '`' || (ch === '$' && next === '(')) return null;
-    if (ch === '|') return null; // pipe or `||`
-    if (ch === '&') {
-      if (next !== '&') return null; // background
-      segments.push(current.trim()); current = ''; i += 1; continue;
-    }
+    if (isRejectedOperator(ch, next)) return null;
+    if (ch === '|') { endStage(); continue; }
+    if (ch === '&') { endStage(); chain.push(stages); stages = []; i += 1; continue; }
     current += ch;
   }
   if (quote) return null;
-  segments.push(current.trim());
-  return segments.every(Boolean) ? segments : null;
+  endStage(); chain.push(stages);
+  return chain.every(s => s.every(Boolean)) ? chain : null;
+}
+
+function isRejectedOperator(ch: string, next: string | undefined): boolean {
+  if (ch === '\n' || ch === ';' || ch === '`') return true;
+  if (ch === '$' && next === '(') return true;
+  if (ch === '|' && next === '|') return true; // `||` masks the verifier's failure
+  return ch === '&' && next !== '&'; // background
 }
 
 function stripWrappers(segment: string): string {

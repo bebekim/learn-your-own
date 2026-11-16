@@ -11,6 +11,7 @@ import {
   buildUserPromptBoundary,
 } from './shared.ts';
 import { classifyPromptKind } from '../../domain/classification/prompt-kind.ts';
+import { hookValueShape, hookValueText, testSummaryField } from '../test-summary.ts';
 import type {
   AssociationOutcome,
 } from '../../domain/types/activation.ts';
@@ -203,6 +204,9 @@ function redactCodexHookEvent(
       truncated: fingerprint.truncated,
       recorded: false,
       ...safeToolStatusSignals(event.tool_response),
+      ...testSummaryField(hookValueText(event.tool_response)),
+      // Codex's result format is not yet observed; keep key names and types, never values.
+      shape: hookValueShape(event.tool_response),
     };
   }
   return redacted;

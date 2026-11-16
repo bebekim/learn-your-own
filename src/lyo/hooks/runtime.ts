@@ -1,4 +1,4 @@
-import { bridgeSessionOnEnd } from '../bridge/session-bridge.ts';
+import { bridgeSessionOnEnd, bridgeStaleSessions } from '../bridge/session-bridge.ts';
 import { resolveSessionLessonStorePath } from '../selection/session-hook.ts';
 import { observeSessionFindings } from '../interface/session-finding-workflow.ts';
 import {
@@ -188,6 +188,10 @@ function persistHookObservation(
   recordHookEvent(kernel, observation.hookEvent);
   if (observation.session) {
     recordSessionStarted(kernel, observation.session);
+    try {
+      const storePath = resolveSessionLessonStorePath(observation.hookEvent.cwd);
+      if (storePath) bridgeStaleSessions(kernel, storePath);
+    } catch { /* fail-open: telemetry capture does not depend on learning */ }
   }
   if (observation.sessionEnd) {
     recordSessionEnded(kernel, observation.sessionEnd);
