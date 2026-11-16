@@ -25,6 +25,7 @@ import { autoConnectWorkspace } from '../corpus/workspace-sync.ts';
 import { nativeFeedback } from '../control/native-feedback.ts';
 import { ordinaryFindingTrialFeedback } from '../interface/finding-trials.ts';
 import { workspaceRoot } from '../repository.ts';
+import { codexCommandStatusEvent, codexCommandStatusRewrite } from '../hooks/codex-command-status.ts';
 
 export async function runCodexHookCommand(
   args: CliArgs,
@@ -32,7 +33,23 @@ export async function runCodexHookCommand(
 ): Promise<unknown> {
   const input = await readStdin(stdin);
   const event = input.trim() ? JSON.parse(input) : {};
-  return addNativeFeedback(await captureCodexHook(args, event), 'codex', event, args, await actionScope(event, args));
+  const enabled = args.hasFlag('--capture-command-status');
+  const captured = enabled ? codexCommandStatusEvent(event) : event;
+  const output: any = addNativeFeedback(await captureCodexHook(args, captured), 'codex', event, args, await actionScope(event, args));
+  return enabled ? addCommandStatusRewrite(output, event) : output;
+}
+
+/** Finding actions and another hook's rewrite retain their own input contracts. */
+function addCommandStatusRewrite(output: any, event: Record<string, any>) {
+  try {
+    if (event.hook_event_name !== 'PreToolUse' || output.hookSpecificOutput?.permissionDecision || output.hookSpecificOutput?.updatedInput || findingOwnsToolCall(resolveSessionLessonStorePath(event.cwd), 'codex', event)) return output;
+    const rewrite = codexCommandStatusRewrite(event);
+    return rewrite ? { ...output, hookSpecificOutput: { ...output.hookSpecificOutput,
+      hookEventName: event.hook_event_name, ...rewrite } } : output;
+  } catch (error) {
+    process.stderr.write(`Lyo command status: ${error instanceof Error ? error.message : String(error)}\n`);
+    return output;
+  }
 }
 
 /** A failed or slow decision leaves the activity unknown; capture and other feedback continue. */

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.4.3-adaptive.13 (opt-in Codex completion receipts)
+
+- Add `--capture-command-status` to Codex capture hooks. Simple foreground verifier commands can use the existing child-shell runner to retain a completion receipt when the host supplies stdout alone. Session, turn, tool-call, rewritten input, command, working directory and timing must match before a numeric status reaches telemetry and the lesson bridge.
+- Leave shell programs, background commands, finding actions and existing experiment rewrites unchanged. Missing or unusable receipts add no status. Command completion does not establish task correctness or learning benefit.
+
 ## 0.4.3-adaptive.12 (tool error redaction)
 
 - Redact object-form tool errors. Kimi (through the Claude-compatible adapter) and Claude builds before August 2026 report `error: { code, message, retryable }` with raw output in `message`; only string errors were redacted. `redactToolError` now digests both forms, keeping an enum-like `code`, a boolean `retryable`, a leading exit-code header and test-runner summary counts. Booleans and existing digests pass through.

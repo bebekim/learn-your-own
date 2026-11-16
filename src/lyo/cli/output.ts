@@ -10,7 +10,7 @@ export function usage(exitCode = 0): never {
 	  awok unwrap kimi
 	  lyo eca-hook [--db path] [--db-from-event-cwd] [--spool-dir-from-event-cwd]
 	  lyo bob-hook [--db path] [--db-from-event-cwd] [--spool-dir-from-event-cwd]
-	  lyo codex-hook [--db path] [--db-from-event-cwd] [--channel name] [--prompt-dir path] [--prompt-dir-from-event-cwd] [--spool-dir path] [--spool-dir-from-event-cwd] [--workspace-id id] [--no-normalize-on-stop] [--no-normalize-on-tool-use]
+	  lyo codex-hook [--capture-command-status] [--db path] [--db-from-event-cwd] [--channel name] [--prompt-dir path] [--prompt-dir-from-event-cwd] [--spool-dir path] [--spool-dir-from-event-cwd] [--workspace-id id] [--no-normalize-on-stop] [--no-normalize-on-tool-use]
 	  lyo claude-hook [--db path] [--db-from-event-cwd] [--prompt-dir path] [--prompt-dir-from-event-cwd] [--spool-dir path] [--spool-dir-from-event-cwd] [--workspace-id id] [--no-normalize-on-stop] [--no-normalize-on-tool-use]
 	  lyo gemini-hook [--db path] [--db-from-event-cwd] [--prompt-dir path] [--prompt-dir-from-event-cwd] [--spool-dir path] [--spool-dir-from-event-cwd] [--workspace-id id] [--no-normalize-on-stop] [--no-normalize-on-tool-use]
 	  lyo agy-hook event-name [--db path] [--db-from-event-cwd] [--prompt-dir path] [--prompt-dir-from-event-cwd] [--spool-dir path] [--spool-dir-from-event-cwd] [--workspace-id id] [--no-normalize-on-stop] [--no-normalize-on-tool-use]

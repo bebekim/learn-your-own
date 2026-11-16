@@ -79,7 +79,7 @@ test('a declared finding action keeps its input instead of being rewritten by th
     const config = join(f.root, 'config.json');
     writeFileSync(config, JSON.stringify({ rootDir: f.root, corpusPath: join(f.root, 'corpus.sqlite'), adaptiveFeedback: { mode: 'explore' } }));
     const output = JSON.parse(execFileSync(process.execPath,
-      [new URL('../src/cli.ts', import.meta.url).pathname, 'codex-hook', '--db-from-event-cwd', '--spool-dir-from-event-cwd'], {
+      [new URL('../src/cli.ts', import.meta.url).pathname, 'codex-hook', '--db-from-event-cwd', '--spool-dir-from-event-cwd', '--capture-command-status'], {
         cwd: f.root, env: { ...process.env, LYO_CONFIG_FILE: config }, encoding: 'utf8', input: JSON.stringify({
           cwd: f.root, session_id: sessionId, hook_event_name: 'PreToolUse', tool_use_id: 'native-call',
           tool_name: 'Bash', tool_input: { command: 'npm test' } }) }));

@@ -36,6 +36,8 @@ export interface CodexHookInput {
   tool_use_id?: string;
   tool_input?: unknown;
   tool_response?: unknown;
+  command_status_receipt?: { basis: string; id: string; cwd: string; hostToolInputHash: string; receiptHash: string };
+  is_interrupt?: boolean;
   stop_hook_active?: boolean;
   last_assistant_message?: string | null;
 }
@@ -205,7 +207,7 @@ function redactCodexHookEvent(
       recorded: false,
       ...safeToolStatusSignals(event.tool_response),
       ...testSummaryField(hookValueText(event.tool_response)),
-      // Codex's result format is not yet observed; keep key names and types, never values.
+      // Live Bash responses can be stdout-only strings; shape records types, not values.
       shape: hookValueShape(event.tool_response),
     };
   }

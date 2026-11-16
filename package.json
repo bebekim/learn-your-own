@@ -1,6 +1,6 @@
 {
   "name": "lyo-kernel",
-  "version": "0.4.3-adaptive.12",
+  "version": "0.4.3-adaptive.13",
   "description": "SQLite reducer kernel for evidence-backed agent learning protocols.",
   "type": "module",
   "files": [

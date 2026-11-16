@@ -105,6 +105,38 @@ Verify fresh receipts rather than treating a restart as evidence that capture wo
 See the [Codex hook contract](https://learn.chatgpt.com/docs/hooks) and
 [Claude hook contract](https://code.claude.com/docs/en/hooks).
 
+## Optional Codex command status capture
+
+Live Bash hooks can supply only stdout: exit 0 and exit 7 produced identical empty
+responses in a 16 November 2026 probe. A PostToolUse callback does not establish success.
+
+Add `--capture-command-status` to the `lyo codex-hook` commands to opt into bound
+completion receipts for standalone foreground test, build and lint commands. Use
+the flag on both PreToolUse and PostToolUse. The pre hook returns Codex's supported
+`updatedInput` rewrite, invoking the existing packaged `native-check` child-shell
+runner. Output and process exit status are preserved; the runner writes a local
+receipt under `.agent-learning/command-receipts/`. This option is independent of
+the adaptive recovery experiment and does not allocate an intervention or claim benefit.
+
+The post hook checks session, turn and tool-call identity, the exact rewritten
+input, command hash, receipt timing and normal process completion. It records the
+as-issued command with the numeric status and a `command_status_receipt` provenance
+record, including the host-input and receipt hashes. Tool output remains redacted.
+These files are local execution records, not signatures or protection against a
+process that can rewrite workspace state. Binding files retain command arguments,
+with the same sensitivity as captured tool inputs.
+
+Pipelines, redirections, command lists, substitutions, background calls and
+registered finding actions keep their input contracts. Existing LYO native
+experiment rewrites take precedence. Missing, malformed, interrupted or mismatched
+receipts supply no completion signal; unchanged host status handling still applies.
+A receipt from a different working directory also stays unknown, preventing the
+current repository-level bridge from mixing identical checks from different directories.
+A different hook can override a rewrite, so verify fresh receipts after activation.
+The child-shell boundary is intentional and opt-in; this does not promise identical
+shell startup behavior for arbitrary commands. A numeric status witnesses that
+command's completion, not task correctness, adherence or learning benefit.
+
 ## Optional central collection
 
 Create `~/.lyo/config.json` with the absolute parent directory you want to collect
