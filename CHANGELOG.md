@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.4.3-adaptive.10 (session bridge repair)
+
+- Fix the session bridge, the only automatic source of lessons from ordinary work. It required a numeric `exit_code` in the stored tool result, which no host sends and capture redacts, so it never recorded a command (0 of 76,955 captured shell results across 199 workspace ledgers). It now uses the normalizer's command status: Claude `PostToolUse` is a pass, `PostToolUseFailure` a failure, and anything else stays unknown.
+- Extract the verifier from real agent shell lines (`cd repo && uv run pytest x 2>&1` → `pytest x`). Lines whose exit status belongs to another command are rejected: pipes (`pytest | tail` exits 0 when tests fail, since `pipefail` is off), `||`, `;`, `&`, command substitution and multi-line scripts.
+- A backgrounded Claude command (`run_in_background`) reports `PostToolUse` at launch; its status is now unknown rather than succeeded.
+- Redact Claude's `error` field. Failed tool calls stored their raw output there unredacted; it is now a digest that keeps only a leading `Exit code N` as `exit_code`.
+- Version the bridge receipt (`session-outcome:v2:`). Sessions the broken bridge recorded with no commands are re-observed by `lyo bridge --all`; v1 receipts and their counted applications are left unchanged.
+- Replace the bridge test's invented `tool_response: { exit_code }` Claude fixture with payload shapes observed from Claude Code.
+
 - Move the remaining top-level modules under `src/lyo/` (behavior unchanged): pure types, behavior and classification into `lyo/domain/`; the ledger, its schema (now `ledger-schema.ts`), db and reducers into `lyo/storage/`; hook adapters into `lyo/hooks/adapters/`; and `contract`, `hooks`, `compiler`, `corpus`, `runner`, `eval`, `activation`, `measurement` and `cli` as `lyo/` feature folders. `src/cli.ts`, `src/index.ts` and `src/version.ts` stay as the package entry points, so the public exports and bins are unchanged. The LYO cycle check now covers the moved code; two type-only cycles were removed (candidate at-bat report types and the runner `ExecutorFactory`). Remove the unused `src/types/federation.ts`. `lyo eval control` hashes its own source as its instrument identity, so that hash changes with the new import paths.
 - Remove the Shepherd telemetry boundary: the `lyo telemetry inspect|convert-shepherd|compile|consume|serve` commands and the telemetry exports from the package entry (`decodeTelemetry`, `shepherdExportToTelemetry`, `startTelemetryServer`, `consumeTelemetryOutbox` and related types). The compiler's own telemetry-run functions are unchanged. Existing ledgers keep their unused `telemetry_cursors` table.
 

@@ -153,6 +153,8 @@ function inferHookCommandStatus(eventName: string, payload: Record<string, unkno
   if (eventName === 'PreToolUse' || eventName === 'tool.before') return 'attempted';
   if (eventName === 'PostToolUseFailure' || eventName === 'tool.failure') return 'failed';
   if (eventName !== 'PostToolUse' && eventName !== 'tool.after') return 'unknown';
+  // A backgrounded command reports PostToolUse at launch, before it has an outcome.
+  if (objectValue(payload.tool_input)?.run_in_background === true) return 'unknown';
   // These hosts can complete a callback without reporting a successful command.
   return hookStatusSignal(payload) ?? (['bob', 'codex', 'kimi'].includes(runtimeFromPayload(payload)) ? 'unknown' : 'succeeded');
 }

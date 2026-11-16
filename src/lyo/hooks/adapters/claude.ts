@@ -153,6 +153,17 @@ function canonicalClaudeEventName(eventName: string): CanonicalHookEventName {
   return 'unknown';
 }
 
+/**
+ * Claude reports a failed Bash call as `error: "Exit code N\n<output>"` (observed
+ * 2026-11-16). Only that leading header is trusted, and only as a safe integer.
+ */
+function claudeFailureExitCode(error: string): number | null {
+  const match = /^Exit code (-?\d+)(?:\r?\n|$)/.exec(error);
+  if (!match) return null;
+  const code = Number(match[1]);
+  return Number.isSafeInteger(code) ? code : null;
+}
+
 function redactClaudeHookEvent(
   event: ClaudeHookInput,
   names: { runtime: HookRuntime; runtimeEventName: string; canonicalEventName: CanonicalHookEventName }
@@ -189,6 +200,18 @@ function redactClaudeHookEvent(
         ...safeToolStatusSignals(event[key]),
       };
     }
+  }
+  // A failed tool call carries its raw output in `error`; redact it like a response.
+  if (typeof event.error === 'string') {
+    const fingerprint = fingerprintHookValue(event.error);
+    const exitCode = claudeFailureExitCode(event.error);
+    redacted.error = {
+      sha256: fingerprint.sha256,
+      output_size: fingerprint.outputSize,
+      truncated: fingerprint.truncated,
+      recorded: false,
+      ...(exitCode === null ? {} : { exit_code: exitCode }),
+    };
   }
   return redacted;
 }
