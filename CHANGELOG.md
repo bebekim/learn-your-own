@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.4.3-adaptive.12 (tool error redaction)
+
+- Redact object-form tool errors. Kimi (through the Claude-compatible adapter) and Claude builds before August 2026 report `error: { code, message, retryable }` with raw output in `message`; only string errors were redacted. `redactToolError` now digests both forms, keeping an enum-like `code`, a boolean `retryable`, a leading exit-code header and test-runner summary counts. Booleans and existing digests pass through.
+
 ## 0.4.3-adaptive.11 (bridge evidence coverage)
 
 - Retain test-runner summary counts at capture. Before a Claude or Codex tool result is redacted, the final summary line of pytest, `node --test`, jest or vitest is kept as `test_summary: { runner, passed, failed }`; output text is still discarded. Agents usually pipe test output (`pytest 2>&1 | tail`), and with `pipefail` off the pipeline's exit status is the filter's; the summary line is then the only record of the result.

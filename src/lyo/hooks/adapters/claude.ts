@@ -203,18 +203,45 @@ function redactClaudeHookEvent(
       };
     }
   }
-  // A failed tool call carries its raw output in `error`; redact it like a response.
-  if (typeof event.error === 'string') {
-    const fingerprint = fingerprintHookValue(event.error);
-    const exitCode = claudeFailureExitCode(event.error);
-    redacted.error = {
-      sha256: fingerprint.sha256,
-      output_size: fingerprint.outputSize,
-      truncated: fingerprint.truncated,
-      recorded: false,
-      ...(exitCode === null ? {} : { exit_code: exitCode }),
-      ...testSummaryField(event.error),
-    };
-  }
+  if (event.error !== undefined) redacted.error = redactToolError(event.error);
   return redacted;
+}
+
+/**
+ * A failed tool call carries raw output in `error`: a string from Claude
+ * ("Exit code N\n<output>") or `{ code, message, retryable }` from Kimi and older
+ * Claude builds. Text is replaced by a digest. Kept: an enum-like `code`, a boolean
+ * `retryable`, a leading exit-code header and test-runner summary counts. Booleans
+ * (ECA) and already-redacted digests pass through unchanged.
+ */
+export function redactToolError(error: unknown): unknown {
+  const fields = errorFields(error);
+  if (!fields || (fields.recorded === false && typeof fields.sha256 === 'string')) return error;
+  const text = typeof error === 'string' ? error : hookValueText(error);
+  if (!text) return error;
+  const fingerprint = fingerprintHookValue(error);
+  const exitCode = claudeFailureExitCode(typeof error === 'string' ? error : String(fields.message ?? ''));
+  return {
+    sha256: fingerprint.sha256,
+    output_size: fingerprint.outputSize,
+    truncated: fingerprint.truncated,
+    recorded: false,
+    ...keptErrorFields(fields),
+    ...(exitCode === null ? {} : { exit_code: exitCode }),
+    ...testSummaryField(text),
+  };
+}
+
+/** Object fields of an error; `{}` for a string; null when there is nothing to redact. */
+function errorFields(error: unknown): Record<string, unknown> | null {
+  if (typeof error === 'string') return {};
+  if (!error || typeof error !== 'object') return null;
+  return Array.isArray(error) ? {} : error as Record<string, unknown>;
+}
+
+function keptErrorFields(fields: Record<string, unknown>): Record<string, unknown> {
+  const kept: Record<string, unknown> = {};
+  if (typeof fields.code === 'string' && /^[\w.-]{1,64}$/.test(fields.code)) kept.code = fields.code;
+  if (typeof fields.retryable === 'boolean') kept.retryable = fields.retryable;
+  return kept;
 }
