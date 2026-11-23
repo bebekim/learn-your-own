@@ -1,0 +1,1744 @@
+{
+  "audited_at": "2026-11-23T03:14:29.958925+00:00",
+  "scope": "all lesson rows in the personal store at read snapshot; evidence lookup in separately opened central-corpus snapshot",
+  "lesson_count": 8,
+  "lessons": [
+    {
+      "lesson_id": "les_027d0f11760e91e3",
+      "status": "candidate",
+      "failure_class": "goal_deviation",
+      "trigger_cue": "greet.js returns `hi, ${name}!`; verified `greet('ada')` => `hi, ada!`, so ac2 exact `hello, ada!` is unmet.",
+      "intervention": "Always ensure that all acceptance criteria are addressed in the implementation. Review each criterion carefully to avoid conflicts and ensure compliance with the specifications.",
+      "uses": 302,
+      "created_at": "2026-07-23T05:49:19.445Z",
+      "updated_at": "2026-07-23T05:49:19.445Z",
+      "helpful_count": 0,
+      "harmful_count": 0,
+      "reflector_model": "openai/gpt-4o-mini",
+      "executor_model": "codex:level1",
+      "explanation": "The failure occurred because the implementation only satisfied AC3 by returning 'Hi, Ada!' while ignoring AC2's requirement for 'Hello, Ada!'. This indicates a lack of adherence to all acceptance criteria, leading to a conflict between the specified outputs.",
+      "provenance": [
+        "azure-beacon-8"
+      ],
+      "lesson_row_sha256": "40139035c662643f783084840532a2f4d9f1bcf86cd26cbe9e2d020bf2451dfe",
+      "deltas": [
+        {
+          "run_id": "azure-beacon-8",
+          "actor": "reflector",
+          "delta_type": "CREATE",
+          "payload_sha256": "dee7dcb7d2b70a1bd5bf5b5520e4e9bfa4a233123296d016dfc4ca9a77c03f51",
+          "explanation": "The failure occurred because the implementation only satisfied AC3 by returning 'Hi, Ada!' while ignoring AC2's requirement for 'Hello, Ada!'. This indicates a lack of adherence to all acceptance criteria, leading to a conflict between the specified outputs.",
+          "intervention": "Always ensure that all acceptance criteria are addressed in the implementation. Review each criterion carefully to avoid conflicts and ensure compliance with the specifications.",
+          "reflector": "elaborator@1",
+          "reflector_model": "openai/gpt-4o-mini"
+        }
+      ],
+      "applications": {
+        "records": 302,
+        "outcomes": {
+          "pending": 41,
+          "unobserved": 261
+        }
+      }
+    },
+    {
+      "lesson_id": "les_93ca0ad689249c97",
+      "status": "candidate",
+      "failure_class": "goal_deviation",
+      "trigger_cue": "greet.js is stateful: first greet('ada') => hello, ada!, second => hi, ada!.",
+      "intervention": "Design functions to be stateless when multiple outputs depend on input order, ensuring that each call can independently satisfy all requirements without conflict.",
+      "uses": 301,
+      "created_at": "2026-07-23T05:50:49.929Z",
+      "updated_at": "2026-07-23T05:50:49.929Z",
+      "helpful_count": 0,
+      "harmful_count": 0,
+      "reflector_model": "openai/gpt-4o-mini",
+      "executor_model": "codex:level1",
+      "explanation": "The validation failure stems from the stateful nature of greet.js, which leads to conflicting requirements for alternating greetings. The feedback indicates that the alternating criteria (AC2 and AC3) cannot be satisfied simultaneously due to the state being retained between calls, causing one criterion to always fail.",
+      "provenance": [
+        "azure-beacon-8"
+      ],
+      "lesson_row_sha256": "0058e4a247f4cf526952176805e976d00d0e830e353489e49667e8de80f3f28b",
+      "deltas": [
+        {
+          "run_id": "azure-beacon-8",
+          "actor": "reflector",
+          "delta_type": "CREATE",
+          "payload_sha256": "5c902dfdf51270e199a699b93b1212e21acaf94e83414bf5b75d618e0bc20fab",
+          "explanation": "The validation failure stems from the stateful nature of greet.js, which leads to conflicting requirements for alternating greetings. The feedback indicates that the alternating criteria (AC2 and AC3) cannot be satisfied simultaneously due to the state being retained between calls, causing one criterion to always fail.",
+          "intervention": "Design functions to be stateless when multiple outputs depend on input order, ensuring that each call can independently satisfy all requirements without conflict.",
+          "reflector": "elaborator@1",
+          "reflector_model": "openai/gpt-4o-mini"
+        }
+      ],
+      "applications": {
+        "records": 301,
+        "outcomes": {
+          "unobserved": 261,
+          "pending": 40
+        }
+      }
+    },
+    {
+      "lesson_id": "les_4d38b41d6661609c",
+      "status": "candidate",
+      "failure_class": "output_generation",
+      "trigger_cue": "session-verifier:8ddcd7faee3cfd2b1af49ee1877c672bc8f51744b6b9a25e435287c94e4e0066",
+      "intervention": "Run uv run pytest tests/test_rep675_transactional_comms_view.py after related edits; it caught failures in two earlier sessions in this repository.",
+      "uses": 0,
+      "created_at": "2026-09-09T03:15:44.785Z",
+      "updated_at": "2026-09-09T03:15:44.789Z",
+      "helpful_count": 0,
+      "harmful_count": 0,
+      "reflector_model": null,
+      "executor_model": null,
+      "explanation": {
+        "source": "session-verifier@1",
+        "repoPath": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+        "command": "uv run pytest tests/test_rep675_transactional_comms_view.py",
+        "failureRef": "hook:hook-46b14cf72d6aff1f3afa4489",
+        "recoveryRef": "hook:hook-a2f59fd29b4f07da139e5d73",
+        "evidenceKind": "historical-observation",
+        "causalCredit": false,
+        "report": "/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/candidates.json",
+        "evidence": [
+          {
+            "sessionId": "019f0e4c-c02a-7753-b125-eab51e8d0578",
+            "failure": {
+              "eventId": "hook-46b14cf72d6aff1f3afa4489",
+              "exitCode": 1,
+              "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/28/rollout-2026-06-28T22-55-38-019f0e4c-c02a-7753-b125-eab51e8d0578.jsonl",
+              "line": 277,
+              "callId": "call_jEQCeYFvJ1oyI2qjtgDQgNve",
+              "timestamp": "2026-06-28T13:10:17.901Z",
+              "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+              "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+              "outputSha256": "48f14366a65be3be1304f3849cecce78517cb0ef76d295bcec892743ba12cd7a",
+              "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+            },
+            "recovery": {
+              "eventId": "hook-a2f59fd29b4f07da139e5d73",
+              "exitCode": 0,
+              "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/28/rollout-2026-06-28T22-55-38-019f0e4c-c02a-7753-b125-eab51e8d0578.jsonl",
+              "line": 886,
+              "callId": "call_vW9R9aDsRO4VBckEAlzjFW6A",
+              "timestamp": "2026-06-28T13:48:44.778Z",
+              "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+              "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+              "outputSha256": "d0ccdd1eb9edaf3cfb7f1d305940d775bd769de66b6afb7f21e91b8121538e71",
+              "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+            }
+          },
+          {
+            "sessionId": "019f01ea-f48c-7200-a259-03d893a72f84",
+            "failure": {
+              "eventId": "hook-4e446740a7ea9958f886cf63",
+              "exitCode": 1,
+              "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/26/rollout-2026-06-26T13-13-23-019f01ea-f48c-7200-a259-03d893a72f84.jsonl",
+              "line": 223,
+              "callId": "call_iA6x3oeM9HvJy6a7W0ITsr4U",
+              "timestamp": "2026-06-26T03:20:03.789Z",
+              "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+              "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+              "outputSha256": "3e0b8cc5116839a27237ccf5b8159ca61cacc3a6c06163e210f60654f3b7a29c",
+              "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+            },
+            "recovery": {
+              "eventId": "hook-68c371208e23fb7c2dd5c244",
+              "exitCode": 0,
+              "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/26/rollout-2026-06-26T13-13-23-019f01ea-f48c-7200-a259-03d893a72f84.jsonl",
+              "line": 240,
+              "callId": "call_u7Or3BvBRs5TVKFSpBR0ydRh",
+              "timestamp": "2026-06-26T03:22:12.261Z",
+              "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+              "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+              "outputSha256": "c8fa3348ea3cde25966cc4784b62da6ad68c20bdc3ee099cd3d44c1b6d414a55",
+              "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+            }
+          }
+        ]
+      },
+      "provenance": [
+        "019f0e4c-c02a-7753-b125-eab51e8d0578",
+        "019f01ea-f48c-7200-a259-03d893a72f84"
+      ],
+      "lesson_row_sha256": "442915ca3335b30e3c0dd989d39836aaa1300e3d8b5ffbff6bbba5f772c52339",
+      "deltas": [
+        {
+          "run_id": "019f0e4c-c02a-7753-b125-eab51e8d0578",
+          "actor": "historical-corpus-analysis",
+          "delta_type": "CREATE",
+          "payload_sha256": "f98a8db7f1a43cedd238a749ff296e34c137f9d9e5841bb53d3896053e1bb0b4",
+          "explanation": {
+            "source": "session-verifier@1",
+            "repoPath": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+            "command": "uv run pytest tests/test_rep675_transactional_comms_view.py",
+            "failureRef": "hook:hook-46b14cf72d6aff1f3afa4489",
+            "recoveryRef": "hook:hook-a2f59fd29b4f07da139e5d73",
+            "evidenceKind": "historical-observation",
+            "causalCredit": false,
+            "report": "/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/candidates.json",
+            "evidence": [
+              {
+                "sessionId": "019f0e4c-c02a-7753-b125-eab51e8d0578",
+                "failure": {
+                  "eventId": "hook-46b14cf72d6aff1f3afa4489",
+                  "exitCode": 1,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/28/rollout-2026-06-28T22-55-38-019f0e4c-c02a-7753-b125-eab51e8d0578.jsonl",
+                  "line": 277,
+                  "callId": "call_jEQCeYFvJ1oyI2qjtgDQgNve",
+                  "timestamp": "2026-06-28T13:10:17.901Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+                  "outputSha256": "48f14366a65be3be1304f3849cecce78517cb0ef76d295bcec892743ba12cd7a",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                },
+                "recovery": {
+                  "eventId": "hook-a2f59fd29b4f07da139e5d73",
+                  "exitCode": 0,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/28/rollout-2026-06-28T22-55-38-019f0e4c-c02a-7753-b125-eab51e8d0578.jsonl",
+                  "line": 886,
+                  "callId": "call_vW9R9aDsRO4VBckEAlzjFW6A",
+                  "timestamp": "2026-06-28T13:48:44.778Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+                  "outputSha256": "d0ccdd1eb9edaf3cfb7f1d305940d775bd769de66b6afb7f21e91b8121538e71",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                }
+              },
+              {
+                "sessionId": "019f01ea-f48c-7200-a259-03d893a72f84",
+                "failure": {
+                  "eventId": "hook-4e446740a7ea9958f886cf63",
+                  "exitCode": 1,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/26/rollout-2026-06-26T13-13-23-019f01ea-f48c-7200-a259-03d893a72f84.jsonl",
+                  "line": 223,
+                  "callId": "call_iA6x3oeM9HvJy6a7W0ITsr4U",
+                  "timestamp": "2026-06-26T03:20:03.789Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+                  "outputSha256": "3e0b8cc5116839a27237ccf5b8159ca61cacc3a6c06163e210f60654f3b7a29c",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                },
+                "recovery": {
+                  "eventId": "hook-68c371208e23fb7c2dd5c244",
+                  "exitCode": 0,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/26/rollout-2026-06-26T13-13-23-019f01ea-f48c-7200-a259-03d893a72f84.jsonl",
+                  "line": 240,
+                  "callId": "call_u7Or3BvBRs5TVKFSpBR0ydRh",
+                  "timestamp": "2026-06-26T03:22:12.261Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+                  "outputSha256": "c8fa3348ea3cde25966cc4784b62da6ad68c20bdc3ee099cd3d44c1b6d414a55",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                }
+              }
+            ]
+          },
+          "intervention": "Run uv run pytest tests/test_rep675_transactional_comms_view.py after related edits; it caught failures in two earlier sessions in this repository.",
+          "reflector": "local-evidence-review@1",
+          "reflector_model": null
+        },
+        {
+          "run_id": "019f01ea-f48c-7200-a259-03d893a72f84",
+          "actor": "historical-corpus-analysis",
+          "delta_type": "EDIT",
+          "payload_sha256": "bdb1abacc7029c612154f3c14ebb4d3357713b661f2b3846e82c6a977efb7c6f",
+          "explanation": {
+            "source": "session-verifier@1",
+            "repoPath": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+            "command": "uv run pytest tests/test_rep675_transactional_comms_view.py",
+            "failureRef": "hook:hook-46b14cf72d6aff1f3afa4489",
+            "recoveryRef": "hook:hook-a2f59fd29b4f07da139e5d73",
+            "evidenceKind": "historical-observation",
+            "causalCredit": false,
+            "report": "/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/candidates.json",
+            "evidence": [
+              {
+                "sessionId": "019f0e4c-c02a-7753-b125-eab51e8d0578",
+                "failure": {
+                  "eventId": "hook-46b14cf72d6aff1f3afa4489",
+                  "exitCode": 1,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/28/rollout-2026-06-28T22-55-38-019f0e4c-c02a-7753-b125-eab51e8d0578.jsonl",
+                  "line": 277,
+                  "callId": "call_jEQCeYFvJ1oyI2qjtgDQgNve",
+                  "timestamp": "2026-06-28T13:10:17.901Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+                  "outputSha256": "48f14366a65be3be1304f3849cecce78517cb0ef76d295bcec892743ba12cd7a",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                },
+                "recovery": {
+                  "eventId": "hook-a2f59fd29b4f07da139e5d73",
+                  "exitCode": 0,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/28/rollout-2026-06-28T22-55-38-019f0e4c-c02a-7753-b125-eab51e8d0578.jsonl",
+                  "line": 886,
+                  "callId": "call_vW9R9aDsRO4VBckEAlzjFW6A",
+                  "timestamp": "2026-06-28T13:48:44.778Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+                  "outputSha256": "d0ccdd1eb9edaf3cfb7f1d305940d775bd769de66b6afb7f21e91b8121538e71",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                }
+              },
+              {
+                "sessionId": "019f01ea-f48c-7200-a259-03d893a72f84",
+                "failure": {
+                  "eventId": "hook-4e446740a7ea9958f886cf63",
+                  "exitCode": 1,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/26/rollout-2026-06-26T13-13-23-019f01ea-f48c-7200-a259-03d893a72f84.jsonl",
+                  "line": 223,
+                  "callId": "call_iA6x3oeM9HvJy6a7W0ITsr4U",
+                  "timestamp": "2026-06-26T03:20:03.789Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+                  "outputSha256": "3e0b8cc5116839a27237ccf5b8159ca61cacc3a6c06163e210f60654f3b7a29c",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                },
+                "recovery": {
+                  "eventId": "hook-68c371208e23fb7c2dd5c244",
+                  "exitCode": 0,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/26/rollout-2026-06-26T13-13-23-019f01ea-f48c-7200-a259-03d893a72f84.jsonl",
+                  "line": 240,
+                  "callId": "call_u7Or3BvBRs5TVKFSpBR0ydRh",
+                  "timestamp": "2026-06-26T03:22:12.261Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+                  "outputSha256": "c8fa3348ea3cde25966cc4784b62da6ad68c20bdc3ee099cd3d44c1b6d414a55",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                }
+              }
+            ]
+          },
+          "intervention": "Run uv run pytest tests/test_rep675_transactional_comms_view.py after related edits; it caught failures in two earlier sessions in this repository.",
+          "reflector": "local-evidence-review@1",
+          "reflector_model": null
+        }
+      ],
+      "applications": {
+        "records": 0,
+        "outcomes": {}
+      }
+    },
+    {
+      "lesson_id": "les_6507fb874b5106ac",
+      "status": "candidate",
+      "failure_class": "output_generation",
+      "trigger_cue": "session-verifier:0022c22d561584f9bcb8204216bf8009c2a5447d3aac623737bb2a09991b6a71",
+      "intervention": "Run uv run pytest tests/test_rep671_acquisition_completed_view.py after related edits; it caught failures in two earlier sessions in this repository.",
+      "uses": 0,
+      "created_at": "2026-09-09T03:15:44.789Z",
+      "updated_at": "2026-09-09T03:15:44.789Z",
+      "helpful_count": 0,
+      "harmful_count": 0,
+      "reflector_model": null,
+      "executor_model": null,
+      "explanation": {
+        "source": "session-verifier@1",
+        "repoPath": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+        "command": "uv run pytest tests/test_rep671_acquisition_completed_view.py",
+        "failureRef": "hook:hook-71d96bece56aabbea106ccbf",
+        "recoveryRef": "hook:hook-8c34a0584c429455d7ec3d2f",
+        "evidenceKind": "historical-observation",
+        "causalCredit": false,
+        "report": "/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/candidates.json",
+        "evidence": [
+          {
+            "sessionId": "019f5887-cc37-7140-9abf-0a23f8f7107e",
+            "failure": {
+              "eventId": "hook-71d96bece56aabbea106ccbf",
+              "exitCode": 1,
+              "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/07/13/rollout-2026-07-13T08-52-02-019f5887-cc37-7140-9abf-0a23f8f7107e.jsonl",
+              "line": 597,
+              "callId": "call_GV21eDUjXqmq0N1Vm2zrTTZo",
+              "timestamp": "2026-07-13T08:56:07.943Z",
+              "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+              "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+              "outputSha256": "afd23bfa50d0041002361e64dfb28c9ee770a1bf95177ccca4da13d6b84ae747",
+              "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+            },
+            "recovery": {
+              "eventId": "hook-8c34a0584c429455d7ec3d2f",
+              "exitCode": 0,
+              "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/07/13/rollout-2026-07-13T08-52-02-019f5887-cc37-7140-9abf-0a23f8f7107e.jsonl",
+              "line": 612,
+              "callId": "call_3VwKXjeeMlKC7asNwQ19YrqL",
+              "timestamp": "2026-07-13T08:56:31.562Z",
+              "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+              "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+              "outputSha256": "45b88eff6593ac2378b1b0e25c861a518affedbebfba3dabe664502bb0185bfd",
+              "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+            }
+          },
+          {
+            "sessionId": "019f1b40-1591-7811-b542-0327fce275be",
+            "failure": {
+              "eventId": "hook-791195ac0e5db2656f5e1092",
+              "exitCode": 1,
+              "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/07/01/rollout-2026-07-01T11-16-52-019f1b40-1591-7811-b542-0327fce275be.jsonl",
+              "line": 316,
+              "callId": "call_5hqyQtjgT09IPwNLGOZNThzM",
+              "timestamp": "2026-07-01T01:30:14.416Z",
+              "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+              "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+              "outputSha256": "c492dcd7cf93a8f5df2ed5231276aa298abae591746f3206d45fc2dd6f08c2f9",
+              "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+            },
+            "recovery": {
+              "eventId": "hook-baa292c333a160526781367e",
+              "exitCode": 0,
+              "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/07/01/rollout-2026-07-01T11-16-52-019f1b40-1591-7811-b542-0327fce275be.jsonl",
+              "line": 508,
+              "callId": "call_fa0wAF0IoAoSkj8w5WbA7giX",
+              "timestamp": "2026-07-01T04:51:47.435Z",
+              "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+              "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+              "outputSha256": "d31a9fdb4961cdccc9477803962ee8e0154093c70828f34958b48d719f92f1cd",
+              "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+            }
+          }
+        ]
+      },
+      "provenance": [
+        "019f5887-cc37-7140-9abf-0a23f8f7107e",
+        "019f1b40-1591-7811-b542-0327fce275be"
+      ],
+      "lesson_row_sha256": "dcb8708be288a50a993c5eef3ac289dafbb61cd45167badba093a6ba25df68dc",
+      "deltas": [
+        {
+          "run_id": "019f5887-cc37-7140-9abf-0a23f8f7107e",
+          "actor": "historical-corpus-analysis",
+          "delta_type": "CREATE",
+          "payload_sha256": "d5ee5160f569252d7c3af931c4eaa3384aa1f8918d929bc8058fc71abda5dda0",
+          "explanation": {
+            "source": "session-verifier@1",
+            "repoPath": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+            "command": "uv run pytest tests/test_rep671_acquisition_completed_view.py",
+            "failureRef": "hook:hook-71d96bece56aabbea106ccbf",
+            "recoveryRef": "hook:hook-8c34a0584c429455d7ec3d2f",
+            "evidenceKind": "historical-observation",
+            "causalCredit": false,
+            "report": "/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/candidates.json",
+            "evidence": [
+              {
+                "sessionId": "019f5887-cc37-7140-9abf-0a23f8f7107e",
+                "failure": {
+                  "eventId": "hook-71d96bece56aabbea106ccbf",
+                  "exitCode": 1,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/07/13/rollout-2026-07-13T08-52-02-019f5887-cc37-7140-9abf-0a23f8f7107e.jsonl",
+                  "line": 597,
+                  "callId": "call_GV21eDUjXqmq0N1Vm2zrTTZo",
+                  "timestamp": "2026-07-13T08:56:07.943Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+                  "outputSha256": "afd23bfa50d0041002361e64dfb28c9ee770a1bf95177ccca4da13d6b84ae747",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                },
+                "recovery": {
+                  "eventId": "hook-8c34a0584c429455d7ec3d2f",
+                  "exitCode": 0,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/07/13/rollout-2026-07-13T08-52-02-019f5887-cc37-7140-9abf-0a23f8f7107e.jsonl",
+                  "line": 612,
+                  "callId": "call_3VwKXjeeMlKC7asNwQ19YrqL",
+                  "timestamp": "2026-07-13T08:56:31.562Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+                  "outputSha256": "45b88eff6593ac2378b1b0e25c861a518affedbebfba3dabe664502bb0185bfd",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                }
+              },
+              {
+                "sessionId": "019f1b40-1591-7811-b542-0327fce275be",
+                "failure": {
+                  "eventId": "hook-791195ac0e5db2656f5e1092",
+                  "exitCode": 1,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/07/01/rollout-2026-07-01T11-16-52-019f1b40-1591-7811-b542-0327fce275be.jsonl",
+                  "line": 316,
+                  "callId": "call_5hqyQtjgT09IPwNLGOZNThzM",
+                  "timestamp": "2026-07-01T01:30:14.416Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+                  "outputSha256": "c492dcd7cf93a8f5df2ed5231276aa298abae591746f3206d45fc2dd6f08c2f9",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                },
+                "recovery": {
+                  "eventId": "hook-baa292c333a160526781367e",
+                  "exitCode": 0,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/07/01/rollout-2026-07-01T11-16-52-019f1b40-1591-7811-b542-0327fce275be.jsonl",
+                  "line": 508,
+                  "callId": "call_fa0wAF0IoAoSkj8w5WbA7giX",
+                  "timestamp": "2026-07-01T04:51:47.435Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+                  "outputSha256": "d31a9fdb4961cdccc9477803962ee8e0154093c70828f34958b48d719f92f1cd",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                }
+              }
+            ]
+          },
+          "intervention": "Run uv run pytest tests/test_rep671_acquisition_completed_view.py after related edits; it caught failures in two earlier sessions in this repository.",
+          "reflector": "local-evidence-review@1",
+          "reflector_model": null
+        },
+        {
+          "run_id": "019f1b40-1591-7811-b542-0327fce275be",
+          "actor": "historical-corpus-analysis",
+          "delta_type": "EDIT",
+          "payload_sha256": "39f81d7ad248bce44353fc384719991d91ff468262ab2332fa42419487319b1e",
+          "explanation": {
+            "source": "session-verifier@1",
+            "repoPath": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+            "command": "uv run pytest tests/test_rep671_acquisition_completed_view.py",
+            "failureRef": "hook:hook-71d96bece56aabbea106ccbf",
+            "recoveryRef": "hook:hook-8c34a0584c429455d7ec3d2f",
+            "evidenceKind": "historical-observation",
+            "causalCredit": false,
+            "report": "/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/candidates.json",
+            "evidence": [
+              {
+                "sessionId": "019f5887-cc37-7140-9abf-0a23f8f7107e",
+                "failure": {
+                  "eventId": "hook-71d96bece56aabbea106ccbf",
+                  "exitCode": 1,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/07/13/rollout-2026-07-13T08-52-02-019f5887-cc37-7140-9abf-0a23f8f7107e.jsonl",
+                  "line": 597,
+                  "callId": "call_GV21eDUjXqmq0N1Vm2zrTTZo",
+                  "timestamp": "2026-07-13T08:56:07.943Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+                  "outputSha256": "afd23bfa50d0041002361e64dfb28c9ee770a1bf95177ccca4da13d6b84ae747",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                },
+                "recovery": {
+                  "eventId": "hook-8c34a0584c429455d7ec3d2f",
+                  "exitCode": 0,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/07/13/rollout-2026-07-13T08-52-02-019f5887-cc37-7140-9abf-0a23f8f7107e.jsonl",
+                  "line": 612,
+                  "callId": "call_3VwKXjeeMlKC7asNwQ19YrqL",
+                  "timestamp": "2026-07-13T08:56:31.562Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+                  "outputSha256": "45b88eff6593ac2378b1b0e25c861a518affedbebfba3dabe664502bb0185bfd",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                }
+              },
+              {
+                "sessionId": "019f1b40-1591-7811-b542-0327fce275be",
+                "failure": {
+                  "eventId": "hook-791195ac0e5db2656f5e1092",
+                  "exitCode": 1,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/07/01/rollout-2026-07-01T11-16-52-019f1b40-1591-7811-b542-0327fce275be.jsonl",
+                  "line": 316,
+                  "callId": "call_5hqyQtjgT09IPwNLGOZNThzM",
+                  "timestamp": "2026-07-01T01:30:14.416Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+                  "outputSha256": "c492dcd7cf93a8f5df2ed5231276aa298abae591746f3206d45fc2dd6f08c2f9",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                },
+                "recovery": {
+                  "eventId": "hook-baa292c333a160526781367e",
+                  "exitCode": 0,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/07/01/rollout-2026-07-01T11-16-52-019f1b40-1591-7811-b542-0327fce275be.jsonl",
+                  "line": 508,
+                  "callId": "call_fa0wAF0IoAoSkj8w5WbA7giX",
+                  "timestamp": "2026-07-01T04:51:47.435Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+                  "outputSha256": "d31a9fdb4961cdccc9477803962ee8e0154093c70828f34958b48d719f92f1cd",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                }
+              }
+            ]
+          },
+          "intervention": "Run uv run pytest tests/test_rep671_acquisition_completed_view.py after related edits; it caught failures in two earlier sessions in this repository.",
+          "reflector": "local-evidence-review@1",
+          "reflector_model": null
+        }
+      ],
+      "applications": {
+        "records": 0,
+        "outcomes": {}
+      }
+    },
+    {
+      "lesson_id": "les_5786abb453e33871",
+      "status": "candidate",
+      "failure_class": "output_generation",
+      "trigger_cue": "session-verifier:81f30916d12b8963f647981559fefa84a0f5a42037f0d5c1978d24f06d034d1f",
+      "intervention": "Run uv run pytest tests/test_rep674_life_support_registered_view.py after related edits; it caught failures in two earlier sessions in this repository.",
+      "uses": 0,
+      "created_at": "2026-09-09T03:15:44.790Z",
+      "updated_at": "2026-09-09T03:15:44.790Z",
+      "helpful_count": 0,
+      "harmful_count": 0,
+      "reflector_model": null,
+      "executor_model": null,
+      "explanation": {
+        "source": "session-verifier@1",
+        "repoPath": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+        "command": "uv run pytest tests/test_rep674_life_support_registered_view.py",
+        "failureRef": "hook:hook-05b8c5aeb1831e20514df57f",
+        "recoveryRef": "hook:hook-928cedeef36746231204a320",
+        "evidenceKind": "historical-observation",
+        "causalCredit": false,
+        "report": "/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/candidates.json",
+        "evidence": [
+          {
+            "sessionId": "019f0d28-1479-7aa3-b6ec-b35ac87246b7",
+            "failure": {
+              "eventId": "hook-05b8c5aeb1831e20514df57f",
+              "exitCode": 1,
+              "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/28/rollout-2026-06-28T17-35-58-019f0d28-1479-7aa3-b6ec-b35ac87246b7.jsonl",
+              "line": 1058,
+              "callId": "call_GkXi947t5uQS3HRKCu2Jtghb",
+              "timestamp": "2026-06-28T13:55:23.213Z",
+              "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+              "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+              "outputSha256": "2f2fff377956c50d21197b19e7167a0a0592fef9914971d2b10f4cb723b0c052",
+              "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+            },
+            "recovery": {
+              "eventId": "hook-928cedeef36746231204a320",
+              "exitCode": 0,
+              "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/28/rollout-2026-06-28T17-35-58-019f0d28-1479-7aa3-b6ec-b35ac87246b7.jsonl",
+              "line": 1269,
+              "callId": "call_LqUnp1tZTwO3jh3fNNdRlYmU",
+              "timestamp": "2026-06-28T23:07:33.276Z",
+              "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+              "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+              "outputSha256": "e9d16d0d345f417eca6dbe900c408b6826e79c94a262cf2af94af91810729542",
+              "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+            }
+          },
+          {
+            "sessionId": "019efc4c-7660-78e0-b4a0-1975b6ae2945",
+            "failure": {
+              "eventId": "hook-f7f73c4253bca85028e6de6d",
+              "exitCode": 1,
+              "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/25/rollout-2026-06-25T11-02-10-019efc4c-7660-78e0-b4a0-1975b6ae2945.jsonl",
+              "line": 465,
+              "callId": "call_iiWYMiS1oGrDsasoXTLiwGTN",
+              "timestamp": "2026-06-25T12:13:41.204Z",
+              "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+              "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+              "outputSha256": "47bc81bb87553407553402c5194bbb60619463f37a7e51b23bd7bb1b6cdad218",
+              "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+            },
+            "recovery": {
+              "eventId": "hook-488f5f72b9f9d5359a60e032",
+              "exitCode": 0,
+              "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/25/rollout-2026-06-25T11-02-10-019efc4c-7660-78e0-b4a0-1975b6ae2945.jsonl",
+              "line": 477,
+              "callId": "call_avI6QusCtWKFjiT407dFGQtM",
+              "timestamp": "2026-06-25T12:13:52.841Z",
+              "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+              "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+              "outputSha256": "a22a482196803e3fe3b295952d0ad5e028d2bbeed2268de4065bd6b2bd7cefda",
+              "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+            }
+          }
+        ]
+      },
+      "provenance": [
+        "019f0d28-1479-7aa3-b6ec-b35ac87246b7",
+        "019efc4c-7660-78e0-b4a0-1975b6ae2945"
+      ],
+      "lesson_row_sha256": "df6f58679260dbb6bc9720d0e72cc28e1c55bd8af372bf5a134c4a8bda12ea70",
+      "deltas": [
+        {
+          "run_id": "019f0d28-1479-7aa3-b6ec-b35ac87246b7",
+          "actor": "historical-corpus-analysis",
+          "delta_type": "CREATE",
+          "payload_sha256": "c30a02c5181b5ea8f027a667d9fa4de107f4ba34cf61430864ce545743c30a47",
+          "explanation": {
+            "source": "session-verifier@1",
+            "repoPath": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+            "command": "uv run pytest tests/test_rep674_life_support_registered_view.py",
+            "failureRef": "hook:hook-05b8c5aeb1831e20514df57f",
+            "recoveryRef": "hook:hook-928cedeef36746231204a320",
+            "evidenceKind": "historical-observation",
+            "causalCredit": false,
+            "report": "/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/candidates.json",
+            "evidence": [
+              {
+                "sessionId": "019f0d28-1479-7aa3-b6ec-b35ac87246b7",
+                "failure": {
+                  "eventId": "hook-05b8c5aeb1831e20514df57f",
+                  "exitCode": 1,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/28/rollout-2026-06-28T17-35-58-019f0d28-1479-7aa3-b6ec-b35ac87246b7.jsonl",
+                  "line": 1058,
+                  "callId": "call_GkXi947t5uQS3HRKCu2Jtghb",
+                  "timestamp": "2026-06-28T13:55:23.213Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+                  "outputSha256": "2f2fff377956c50d21197b19e7167a0a0592fef9914971d2b10f4cb723b0c052",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                },
+                "recovery": {
+                  "eventId": "hook-928cedeef36746231204a320",
+                  "exitCode": 0,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/28/rollout-2026-06-28T17-35-58-019f0d28-1479-7aa3-b6ec-b35ac87246b7.jsonl",
+                  "line": 1269,
+                  "callId": "call_LqUnp1tZTwO3jh3fNNdRlYmU",
+                  "timestamp": "2026-06-28T23:07:33.276Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+                  "outputSha256": "e9d16d0d345f417eca6dbe900c408b6826e79c94a262cf2af94af91810729542",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                }
+              },
+              {
+                "sessionId": "019efc4c-7660-78e0-b4a0-1975b6ae2945",
+                "failure": {
+                  "eventId": "hook-f7f73c4253bca85028e6de6d",
+                  "exitCode": 1,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/25/rollout-2026-06-25T11-02-10-019efc4c-7660-78e0-b4a0-1975b6ae2945.jsonl",
+                  "line": 465,
+                  "callId": "call_iiWYMiS1oGrDsasoXTLiwGTN",
+                  "timestamp": "2026-06-25T12:13:41.204Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+                  "outputSha256": "47bc81bb87553407553402c5194bbb60619463f37a7e51b23bd7bb1b6cdad218",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                },
+                "recovery": {
+                  "eventId": "hook-488f5f72b9f9d5359a60e032",
+                  "exitCode": 0,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/25/rollout-2026-06-25T11-02-10-019efc4c-7660-78e0-b4a0-1975b6ae2945.jsonl",
+                  "line": 477,
+                  "callId": "call_avI6QusCtWKFjiT407dFGQtM",
+                  "timestamp": "2026-06-25T12:13:52.841Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+                  "outputSha256": "a22a482196803e3fe3b295952d0ad5e028d2bbeed2268de4065bd6b2bd7cefda",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                }
+              }
+            ]
+          },
+          "intervention": "Run uv run pytest tests/test_rep674_life_support_registered_view.py after related edits; it caught failures in two earlier sessions in this repository.",
+          "reflector": "local-evidence-review@1",
+          "reflector_model": null
+        },
+        {
+          "run_id": "019efc4c-7660-78e0-b4a0-1975b6ae2945",
+          "actor": "historical-corpus-analysis",
+          "delta_type": "EDIT",
+          "payload_sha256": "5bbd35f328f9e1df491df8a7ab46832022970f3653eeafa512fd2172d1a217e7",
+          "explanation": {
+            "source": "session-verifier@1",
+            "repoPath": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+            "command": "uv run pytest tests/test_rep674_life_support_registered_view.py",
+            "failureRef": "hook:hook-05b8c5aeb1831e20514df57f",
+            "recoveryRef": "hook:hook-928cedeef36746231204a320",
+            "evidenceKind": "historical-observation",
+            "causalCredit": false,
+            "report": "/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/candidates.json",
+            "evidence": [
+              {
+                "sessionId": "019f0d28-1479-7aa3-b6ec-b35ac87246b7",
+                "failure": {
+                  "eventId": "hook-05b8c5aeb1831e20514df57f",
+                  "exitCode": 1,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/28/rollout-2026-06-28T17-35-58-019f0d28-1479-7aa3-b6ec-b35ac87246b7.jsonl",
+                  "line": 1058,
+                  "callId": "call_GkXi947t5uQS3HRKCu2Jtghb",
+                  "timestamp": "2026-06-28T13:55:23.213Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+                  "outputSha256": "2f2fff377956c50d21197b19e7167a0a0592fef9914971d2b10f4cb723b0c052",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                },
+                "recovery": {
+                  "eventId": "hook-928cedeef36746231204a320",
+                  "exitCode": 0,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/28/rollout-2026-06-28T17-35-58-019f0d28-1479-7aa3-b6ec-b35ac87246b7.jsonl",
+                  "line": 1269,
+                  "callId": "call_LqUnp1tZTwO3jh3fNNdRlYmU",
+                  "timestamp": "2026-06-28T23:07:33.276Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+                  "outputSha256": "e9d16d0d345f417eca6dbe900c408b6826e79c94a262cf2af94af91810729542",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                }
+              },
+              {
+                "sessionId": "019efc4c-7660-78e0-b4a0-1975b6ae2945",
+                "failure": {
+                  "eventId": "hook-f7f73c4253bca85028e6de6d",
+                  "exitCode": 1,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/25/rollout-2026-06-25T11-02-10-019efc4c-7660-78e0-b4a0-1975b6ae2945.jsonl",
+                  "line": 465,
+                  "callId": "call_iiWYMiS1oGrDsasoXTLiwGTN",
+                  "timestamp": "2026-06-25T12:13:41.204Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+                  "outputSha256": "47bc81bb87553407553402c5194bbb60619463f37a7e51b23bd7bb1b6cdad218",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                },
+                "recovery": {
+                  "eventId": "hook-488f5f72b9f9d5359a60e032",
+                  "exitCode": 0,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/25/rollout-2026-06-25T11-02-10-019efc4c-7660-78e0-b4a0-1975b6ae2945.jsonl",
+                  "line": 477,
+                  "callId": "call_avI6QusCtWKFjiT407dFGQtM",
+                  "timestamp": "2026-06-25T12:13:52.841Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+                  "outputSha256": "a22a482196803e3fe3b295952d0ad5e028d2bbeed2268de4065bd6b2bd7cefda",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                }
+              }
+            ]
+          },
+          "intervention": "Run uv run pytest tests/test_rep674_life_support_registered_view.py after related edits; it caught failures in two earlier sessions in this repository.",
+          "reflector": "local-evidence-review@1",
+          "reflector_model": null
+        }
+      ],
+      "applications": {
+        "records": 0,
+        "outcomes": {}
+      }
+    },
+    {
+      "lesson_id": "les_decf0d0bec470f39",
+      "status": "candidate",
+      "failure_class": "output_generation",
+      "trigger_cue": "session-verifier:0c33a9698f4257f4de978eeed93127c574d8119e4e626a9ea93f144b9e7203c1",
+      "intervention": "Run uv run pytest tests/test_rep621_crystalbrook_monthly_invoice_delivery.py after related edits; it caught failures in two earlier sessions in this repository.",
+      "uses": 3,
+      "created_at": "2026-09-09T03:15:44.790Z",
+      "updated_at": "2026-09-09T03:15:44.790Z",
+      "helpful_count": 0,
+      "harmful_count": 0,
+      "reflector_model": null,
+      "executor_model": null,
+      "explanation": {
+        "source": "session-verifier@1",
+        "repoPath": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+        "command": "uv run pytest tests/test_rep621_crystalbrook_monthly_invoice_delivery.py",
+        "failureRef": "hook:hook-5332e927e1c141eb029860bf",
+        "recoveryRef": "hook:hook-d2ec4c0af8b9058bd1627b03",
+        "evidenceKind": "historical-observation",
+        "causalCredit": false,
+        "report": "/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/candidates.json",
+        "evidence": [
+          {
+            "sessionId": "019e803e-4dad-7c23-8a3a-15e080a10880",
+            "failure": {
+              "eventId": "hook-5332e927e1c141eb029860bf",
+              "exitCode": 1,
+              "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/01/rollout-2026-06-01T08-53-47-019e803e-4dad-7c23-8a3a-15e080a10880.jsonl",
+              "line": 10306,
+              "callId": "call_LlNxf32kEewoPAO0m0QKH6dp",
+              "timestamp": "2026-06-03T01:24:13.037Z",
+              "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+              "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+              "outputSha256": "89865ebc6c78bbb4311c8f7609bb98a226e3e5f69c7a3626f0a825d322d9b8d3",
+              "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+            },
+            "recovery": {
+              "eventId": "hook-d2ec4c0af8b9058bd1627b03",
+              "exitCode": 0,
+              "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/01/rollout-2026-06-01T08-53-47-019e803e-4dad-7c23-8a3a-15e080a10880.jsonl",
+              "line": 10702,
+              "callId": "call_bguOkr5HIUpE3XSC2reLbeIM",
+              "timestamp": "2026-06-03T03:31:23.406Z",
+              "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+              "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+              "outputSha256": "d2645f7b02f2102c071f5db5cb274eea9774587a1083c6505ef4acc67ea04edf",
+              "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+            }
+          },
+          {
+            "sessionId": "019e8be7-b3d8-7782-8316-3ec8ef79cf9a",
+            "failure": {
+              "eventId": "hook-f26e3fb99b307cb440d1c9f1",
+              "exitCode": 1,
+              "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/03/rollout-2026-06-03T15-14-38-019e8be7-b3d8-7782-8316-3ec8ef79cf9a.jsonl",
+              "line": 2263,
+              "callId": "call_7KN2DnYfvmnF1qWLBLynUSrv",
+              "timestamp": "2026-06-04T03:48:53.918Z",
+              "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+              "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+              "outputSha256": "73ef22b5bb2ef56fe8657986f4fd1fbd610d1fe893f7bb882b1281044e56cc29",
+              "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+            },
+            "recovery": {
+              "eventId": "hook-fd1e2a59c805c38a918b773b",
+              "exitCode": 0,
+              "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/03/rollout-2026-06-03T15-14-38-019e8be7-b3d8-7782-8316-3ec8ef79cf9a.jsonl",
+              "line": 4763,
+              "callId": "call_j9uWci7z70lyxhYiY9GNgODi",
+              "timestamp": "2026-06-05T02:43:38.539Z",
+              "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+              "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+              "outputSha256": "80a8af20d48e0c083120db5b4ef9c72597d706f8eb333e4372eae6e0a7534c5d",
+              "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+            }
+          }
+        ]
+      },
+      "provenance": [
+        "019e803e-4dad-7c23-8a3a-15e080a10880",
+        "019e8be7-b3d8-7782-8316-3ec8ef79cf9a"
+      ],
+      "lesson_row_sha256": "a21ef05c14754c437282b35591f9f9651d84556c06d2ebfdf14addc02b67197a",
+      "deltas": [
+        {
+          "run_id": "019e803e-4dad-7c23-8a3a-15e080a10880",
+          "actor": "historical-corpus-analysis",
+          "delta_type": "CREATE",
+          "payload_sha256": "331fa5ebd1f5a6057eff73b2d52be892dc44489cbc6d8cd9a9c5cbdcc12febe2",
+          "explanation": {
+            "source": "session-verifier@1",
+            "repoPath": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+            "command": "uv run pytest tests/test_rep621_crystalbrook_monthly_invoice_delivery.py",
+            "failureRef": "hook:hook-5332e927e1c141eb029860bf",
+            "recoveryRef": "hook:hook-d2ec4c0af8b9058bd1627b03",
+            "evidenceKind": "historical-observation",
+            "causalCredit": false,
+            "report": "/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/candidates.json",
+            "evidence": [
+              {
+                "sessionId": "019e803e-4dad-7c23-8a3a-15e080a10880",
+                "failure": {
+                  "eventId": "hook-5332e927e1c141eb029860bf",
+                  "exitCode": 1,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/01/rollout-2026-06-01T08-53-47-019e803e-4dad-7c23-8a3a-15e080a10880.jsonl",
+                  "line": 10306,
+                  "callId": "call_LlNxf32kEewoPAO0m0QKH6dp",
+                  "timestamp": "2026-06-03T01:24:13.037Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+                  "outputSha256": "89865ebc6c78bbb4311c8f7609bb98a226e3e5f69c7a3626f0a825d322d9b8d3",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                },
+                "recovery": {
+                  "eventId": "hook-d2ec4c0af8b9058bd1627b03",
+                  "exitCode": 0,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/01/rollout-2026-06-01T08-53-47-019e803e-4dad-7c23-8a3a-15e080a10880.jsonl",
+                  "line": 10702,
+                  "callId": "call_bguOkr5HIUpE3XSC2reLbeIM",
+                  "timestamp": "2026-06-03T03:31:23.406Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+                  "outputSha256": "d2645f7b02f2102c071f5db5cb274eea9774587a1083c6505ef4acc67ea04edf",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                }
+              },
+              {
+                "sessionId": "019e8be7-b3d8-7782-8316-3ec8ef79cf9a",
+                "failure": {
+                  "eventId": "hook-f26e3fb99b307cb440d1c9f1",
+                  "exitCode": 1,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/03/rollout-2026-06-03T15-14-38-019e8be7-b3d8-7782-8316-3ec8ef79cf9a.jsonl",
+                  "line": 2263,
+                  "callId": "call_7KN2DnYfvmnF1qWLBLynUSrv",
+                  "timestamp": "2026-06-04T03:48:53.918Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+                  "outputSha256": "73ef22b5bb2ef56fe8657986f4fd1fbd610d1fe893f7bb882b1281044e56cc29",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                },
+                "recovery": {
+                  "eventId": "hook-fd1e2a59c805c38a918b773b",
+                  "exitCode": 0,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/03/rollout-2026-06-03T15-14-38-019e8be7-b3d8-7782-8316-3ec8ef79cf9a.jsonl",
+                  "line": 4763,
+                  "callId": "call_j9uWci7z70lyxhYiY9GNgODi",
+                  "timestamp": "2026-06-05T02:43:38.539Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+                  "outputSha256": "80a8af20d48e0c083120db5b4ef9c72597d706f8eb333e4372eae6e0a7534c5d",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                }
+              }
+            ]
+          },
+          "intervention": "Run uv run pytest tests/test_rep621_crystalbrook_monthly_invoice_delivery.py after related edits; it caught failures in two earlier sessions in this repository.",
+          "reflector": "local-evidence-review@1",
+          "reflector_model": null
+        },
+        {
+          "run_id": "019e8be7-b3d8-7782-8316-3ec8ef79cf9a",
+          "actor": "historical-corpus-analysis",
+          "delta_type": "EDIT",
+          "payload_sha256": "c8b3ed3dc8643b28679bbbf2b2f93eaa612e81f1ea2886154394e2ba9d9bb619",
+          "explanation": {
+            "source": "session-verifier@1",
+            "repoPath": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+            "command": "uv run pytest tests/test_rep621_crystalbrook_monthly_invoice_delivery.py",
+            "failureRef": "hook:hook-5332e927e1c141eb029860bf",
+            "recoveryRef": "hook:hook-d2ec4c0af8b9058bd1627b03",
+            "evidenceKind": "historical-observation",
+            "causalCredit": false,
+            "report": "/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/candidates.json",
+            "evidence": [
+              {
+                "sessionId": "019e803e-4dad-7c23-8a3a-15e080a10880",
+                "failure": {
+                  "eventId": "hook-5332e927e1c141eb029860bf",
+                  "exitCode": 1,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/01/rollout-2026-06-01T08-53-47-019e803e-4dad-7c23-8a3a-15e080a10880.jsonl",
+                  "line": 10306,
+                  "callId": "call_LlNxf32kEewoPAO0m0QKH6dp",
+                  "timestamp": "2026-06-03T01:24:13.037Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+                  "outputSha256": "89865ebc6c78bbb4311c8f7609bb98a226e3e5f69c7a3626f0a825d322d9b8d3",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                },
+                "recovery": {
+                  "eventId": "hook-d2ec4c0af8b9058bd1627b03",
+                  "exitCode": 0,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/01/rollout-2026-06-01T08-53-47-019e803e-4dad-7c23-8a3a-15e080a10880.jsonl",
+                  "line": 10702,
+                  "callId": "call_bguOkr5HIUpE3XSC2reLbeIM",
+                  "timestamp": "2026-06-03T03:31:23.406Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+                  "outputSha256": "d2645f7b02f2102c071f5db5cb274eea9774587a1083c6505ef4acc67ea04edf",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                }
+              },
+              {
+                "sessionId": "019e8be7-b3d8-7782-8316-3ec8ef79cf9a",
+                "failure": {
+                  "eventId": "hook-f26e3fb99b307cb440d1c9f1",
+                  "exitCode": 1,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/03/rollout-2026-06-03T15-14-38-019e8be7-b3d8-7782-8316-3ec8ef79cf9a.jsonl",
+                  "line": 2263,
+                  "callId": "call_7KN2DnYfvmnF1qWLBLynUSrv",
+                  "timestamp": "2026-06-04T03:48:53.918Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+                  "outputSha256": "73ef22b5bb2ef56fe8657986f4fd1fbd610d1fe893f7bb882b1281044e56cc29",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                },
+                "recovery": {
+                  "eventId": "hook-fd1e2a59c805c38a918b773b",
+                  "exitCode": 0,
+                  "transcriptPath": "/Users/marcus.kim/.codex/sessions/2026/06/03/rollout-2026-06-03T15-14-38-019e8be7-b3d8-7782-8316-3ec8ef79cf9a.jsonl",
+                  "line": 4763,
+                  "callId": "call_j9uWci7z70lyxhYiY9GNgODi",
+                  "timestamp": "2026-06-05T02:43:38.539Z",
+                  "workingDirectory": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+                  "explicitWorkdir": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+                  "outputSha256": "80a8af20d48e0c083120db5b4ef9c72597d706f8eb333e4372eae6e0a7534c5d",
+                  "method": "exact transcript path + call ID + command; anchored native exec_command completion header"
+                }
+              }
+            ]
+          },
+          "intervention": "Run uv run pytest tests/test_rep621_crystalbrook_monthly_invoice_delivery.py after related edits; it caught failures in two earlier sessions in this repository.",
+          "reflector": "local-evidence-review@1",
+          "reflector_model": null
+        }
+      ],
+      "applications": {
+        "records": 3,
+        "outcomes": {
+          "unobserved": 3
+        }
+      }
+    },
+    {
+      "lesson_id": "les_5572502d207f95ea",
+      "status": "candidate",
+      "failure_class": "output_generation",
+      "trigger_cue": "session-verifier:bdba766400fca7dbc928fd773ff991a64d1cb0f89769302c48df97f5c17e1724",
+      "intervention": "Run pytest tests/test_rep744_plan_switch_validation.py -v after the final edit; it caught a failure in earlier work in this repository.",
+      "uses": 0,
+      "created_at": "2026-11-16T10:38:13.823Z",
+      "updated_at": "2026-11-16T10:38:13.823Z",
+      "helpful_count": 0,
+      "harmful_count": 0,
+      "reflector_model": null,
+      "executor_model": null,
+      "explanation": {
+        "source": "session-verifier@1",
+        "repoPath": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-744",
+        "command": "pytest tests/test_rep744_plan_switch_validation.py -v",
+        "failureRef": "hook:hook-598e2abbc03a6a5cc27fba2f",
+        "recoveryRef": "hook:hook-75f704e15927099d3d37582e"
+      },
+      "provenance": [
+        "session_c950d312-a0f1-495d-8abf-407d7a96ee1d"
+      ],
+      "lesson_row_sha256": "cbf64e05728f84778f69997a51a08be8349ba51e4d68164e116b54ea55b2671b",
+      "deltas": [
+        {
+          "run_id": "session_c950d312-a0f1-495d-8abf-407d7a96ee1d",
+          "actor": "session-bridge",
+          "delta_type": "CREATE",
+          "payload_sha256": "fac1194b32474b440f8d97e28977f7f3253e4ea66bc097557df7d7148d7efaaf",
+          "explanation": {
+            "source": "session-verifier@1",
+            "repoPath": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-744",
+            "command": "pytest tests/test_rep744_plan_switch_validation.py -v",
+            "failureRef": "hook:hook-598e2abbc03a6a5cc27fba2f",
+            "recoveryRef": "hook:hook-75f704e15927099d3d37582e"
+          },
+          "intervention": "Run pytest tests/test_rep744_plan_switch_validation.py -v after the final edit; it caught a failure in earlier work in this repository.",
+          "reflector": null,
+          "reflector_model": null
+        }
+      ],
+      "applications": {
+        "records": 0,
+        "outcomes": {}
+      }
+    },
+    {
+      "lesson_id": "les_542317744bf1b7ea",
+      "status": "candidate",
+      "failure_class": "output_generation",
+      "trigger_cue": "session-verifier:c31a2954584ffc7886c081b0f8d1aa67aaa2cf995a131d62b43ca3e87c0a6757",
+      "intervention": "Run node --test tests/transcript-import.test.ts after the final edit; it caught a failure in earlier work in this repository.",
+      "uses": 0,
+      "created_at": "2026-11-20T21:23:35.884Z",
+      "updated_at": "2026-11-20T21:23:35.884Z",
+      "helpful_count": 0,
+      "harmful_count": 0,
+      "reflector_model": null,
+      "executor_model": null,
+      "explanation": {
+        "source": "session-verifier@1",
+        "repoPath": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.claude/worktrees/account-ban-chat-backup-4cf3f3",
+        "command": "node --test tests/transcript-import.test.ts",
+        "failureRef": "hook:hook-8ba550db1af60e351181a089",
+        "recoveryRef": "hook:hook-4fb2f848fdc9a71324b225d1"
+      },
+      "provenance": [
+        "0850dc6c-1c63-42c5-b1a2-cb04d3c05cac"
+      ],
+      "lesson_row_sha256": "af12e636b3d61a64c300d6220ebd6a88ac2c994eb4edbf9f4952837ef2f7ce0c",
+      "deltas": [
+        {
+          "run_id": "0850dc6c-1c63-42c5-b1a2-cb04d3c05cac",
+          "actor": "session-bridge",
+          "delta_type": "CREATE",
+          "payload_sha256": "d9f0142d4b434aa7de29fcb752990a0b97837a8aca30a5a088c60c7bab487bef",
+          "explanation": {
+            "source": "session-verifier@1",
+            "repoPath": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.claude/worktrees/account-ban-chat-backup-4cf3f3",
+            "command": "node --test tests/transcript-import.test.ts",
+            "failureRef": "hook:hook-8ba550db1af60e351181a089",
+            "recoveryRef": "hook:hook-4fb2f848fdc9a71324b225d1"
+          },
+          "intervention": "Run node --test tests/transcript-import.test.ts after the final edit; it caught a failure in earlier work in this repository.",
+          "reflector": null,
+          "reflector_model": null
+        }
+      ],
+      "applications": {
+        "records": 0,
+        "outcomes": {}
+      }
+    }
+  ],
+  "hook_evidence": [
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC02NTUvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-5332e927e1c141eb029860bf",
+      "session_id": "019e803e-4dad-7c23-8a3a-15e080a10880",
+      "turn_id": "019e8b06-614e-70d2-bd75-50e83c7e109c",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+      "model": "gpt-5.5",
+      "lyo_version": "0.1.7",
+      "created_at": "2026-06-03T03:46:46.779Z",
+      "imported_at": "2026-06-12T17:33:48.198Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+      "command": "uv run pytest tests/test_rep621_crystalbrook_monthly_invoice_delivery.py",
+      "payload_sha256": "834d2b81ec3f846df7f00698535efc5a2a84417506dfa595ba70f4e49556f87d",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_LlNxf32kEewoPAO0m0QKH6dp"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC02NTUvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-d2ec4c0af8b9058bd1627b03",
+      "session_id": "019e803e-4dad-7c23-8a3a-15e080a10880",
+      "turn_id": "019e8b06-614e-70d2-bd75-50e83c7e109c",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+      "model": "gpt-5.5",
+      "lyo_version": "0.1.7",
+      "created_at": "2026-06-03T03:46:47.673Z",
+      "imported_at": "2026-06-12T17:33:48.198Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+      "command": "uv run pytest tests/test_rep621_crystalbrook_monthly_invoice_delivery.py",
+      "payload_sha256": "295757b09eb3bf8e889a9f1242c89f772d29cafdb4f22a76c68df9093d9ff61b",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_bguOkr5HIUpE3XSC2reLbeIM"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC02NTUvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-f26e3fb99b307cb440d1c9f1",
+      "session_id": "019e8be7-b3d8-7782-8316-3ec8ef79cf9a",
+      "turn_id": "019e90bb-fb28-7313-a7b4-9dca9fd43135",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+      "model": "gpt-5.5",
+      "lyo_version": "0.1.7",
+      "created_at": "2026-06-04T03:54:11.818Z",
+      "imported_at": "2026-06-12T17:33:48.198Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+      "command": "uv run pytest tests/test_rep621_crystalbrook_monthly_invoice_delivery.py",
+      "payload_sha256": "7e312bbd6ceec6329df7935a865a704ed2a6daa40b987a6730544842b33614f3",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_7KN2DnYfvmnF1qWLBLynUSrv"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC02NTUvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-fd1e2a59c805c38a918b773b",
+      "session_id": "019e8be7-b3d8-7782-8316-3ec8ef79cf9a",
+      "turn_id": "019e959e-c0ec-7e82-8afd-610de1379e93",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+      "model": "gpt-5.5",
+      "lyo_version": "0.1.7",
+      "created_at": "2026-06-05T02:47:12.251Z",
+      "imported_at": "2026-06-12T17:33:48.198Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+      "command": "uv run pytest tests/test_rep621_crystalbrook_monthly_invoice_delivery.py",
+      "payload_sha256": "5268a6c01811f8076c53265ac9da1e8a91aa3003ecfaa82401b0286255a87216",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_j9uWci7z70lyxhYiY9GNgODi"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC02NzEvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-791195ac0e5db2656f5e1092",
+      "session_id": "019f1b40-1591-7811-b542-0327fce275be",
+      "turn_id": "019f1b4b-690f-7330-9388-4e35268070d3",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+      "model": "gpt-5.5",
+      "lyo_version": "0.2.1",
+      "created_at": "2026-07-01T01:31:12.727Z",
+      "imported_at": "2026-09-09T01:34:57.056Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+      "command": "uv run pytest tests/test_rep671_acquisition_completed_view.py",
+      "payload_sha256": "dcdfc6b9f248a14440fa72f496c31a836fd3434a5203df1e993fa7bc683e8e95",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_5hqyQtjgT09IPwNLGOZNThzM"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC02NzEvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-baa292c333a160526781367e",
+      "session_id": "019f1b40-1591-7811-b542-0327fce275be",
+      "turn_id": "019f1c04-1df9-7423-bcb3-e5a69cba2d4f",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+      "model": "gpt-5.5",
+      "lyo_version": "0.2.1",
+      "created_at": "2026-07-01T04:51:51.128Z",
+      "imported_at": "2026-09-09T01:34:57.056Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+      "command": "uv run pytest tests/test_rep671_acquisition_completed_view.py",
+      "payload_sha256": "1211b90317be7000dd21a9809c6121d081abab1cb47f5e1afbab6487782ccbd5",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_fa0wAF0IoAoSkj8w5WbA7giX"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC02NzEvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-71d96bece56aabbea106ccbf",
+      "session_id": "019f5887-cc37-7140-9abf-0a23f8f7107e",
+      "turn_id": "019f5aab-d06d-72b3-9f79-2c41f80e0b37",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+      "model": "gpt-5.5",
+      "lyo_version": "0.2.1",
+      "created_at": "2026-07-13T08:57:39.204Z",
+      "imported_at": "2026-09-09T01:34:57.056Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+      "command": "uv run pytest tests/test_rep671_acquisition_completed_view.py",
+      "payload_sha256": "0d1fc187f7c8f32c1bb47945ece58e8607e0dae1d532eb7ed828d9af26ca8f45",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_GV21eDUjXqmq0N1Vm2zrTTZo"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC02NzEvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-8c34a0584c429455d7ec3d2f",
+      "session_id": "019f5887-cc37-7140-9abf-0a23f8f7107e",
+      "turn_id": "019f5aab-d06d-72b3-9f79-2c41f80e0b37",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+      "model": "gpt-5.5",
+      "lyo_version": "0.2.1",
+      "created_at": "2026-07-13T08:57:39.240Z",
+      "imported_at": "2026-09-09T01:34:57.056Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671",
+      "command": "uv run pytest tests/test_rep671_acquisition_completed_view.py",
+      "payload_sha256": "d7806c3d587ca24525939c98be81cef29c589bacbbeaa0d65e12c5439f3a277d",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_3VwKXjeeMlKC7asNwQ19YrqL"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC02NzQvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-f7f73c4253bca85028e6de6d",
+      "session_id": "019efc4c-7660-78e0-b4a0-1975b6ae2945",
+      "turn_id": "019efeb1-f262-71c3-9c75-8d551bafa741",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+      "model": "gpt-5.5",
+      "lyo_version": "0.2.1",
+      "created_at": "2026-06-25T12:15:10.601Z",
+      "imported_at": "2026-09-09T01:34:57.155Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+      "command": "uv run pytest tests/test_rep674_life_support_registered_view.py",
+      "payload_sha256": "144c03c807c2204d000d5d348099bba5f0a3f60ffbec0062008105747a66a2b8",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_iiWYMiS1oGrDsasoXTLiwGTN"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC02NzQvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-488f5f72b9f9d5359a60e032",
+      "session_id": "019efc4c-7660-78e0-b4a0-1975b6ae2945",
+      "turn_id": "019efeb1-f262-71c3-9c75-8d551bafa741",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+      "model": "gpt-5.5",
+      "lyo_version": "0.2.1",
+      "created_at": "2026-06-25T12:15:10.620Z",
+      "imported_at": "2026-09-09T01:34:57.155Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+      "command": "uv run pytest tests/test_rep674_life_support_registered_view.py",
+      "payload_sha256": "42549c74d5817bcfcc1bc588cfb13e386ed67586e1a1a7ae1701392f1ecf1f37",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_avI6QusCtWKFjiT407dFGQtM"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC02NzQvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-05b8c5aeb1831e20514df57f",
+      "session_id": "019f0d28-1479-7aa3-b6ec-b35ac87246b7",
+      "turn_id": "019f0e7a-2d46-7971-90ba-4f2daae8abdd",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+      "model": "gpt-5.5",
+      "lyo_version": "0.2.1",
+      "created_at": "2026-06-28T13:57:07.799Z",
+      "imported_at": "2026-09-09T01:34:57.155Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+      "command": "uv run pytest tests/test_rep674_life_support_registered_view.py",
+      "payload_sha256": "ae9367a5ce04616de3a363f7e1076543f756e5b6ef152f06b1f0a0afef8862fd",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_GkXi947t5uQS3HRKCu2Jtghb"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC02NzQvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-928cedeef36746231204a320",
+      "session_id": "019f0d28-1479-7aa3-b6ec-b35ac87246b7",
+      "turn_id": "019f107c-5b0a-7b22-9327-4265148ff962",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+      "model": "gpt-5.5",
+      "lyo_version": "0.2.1",
+      "created_at": "2026-06-29T00:38:52.640Z",
+      "imported_at": "2026-09-09T01:34:57.155Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674",
+      "command": "uv run pytest tests/test_rep674_life_support_registered_view.py",
+      "payload_sha256": "6125cd33df9063c5b9b8726fbc8cb411d7280203dc15ec10282a8da7e81fb085",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_LqUnp1tZTwO3jh3fNNdRlYmU"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC02NzUvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-4e446740a7ea9958f886cf63",
+      "session_id": "019f01ea-f48c-7200-a259-03d893a72f84",
+      "turn_id": "019f01ec-5aad-7461-b7d4-d009df40f15c",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+      "model": "gpt-5.5",
+      "lyo_version": "0.2.1",
+      "created_at": "2026-06-26T03:23:59.432Z",
+      "imported_at": "2026-09-09T01:34:57.335Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+      "command": "uv run pytest tests/test_rep675_transactional_comms_view.py",
+      "payload_sha256": "b5e458c53a95c1e1c6b05e136753983ac0b0052b69edb78022e81f1b82f68ca7",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_iA6x3oeM9HvJy6a7W0ITsr4U"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC02NzUvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-68c371208e23fb7c2dd5c244",
+      "session_id": "019f01ea-f48c-7200-a259-03d893a72f84",
+      "turn_id": "019f01ec-5aad-7461-b7d4-d009df40f15c",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+      "model": "gpt-5.5",
+      "lyo_version": "0.2.1",
+      "created_at": "2026-06-26T03:23:59.471Z",
+      "imported_at": "2026-09-09T01:34:57.335Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+      "command": "uv run pytest tests/test_rep675_transactional_comms_view.py",
+      "payload_sha256": "8d5c9cd52b5bcc718c38d4de4ba7f2e9c515425ba20d4b3aa6261a43988ae23f",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_u7Or3BvBRs5TVKFSpBR0ydRh"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC02NzUvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-46b14cf72d6aff1f3afa4489",
+      "session_id": "019f0e4c-c02a-7753-b125-eab51e8d0578",
+      "turn_id": "019f0e55-6637-7162-b206-79d4cbd76fb3",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+      "model": "gpt-5.5",
+      "lyo_version": "0.2.1",
+      "created_at": "2026-06-28T13:11:20.755Z",
+      "imported_at": "2026-09-09T01:34:57.335Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+      "command": "uv run pytest tests/test_rep675_transactional_comms_view.py",
+      "payload_sha256": "23b10ec361937a5776c89251b5c7a141abd3401b406aa382fc99563b31c6a280",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_jEQCeYFvJ1oyI2qjtgDQgNve"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC02NzUvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-a2f59fd29b4f07da139e5d73",
+      "session_id": "019f0e4c-c02a-7753-b125-eab51e8d0578",
+      "turn_id": "019f0e7c-e5d2-7dd1-8328-aed71bba8309",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+      "model": "gpt-5.5",
+      "lyo_version": "0.2.1",
+      "created_at": "2026-06-28T13:49:36.304Z",
+      "imported_at": "2026-09-09T01:34:57.335Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675",
+      "command": "uv run pytest tests/test_rep675_transactional_comms_view.py",
+      "payload_sha256": "993657f5b7324e921c828a23774476e6d41a7b99ff2f42c3cb23f17ff1e0b443",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_vW9R9aDsRO4VBckEAlzjFW6A"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC03NDQvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-598e2abbc03a6a5cc27fba2f",
+      "session_id": "session_c950d312-a0f1-495d-8abf-407d7a96ee1d",
+      "turn_id": null,
+      "event_name": "tool.failure",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-744",
+      "model": null,
+      "lyo_version": "0.3.0",
+      "created_at": "2026-08-05T07:45:32.970Z",
+      "imported_at": "2026-09-09T01:34:58.497Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-744/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-744",
+      "command": "cd /Users/marcus.kim/repositories/work/nectr-data-lake-rep-744 && python3 -m pytest tests/test_rep744_plan_switch_validation.py -v 2>&1",
+      "payload_sha256": "c11f898bad9a2e9e7df67401dc9c302805c76a5ba1578a5a15e2ce8492c20a76",
+      "runtime": "claude",
+      "response_signals": null,
+      "error_signals": {
+        "recorded": false,
+        "code": "internal",
+        "retryable": false
+      },
+      "tool_use_id": null
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvbmVjdHItZGF0YS1sYWtlLXJlcC03NDQvLmFnZW50LWxlYXJuaW5nL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-75f704e15927099d3d37582e",
+      "session_id": "session_c950d312-a0f1-495d-8abf-407d7a96ee1d",
+      "turn_id": null,
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-744",
+      "model": null,
+      "lyo_version": "0.3.0",
+      "created_at": "2026-08-05T07:52:16.724Z",
+      "imported_at": "2026-09-09T01:34:58.497Z",
+      "db_path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-744/.agent-learning/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-744",
+      "command": "cd /Users/marcus.kim/repositories/work/nectr-data-lake-rep-744 && uv run python -m pytest tests/test_rep744_plan_switch_validation.py -v 2>&1",
+      "payload_sha256": "0b5fa5a5f7add45015765667b05d8614a8907a6b2b9c6cc8c0f7a737ac13566d",
+      "runtime": "claude",
+      "response_signals": null,
+      "error_signals": null,
+      "tool_use_id": null
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvLmFnZW50LWxlYXJuaW5nL25lY3RyLWRhdGEtbGFrZS9hcmNoaXZlLzIwMjYtMDYtMTVUMTExMTAyKzEwMDBfX25lY3RyLWRhdGEtbGFrZS1yZXAtNjU1X19yZXAtNjU1LWF1dG9tYXRlLWRvd25sb2FkLWZyb20tZ3VpL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-5332e927e1c141eb029860bf",
+      "session_id": "019e803e-4dad-7c23-8a3a-15e080a10880",
+      "turn_id": "019e8b06-614e-70d2-bd75-50e83c7e109c",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+      "model": "gpt-5.5",
+      "lyo_version": "0.1.7",
+      "created_at": "2026-06-03T03:46:46.779Z",
+      "imported_at": "2026-09-09T02:17:41.957Z",
+      "db_path": "/Users/marcus.kim/repositories/work/.agent-learning/nectr-data-lake/archive/2026-06-15T111102+1000__nectr-data-lake-rep-655__rep-655-automate-download-from-gui/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work",
+      "command": "uv run pytest tests/test_rep621_crystalbrook_monthly_invoice_delivery.py",
+      "payload_sha256": "834d2b81ec3f846df7f00698535efc5a2a84417506dfa595ba70f4e49556f87d",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_LlNxf32kEewoPAO0m0QKH6dp"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvLmFnZW50LWxlYXJuaW5nL25lY3RyLWRhdGEtbGFrZS9hcmNoaXZlLzIwMjYtMDYtMTVUMTExMTAyKzEwMDBfX25lY3RyLWRhdGEtbGFrZS1yZXAtNjU1X19yZXAtNjU1LWF1dG9tYXRlLWRvd25sb2FkLWZyb20tZ3VpL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-d2ec4c0af8b9058bd1627b03",
+      "session_id": "019e803e-4dad-7c23-8a3a-15e080a10880",
+      "turn_id": "019e8b06-614e-70d2-bd75-50e83c7e109c",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+      "model": "gpt-5.5",
+      "lyo_version": "0.1.7",
+      "created_at": "2026-06-03T03:46:47.673Z",
+      "imported_at": "2026-09-09T02:17:41.957Z",
+      "db_path": "/Users/marcus.kim/repositories/work/.agent-learning/nectr-data-lake/archive/2026-06-15T111102+1000__nectr-data-lake-rep-655__rep-655-automate-download-from-gui/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work",
+      "command": "uv run pytest tests/test_rep621_crystalbrook_monthly_invoice_delivery.py",
+      "payload_sha256": "295757b09eb3bf8e889a9f1242c89f772d29cafdb4f22a76c68df9093d9ff61b",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_bguOkr5HIUpE3XSC2reLbeIM"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvLmFnZW50LWxlYXJuaW5nL25lY3RyLWRhdGEtbGFrZS9hcmNoaXZlLzIwMjYtMDYtMTVUMTExMTAyKzEwMDBfX25lY3RyLWRhdGEtbGFrZS1yZXAtNjU1X19yZXAtNjU1LWF1dG9tYXRlLWRvd25sb2FkLWZyb20tZ3VpL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-f26e3fb99b307cb440d1c9f1",
+      "session_id": "019e8be7-b3d8-7782-8316-3ec8ef79cf9a",
+      "turn_id": "019e90bb-fb28-7313-a7b4-9dca9fd43135",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+      "model": "gpt-5.5",
+      "lyo_version": "0.1.7",
+      "created_at": "2026-06-04T03:54:11.818Z",
+      "imported_at": "2026-09-09T02:17:41.957Z",
+      "db_path": "/Users/marcus.kim/repositories/work/.agent-learning/nectr-data-lake/archive/2026-06-15T111102+1000__nectr-data-lake-rep-655__rep-655-automate-download-from-gui/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work",
+      "command": "uv run pytest tests/test_rep621_crystalbrook_monthly_invoice_delivery.py",
+      "payload_sha256": "7e312bbd6ceec6329df7935a865a704ed2a6daa40b987a6730544842b33614f3",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_7KN2DnYfvmnF1qWLBLynUSrv"
+    },
+    {
+      "source_ledger_id": "L1VzZXJzL21hcmN1cy5raW0vcmVwb3NpdG9yaWVzL3dvcmsvLmFnZW50LWxlYXJuaW5nL25lY3RyLWRhdGEtbGFrZS9hcmNoaXZlLzIwMjYtMDYtMTVUMTExMTAyKzEwMDBfX25lY3RyLWRhdGEtbGFrZS1yZXAtNjU1X19yZXAtNjU1LWF1dG9tYXRlLWRvd25sb2FkLWZyb20tZ3VpL2xlYXJuaW5nLnNxbGl0ZQ",
+      "event_id": "hook-fd1e2a59c805c38a918b773b",
+      "session_id": "019e8be7-b3d8-7782-8316-3ec8ef79cf9a",
+      "turn_id": "019e959e-c0ec-7e82-8afd-610de1379e93",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655",
+      "model": "gpt-5.5",
+      "lyo_version": "0.1.7",
+      "created_at": "2026-06-05T02:47:12.251Z",
+      "imported_at": "2026-09-09T02:17:41.957Z",
+      "db_path": "/Users/marcus.kim/repositories/work/.agent-learning/nectr-data-lake/archive/2026-06-15T111102+1000__nectr-data-lake-rep-655__rep-655-automate-download-from-gui/learning.sqlite",
+      "workspace_root": "/Users/marcus.kim/repositories/work",
+      "command": "uv run pytest tests/test_rep621_crystalbrook_monthly_invoice_delivery.py",
+      "payload_sha256": "5268a6c01811f8076c53265ac9da1e8a91aa3003ecfaa82401b0286255a87216",
+      "runtime": "codex",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "tool_use_id": "call_j9uWci7z70lyxhYiY9GNgODi"
+    }
+  ],
+  "unresolved_hook_refs": [
+    "hook:hook-4fb2f848fdc9a71324b225d1",
+    "hook:hook-8ba550db1af60e351181a089"
+  ],
+  "source_runs": [],
+  "trace_metadata": [
+    {
+      "trace_id": "historical-learning:f7350d135c3c31957133bf3f1802ca221a31a6dab298a6f6065f155e94fe9fb9",
+      "run_id": "019f0e4c-c02a-7753-b125-eab51e8d0578",
+      "kind": "behavior",
+      "ref": "/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/candidates.json",
+      "created_at": "2026-09-09T03:15:44.789Z",
+      "source": null
+    },
+    {
+      "trace_id": "historical-learning:08427d068e19ff662075a389c26a09542b8e93824ef688e56ff0977715c866f4",
+      "run_id": "019f5887-cc37-7140-9abf-0a23f8f7107e",
+      "kind": "behavior",
+      "ref": "/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/candidates.json",
+      "created_at": "2026-09-09T03:15:44.789Z",
+      "source": null
+    },
+    {
+      "trace_id": "historical-learning:6e0bed996f5c9351d85b87fceb7dd2478861d47d8b73e883f2c5e868cd1b2c02",
+      "run_id": "019f0d28-1479-7aa3-b6ec-b35ac87246b7",
+      "kind": "behavior",
+      "ref": "/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/candidates.json",
+      "created_at": "2026-09-09T03:15:44.790Z",
+      "source": null
+    },
+    {
+      "trace_id": "historical-learning:9e910938491aa53030c50f01fffd01e078583d85a51f969276fcfc58c0037dc5",
+      "run_id": "019e803e-4dad-7c23-8a3a-15e080a10880",
+      "kind": "behavior",
+      "ref": "/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/candidates.json",
+      "created_at": "2026-09-09T03:15:44.790Z",
+      "source": null
+    },
+    {
+      "trace_id": "session-outcome:v2:5754f7fe9011cbee93942b0bd3c3eac875e860a698ef934bb52f9d11fb8281a1",
+      "run_id": "session_c950d312-a0f1-495d-8abf-407d7a96ee1d",
+      "kind": "behavior",
+      "ref": null,
+      "created_at": "2026-11-16T10:38:13.824Z",
+      "source": "native-session-observation",
+      "commands": [
+        {
+          "command": "pytest tests/test_rep744_plan_switch_validation.py -v",
+          "passed": false,
+          "ref": "hook:hook-598e2abbc03a6a5cc27fba2f"
+        },
+        {
+          "command": "pytest tests/test_rep744_plan_switch_validation.py -v",
+          "passed": true,
+          "ref": "hook:hook-e5560902fe3f0a80d1f03e19"
+        },
+        {
+          "command": "pytest tests/test_rep744_plan_switch_validation.py -v",
+          "passed": true,
+          "ref": "hook:hook-7c1d05411e7a878bd6c67669"
+        },
+        {
+          "command": "pytest tests/test_rep744_plan_switch_validation.py -v",
+          "passed": true,
+          "ref": "hook:hook-75f704e15927099d3d37582e"
+        }
+      ],
+      "createdLessonIds": [
+        "les_5572502d207f95ea"
+      ],
+      "causalCredit": false,
+      "closure": "stale"
+    },
+    {
+      "trace_id": "session-delivery:0850dc6c-1c63-42c5-b1a2-cb04d3c05cac",
+      "run_id": "0850dc6c-1c63-42c5-b1a2-cb04d3c05cac",
+      "kind": "protocol_application",
+      "ref": null,
+      "created_at": "2026-11-19T02:43:42.361Z",
+      "source": null
+    },
+    {
+      "trace_id": "session-delivery:0850dc6c-1c63-42c5-b1a2-cb04d3c05cac:a49c7adc6ed6d4befe57ca3350db983fe56a44247b162321eaa924567988517a",
+      "run_id": "0850dc6c-1c63-42c5-b1a2-cb04d3c05cac",
+      "kind": "protocol_application",
+      "ref": null,
+      "created_at": "2026-11-19T02:43:46.058Z",
+      "source": null
+    },
+    {
+      "trace_id": "session-outcome:v2:fa9ea5170fb38971d1c915f30f977a23e593e9396a3cbea285bb59d16ad83e87",
+      "run_id": "0850dc6c-1c63-42c5-b1a2-cb04d3c05cac",
+      "kind": "behavior",
+      "ref": null,
+      "created_at": "2026-11-20T21:23:35.886Z",
+      "source": "native-session-observation",
+      "commands": [
+        {
+          "command": "node --test tests/transcript-import.test.ts",
+          "passed": false,
+          "ref": "hook:hook-8ba550db1af60e351181a089"
+        },
+        {
+          "command": "node --test tests/transcript-import.test.ts",
+          "passed": true,
+          "ref": "hook:hook-4fb2f848fdc9a71324b225d1"
+        }
+      ],
+      "createdLessonIds": [
+        "les_542317744bf1b7ea"
+      ],
+      "causalCredit": false,
+      "closure": "ended"
+    }
+  ]
+}

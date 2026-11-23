@@ -1,0 +1,208 @@
+{
+  "local_sources": [
+    {
+      "path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655/.agent-learning/learning.sqlite",
+      "exists": true,
+      "event_id": "hook-5332e927e1c141eb029860bf",
+      "session_id": "019e803e-4dad-7c23-8a3a-15e080a10880",
+      "created_at": "2026-06-03T03:46:46.779Z",
+      "payload_sha256": "834d2b81ec3f846df7f00698535efc5a2a84417506dfa595ba70f4e49556f87d",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "event_name": "tool.after"
+    },
+    {
+      "path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-655/.agent-learning/learning.sqlite",
+      "exists": true,
+      "event_id": "hook-d2ec4c0af8b9058bd1627b03",
+      "session_id": "019e803e-4dad-7c23-8a3a-15e080a10880",
+      "created_at": "2026-06-03T03:46:47.673Z",
+      "payload_sha256": "295757b09eb3bf8e889a9f1242c89f772d29cafdb4f22a76c68df9093d9ff61b",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "event_name": "tool.after"
+    },
+    {
+      "path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671/.agent-learning/learning.sqlite",
+      "exists": true,
+      "event_id": "hook-71d96bece56aabbea106ccbf",
+      "session_id": "019f5887-cc37-7140-9abf-0a23f8f7107e",
+      "created_at": "2026-07-13T08:57:39.204Z",
+      "payload_sha256": "0d1fc187f7c8f32c1bb47945ece58e8607e0dae1d532eb7ed828d9af26ca8f45",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "event_name": "tool.after"
+    },
+    {
+      "path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-671/.agent-learning/learning.sqlite",
+      "exists": true,
+      "event_id": "hook-8c34a0584c429455d7ec3d2f",
+      "session_id": "019f5887-cc37-7140-9abf-0a23f8f7107e",
+      "created_at": "2026-07-13T08:57:39.240Z",
+      "payload_sha256": "d7806c3d587ca24525939c98be81cef29c589bacbbeaa0d65e12c5439f3a277d",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "event_name": "tool.after"
+    },
+    {
+      "path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674/.agent-learning/learning.sqlite",
+      "exists": true,
+      "event_id": "hook-928cedeef36746231204a320",
+      "session_id": "019f0d28-1479-7aa3-b6ec-b35ac87246b7",
+      "created_at": "2026-06-29T00:38:52.640Z",
+      "payload_sha256": "6125cd33df9063c5b9b8726fbc8cb411d7280203dc15ec10282a8da7e81fb085",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "event_name": "tool.after"
+    },
+    {
+      "path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-674/.agent-learning/learning.sqlite",
+      "exists": true,
+      "event_id": "hook-05b8c5aeb1831e20514df57f",
+      "session_id": "019f0d28-1479-7aa3-b6ec-b35ac87246b7",
+      "created_at": "2026-06-28T13:57:07.799Z",
+      "payload_sha256": "ae9367a5ce04616de3a363f7e1076543f756e5b6ef152f06b1f0a0afef8862fd",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "event_name": "tool.after"
+    },
+    {
+      "path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675/.agent-learning/learning.sqlite",
+      "exists": true,
+      "event_id": "hook-46b14cf72d6aff1f3afa4489",
+      "session_id": "019f0e4c-c02a-7753-b125-eab51e8d0578",
+      "created_at": "2026-06-28T13:11:20.755Z",
+      "payload_sha256": "23b10ec361937a5776c89251b5c7a141abd3401b406aa382fc99563b31c6a280",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "event_name": "tool.after"
+    },
+    {
+      "path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-675/.agent-learning/learning.sqlite",
+      "exists": true,
+      "event_id": "hook-a2f59fd29b4f07da139e5d73",
+      "session_id": "019f0e4c-c02a-7753-b125-eab51e8d0578",
+      "created_at": "2026-06-28T13:49:36.304Z",
+      "payload_sha256": "993657f5b7324e921c828a23774476e6d41a7b99ff2f42c3cb23f17ff1e0b443",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "event_name": "tool.after"
+    },
+    {
+      "path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-744/.agent-learning/learning.sqlite",
+      "exists": true,
+      "event_id": "hook-598e2abbc03a6a5cc27fba2f",
+      "session_id": "session_c950d312-a0f1-495d-8abf-407d7a96ee1d",
+      "created_at": "2026-08-05T07:45:32.970Z",
+      "payload_sha256": "c11f898bad9a2e9e7df67401dc9c302805c76a5ba1578a5a15e2ce8492c20a76",
+      "response_signals": null,
+      "error_signals": {
+        "recorded": false,
+        "code": "internal",
+        "retryable": false
+      },
+      "event_name": "tool.failure"
+    },
+    {
+      "path": "/Users/marcus.kim/repositories/work/nectr-data-lake-rep-744/.agent-learning/learning.sqlite",
+      "exists": true,
+      "event_id": "hook-75f704e15927099d3d37582e",
+      "session_id": "session_c950d312-a0f1-495d-8abf-407d7a96ee1d",
+      "created_at": "2026-08-05T07:52:16.724Z",
+      "payload_sha256": "0b5fa5a5f7add45015765667b05d8614a8907a6b2b9c6cc8c0f7a737ac13566d",
+      "response_signals": null,
+      "error_signals": null,
+      "event_name": "tool.after"
+    },
+    {
+      "path": "/Users/marcus.kim/repositories/work/.agent-learning/nectr-data-lake/archive/2026-06-15T111102+1000__nectr-data-lake-rep-655__rep-655-automate-download-from-gui/learning.sqlite",
+      "exists": true,
+      "event_id": "hook-5332e927e1c141eb029860bf",
+      "session_id": "019e803e-4dad-7c23-8a3a-15e080a10880",
+      "created_at": "2026-06-03T03:46:46.779Z",
+      "payload_sha256": "834d2b81ec3f846df7f00698535efc5a2a84417506dfa595ba70f4e49556f87d",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "event_name": "tool.after"
+    },
+    {
+      "path": "/Users/marcus.kim/repositories/work/.agent-learning/nectr-data-lake/archive/2026-06-15T111102+1000__nectr-data-lake-rep-655__rep-655-automate-download-from-gui/learning.sqlite",
+      "exists": true,
+      "event_id": "hook-d2ec4c0af8b9058bd1627b03",
+      "session_id": "019e803e-4dad-7c23-8a3a-15e080a10880",
+      "created_at": "2026-06-03T03:46:47.673Z",
+      "payload_sha256": "295757b09eb3bf8e889a9f1242c89f772d29cafdb4f22a76c68df9093d9ff61b",
+      "response_signals": {
+        "recorded": false
+      },
+      "error_signals": null,
+      "event_name": "tool.after"
+    }
+  ],
+  "generic_followup": [
+    {
+      "id": "msg_3d5fd09fe9f993e061231a777a9f3cd2",
+      "timestamp": 1784785755817,
+      "topic": "LYO_INTERVENTION",
+      "sender": "lyo",
+      "content_text": "Validation rejected; queued implementation guidance for worker.",
+      "content_data": "{\"trigger_message_id\":\"msg_8372acba2681d20f321d944c9072c479\",\"target_agent_id\":\"worker\",\"lessons\":[]}"
+    },
+    {
+      "id": "msg_656fb99588bf9d2e55a22d54b907057b",
+      "timestamp": 1784785755818,
+      "topic": "USER_GUIDANCE_AGENT",
+      "sender": "lyo",
+      "content_text": "Address the validator feedback before retrying.\n\nLatest validation:\nRejected: AC2 fails; spec conflict unresolved\n\nErrors:\n- greet.js returns `Hi, ${name}!`; verified `greet('Ada')` => `Hi, Ada!`, so AC2 exact `Hello, Ada!` is unmet.\n- Task acceptance criteria conflict: AC2 requires `Hello, Ada!`, AC3 requires `Hi, Ada!`. Implementation picked AC3 only.",
+      "content_data": "{\"trigger_message_id\":\"msg_8372acba2681d20f321d944c9072c479\",\"intervention_id\":\"msg_3d5fd09fe9f993e061231a777a9f3cd2\",\"lessons\":[]}"
+    },
+    {
+      "id": "msg_76b5f7b6d50a3da7855f102520b397c6",
+      "timestamp": 1784785848144,
+      "topic": "LYO_FEEDBACK",
+      "sender": "lyo",
+      "content_text": "Intervention feedback: rejected.",
+      "content_data": "{\"intervention_id\":\"msg_3d5fd09fe9f993e061231a777a9f3cd2\",\"trigger_message_id\":\"msg_8372acba2681d20f321d944c9072c479\",\"feedback_message_id\":\"msg_ede0a91553de97043b2e8cef7044efb4\",\"target_agent_id\":\"worker\"}"
+    },
+    {
+      "id": "msg_47accdcd55411117d4a035b080c9f433",
+      "timestamp": 1784785848147,
+      "topic": "LYO_INTERVENTION",
+      "sender": "lyo",
+      "content_text": "Validation rejected; queued implementation guidance for worker.",
+      "content_data": "{\"trigger_message_id\":\"msg_ede0a91553de97043b2e8cef7044efb4\",\"target_agent_id\":\"worker\",\"lessons\":[{\"lesson_id\":\"les_027d0f11760e91e3\",\"application_id\":\"app_1d9c69cb48aed031\",\"failure_class\":\"goal_deviation\",\"sampled_score\":0.7927290729169288,\"decision_id\":\"dec_eea0a16394f7d7de\",\"propensity\":1}]}"
+    },
+    {
+      "id": "msg_0edc16a39bf98cc907cf05901696193b",
+      "timestamp": 1784785848148,
+      "topic": "USER_GUIDANCE_AGENT",
+      "sender": "lyo",
+      "content_text": "Address the validator feedback before retrying.\n\nLatest validation:\nRejected: stateful greet masks conflicting requirements; one criterion always fails.\n\nErrors:\n- greet.js is stateful: first greet('Ada') => Hello, Ada!, second => Hi, Ada!.\n- AC2 and AC3 conflict; alternating by call order means one criterion always fails.\n\nLessons from past failures (LYO):\n- [les_027d0f11760e91e3] Always ensure that all acceptance criteria are addressed in the implementation. Review each criterion carefully to avoid conflicts and ensure compliance with the specifications.",
+      "content_data": "{\"trigger_message_id\":\"msg_ede0a91553de97043b2e8cef7044efb4\",\"intervention_id\":\"msg_47accdcd55411117d4a035b080c9f433\",\"lessons\":[{\"lesson_id\":\"les_027d0f11760e91e3\",\"application_id\":\"app_1d9c69cb48aed031\",\"failure_class\":\"goal_deviation\",\"sampled_score\":0.7927290729169288,\"decision_id\":\"dec_eea0a16394f7d7de\",\"propensity\":1}]}"
+    }
+  ],
+  "historical_report": {
+    "path": "/Users/marcus.kim/.lyo/learning-runs/2026-09-09T031457Z-work/candidates.json",
+    "sha256": "aa7daef19a6083252997ab45af5592185d680719ff685c2f24089d6fabc83c01",
+    "type": "list",
+    "keys": null
+  }
+}

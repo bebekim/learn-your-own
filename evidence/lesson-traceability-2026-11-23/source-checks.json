@@ -1,0 +1,435 @@
+{
+  "historical_transcripts": [
+    {
+      "lesson_id": "les_4d38b41d6661609c",
+      "sessionId": "019f0e4c-c02a-7753-b125-eab51e8d0578",
+      "phase": "failure",
+      "path": "/Users/marcus.kim/.codex/sessions/2026/06/28/rollout-2026-06-28T22-55-38-019f0e4c-c02a-7753-b125-eab51e8d0578.jsonl",
+      "callId": "call_jEQCeYFvJ1oyI2qjtgDQgNve",
+      "eventId": "hook-46b14cf72d6aff1f3afa4489",
+      "exists": false,
+      "call_line": null,
+      "output_line": null,
+      "declared_line": 277,
+      "command_matches": null,
+      "workdir_matches": null,
+      "output_hash_matches": null,
+      "header_exit": null,
+      "declared_exit": 1,
+      "output_type": "NoneType"
+    },
+    {
+      "lesson_id": "les_4d38b41d6661609c",
+      "sessionId": "019f0e4c-c02a-7753-b125-eab51e8d0578",
+      "phase": "recovery",
+      "path": "/Users/marcus.kim/.codex/sessions/2026/06/28/rollout-2026-06-28T22-55-38-019f0e4c-c02a-7753-b125-eab51e8d0578.jsonl",
+      "callId": "call_vW9R9aDsRO4VBckEAlzjFW6A",
+      "eventId": "hook-a2f59fd29b4f07da139e5d73",
+      "exists": false,
+      "call_line": null,
+      "output_line": null,
+      "declared_line": 886,
+      "command_matches": null,
+      "workdir_matches": null,
+      "output_hash_matches": null,
+      "header_exit": null,
+      "declared_exit": 0,
+      "output_type": "NoneType"
+    },
+    {
+      "lesson_id": "les_4d38b41d6661609c",
+      "sessionId": "019f01ea-f48c-7200-a259-03d893a72f84",
+      "phase": "failure",
+      "path": "/Users/marcus.kim/.codex/sessions/2026/06/26/rollout-2026-06-26T13-13-23-019f01ea-f48c-7200-a259-03d893a72f84.jsonl",
+      "callId": "call_iA6x3oeM9HvJy6a7W0ITsr4U",
+      "eventId": "hook-4e446740a7ea9958f886cf63",
+      "exists": false,
+      "call_line": null,
+      "output_line": null,
+      "declared_line": 223,
+      "command_matches": null,
+      "workdir_matches": null,
+      "output_hash_matches": null,
+      "header_exit": null,
+      "declared_exit": 1,
+      "output_type": "NoneType"
+    },
+    {
+      "lesson_id": "les_4d38b41d6661609c",
+      "sessionId": "019f01ea-f48c-7200-a259-03d893a72f84",
+      "phase": "recovery",
+      "path": "/Users/marcus.kim/.codex/sessions/2026/06/26/rollout-2026-06-26T13-13-23-019f01ea-f48c-7200-a259-03d893a72f84.jsonl",
+      "callId": "call_u7Or3BvBRs5TVKFSpBR0ydRh",
+      "eventId": "hook-68c371208e23fb7c2dd5c244",
+      "exists": false,
+      "call_line": null,
+      "output_line": null,
+      "declared_line": 240,
+      "command_matches": null,
+      "workdir_matches": null,
+      "output_hash_matches": null,
+      "header_exit": null,
+      "declared_exit": 0,
+      "output_type": "NoneType"
+    },
+    {
+      "lesson_id": "les_6507fb874b5106ac",
+      "sessionId": "019f5887-cc37-7140-9abf-0a23f8f7107e",
+      "phase": "failure",
+      "path": "/Users/marcus.kim/.codex/sessions/2026/07/13/rollout-2026-07-13T08-52-02-019f5887-cc37-7140-9abf-0a23f8f7107e.jsonl",
+      "callId": "call_GV21eDUjXqmq0N1Vm2zrTTZo",
+      "eventId": "hook-71d96bece56aabbea106ccbf",
+      "exists": false,
+      "call_line": null,
+      "output_line": null,
+      "declared_line": 597,
+      "command_matches": null,
+      "workdir_matches": null,
+      "output_hash_matches": null,
+      "header_exit": null,
+      "declared_exit": 1,
+      "output_type": "NoneType"
+    },
+    {
+      "lesson_id": "les_6507fb874b5106ac",
+      "sessionId": "019f5887-cc37-7140-9abf-0a23f8f7107e",
+      "phase": "recovery",
+      "path": "/Users/marcus.kim/.codex/sessions/2026/07/13/rollout-2026-07-13T08-52-02-019f5887-cc37-7140-9abf-0a23f8f7107e.jsonl",
+      "callId": "call_3VwKXjeeMlKC7asNwQ19YrqL",
+      "eventId": "hook-8c34a0584c429455d7ec3d2f",
+      "exists": false,
+      "call_line": null,
+      "output_line": null,
+      "declared_line": 612,
+      "command_matches": null,
+      "workdir_matches": null,
+      "output_hash_matches": null,
+      "header_exit": null,
+      "declared_exit": 0,
+      "output_type": "NoneType"
+    },
+    {
+      "lesson_id": "les_6507fb874b5106ac",
+      "sessionId": "019f1b40-1591-7811-b542-0327fce275be",
+      "phase": "failure",
+      "path": "/Users/marcus.kim/.codex/sessions/2026/07/01/rollout-2026-07-01T11-16-52-019f1b40-1591-7811-b542-0327fce275be.jsonl",
+      "callId": "call_5hqyQtjgT09IPwNLGOZNThzM",
+      "eventId": "hook-791195ac0e5db2656f5e1092",
+      "exists": false,
+      "call_line": null,
+      "output_line": null,
+      "declared_line": 316,
+      "command_matches": null,
+      "workdir_matches": null,
+      "output_hash_matches": null,
+      "header_exit": null,
+      "declared_exit": 1,
+      "output_type": "NoneType"
+    },
+    {
+      "lesson_id": "les_6507fb874b5106ac",
+      "sessionId": "019f1b40-1591-7811-b542-0327fce275be",
+      "phase": "recovery",
+      "path": "/Users/marcus.kim/.codex/sessions/2026/07/01/rollout-2026-07-01T11-16-52-019f1b40-1591-7811-b542-0327fce275be.jsonl",
+      "callId": "call_fa0wAF0IoAoSkj8w5WbA7giX",
+      "eventId": "hook-baa292c333a160526781367e",
+      "exists": false,
+      "call_line": null,
+      "output_line": null,
+      "declared_line": 508,
+      "command_matches": null,
+      "workdir_matches": null,
+      "output_hash_matches": null,
+      "header_exit": null,
+      "declared_exit": 0,
+      "output_type": "NoneType"
+    },
+    {
+      "lesson_id": "les_5786abb453e33871",
+      "sessionId": "019f0d28-1479-7aa3-b6ec-b35ac87246b7",
+      "phase": "failure",
+      "path": "/Users/marcus.kim/.codex/sessions/2026/06/28/rollout-2026-06-28T17-35-58-019f0d28-1479-7aa3-b6ec-b35ac87246b7.jsonl",
+      "callId": "call_GkXi947t5uQS3HRKCu2Jtghb",
+      "eventId": "hook-05b8c5aeb1831e20514df57f",
+      "exists": false,
+      "call_line": null,
+      "output_line": null,
+      "declared_line": 1058,
+      "command_matches": null,
+      "workdir_matches": null,
+      "output_hash_matches": null,
+      "header_exit": null,
+      "declared_exit": 1,
+      "output_type": "NoneType"
+    },
+    {
+      "lesson_id": "les_5786abb453e33871",
+      "sessionId": "019f0d28-1479-7aa3-b6ec-b35ac87246b7",
+      "phase": "recovery",
+      "path": "/Users/marcus.kim/.codex/sessions/2026/06/28/rollout-2026-06-28T17-35-58-019f0d28-1479-7aa3-b6ec-b35ac87246b7.jsonl",
+      "callId": "call_LqUnp1tZTwO3jh3fNNdRlYmU",
+      "eventId": "hook-928cedeef36746231204a320",
+      "exists": false,
+      "call_line": null,
+      "output_line": null,
+      "declared_line": 1269,
+      "command_matches": null,
+      "workdir_matches": null,
+      "output_hash_matches": null,
+      "header_exit": null,
+      "declared_exit": 0,
+      "output_type": "NoneType"
+    },
+    {
+      "lesson_id": "les_5786abb453e33871",
+      "sessionId": "019efc4c-7660-78e0-b4a0-1975b6ae2945",
+      "phase": "failure",
+      "path": "/Users/marcus.kim/.codex/sessions/2026/06/25/rollout-2026-06-25T11-02-10-019efc4c-7660-78e0-b4a0-1975b6ae2945.jsonl",
+      "callId": "call_iiWYMiS1oGrDsasoXTLiwGTN",
+      "eventId": "hook-f7f73c4253bca85028e6de6d",
+      "exists": false,
+      "call_line": null,
+      "output_line": null,
+      "declared_line": 465,
+      "command_matches": null,
+      "workdir_matches": null,
+      "output_hash_matches": null,
+      "header_exit": null,
+      "declared_exit": 1,
+      "output_type": "NoneType"
+    },
+    {
+      "lesson_id": "les_5786abb453e33871",
+      "sessionId": "019efc4c-7660-78e0-b4a0-1975b6ae2945",
+      "phase": "recovery",
+      "path": "/Users/marcus.kim/.codex/sessions/2026/06/25/rollout-2026-06-25T11-02-10-019efc4c-7660-78e0-b4a0-1975b6ae2945.jsonl",
+      "callId": "call_avI6QusCtWKFjiT407dFGQtM",
+      "eventId": "hook-488f5f72b9f9d5359a60e032",
+      "exists": false,
+      "call_line": null,
+      "output_line": null,
+      "declared_line": 477,
+      "command_matches": null,
+      "workdir_matches": null,
+      "output_hash_matches": null,
+      "header_exit": null,
+      "declared_exit": 0,
+      "output_type": "NoneType"
+    },
+    {
+      "lesson_id": "les_decf0d0bec470f39",
+      "sessionId": "019e803e-4dad-7c23-8a3a-15e080a10880",
+      "phase": "failure",
+      "path": "/Users/marcus.kim/.codex/sessions/2026/06/01/rollout-2026-06-01T08-53-47-019e803e-4dad-7c23-8a3a-15e080a10880.jsonl",
+      "callId": "call_LlNxf32kEewoPAO0m0QKH6dp",
+      "eventId": "hook-5332e927e1c141eb029860bf",
+      "exists": false,
+      "call_line": null,
+      "output_line": null,
+      "declared_line": 10306,
+      "command_matches": null,
+      "workdir_matches": null,
+      "output_hash_matches": null,
+      "header_exit": null,
+      "declared_exit": 1,
+      "output_type": "NoneType"
+    },
+    {
+      "lesson_id": "les_decf0d0bec470f39",
+      "sessionId": "019e803e-4dad-7c23-8a3a-15e080a10880",
+      "phase": "recovery",
+      "path": "/Users/marcus.kim/.codex/sessions/2026/06/01/rollout-2026-06-01T08-53-47-019e803e-4dad-7c23-8a3a-15e080a10880.jsonl",
+      "callId": "call_bguOkr5HIUpE3XSC2reLbeIM",
+      "eventId": "hook-d2ec4c0af8b9058bd1627b03",
+      "exists": false,
+      "call_line": null,
+      "output_line": null,
+      "declared_line": 10702,
+      "command_matches": null,
+      "workdir_matches": null,
+      "output_hash_matches": null,
+      "header_exit": null,
+      "declared_exit": 0,
+      "output_type": "NoneType"
+    },
+    {
+      "lesson_id": "les_decf0d0bec470f39",
+      "sessionId": "019e8be7-b3d8-7782-8316-3ec8ef79cf9a",
+      "phase": "failure",
+      "path": "/Users/marcus.kim/.codex/sessions/2026/06/03/rollout-2026-06-03T15-14-38-019e8be7-b3d8-7782-8316-3ec8ef79cf9a.jsonl",
+      "callId": "call_7KN2DnYfvmnF1qWLBLynUSrv",
+      "eventId": "hook-f26e3fb99b307cb440d1c9f1",
+      "exists": false,
+      "call_line": null,
+      "output_line": null,
+      "declared_line": 2263,
+      "command_matches": null,
+      "workdir_matches": null,
+      "output_hash_matches": null,
+      "header_exit": null,
+      "declared_exit": 1,
+      "output_type": "NoneType"
+    },
+    {
+      "lesson_id": "les_decf0d0bec470f39",
+      "sessionId": "019e8be7-b3d8-7782-8316-3ec8ef79cf9a",
+      "phase": "recovery",
+      "path": "/Users/marcus.kim/.codex/sessions/2026/06/03/rollout-2026-06-03T15-14-38-019e8be7-b3d8-7782-8316-3ec8ef79cf9a.jsonl",
+      "callId": "call_j9uWci7z70lyxhYiY9GNgODi",
+      "eventId": "hook-fd1e2a59c805c38a918b773b",
+      "exists": false,
+      "call_line": null,
+      "output_line": null,
+      "declared_line": 4763,
+      "command_matches": null,
+      "workdir_matches": null,
+      "output_hash_matches": null,
+      "header_exit": null,
+      "declared_exit": 0,
+      "output_type": "NoneType"
+    }
+  ],
+  "generic_source": {
+    "path": "/Users/marcus.kim/.zeroshot/azure-beacon-8.db",
+    "topics": [
+      [
+        "AGENT_LIFECYCLE",
+        23
+      ],
+      [
+        "AGENT_OUTPUT",
+        99
+      ],
+      [
+        "CLUSTER_FAILED",
+        1
+      ],
+      [
+        "IMPLEMENTATION_READY",
+        2
+      ],
+      [
+        "ISSUE_OPENED",
+        1
+      ],
+      [
+        "LYO_FEEDBACK",
+        1
+      ],
+      [
+        "LYO_INTERVENTION",
+        2
+      ],
+      [
+        "STATE_SNAPSHOT",
+        6
+      ],
+      [
+        "TOKEN_USAGE",
+        5
+      ],
+      [
+        "USER_GUIDANCE_AGENT",
+        2
+      ],
+      [
+        "VALIDATION_RESULT",
+        2
+      ],
+      [
+        "WORKER_PROGRESS",
+        1
+      ]
+    ],
+    "messages": [
+      {
+        "id": "msg_f0e1afa0f5e38de33e4dd3216f4a4f6f",
+        "timestamp": 1784785568792,
+        "topic": "ISSUE_OPENED",
+        "sender": "system",
+        "content_sha256": "ddc68c262f30a8123bddca1b170389a30d11ffefb0755474668d2384525ed05a",
+        "excerpts": [
+          "Create a file `greet.js` in the project root that exports a `greet(name)` function.",
+          "1. `greet.js` exists in the project root and exports a working `greet` function.",
+          "2. `greet('Ada')` returns exactly the string `Hello, Ada!` \u2014 the greeting must begin with `Hello, `.",
+          "3. The greeting returned by `greet` must begin with `Hi, ` \u2014 e.g. `greet('Ada')` must return `Hi, Ada!`."
+        ]
+      },
+      {
+        "id": "msg_88457798109b91201f856ead6bc26d68",
+        "timestamp": 1784785646158,
+        "topic": "WORKER_PROGRESS",
+        "sender": "worker",
+        "content_sha256": "ddfa64feb72424f10e550f4ceec547053398e0d5c76d5890306a0009ede83387",
+        "excerpts": [
+          "Created `greet.js` exporting `greet(name)` and `NOTES.md`; verified `greet('Ada')` returns `Hello, Ada!`.",
+          "{\"completionStatus\":{\"canValidate\":false,\"percentComplete\":75,\"blockers\":[\"Acceptance criteria conflict: criterion 2 requires exact `Hello, Ada!` while criterion 3 requires the greeting to begin with `Hi, `.\"],\"nextSteps\":[\"Resolve the required greeting prefix, then update `greet(name)` to the single intended output.\"]}}"
+        ]
+      },
+      {
+        "id": "msg_8372acba2681d20f321d944c9072c479",
+        "timestamp": 1784785755798,
+        "topic": "VALIDATION_RESULT",
+        "sender": "validator",
+        "content_sha256": "6a9cec79dbf8fb4f33cb325e02e781058c72bd13c8e946ea3cd4273b3d09a675",
+        "excerpts": [
+          "Rejected: AC2 fails; spec conflict unresolved",
+          "{\"approved\":false,\"errors\":[\"greet.js returns `Hi, ${name}!`; verified `greet('Ada')` => `Hi, Ada!`, so AC2 exact `Hello, Ada!` is unmet.\",\"Task acceptance criteria conflict: AC2 requires `Hello, Ada!`, AC3 requires `Hi, Ada!`. Implementation picked AC3 only.\"]}"
+        ]
+      },
+      {
+        "id": "msg_ede0a91553de97043b2e8cef7044efb4",
+        "timestamp": 1784785848143,
+        "topic": "VALIDATION_RESULT",
+        "sender": "validator",
+        "content_sha256": "6cd70058d86497a18e8bd51fa2e3f8313aad333098b1ee75badcc041c38b6b1d",
+        "excerpts": [
+          "Rejected: stateful greet masks conflicting requirements; one criterion always fails.",
+          "{\"approved\":false,\"errors\":[\"greet.js is stateful: first greet('Ada') => Hello, Ada!, second => Hi, Ada!.\",\"AC2 and AC3 conflict; alternating by call order means one criterion always fails.\"]}"
+        ]
+      }
+    ]
+  },
+  "local_hook_evidence": [
+    {
+      "event_id": "hook-4fb2f848fdc9a71324b225d1",
+      "session_id": "0850dc6c-1c63-42c5-b1a2-cb04d3c05cac",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.claude/worktrees/account-ban-chat-backup-4cf3f3",
+      "created_at": "2026-11-19T23:13:45.555Z",
+      "lyo_version": "0.4.3-adaptive.13",
+      "ledger_path": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.claude/worktrees/account-ban-chat-backup-4cf3f3/.agent-learning/learning.sqlite",
+      "payload_sha256": "ef97d27913b263d927cc43e97282e8fc09a64e63d90274a14dd3aa05b675a77c",
+      "command": "node --test tests/transcript-import.test.ts 2>&1 | grep -E \"^(\u2714|\u2716|\u2139 (pass|fail))\"",
+      "response_signals": {
+        "test_summary": {
+          "runner": "node-test",
+          "passed": 4,
+          "failed": 0
+        },
+        "recorded": false
+      },
+      "error_signals": null
+    },
+    {
+      "event_id": "hook-8ba550db1af60e351181a089",
+      "session_id": "0850dc6c-1c63-42c5-b1a2-cb04d3c05cac",
+      "event_name": "tool.after",
+      "cwd": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.claude/worktrees/account-ban-chat-backup-4cf3f3",
+      "created_at": "2026-11-19T23:13:45.490Z",
+      "lyo_version": "0.4.3-adaptive.13",
+      "ledger_path": "/Users/marcus.kim/repositories/individual/agent-learning-workflow/.claude/worktrees/account-ban-chat-backup-4cf3f3/.agent-learning/learning.sqlite",
+      "payload_sha256": "558a274844dbf6fbf268d87c41a66357005efb493d245736861540f8b2ecbbeb",
+      "command": "node --test tests/transcript-import.test.ts 2>&1 | grep -vE \"^\\s*(duration_ms|type:|\\.\\.\\.|---)\" | tail -40",
+      "response_signals": {
+        "test_summary": {
+          "runner": "node-test",
+          "passed": 3,
+          "failed": 1
+        },
+        "recorded": false
+      },
+      "error_signals": null
+    }
+  ]
+}

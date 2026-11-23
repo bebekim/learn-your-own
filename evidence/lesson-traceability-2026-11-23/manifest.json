@@ -1,0 +1,8 @@
+{
+  "lesson-snapshot.json": "8477a0092d1e54c1e311f4555c870084d1e39d432a6e42dcf38e0327a154dc5a",
+  "lyo-traceability-collect.py": "8a0a4dbdd78ef040b8b56c46d8b1d0871e487adeb3d9245df81a633add07e467",
+  "source-checks.json": "887bbc0a003ae31653226da6e2a070f182860e81e72ffb8368a9c9910fb7466b",
+  "lyo-check-local-sources.py": "13bebd9705644153114d19daf5d41190d4d87048294f86a86e52f059c4085b96",
+  "lyo-validate-sources.py": "ea00eb1d53cfdcde4227110a9ae9d192e3547558195a2285274d1bfb638a9b4c",
+  "local-source-checks.json": "69ac0086880e2cef5675457b4b6be952a76d0608a42551fdd5e455a21de214d0"
+}
