@@ -1,0 +1,45 @@
+# Choosing a lesson for the task in front of the agent
+
+Research snapshot on 24 November 2026, against LYO source at `f27cb73`.
+
+**First comparison to run:** exact structured matches versus local BM25 retrieval, with silence available in both arms. Six of the eight stored lessons are verifier reminders. A matching repository and test target give a reviewer a concrete reason to inspect a reminder. A generic task description can correctly produce an empty result. This recommendation concerns candidate discovery. Delivering a reminder additionally requires adequate source evidence and the existing eligibility checks. [Lesson-by-lesson evidence audit](../evidence/lesson-traceability-2026-11-23/README.md)
+
+## What the current selector can see
+
+The ordinary lesson registry has one named policy, `thompson-beta@1`. It draws a score for each candidate from its Beta distribution and takes the highest draws. The sampling interface receives IDs and distribution parameters. The hook filters by eligibility first, withholds zero-feedback ordinary lessons by default, and uses a separate activity matcher for registered findings. On prompt refresh it reduces the prompt to explicit activity tags. A task-aware retriever therefore needs pre-decision cues upstream of the sampler. Adding a new policy ID alone would leave the retriever blind to the task. Cue extraction can happen locally before prompt text is discarded. [Sampling contract](../src/lyo/selection/selection-policies.ts) · [Session hook](../src/lyo/selection/session-hook.ts) · [Finding selector](../src/lyo/application/finding-selection.ts)
+
+## What lexical retrieval actually found
+
+I opened the resolved local store read-only, copied the eight visible lesson IDs, trigger cues and interventions into an in-memory SQLite FTS5 table, and ordered matches by BM25 with ID as a tie-break. Helpful plus harmful weight totaled zero. The probe deliberately searched the candidate texts before delivery gates. It wrote no applications or feedback. These hand-chosen queries exercise lookup behavior and cannot estimate general accuracy. [SQLite scoring](https://sqlite.org/fts5.html#the_bm25_function)
+
+| Literal query terms, joined by AND | Returned candidates |
+| --- | --- |
+| rep744, plan, switch | One, the REP-744 plan-switch test reminder |
+| transcript, import | One, the transcript-import test reminder |
+| pytest | Five reminders from distinct tasks |
+| changing, tariffs | Zero, illustrating the vocabulary gap for a possible plan-switch paraphrase |
+| clean, architecture | Zero |
+
+The REP-744 result illustrates the danger of a good match. Its recorded failure/pass classification lacks sufficient retained status evidence, and the launcher differed across attempts. An exact text hit makes that record easy to find and review. It cannot repair its provenance. [Audit of the eight lessons](../evidence/lesson-traceability-2026-11-23/README.md)
+
+## Alternative mechanisms
+
+The original studies below evaluated language-task demonstrations, news recommendations, or search. The last column gives proposed adaptations to LYO. Their effect on coding outcomes remains unmeasured.
+
+| Choice | What the original work does | Possible use in LYO and its failure mode |
+| --- | --- | --- |
+| Lexical retrieval (BM25) | SQLite FTS5 ranks matching documents using term frequency, document length and corpus frequency. Columns can have different weights. [SQLite FTS5](https://sqlite.org/fts5.html#the_bm25_function) | Index a reviewed trigger, test path and intervention. An exact test or distinctive task identifier is cheaply inspectable. Common words retrieve many unrelated lessons, while paraphrases may retrieve none. |
+| Semantic nearest neighbors | Encode the current input and past inputs, then retrieve nearest examples. The study evaluated GPT-3 demonstrations on NLP benchmarks. [Liu et al.](https://aclanthology.org/2022.deelio-1.10/) | Retrieve using a lesson's original trigger or preconditions and the current task. Pretrained embeddings require no local reward labels. A near paraphrase can have different repository or tool scope. Always select after eligibility checks and calibrate an abstention cutoff on in-scope and out-of-scope cases. |
+| Coverage across a set | Set-BSR values each aspect of a query by its best match in the selected set, then greedily grows the set. It measures the value of a second example in light of what the first one covers. The authors evaluate demonstrations on NLP tasks. [Gupta et al., §5](https://aclanthology.org/2023.findings-emnlp.930.pdf) | If a prompt needs two recommendations, record which verified conditions each adds. Simple declared features make coverage auditable with eight entries. Stop when the remaining marginal gain is zero. That stopping rule is a LYO adaptation; the paper seeks a fixed-size set. A diverse slate may still be inaccurate, redundant in meaning, or too long. |
+| Learned retrieval | For training inputs with a known answer, score how probable the answer becomes with each potential demonstration. Train a dense retriever to distinguish high-scoring and low-scoring examples. [Rubin et al.](https://aclanthology.org/2022.naacl-main.191/) | Later, train on independently reviewed situations and lesson labels. Use future outcomes only as training labels. Test on unseen repositories, sessions and source lineages. Labelled relevance or LM likelihood measures a different target from causal benefit. |
+| Contextual upper confidence bound | LinUCB scores each candidate using an estimated reward conditional on its features plus an uncertainty bonus. A selected arm's observed reward updates the model. The original deployment studied news clicks. [Li et al., §3](https://www.schapire.net/papers/www10.pdf) | Choose one eligible lesson or silence, using context observable before delivery and a registered post-task outcome. The method needs meaningful measured rewards and enough variation. Uncertainty-driven experimentation alone cannot turn an irrelevant cue into evidence. Original replay experiments used randomized traffic. A log with no support for an action in a context cannot establish its reward there. Multiple lessons require slate-aware evaluation. [Li et al., offline replay](https://arxiv.org/abs/1003.5956) |
+| Topic-sensitive PageRank | Compute rankings biased toward particular topics on a link graph, then combine them for a query. [Haveliwala](https://snap.stanford.edu/class/cs224w-readings/Haveliwala02Topicsenitive.pdf) | If reviewed links connect tasks, verifiers and lesson versions, seed a walk from the observed task. Changing one edge can change ranks several hops away. Broadly connected “run tests” records could dominate. Refutations and withdrawals need explicit semantics and eligibility checks. With eight lessons and a few identifiable test targets, a direct join is the more interpretable baseline. |
+
+For a closer agent precedent, ExpeL combines distilled insights and past experiences in the agent context. Its experiments motivate testing retrieval in an agent workflow. They do not establish the benefit of injecting a specific LYO reminder. [Zhao et al., ExpeL](https://ojs.aaai.org/index.php/AAAI/article/view/29936)
+
+## How to decide which selector earns a place
+
+1. **Construct relevance cases.** Use contexts as they were known before action. Include exact matches, paraphrases, shared vocabulary in the wrong repository, an obsolete verifier, and tasks with no suitable lesson. Independently label applicable lesson IDs, “none,” or “insufficient evidence.” Keep related sessions and records from the same source incident together across development and evaluation splits.
+2. **Compare off the prompt path.** Run exact matching, BM25, and semantic retrieval on identical eligible candidates. Report correct first choices, fraction of answerable cases served, incorrect suggestions on “none” cases, abstentions and latency. Tune thresholds on separate development cases. With eight candidates, review individual mistakes and give denominators. If the label set is too small to hold cases out, report a pilot and collect fresh cases.
+3. **Make reasons inspectable.** For each proposed delivery retain the lesson version, matching task fields, evidence reference, and which preconditions passed. Score similarity only on candidates that satisfy mandatory scope. A missing required field yields unknown applicability. A lexical hit or high embedding score can nominate a lesson for review.
+4. **Measure incremental benefit separately.** Once a reviewed lesson reliably matches, preregister a single-slot advice-versus-silence trial in eligible contexts. Freeze the evaluator and cohort rule, log assignment probabilities and exposure, and preserve unknown outcomes. Existing delivery-only logs cannot establish what would have happened under silence. Consider learning a contextual policy once the trial yields sufficiently varied, interpretable rewards. [LYO prospective trial design](../docs/prospective-finding-trials.md) · [Randomized replay evaluation](https://arxiv.org/abs/1003.5956)
