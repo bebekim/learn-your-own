@@ -63,16 +63,11 @@ import { stageDistance, upstreamClosure } from '../selection/pipeline-order.ts';
 import type { CandidateScope } from '../selection/pipeline-order.ts';
 import {
   normalizePrior,
-  parsePriorJson,
   priorCalibration,
-  priorPseudoCounts,
 } from '../selection/semantic-prior.ts';
 import type { PriorCalibration } from '../selection/semantic-prior.ts';
-import { DEFAULT_POLICY_ID, policyId, resolvePolicy } from '../selection/selection-policies.ts';
-import type {
-  ScoredSelection,
-  SelectionCandidate,
-} from '../selection/selection-policies.ts';
+import { DEFAULT_POLICY_ID } from '../selection/selection-policies.ts';
+import { runLessonSelection } from '../selection/lesson-strategies.ts';
 import { lessonStatusChange } from '../domain/lesson-status.ts';
 import { LYO_LESSON_DDL } from './schema.ts';
 import type {
@@ -517,21 +512,6 @@ export class LessonStore {
   }
 
   /**
-   * Specs/6 F1: Beta parameters for the selection policy = data counts fused
-   * with the LLM semantic prior's pseudo-counts (BEL ∝ λ·π, semantic-prior.ts).
-   * No prior -> alpha = helpful+1, beta = harmful+1 exactly as pre-v0.5.
-   * F6: `gamma` is the prior-controller's tempering factor (1 = cold start).
-   */
-  private candidateParams(row: LibraryRow, gamma = 1): SelectionCandidate {
-    const prior = priorPseudoCounts(parsePriorJson(row.prior_json), gamma);
-    return {
-      lesson_id: row.lesson_id,
-      alpha: row.helpful_count + 1 + prior.alpha,
-      beta: row.harmful_count + 1 + prior.beta,
-    };
-  }
-
-  /**
    * Specs/6 Feature 6 (prior-controller@1): the controller state — the
    * global tempering factor γ and the per-lesson prior/rate agreements
    * behind it. Computed from CURRENT counts, so the tempered candidates that
@@ -551,85 +531,19 @@ export class LessonStore {
     return priorCalibration(rows);
   }
 
-  /**
-   * §4.2 retrieval + selection under the DEFAULT policy (Thompson-Beta).
-   * Thin wrapper kept for callers that only need selected lessons; new code
-   * should use selectWithDecision. Delegates to the same policy sampler so
-   * there is exactly ONE selection code path (same rng consumption order as
-   * the original inline implementation: candidate order, alpha gamma then
-   * beta gamma — seeded draws are unchanged).
-   */
-  selectLessons({ failure_class, limit = 2, rng = Math.random, scope = 'exact' }: SelectLessonsInput): SelectedLesson[] {
-    const rows = this.candidateRows(failure_class, scope);
-    const gamma = this.getPriorCalibration().gamma;
-    const candidates = rows.map((row) => this.candidateParams(row, gamma));
-    return resolvePolicy(null)
-      .sampleSelection(candidates, limit, rng)
-      .map(({ index, score }: ScoredSelection) => ({ ...rows[index], sampled_score: score }));
+  selectLessons(input: SelectLessonsInput): SelectedLesson[] {
+    const rows = this.candidateRows(input.failure_class, input.scope ?? 'exact');
+    return runLessonSelection(rows, this.getPriorCalibration().gamma, {...input, propensityReplicates: 0}).selected;
   }
 
-  /**
-   * §4.2 selection with §5.3 decision-record data, under ANY selection
-   * policy (default Thompson-Beta; inject another policy object or a
-   * registry id string — see selection-policies.ts). Returns the selected
-   * lessons, the FULL candidate set annotated with the posterior parameters
-   * (alpha = helpful+1, beta = harmful+1) and each candidate's selection
-   * propensity: P(lesson lands in the top `limit`) under the policy,
-   * Monte-Carlo estimated by replicating the policy's OWN sampler
-   * `propensityReplicates` times with the same injectable rng (the
-   * propensities feed the ratio-lift estimator's inverse-propensity
-   * weighting; deterministic policies degenerate to propensity 0/1, which
-   * is correct). When every candidate fits in the limit, inclusion is
-   * certain and propensity is exactly 1 (MC loop skipped). null_arm is 1
-   * only when no candidate exists (in practice createLesson runs first, so
-   * at least one always does). The returned `policy` id is the logging
-   * policy of record and belongs in the decision row.
-   */
-  selectWithDecision({
-    failure_class,
-    limit = 2,
-    rng = Math.random,
-    propensityReplicates = 1000,
-    policy: policyRef = null,
-    scope = 'exact',
-  }: SelectWithDecisionInput): SelectWithDecisionResult {
-    const policy = resolvePolicy(policyRef);
-    const rows = this.candidateRows(failure_class, scope);
-
-    if (rows.length === 0) {
-      return { selected: [], candidates: [], null_arm: 1, policy: policyId(policy), scope };
-    }
-
-    const gamma = this.getPriorCalibration().gamma;
-    const baseCandidates = rows.map((row) => this.candidateParams(row, gamma));
-
-    const inclusionCertain = rows.length <= limit;
-    const replicates = Math.max(0, propensityReplicates);
-    const tallies = new Array<number>(rows.length).fill(0);
-    if (!inclusionCertain) {
-      for (let replicate = 0; replicate < replicates; replicate++) {
-        for (const { index } of policy.sampleSelection(baseCandidates, limit, rng)) {
-          tallies[index]++;
-        }
-      }
-    }
-
-    const candidates = baseCandidates.map((candidate, index) => ({
-      ...candidate,
-      propensity: inclusionCertain ? 1 : replicates > 0 ? tallies[index] / replicates : 0,
-      // F2: annotate the causal distance only under 'upstream' scope so the
-      // 'exact' decision rows stay byte-identical to pre-F2 logging.
-      ...(scope === 'upstream'
-        ? { stage_distance: stageDistance(failure_class, rows[index].failure_class) }
-        : {}),
-    }));
-
-    // The real selection draw (independent of the MC replicates).
-    const selected = policy
-      .sampleSelection(baseCandidates, limit, rng)
-      .map(({ index, score }) => ({ ...rows[index], sampled_score: score }));
-
-    return { selected, candidates, null_arm: 0, policy: policyId(policy), scope };
+  selectWithDecision(input: SelectWithDecisionInput): SelectWithDecisionResult {
+    const scope = input.scope ?? 'exact';
+    const rows = this.candidateRows(input.failure_class, scope);
+    const decision = runLessonSelection(rows, this.getPriorCalibration().gamma,
+      {...input, propensityReplicates: input.propensityReplicates ?? 1000});
+    if (scope === 'exact') return {...decision, scope};
+    const distances = new Map(rows.map(row => [row.lesson_id, stageDistance(input.failure_class, row.failure_class)]));
+    return {...decision, scope, candidates: decision.candidates.map(row => ({...row, stage_distance: distances.get(row.lesson_id)}))};
   }
 
   /**
@@ -714,6 +628,7 @@ export class LessonStore {
     selected,
     null_arm = 0,
     context = {},
+    retriever, matches, reason, propensityMethod,
     policy = DEFAULT_POLICY_ID,
   }: RecordDecisionInput): DecisionRow | null {
     if (!run_id || !failure_class) {
@@ -743,7 +658,10 @@ export class LessonStore {
         JSON.stringify(candidates),
         JSON.stringify(selected),
         null_arm ? 1 : 0,
-        JSON.stringify(context ?? {}),
+        JSON.stringify(retriever ? {
+          ...(context && typeof context === 'object' && !Array.isArray(context) ? context : {context}),
+          retriever, matches, reason, propensityMethod,
+        } : context ?? {}),
         policy ?? DEFAULT_POLICY_ID,
         posteriorSnapshotId,
         nowIso()

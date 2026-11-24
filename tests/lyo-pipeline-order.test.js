@@ -136,5 +136,9 @@ test('replay records the causal scope in the decision context', () => {
   assert.deepEqual(JSON.parse(decision.context), {
     source: 'eval/offline-replay',
     scope: 'upstream',
+    retriever: 'eligible@1',
+    reason: 'selected',
+    propensityMethod: 'exact',
+    matches: [{lesson_id: report.candidates[0].lesson_id, reason: 'eligible pool'}],
   });
 });

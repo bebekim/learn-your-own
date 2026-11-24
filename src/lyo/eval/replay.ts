@@ -88,6 +88,7 @@ export function replayTrace(
 
   const selection = store.selectWithDecision({
     failure_class: trace.failure_class,
+    cue: trace.task_cue ?? undefined,
     limit: options.limit ?? 2,
     rng: seededRng(options.seed ?? 1),
     propensityReplicates: 1000,
@@ -98,10 +99,7 @@ export function replayTrace(
     trigger_message_id: trace.trigger_message_id,
     failure_class: trace.failure_class,
     task_cue: trace.task_cue,
-    candidates: selection.candidates,
-    selected: selection.selected,
-    null_arm: selection.null_arm,
-    policy: selection.policy,
+    ...selection,
     context: {
       source: 'eval/offline-replay',
       // F2: record the causal scope only when the caller opted in, so

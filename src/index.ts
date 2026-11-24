@@ -358,3 +358,6 @@ export type * from './lyo/corpus/sync.ts';
 export type * from './lyo/corpus/git-import.ts';
 export type * from './lyo/corpus/pool.ts';
 export type * from './lyo/corpus/git-layer2.ts';
+
+export { RETRIEVER_REGISTRY } from './lyo/selection/lesson-strategies.ts';
+export type { LessonRetriever, PolicyContext, LessonDocument, LessonMatch } from './lyo/application/lesson-selection.ts';

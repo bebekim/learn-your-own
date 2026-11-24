@@ -16,10 +16,11 @@ import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { hashValue } from '../contract/refs.ts';
-import { resolvePolicy } from './selection-policies.ts';
+import { formatSelection, type HookSelection, type LessonRow } from './session-banner.ts';
+import { runLessonSelection } from './lesson-strategies.ts';
 import { LessonStore } from '../storage/lesson-store.ts';
 import { sessionVerifier } from '../bridge/session-bridge.ts';
-import { parsePriorJson, priorCalibration, priorPseudoCounts } from './semantic-prior.ts';
+import { priorCalibration } from './semantic-prior.ts';
 import { selectSessionFindings, trialManagedFindings } from '../interface/session-findings.ts';
 import type { SessionFinding } from '../interface/session-findings.ts';
 import { emitFindingReviewQueue } from '../interface/session-finding-workflow.ts';
@@ -30,23 +31,11 @@ import { visibleHookContext } from '../hooks/context-visibility.ts';
 export { repositoryKey };
 
 const LIMIT = 5;
-const MAX_TEXT = 220;
+
 const STDIN_GUARD_MS = 2500;
 const REASONING_MANDATE = 'LYO reasoning mandate: Could this evidence exist while the claim is false? ' +
   'Separate claim, observation, and inference; check alternative causes and witness assumptions. ' +
   'Preserve unknown. Advice delivery and passing checks alone do not establish benefit.\n';
-
-interface LessonRow {
-  lesson_id: string;
-  status: string;
-  failure_class: string;
-  intervention: string;
-  helpful_count: number;
-  harmful_count: number;
-  posterior_mean: number;
-  explanation: string;
-  prior_json: string | null;
-}
 
 export interface SessionHookPayload {
   cwd?: string | null;
@@ -79,29 +68,12 @@ export function resolveSessionLessonStorePath(cwd?: string | null): string | nul
   return null;
 }
 
-function formatLesson(row: LessonRow): string {
-  const text = row.intervention.replace(/\s+/g, ' ').trim();
-  const short = text.length > MAX_TEXT ? `${text.slice(0, MAX_TEXT - 3)}...` : text;
-  const mean = Number(row.posterior_mean || 0).toFixed(2);
-  return `- [${row.lesson_id}; ${row.status}; ${mean} · ${row.helpful_count}✓/${row.harmful_count}✗ recorded feedback · ${row.failure_class}] ${short}`;
-}
-
 export function renderSessionLessons(payload: SessionHookPayload = {}): string | null {
   const selection = selectSessionLessons(payload);
-  return selection ? formatSelection(selection) : null;
+  return selection && (selection.selected.length || selection.findings.length) ? formatSelection(selection) : null;
 }
 
-function formatSelection({ selected, findings }: { selected: LessonRow[]; findings: SessionFinding[] }): string {
-  return [
-    findings.length ? 'Observed findings — future usefulness unvalidated; apply only when the stated activity fits:\n' +
-      findings.map(row => `- [${row.activity}; ${row.id}] ${row.intervention}\n  Observed: ${row.observation} Evidence: ${row.evidenceRef}` +
-        (row.supporting ? `\n  ${row.supporting} supporting observation(s); broader usefulness unvalidated.` : '')).join('\n') : '',
-    selected.length ? `LYO lessons from your past runs (Thompson-sampled ${selected.length}; ` +
-      'score = posterior mean, ✓/✗ = recorded feedback; this delivery does not establish applicability or benefit):\n' + selected.map(formatLesson).join('\n') : '',
-  ].filter(Boolean).join('\n') + '\n';
-}
-
-function selectSessionLessons(payload: SessionHookPayload): { selected: LessonRow[]; findings: SessionFinding[]; storePath: string } | null {
+function selectSessionLessons(payload: SessionHookPayload, cue = payload.prompt): HookSelection | null {
   const storePath = resolveSessionLessonStorePath(payload.cwd);
   if (!storePath) return null;
 
@@ -124,15 +96,16 @@ function selectSessionLessons(payload: SessionHookPayload): { selected: LessonRo
       const verifier = sessionVerifier(row.explanation);
       return !verifier || verifier.repoPath === payload.cwd;
     });
-    const gamma = priorCalibration(scoped).gamma;
-    const candidates = scoped.map((row) => ({
-      lesson_id: row.lesson_id,
-      alpha: Number(row.helpful_count) + 1 + priorPseudoCounts(parsePriorJson(row.prior_json), gamma).alpha,
-      beta: Number(row.harmful_count) + 1 + priorPseudoCounts(parsePriorJson(row.prior_json), gamma).beta,
-    }));
-    const picks = resolvePolicy(null).sampleSelection(candidates, LIMIT - findings.length);
-    const selected = picks.map(({ index }) => scoped[index]);
-    return selected.length || findings.length ? { selected, findings, storePath } : null;
+    try {
+      const {selected, retriever, policy, matches, reason} = runLessonSelection(scoped, priorCalibration(scoped).gamma,
+        {cue: cue ?? '', limit: LIMIT - findings.length});
+      return {selected, findings, storePath, selector: {retriever, policy, matches, reason, poolHash: hashValue(scoped), cueHash: hashValue(cue ?? '')}};
+    } catch {
+      // An unavailable ordinary selector must not suppress independently scoped findings.
+      process.stderr.write('LYO ordinary lesson selection unavailable. Check the configured strategies.\n');
+      return {selected: [], findings, storePath, selector: {reason: 'unavailable', matches: [],
+        policy: process.env.LYO_LESSON_POLICY ?? 'thompson-beta@1', retriever: process.env.LYO_LESSON_RETRIEVER ?? 'eligible@1'}};
+    }
   } finally {
     db.close();
   }
@@ -184,6 +157,7 @@ export function emitSessionLessons(
   write: (text: string) => void = text => { process.stdout.write(text); },
 ): void {
   try {
+    const selectionCue = payload.prompt;
     const refresh = payload.hook_event_name === 'SessionStart' || payload.hook_event_name === 'UserPromptSubmit';
     if (payload.hook_event_name === 'SessionStart') write(REASONING_MANDATE);
     const storePath = resolveSessionLessonStorePath(payload.cwd);
@@ -198,8 +172,16 @@ export function emitSessionLessons(
     try {
       if (storePath && payload.cwd) emitFindingReviewQueue(storePath, payload.cwd, payload.session_id ?? payload.sessionId ?? null, write);
     } catch { /* A damaged review queue must not hide ordinary guidance. */ }
-    const selection = selectSessionLessons(payload);
+    const selection = selectSessionLessons(payload, selectionCue ?? payload.prompt);
     if (!selection) return;
+    if (sessionId && selection.selector && !selection.selected.length && (process.env.LYO_LESSON_RETRIEVER || process.env.LYO_LESSON_POLICY)) {
+      const store = new LessonStore(selection.storePath);
+      try {
+        store.recordTrace({trace_id: `lesson-selection:${randomUUID()}`, run_id: sessionId, kind: 'behavior',
+          summary: 'Ordinary lesson selection produced no advice.',
+          payload: {source: 'lesson-selection@1', turnId: payload.turn_id ?? null, ...selection.selector}});
+      } finally { store.close(); }
+    }
     if (!refresh && sessionId && selection.selected.length && !claimSessionBanner(sessionId, selection.storePath)) selection.selected = [];
     if (!refresh && sessionId) selection.findings = selection.findings.filter(row => claimSessionBanner(sessionId, selection.storePath, `${row.id}:${row.version}`));
     if (!selection.selected.length && !selection.findings.length) return;
@@ -210,13 +192,13 @@ export function emitSessionLessons(
   }
 }
 
-function deliverSelection(selection: { selected: LessonRow[]; findings: SessionFinding[]; storePath: string },
+function deliverSelection(selection: HookSelection,
   payload: SessionHookPayload, sessionId: string, write: (text: string) => void, scope?: Record<string, unknown>): void {
   const store = new LessonStore(selection.storePath);
   try {
     const firstTraceId = `session-delivery:${sessionId}`;
     const traceId = store.getTrace(firstTraceId)
-      ? `${firstTraceId}:${hashValue([payload.cwd, selection.selected.map(row => row.lesson_id),
+      ? `${firstTraceId}:${hashValue([payload.cwd, selection.selector, selection.selected.map(row => row.lesson_id),
         selection.findings.map(row => [row.id, row.version, row.context])])}` : firstTraceId;
     write(formatSelection(selection) + (selection.findings.length
       ? `Finding delivery: ${traceId}. Store: ${selection.storePath}. Before applying advice, use lyo finding inspect --finding-id <id> --store <path> for registration and semantic-review templates. Register the opportunity and exact planned capture action, then review evaluator semantics with finding semantics. Codex/Claude hooks capture paired actions and record assessments automatically. Without a sound evaluator leave the outcome unknown. Use the same --store throughout.\n` : ''));
@@ -225,7 +207,7 @@ function deliverSelection(selection: { selected: LessonRow[]; findings: SessionF
     if (!store.getTrace(traceId)) store.recordTrace({ trace_id: traceId, run_id: sessionId,
       kind: 'protocol_application', summary: 'Session banner emitted.',
       payload: { cwd: payload.cwd, promptHash: typeof payload.prompt === 'string' ? hashValue(payload.prompt) : null,
-        lessons: selection.selected, findings: selection.findings, evidenceKind: 'delivery-only', ...(scope ? { scope } : {}) } });
+        selector: selection.selector, lessons: selection.selected, findings: selection.findings, evidenceKind: 'delivery-only', ...(scope ? { scope } : {}) } });
   } finally { store.close(); }
 }
 

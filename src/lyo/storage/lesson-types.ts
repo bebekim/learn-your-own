@@ -1,8 +1,9 @@
+import type { LessonMatch, SelectionOptions } from '../application/lesson-selection.ts';
 /**
  * Types for the LYO lesson store. Extracted from lesson-store.ts.
  */
 
-import type { SelectionCandidate, SelectionPolicyRef } from '../selection/selection-policies.ts';
+import type { SelectionCandidate } from '../selection/selection-policies.ts';
 import type { CandidateScope } from '../selection/pipeline-order.ts';
 import type { LessonPrior } from '../selection/semantic-prior.ts';
 
@@ -131,7 +132,7 @@ export interface PreferencePairRow {
 }
 
 export interface DecisionCandidate extends SelectionCandidate {
-  propensity: number;
+  propensity: number | null;
   /**
    * Specs/6 F2: stageDistance(observed, candidate) from pipeline-order.ts;
    * present only when the decision was made under 'upstream' scope. >= 0
@@ -143,6 +144,10 @@ export interface DecisionCandidate extends SelectionCandidate {
 export type SelectedLesson = LibraryRow & { sampled_score: number | null };
 
 export interface SelectWithDecisionResult {
+  retriever: string;
+  reason: string;
+  matches: readonly LessonMatch[];
+  propensityMethod: string;
   selected: SelectedLesson[];
   candidates: DecisionCandidate[];
   null_arm: number;
@@ -165,10 +170,8 @@ export interface CreateLessonInput {
   prior?: LessonPrior | null;
 }
 
-export interface SelectLessonsInput {
+export interface SelectLessonsInput extends Omit<SelectionOptions, 'propensityReplicates'> {
   failure_class: string;
-  limit?: number;
-  rng?: () => number;
   /**
    * Specs/6 F2: 'exact' (default) keeps the historical behavior — candidates
    * from the observed failure class only. 'upstream' widens to the upstream
@@ -180,7 +183,6 @@ export interface SelectLessonsInput {
 
 export interface SelectWithDecisionInput extends SelectLessonsInput {
   propensityReplicates?: number;
-  policy?: SelectionPolicyRef;
 }
 
 export interface RecordApplicationInput {
@@ -192,7 +194,7 @@ export interface RecordApplicationInput {
   decision_id?: string | null;
 }
 
-export interface RecordDecisionInput {
+export interface RecordDecisionInput extends Partial<Pick<SelectWithDecisionResult, 'retriever' | 'matches' | 'reason' | 'propensityMethod'>> {
   run_id: string;
   trigger_message_id?: string | null;
   cycle_index?: number | null;

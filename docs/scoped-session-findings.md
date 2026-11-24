@@ -20,6 +20,25 @@ versioned finding delivery
 A delivered banner remains delivery-only evidence. A passing task is insufficient
 on its own. Review labels cannot contradict the registered measurements.
 
+## Ordinary lesson selection
+
+The hook and both LessonStore selection methods read the same process environment.
+`LYO_LESSON_RETRIEVER` accepts `eligible@1` (default) or `bm25@1`.
+`LYO_LESSON_POLICY` accepts `thompson-beta@1` (default) or `retrieval-order@1`.
+For example, launch the host with both variables set to use lexical matching and
+keep the resulting rank order. BM25 searches eligible trigger and intervention
+text in memory. No prompt match produces silence. These settings preserve the
+ordinary feedback gate and the separate activity rules for findings.
+
+Library callers can override either stage per request, for example
+`store.selectWithDecision({ failure_class, cue, retriever: 'bm25@1', policy: 'retrieval-order@1' })`.
+Pass a strategy object directly or register its versioned ID in the process's
+`RETRIEVER_REGISTRY` or `POLICY_REGISTRY`. Custom policies that declare
+`deterministic` must return the same ordered selection on repeated identical
+inputs. A policy declaring `fillsSlots` must always return as many distinct
+candidates as the limit and available pool allow. Each decision's propensity
+is a marginal inclusion probability within the deterministic retrieval result.
+
 ## Turn and compaction refresh
 
 The configured `lyo-session-hook` runs on `UserPromptSubmit` and `SessionStart`.

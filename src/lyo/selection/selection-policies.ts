@@ -1,50 +1,6 @@
-/**
- * Selection policies for the lesson library (§4.2). A policy is ANY object:
- *
- *   {
- *     name: string,
- *     version: integer,
- *     sampleSelection(candidates, limit, rng) -> [{ index, score }]
- *   }
- *
- * `candidates` carries the Beta-Bernoulli sufficient statistics
- * [{ lesson_id, alpha, beta }] — Bernoulli-family policies use them, other
- * policies (deterministic, externally scored, voting-based, ...) may ignore
- * them. `sampleSelection` returns the chosen candidate indices in selection
- * order, each with an OPTIONAL policy-defined score (for Thompson-Beta it is
- * the theta draw; deterministic policies may return null).
- *
- * The store wraps every policy with Monte-Carlo propensity estimation (it
- * replicates the policy's OWN sampler and tallies inclusion), so any policy
- * satisfying this interface automatically satisfies the decision log's
- * propensity contract: swapping selection algorithms is a policy change,
- * never a store change. Each logged decision records the policy id
- * (name@version) as the logging policy of record — the provenance
- * off-policy evaluation (§5.3 ratio lift) cannot live without.
- */
-
-export interface SelectionCandidate {
-  lesson_id: string;
-  alpha: number;
-  beta: number;
-}
-
-export interface ScoredSelection {
-  index: number;
-  score: number | null;
-}
-
-export interface SelectionPolicy {
-  name: string;
-  version: number;
-  sampleSelection(
-    candidates: SelectionCandidate[],
-    limit: number,
-    rng?: () => number
-  ): ScoredSelection[];
-}
-
-export type SelectionPolicyRef = SelectionPolicy | string | null | undefined;
+/** Versioned final-choice policies for eligible, retrieved lessons. */
+import type { SelectionPolicy, SelectionPolicyRef } from '../application/lesson-selection.ts';
+export type { SelectionPolicy, SelectionPolicyRef, SelectionCandidate, ScoredSelection } from '../application/lesson-selection.ts';
 
 // Box-Muller standard normal from an injectable uniform rng.
 function sampleStandardNormal(rng: () => number): number {
@@ -86,6 +42,7 @@ export function sampleGamma(shape: number, rng: () => number): number {
 // seeded draws are reproducible across refactors.
 export const THOMPSON_BETA_POLICY: SelectionPolicy = {
   name: 'thompson-beta',
+  fillsSlots: true,
   version: 1,
   sampleSelection(candidates, limit, rng = Math.random) {
     const scored = candidates.map((candidate, index) => {
@@ -109,6 +66,8 @@ export const DEFAULT_POLICY_ID = policyId(DEFAULT_POLICY);
 // be injected directly without registration.
 export const POLICY_REGISTRY = new Map<string, SelectionPolicy>([
   [DEFAULT_POLICY_ID, DEFAULT_POLICY],
+  ['retrieval-order@1', {name: 'retrieval-order', version: 1, deterministic: true,
+    sampleSelection: (rows, limit) => rows.slice(0, limit).map((_, index) => ({index, score: null}))}],
 ]);
 
 // Accepts a policy object, a registry id string, or null (default policy).
