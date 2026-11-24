@@ -66,11 +66,11 @@ absolute paths discovered above.
   "hooks": {
     "SessionStart": [{"hooks": [
       {"type": "command", "command": "/absolute/path/to/node /absolute/path/to/lyo HOST-hook --db-from-event-cwd --spool-dir-from-event-cwd", "timeout": 10},
-      {"type": "command", "command": "/absolute/path/to/node /absolute/path/to/lyo-session-hook", "timeout": 5}
+      {"type": "command", "command": "/absolute/path/to/node /absolute/path/to/lyo-session-hook --json", "timeout": 5}
     ]}],
     "UserPromptSubmit": [{"hooks": [
       {"type": "command", "command": "/absolute/path/to/node /absolute/path/to/lyo HOST-hook --db-from-event-cwd --spool-dir-from-event-cwd", "timeout": 10},
-      {"type": "command", "command": "/absolute/path/to/node /absolute/path/to/lyo-session-hook", "timeout": 5}
+      {"type": "command", "command": "/absolute/path/to/node /absolute/path/to/lyo-session-hook --json", "timeout": 5}
     ]}],
     "PreToolUse": [{"hooks": [
       {"type": "command", "command": "/absolute/path/to/node /absolute/path/to/lyo HOST-hook --db-from-event-cwd --spool-dir-from-event-cwd", "timeout": 10}
@@ -104,6 +104,36 @@ requires no configuration change: the next hook invocation loads the new package
 Verify fresh receipts rather than treating a restart as evidence that capture works.
 See the [Codex hook contract](https://learn.chatgpt.com/docs/hooks) and
 [Claude hook contract](https://code.claude.com/docs/en/hooks).
+
+## Visible context additions
+
+Codex/Claude capture hooks mirror every nonempty `additionalContext` addition to
+`systemMessage`, the host's user-facing notice channel. Configure the separate
+`lyo-session-hook` with `--json` for these hosts (as in the example above), so
+session-start, prompt-submit and compaction refreshes also include that notice.
+`lyo init` generates this flag for new Claude settings. Existing settings need the
+flag added; changing a Codex hook definition can require renewed trust in `/hooks`.
+
+The notice includes the exact context text, its emitter/event, and a local record
+path under `.agent-learning/context-additions/`. Each record binds the text hash to
+session/turn/tool-call IDs when present. Identical callbacks reuse the same text/event
+record; record counts are not delivery counts. It records prepared output, not host receipt,
+UI display, adherence or benefit. The helper reads only generated context and event identity; it does not read the
+original prompt or tool-input fields.
+Lesson rows in the text show lesson ID, stored status and recorded feedback counts;
+findings retain their existing activity, observation and evidence labels. The standing
+reasoning mandate, trial guidance and recovery reminders are included when emitted.
+No-advice trial arms do not acquire a notice containing withheld advice.
+
+If a record cannot be saved, the notice still includes the emitted text and states
+that storage failed. Use synchronous handlers for these notices: Claude can route async-hook notices
+back to the model instead of displaying them to the user. See the
+[Claude hook contract](https://code.claude.com/docs/en/hooks).
+Actual display depends on the host UI; the durable record lets
+you inspect exact prepared text without relying on an agent's acknowledgement.
+Legacy text-only clients and `--cwd` output remain plain text; `--json` is for hosts
+that implement the corresponding JSON context and notice contract. This change does
+not claim a visible notice for other host adapters.
 
 ## Optional Codex command status capture
 

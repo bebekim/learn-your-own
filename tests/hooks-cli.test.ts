@@ -80,6 +80,8 @@ test('lyo codex-hook records a hook event and emits protocol overlay context', (
     });
     assert.equal(parsed.continue, true);
     assert.equal(parsed.hookSpecificOutput.hookEventName, 'UserPromptSubmit');
+    assert.ok(parsed.systemMessage.endsWith(parsed.hookSpecificOutput.additionalContext));
+    assert.match(parsed.systemMessage, /LYO prompt addition/);
     assert.match(parsed.hookSpecificOutput.additionalContext, /Fixture replay gate/);
     assert.match(parsed.hookSpecificOutput.additionalContext, /fixture_replay_gate/);
   } finally {

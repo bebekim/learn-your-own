@@ -25,6 +25,7 @@ import type { SessionFinding } from '../interface/session-findings.ts';
 import { emitFindingReviewQueue } from '../interface/session-finding-workflow.ts';
 import { refreshSessionTrialAdvice } from '../interface/finding-opportunities.ts';
 import { repositoryKey } from '../repository.ts';
+import { visibleHookContext } from '../hooks/context-visibility.ts';
 
 export { repositoryKey };
 
@@ -37,6 +38,7 @@ const REASONING_MANDATE = 'LYO reasoning mandate: Could this evidence exist whil
 
 interface LessonRow {
   lesson_id: string;
+  status: string;
   failure_class: string;
   intervention: string;
   helpful_count: number;
@@ -81,7 +83,7 @@ function formatLesson(row: LessonRow): string {
   const text = row.intervention.replace(/\s+/g, ' ').trim();
   const short = text.length > MAX_TEXT ? `${text.slice(0, MAX_TEXT - 3)}...` : text;
   const mean = Number(row.posterior_mean || 0).toFixed(2);
-  return `- [${mean} · ${row.helpful_count}✓/${row.harmful_count}✗ · ${row.failure_class}] ${short}`;
+  return `- [${row.lesson_id}; ${row.status}; ${mean} · ${row.helpful_count}✓/${row.harmful_count}✗ recorded feedback · ${row.failure_class}] ${short}`;
 }
 
 export function renderSessionLessons(payload: SessionHookPayload = {}): string | null {
@@ -95,7 +97,7 @@ function formatSelection({ selected, findings }: { selected: LessonRow[]; findin
       findings.map(row => `- [${row.activity}; ${row.id}] ${row.intervention}\n  Observed: ${row.observation} Evidence: ${row.evidenceRef}` +
         (row.supporting ? `\n  ${row.supporting} supporting observation(s); broader usefulness unvalidated.` : '')).join('\n') : '',
     selected.length ? `LYO lessons from your past runs (Thompson-sampled ${selected.length}; ` +
-      'score = posterior mean, ✓/✗ = validated outcomes; apply when relevant):\n' + selected.map(formatLesson).join('\n') : '',
+      'score = posterior mean, ✓/✗ = recorded feedback; this delivery does not establish applicability or benefit):\n' + selected.map(formatLesson).join('\n') : '',
   ].filter(Boolean).join('\n') + '\n';
 }
 
@@ -107,7 +109,8 @@ function selectSessionLessons(payload: SessionHookPayload): { selected: LessonRo
   try {
     const rows = db
       .prepare(
-        `SELECT * FROM v_lesson_library`
+        `SELECT library.*, lesson.status FROM v_lesson_library library
+         JOIN lesson ON lesson.lesson_id = library.lesson_id`
       )
       .all() as unknown as LessonRow[];
     const findings = selectSessionFindings(db, { ...payload, repository: () => repositoryKey(payload.cwd) });
@@ -262,7 +265,14 @@ function runCli(): void {
   process.stdin.on('end', () => {
     try {
       const payload = JSON.parse(input || '{}') as SessionHookPayload;
-      emitSessionLessons({ ...payload, cwd: payload.cwd || process.cwd() });
+      const event = { ...payload, cwd: payload.cwd || process.cwd() };
+      if (process.argv.includes('--json') && event.hook_event_name) {
+        let text = '';
+        emitSessionLessons(event, chunk => { text += chunk; });
+        const output = text ? visibleHookContext({ hookSpecificOutput: {
+          hookEventName: event.hook_event_name, additionalContext: text } }, event, 'session-hook') : {};
+        process.stdout.write(JSON.stringify(output) + '\n');
+      } else emitSessionLessons(event);
     } catch {
       // fail-open: never block the session
     }

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.4.3-adaptive.14 (visible context additions)
+
+- Mirror Codex/Claude model-bound hook context to the user-facing `systemMessage` channel. The standalone session hook supports `--json` for visible prompt/compaction refreshes; new Claude settings use it by default.
+- Retain exact prepared context with a text hash and available session/turn/call identity under `.agent-learning/context-additions/`, without copying original prompts or tool arguments. Storage failures preserve the visible notice and context. Host display and learning benefit remain unverified by an output record.
+- Include lesson IDs, actual stored status and recorded-feedback labels in lesson banners.
+
 ## 0.4.3-adaptive.13 (opt-in Codex completion receipts)
 
 - Add `--capture-command-status` to Codex capture hooks. Simple foreground verifier commands can use the existing child-shell runner to retain a completion receipt when the host supplies stdout alone. Session, turn, tool-call, rewritten input, command, working directory and timing must match before a numeric status reaches telemetry and the lesson bridge.

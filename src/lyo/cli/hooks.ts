@@ -26,6 +26,7 @@ import { nativeFeedback } from '../control/native-feedback.ts';
 import { ordinaryFindingTrialFeedback } from '../interface/finding-trials.ts';
 import { workspaceRoot } from '../repository.ts';
 import { codexCommandStatusEvent, codexCommandStatusRewrite } from '../hooks/codex-command-status.ts';
+import { visibleHookContext } from '../hooks/context-visibility.ts';
 
 export async function runCodexHookCommand(
   args: CliArgs,
@@ -36,7 +37,7 @@ export async function runCodexHookCommand(
   const enabled = args.hasFlag('--capture-command-status');
   const captured = enabled ? codexCommandStatusEvent(event) : event;
   const output: any = addNativeFeedback(await captureCodexHook(args, captured), 'codex', event, args, await actionScope(event, args));
-  return enabled ? addCommandStatusRewrite(output, event) : output;
+  return visibleHookContext(enabled ? addCommandStatusRewrite(output, event) : output, event, 'codex-hook');
 }
 
 /** Finding actions and another hook's rewrite retain their own input contracts. */
@@ -125,7 +126,7 @@ export async function runClaudeHookCommand(
 ): Promise<unknown> {
   const input = await readStdin(stdin);
   const event = input.trim() ? JSON.parse(input) : {};
-  return addNativeFeedback(await runClaudeStyleHook(args, event), 'claude', event, args, await actionScope(event, args));
+  return visibleHookContext(addNativeFeedback(await runClaudeStyleHook(args, event), 'claude', event, args, await actionScope(event, args)) as any, event, 'claude-hook');
 }
 
 function addNativeFeedback(output: any, runtime: 'codex' | 'claude', event: Record<string, any>, args: CliArgs,

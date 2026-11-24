@@ -44,7 +44,7 @@ test('packed executables and generated hooks run the installed learning loop', a
     run('lyo', ['init', 'workspace']);
     const settings = JSON.parse(readFileSync(join(dir, 'workspace/.claude/settings.json'), 'utf8'));
     const command = settings.hooks.SessionStart[0].hooks[0].command;
-    assert.ok(command.endsWith('/src/lyo/selection/session-hook.js'));
+    assert.ok(command.endsWith('/src/lyo/selection/session-hook.js --json'));
     assert.match(execFileSync('/bin/sh', ['-c', command], { cwd: dir, env, encoding: 'utf8',
       input: JSON.stringify({ cwd: dir, session_id: 'init-package' }) }), /Run the narrow test/);
     const { buildHookBlock } = await import(new URL('../dist/npm/package/src/lyo/cli/commands/wrap.js', import.meta.url).href);

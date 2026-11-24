@@ -37,7 +37,10 @@ test('Codex hooks deliver a recovery decision and attach the later measurement i
     assert.equal(pending.pending, 1);
     const { decision } = pending.recent[0];
     assert.equal(decision.propensity, 0.5);
-    if (decision.action === 'recovery-reminder') assert.match(output.hookSpecificOutput.additionalContext, /LYO recovery experiment/);
+    if (decision.action === 'recovery-reminder') {
+      assert.match(output.hookSpecificOutput.additionalContext, /LYO recovery experiment/);
+      assert.ok(output.systemMessage.endsWith(output.hookSpecificOutput.additionalContext));
+    }
     else assert.equal(output.hookSpecificOutput, undefined);
     f.hook('codex', { ...call, hook_event_name: 'PreToolUse', tool_use_id: 'retry' });
     f.hook('codex', { ...call, hook_event_name: 'PostToolUse', tool_use_id: 'retry', tool_response: { exit_code: 0 } });
