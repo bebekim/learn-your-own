@@ -1,4 +1,4 @@
-import type { CommandClassification, CommandStatus } from '../domain/types/activation.ts';
+import type { CommandStatus } from '../domain/types/activation.ts';
 
 export type TokenKind =
   | 'PROMPT'

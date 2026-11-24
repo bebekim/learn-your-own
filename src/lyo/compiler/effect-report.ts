@@ -97,7 +97,7 @@ export function buildEffectReport(ast: RunTelemetryAst): EffectReport {
     counts,
     predicates,
     resourceConflicts: resourceConflicts(ast.actions),
-    temporalFindings: temporalFindings(ast.actions, predicates),
+    temporalFindings: temporalFindings(predicates),
   };
 }
 
@@ -137,10 +137,7 @@ function resourceConflicts(actions: NormalizedAction[]): ResourceConflictReport[
   }));
 }
 
-function temporalFindings(
-  actions: NormalizedAction[],
-  predicates: EffectReport['predicates']
-): TemporalFinding[] {
+function temporalFindings(predicates: EffectReport['predicates']): TemporalFinding[] {
   const findings: TemporalFinding[] = [];
 
   if (predicates.debugging) {

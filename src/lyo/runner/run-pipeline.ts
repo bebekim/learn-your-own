@@ -539,17 +539,6 @@ function defaultExecutorFactory(stage: PlanStage): StageExecutor {
   });
 }
 
-function inferLanguage(files: ArtifactRef[]): string {
-  const extension = files[0]?.path.split('.').pop();
-  const languages: Record<string, string> = {
-    ts: 'typescript',
-    js: 'javascript',
-    mjs: 'javascript',
-    py: 'python',
-  };
-  return languages[extension ?? ''] ?? 'unknown';
-}
-
 function soleStage(plan: Plan, role: PlanStage['role']): PlanStage {
   const matches = plan.stages.filter((stage) => stage.role === role);
   if (matches.length !== 1) {

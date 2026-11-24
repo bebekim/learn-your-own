@@ -106,7 +106,6 @@ export function priorPseudoCounts(
 
 /* ── Specs/6 Feature 6: the probabilistic controller (prior-controller@1) ── */
 
-export const PRIOR_CONTROLLER_ID = 'prior-controller@1';
 /** A lesson needs this many grounded outcomes before it can judge the LLM. */
 export const MIN_CALIBRATION_SAMPLES = 5;
 

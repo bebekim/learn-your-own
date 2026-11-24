@@ -72,7 +72,6 @@ import { DEFAULT_POLICY_ID, policyId, resolvePolicy } from '../selection/selecti
 import type {
   ScoredSelection,
   SelectionCandidate,
-  SelectionPolicyRef,
 } from '../selection/selection-policies.ts';
 import {
   LYO_LESSON_DDL,
@@ -84,7 +83,6 @@ import {
 import type {
   ApplicationRow,
   CreateLessonInput,
-  DecisionCandidate,
   DecisionRow,
   DeltaRow,
   LibraryRow,

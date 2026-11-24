@@ -13,8 +13,6 @@ const DEPLOYMENT_TOOLS = new Set([
 ]);
 
 const DOCKER_DEPLOY_SUBCOMMANDS = new Set(['push', 'pull']);
-const AWS_DEPLOY_SUBCOMMANDS = new Set(['deploy']);
-const GCLOUD_DEPLOY_SUBCOMMANDS = new Set(['deploy', 'app', 'run', 'services', 'deploy']);
 
 export function extractDeployment(
   commandName: string,
@@ -87,10 +85,6 @@ function extractTarget(commandName: string, argv: string): string | null {
     }
   }
   return null;
-}
-
-function firstToken(input: string): string {
-  return input.trim().split(/\s+/)[0] ?? '';
 }
 
 function secondToken(input: string): string {

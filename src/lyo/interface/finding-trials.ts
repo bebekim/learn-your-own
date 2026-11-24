@@ -42,7 +42,6 @@ const trialSchema = z.object({ id: text, findingId: text, findingVersion: text, 
   .refine(input => input.evaluation?.method !== 'stratified-exact' || input.enrollment,
     'stratified-exact needs session enrollment; one session per repository leaves no within-repository comparison');
 type Trial = z.infer<typeof trialSchema>;
-export type FindingTrial = ReturnType<typeof findingTrials>[number];
 
 export function findingTrials(db: DatabaseSync) {
   return db.prepare(`SELECT payload_json FROM learning_trace WHERE kind = 'behavior'

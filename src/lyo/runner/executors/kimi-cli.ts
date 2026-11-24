@@ -76,7 +76,7 @@ function defaultSpawnKimi({
   if (model) {
     argv.push('-m', model);
   }
-  return new Promise((resolve, reject) => {
+  return new Promise(resolve => {
     execFile(
       'kimi',
       argv,
