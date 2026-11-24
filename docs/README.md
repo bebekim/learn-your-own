@@ -9,6 +9,7 @@ Current source baseline: `0.4.3-adaptive.9`, updated 12 September 2026.
 | Read | Purpose |
 |---|---|
 | [Application and demo brief](hackathon-brief.md) | Explain the problem, demonstrate the loop and state the validation milestone |
+| [Architecture design (HTML)](architecture.html) | Explore dependency direction, source traces and proposed module boundaries |
 | [Development status](development-status.md) | Implemented behavior, architecture/code map, evidence and open work |
 | [Install and connect hooks](hook-installation.md) | Build the current package, configure hosts and distinguish the SQLite stores |
 | [Prospective finding trials](prospective-finding-trials.md) | Reusable trigger/evaluator, ordinary enrollment, comparison, promotion and pause |
