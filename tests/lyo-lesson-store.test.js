@@ -273,6 +273,10 @@ test('LYO lesson store: quarantines a lesson when the Wilson upper bound drops b
     .find((delta) => delta.delta_type === 'QUARANTINE');
   assert.ok(quarantineDelta);
   assert.strictEqual(quarantineDelta.actor, 'validator-rule');
+  const payload = JSON.parse(quarantineDelta.payload);
+  assert.strictEqual(payload.helpful_count, 1);
+  assert.strictEqual(payload.harmful_count, 8);
+  assert.ok(payload.wilson_upper > 0.434 && payload.wilson_upper < 0.436);
 
   // Quarantined lessons leave the library view but keep their rows
   const viewRows = store.db

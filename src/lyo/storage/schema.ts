@@ -14,11 +14,6 @@
  * — the attribution unit is the validation cycle, not the run.
  */
 
-export const WILSON_Z = 1.96;
-export const STATUS_RULE_MIN_SAMPLES = 8;
-export const PROMOTION_WILSON_LOWER = 0.5;
-export const QUARANTINE_WILSON_UPPER = 0.45;
-
 export const LYO_LESSON_DDL = `
 CREATE TABLE IF NOT EXISTS lesson_delta (
   delta_id    INTEGER PRIMARY KEY AUTOINCREMENT,

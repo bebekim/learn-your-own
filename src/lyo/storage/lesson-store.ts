@@ -73,13 +73,8 @@ import type {
   ScoredSelection,
   SelectionCandidate,
 } from '../selection/selection-policies.ts';
-import {
-  LYO_LESSON_DDL,
-  WILSON_Z,
-  STATUS_RULE_MIN_SAMPLES,
-  PROMOTION_WILSON_LOWER,
-  QUARANTINE_WILSON_UPPER,
-} from './schema.ts';
+import { lessonStatusChange } from '../domain/lesson-status.ts';
+import { LYO_LESSON_DDL } from './schema.ts';
 import type {
   ApplicationRow,
   CreateLessonInput,
@@ -188,38 +183,10 @@ function sha256(text: string): string {
   return crypto.createHash('sha256').update(text).digest('hex');
 }
 
-// §5.2 Wilson score interval with z = 1.96.
-function wilsonInterval(helpful: number, n: number, z = WILSON_Z): { lower: number; upper: number } {
-  const phat = helpful / n;
-  const z2 = z * z;
-  const denominator = 1 + z2 / n;
-  const center = phat + z2 / (2 * n);
-  const margin = z * Math.sqrt((phat * (1 - phat)) / n + z2 / (4 * n * n));
-  return {
-    lower: (center - margin) / denominator,
-    upper: (center + margin) / denominator,
-  };
-}
-
-interface StatusFoldState {
-  status: string;
-  helpful_count: number;
-  harmful_count: number;
-}
-
-// Pure status-rule fold shared by applyStatusRules (DB path) and replayLesson
-// (reconstruction path). Mutates and returns the given state object.
-function foldStatusRules<T extends StatusFoldState>(state: T): T {
-  const n = state.helpful_count + state.harmful_count;
-  if (n < STATUS_RULE_MIN_SAMPLES) return state;
-  const { lower, upper } = wilsonInterval(state.helpful_count, n);
-  if (lower > PROMOTION_WILSON_LOWER && state.status === 'candidate') {
-    state.status = 'active';
-  }
-  if (upper < QUARANTINE_WILSON_UPPER && state.status !== 'quarantined') {
-    state.status = 'quarantined';
-  }
-  return state;
+function replayMark(state: ReplayState, counter: 'helpful_count' | 'harmful_count', weight: number | undefined): void {
+  // Older MARK deltas predate fractional weights and count as one.
+  state[counter] += weight ?? 1;
+  state.status = lessonStatusChange(state)?.status ?? state.status;
 }
 
 function unionProvenance(provenance: string[], runId: string | null | undefined): string[] {
@@ -928,23 +895,10 @@ export class LessonStore {
    * Quarantine when n >= 8 and wilson_upper < 0.45. Never hard-delete.
    */
   applyStatusRules(lesson: LessonRow, runId: string | null = null): LessonRow {
-    const n = lesson.helpful_count + lesson.harmful_count;
-    if (n < STATUS_RULE_MIN_SAMPLES) {
-      return lesson;
-    }
+    const change = lessonStatusChange(lesson);
+    if (!change) return lesson;
 
-    const { lower, upper } = wilsonInterval(lesson.helpful_count, n);
-
-    if (lower > PROMOTION_WILSON_LOWER && lesson.status === 'candidate') {
-      // DEVIATION 2 (see file header): promotion is applied to the lesson row
-      // WITHOUT emitting a delta; replay (§6) recomputes it from counters.
-      this.db
-        .prepare("UPDATE lesson SET status = 'active' WHERE lesson_id = ?")
-        .run(lesson.lesson_id);
-      lesson.status = 'active';
-    }
-
-    if (upper < QUARANTINE_WILSON_UPPER && lesson.status !== 'quarantined') {
+    if (change.status === 'quarantined') {
       this._emitDelta({
         lesson_id: lesson.lesson_id,
         run_id: runId,
@@ -953,15 +907,12 @@ export class LessonStore {
         payload: {
           helpful_count: lesson.helpful_count,
           harmful_count: lesson.harmful_count,
-          wilson_upper: upper,
+          wilson_upper: change.wilsonUpper,
         },
       });
-      this.db
-        .prepare("UPDATE lesson SET status = 'quarantined' WHERE lesson_id = ?")
-        .run(lesson.lesson_id);
-      lesson.status = 'quarantined';
     }
-
+    this.db.prepare('UPDATE lesson SET status = ? WHERE lesson_id = ?').run(change.status, lesson.lesson_id);
+    lesson.status = change.status;
     return lesson;
   }
 
@@ -1267,16 +1218,10 @@ export class LessonStore {
           if (payload.updated_at) state.updated_at = payload.updated_at;
           break;
         case 'MARK_HELPFUL':
-          if (!state) break;
-          // v0.3 (Specs/6 F3): fractional ratio-lift weights; pre-v0.3 MARK
-          // deltas carry no weight and count as the uniform ±1 they were.
-          state.helpful_count += payload.weight ?? 1;
-          foldStatusRules(state);
+          if (state) replayMark(state, 'helpful_count', payload.weight);
           break;
         case 'MARK_HARMFUL':
-          if (!state) break;
-          state.harmful_count += payload.weight ?? 1;
-          foldStatusRules(state);
+          if (state) replayMark(state, 'harmful_count', payload.weight);
           break;
         case 'QUARANTINE':
           if (state) state.status = 'quarantined';
