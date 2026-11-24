@@ -20,3 +20,18 @@ test('selection counts distinct support only for the delivered version and conte
   assert.deepEqual(selectSessionFindings(['one'], { ...input, prompt: '' }, port), []);
   assert.equal(selectSessionFindings(['one'], { ...input, repository: () => null, cwd: () => '/unversioned' }, port)[0].supporting, 0);
 });
+
+
+test('same repository with unknown activity withholds advice; a matching activity selects only that finding', () => {
+  const base = { source: 'session-finding@1' as const, gitCommonDir: '/same/.git', observation: 'observed', evidenceRef: 'ref', intervention: 'advice' };
+  const activities = ['transfer-review', 'experiment-design', 'learning-budget'] as const;
+  const port = { managed: () => false, state: (id: string) => ({ finding: { ...base, id, activity: activities[Number(id)] },
+    version: 'v1', validity: 'unvalidated', currentFeedback: [] }), hash: JSON.stringify };
+  const input = { repository: () => '/same/.git', cwd: () => '/same', prompt: '' };
+  for (const prompt of ['', 'Rename a variable.', '[lyo:unknown]']) {
+    assert.deepEqual(selectSessionFindings(['0', '1', '2'], { ...input, prompt }, port), []);
+  }
+  for (const [index, activity] of activities.entries()) {
+    assert.deepEqual(selectSessionFindings(['0', '1', '2'], { ...input, prompt: `[lyo:${activity}]` }, port).map(row => row.id), [String(index)]);
+  }
+});

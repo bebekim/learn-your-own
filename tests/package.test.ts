@@ -67,7 +67,7 @@ test('packed executables and generated hooks run the installed learning loop', a
     assert.match(output.additionalContext, /Run the narrow test/);
     assert.match(output.additionalContext, /LYO reasoning mandate/);
     const refreshed = JSON.parse(run('lyo', ['eca-hook', ...flags], { ...eca, hook_type: 'preRequest', prompt: 'Check tests' }));
-    assert.match(refreshed.additionalContext, /LYO reasoning mandate/);
+    assert.doesNotMatch(refreshed.additionalContext, /LYO reasoning mandate/);
     assert.match(refreshed.additionalContext, /Run the narrow test/);
     for (const exit of [1, 0]) run('lyo', ['eca-hook', ...flags], { ...eca, hook_type: 'postToolCall',
       tool_name: 'shell_command', server: 'eca', tool_call_id: `tool-${exit}`, tool_input: { command: 'npm test' },

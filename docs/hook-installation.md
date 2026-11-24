@@ -94,7 +94,7 @@ contract; do not assume every host exposes Claude's event set.
 
 Leave SessionStart without a source matcher: `source: "compact"` restores context
 after compaction. UserPromptSubmit refreshes the next turn. The session hook emits
-the standing proxy-versus-witness mandate, rechecks eligible lessons and keeps
+the standing proxy-versus-witness mandate on SessionStart, rechecks eligible lessons and keeps
 trial no-advice assignments unexposed. The capture handler records events and runs
 registered trial/evidence work; the session hook supplies ordinary guidance.
 

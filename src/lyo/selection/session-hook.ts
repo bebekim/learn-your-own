@@ -185,7 +185,7 @@ export function emitSessionLessons(
 ): void {
   try {
     const refresh = payload.hook_event_name === 'SessionStart' || payload.hook_event_name === 'UserPromptSubmit';
-    if (refresh) write(REASONING_MANDATE);
+    if (payload.hook_event_name === 'SessionStart') write(REASONING_MANDATE);
     const storePath = resolveSessionLessonStorePath(payload.cwd);
     if (refresh && storePath) payload = refreshActivity(payload, storePath);
     const sessionId = payload.session_id ?? payload.sessionId;
@@ -231,7 +231,7 @@ function deliverSelection(selection: { selected: LessonRow[]; findings: SessionF
 
 /**
  * Deliver findings for activities inferred from an agent action, at most once per finding
- * version per session. Findings the repository already brings into context are skipped.
+ * version per session. Repository identity alone never establishes activity relevance.
  */
 export function emitActionScopedFindings(input: { cwd: string; sessionId: string; activities: string[]; scope: Record<string, unknown> },
   write: (text: string) => void): SessionFinding[] {
@@ -242,9 +242,8 @@ export function emitActionScopedFindings(input: { cwd: string; sessionId: string
   let findings: SessionFinding[];
   try {
     const query = (prompt: string) => selectSessionFindings(db, { cwd: input.cwd, prompt, repository: () => repository });
-    const alreadyInContext = new Set(query('').map(row => row.id));
     findings = query(input.activities.map(activity => `[lyo:${activity}]`).join(' '))
-      .filter(row => input.activities.includes(row.activity) && !alreadyInContext.has(row.id));
+      .filter(row => input.activities.includes(row.activity));
   } finally { db.close(); }
   findings = findings.filter(row => claimSessionBanner(input.sessionId, storePath, `action:${row.id}:${row.version}`));
   if (findings.length) deliverSelection({ selected: [], findings, storePath }, { cwd: input.cwd }, input.sessionId, write, input.scope);

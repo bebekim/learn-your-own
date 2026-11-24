@@ -92,7 +92,7 @@ test('LYO session hook: missing store fails open', () => {
   assert.match(refreshed.stdout, /LYO reasoning mandate/);
 });
 
-test('observed findings reach the owning repository and its worktrees with explicit evidence limits', () => {
+test('repository identity alone delivers no findings; an explicit activity selects advice across worktrees', () => {
   const cwd = tempDir(), linked = path.join(tempDir(), 'linked'), unrelated = tempDir();
   const git = args => execFileSync('git', args, { cwd, stdio: 'pipe' });
   git(['init', '-q']);
@@ -118,7 +118,8 @@ test('observed findings reach the owning repository and its worktrees with expli
     } finally { store.close(); }
   }
   for (const workspace of [cwd, linked, alias]) {
-    const output = renderSessionLessons({ cwd: workspace });
+    assert.equal(renderSessionLessons({ cwd: workspace }), null);
+    const output = renderSessionLessons({ cwd: workspace, prompt: '[lyo:transfer-review]' });
     assert.match(output, /Observed findings.*usefulness unvalidated/);
     assert.match(output, /target semantics/);
     assert.match(output, /U\+0085/);
@@ -181,7 +182,8 @@ test('turns and repeated compactions restore guidance without multiplying applic
         env: { ...process.env, ZEROSHOT_LYO_STORE_PATH: storePath },
       });
       assert.equal(result.status, 0);
-      assert.match(result.stdout, /Could this evidence exist while the claim is false/);
+      if (event.hook_event_name === 'SessionStart') assert.match(result.stdout, /Could this evidence exist while the claim is false/);
+      else assert.doesNotMatch(result.stdout, /LYO reasoning mandate/);
       assert.match(result.stdout, /Check the counterexample/);
     }
     assert.equal(store.getLesson(lesson.lesson_id).uses, 1);

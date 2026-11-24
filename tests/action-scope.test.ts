@@ -81,8 +81,13 @@ test('one decision per agent plan, a per-session cap, and no raw text retained',
   } finally { f.close(); }
 });
 
-test('claude-hook delivers the inferred finding once per session, after the decision', async () => {
+test('claude-hook delivers the inferred finding once per session, including in its source repository', async () => {
   const f = fixture();
+  await run('git', ['init', '-q'], { cwd: f.root });
+  f.store.recordTrace({ trace_id: 'finding:same-repo', kind: 'behavior', summary: 'Same repository boundary',
+    payload: { source: 'session-finding@1', gitCommonDir: join(f.root, '.git'), activity: 'transfer-review',
+      observation: 'A transfer crossed a contract boundary.', evidenceRef: 'report:same-repo',
+      intervention: 'Compare the same-repository transfer contract.' } });
   const server = createServer((req, res) => {
     let body = ''; req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
@@ -112,6 +117,7 @@ test('claude-hook delivers the inferred finding once per session, after the deci
     const delivered = await hook('s1', 't1', 'I will mirror the parser trim fix here.');
     assert.match(delivered, /Check the target whitespace contract before reusing a repair/);
     assert.match(delivered, /Finding delivery: session-delivery:s1/);
+    assert.match(delivered, /Compare the same-repository transfer contract/);
     assert.equal(await hook('s1', 't2', 'Now mirror the second parser fix too.'), '', 'once per finding version per session');
     const receipt = JSON.parse(String(f.store.db.prepare(`SELECT payload_json FROM learning_trace WHERE trace_id = 'session-delivery:s1'`).get()!.payload_json));
     assert.equal(receipt.scope.source, 'action-scope@1');

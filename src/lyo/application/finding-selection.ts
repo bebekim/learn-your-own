@@ -22,9 +22,10 @@ export function selectSessionFindings(candidates: readonly string[], input: {
     const state = port.state(id);
     if (!state || state.validity === 'needs-revision' || state.validity === 'needs-reassessment') return [];
     const activity = input.prompt?.includes(`[lyo:${state.finding.activity}]`);
-    if (!activity && state.finding.gitCommonDir !== repository) return [];
+    // Repository identity establishes location, not the current activity.
+    if (!activity) return [];
     const context = { repository: repository ?? input.cwd(),
-      activity: state.finding.activity, match: activity ? 'activity' as const : 'repository' as const };
+      activity: state.finding.activity, match: 'activity' as const };
     const supporting = new Set(state.currentFeedback.filter(row => row.version === state.version && row.outcome === 'supported'
       && port.hash(row.context) === port.hash(context)).map(row => row.observationId)).size;
     return [{ ...state.finding, version: state.version, context, supporting }];

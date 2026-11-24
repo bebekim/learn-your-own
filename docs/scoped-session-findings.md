@@ -30,13 +30,16 @@ model request as context. This does not rewrite a hidden system prompt.
 See the [Codex hook contract](https://learn.chatgpt.com/docs/hooks) and
 [Claude hook contract](https://code.claude.com/docs/en/hooks#sessionstart).
 
-Each refresh emits the short standing reasoning mandate even without a readable
+SessionStart emits the short standing reasoning mandate even without a readable
 lesson store: distinguish the claim, observation and inference; consider alternative
 causes and witness assumptions; preserve unknown. This user-mandated discipline is
-independent of sampled lesson rank and has no helpful/harmful score.
+independent of sampled lesson rank and has no helpful/harmful score. Ordinary
+UserPromptSubmit events do not repeat this fixed mandate.
 
 The hook reselects at most five ordinary lessons/findings using the existing
-repository/activity rules, current evidence and legacy sampler. It does not replay
+activity rules, current evidence and legacy sampler. Repository identity alone
+does not select observed findings: an explicit activity tag or a configured,
+calibrated action-scope decision is required. Unknown activity emits no findings. It does not replay
 stale wording. Explicit `[lyo:transfer-review]`, `[lyo:experiment-design]` and
 `[lyo:learning-budget]` tags are retained in SQLite, without raw prompt text, for
 compaction/resume in the same canonical workspace. Each new prompt replaces those
