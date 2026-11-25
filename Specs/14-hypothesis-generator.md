@@ -58,6 +58,8 @@ It sends one batch to a **generator** and asks for at most K hypotheses, each wi
   the generator had miscopied or invented. If proposals are rejected, or fewer rivals pass than
   required, the rejection reasons (schema paths only) and the shortfall are sent back once, and
   the replacements are validated in the same way (`generator.retries`, default 1, 0 disables).
+- **Declared findings are shown to the generator** (observation and current advice, at most 30)
+  so it does not re-propose a lesson that already has its own trial.
 - **The generator is swappable**, like decision providers: a local model through mlxcel, or
   OpenRouter with ZDR. Repository content goes only to the configured generator, which is an
   explicit choice, as in Spec 12.

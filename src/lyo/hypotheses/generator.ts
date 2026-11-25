@@ -25,6 +25,8 @@ export interface GeneratorRequest {
   episodes: FailureEpisode[];
   /** Situations already being shadowed; rivals must explain some of the same failures differently. */
   existing: Array<{ id: string; situation: string }>;
+  /** Declared findings: lessons already under trial or review. Not to be re-proposed. */
+  findings?: Array<{ id: string; situation: string; advice: string }>;
   maxProposals: number;
   rivalShare: number;
 }
@@ -90,10 +92,12 @@ function userPrompt(request: GeneratorRequest) {
   const rivals = requiredRivals(request);
   const existing = request.existing.length
     ? `Hypotheses already being tested (avoid duplicating them):\n${request.existing.map(h => `- ${h.id}: ${h.situation}`).join('\n')}\n\n` : '';
+  const findings = request.findings?.length
+    ? `Lessons already declared as findings (do not propose them again, nor the same situation in other words):\n${request.findings.map(f => `- ${f.id}: ${f.situation.slice(0, 300)} Advice: ${f.advice.slice(0, 220)}`).join('\n')}\n\n` : '';
   const episodes = request.episodes.map((e, i) => JSON.stringify({ id: episodeKey(i), at: e.at.slice(0, 10), repository: e.cwd.split('/').slice(-1)[0],
     command: e.command.slice(0, 600), output: e.output.slice(-500), errorClass: e.errorClass,
     repair: e.repair.map(s => `${s.kind}${s.error ? '(error)' : ''}: ${s.text}`) })).join('\n');
-  return `${existing}Propose at most ${request.maxProposals} hypotheses. At least ${rivals} must be marked rival: true.\n\nEpisodes (JSON lines):\n${episodes}`;
+  return `${existing}${findings}Propose at most ${request.maxProposals} hypotheses. At least ${rivals} must be marked rival: true.\n\nEpisodes (JSON lines):\n${episodes}`;
 }
 
 /**

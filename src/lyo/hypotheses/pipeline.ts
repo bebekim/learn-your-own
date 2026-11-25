@@ -10,10 +10,21 @@ import type { TypedDecisionProvider } from '../application/typed-decisions.ts';
 import { expectedLevel } from '../decisions/providers.ts';
 import type { LessonStore } from '../storage/lesson-store.ts';
 import { readFailureEpisodes, type FailureEpisode } from './episodes.ts';
+import { findingRecords, findingState } from '../storage/finding-state.ts';
 import type { HypothesisGenerator } from './generator.ts';
 import { evaluateRecurrence, hypothesisMatches, listHypotheses, recordHypothesisMatch, recordProposals, setHypothesisStatus } from './store.ts';
 
 const ACTIVE = new Set(['shadowing', 'recurrent', 'harvested', 'candidate']);
+
+/** Declared findings (lessons with their own trials), so the generator does not re-propose them. */
+export function declaredFindings(store: LessonStore, limit = 30) {
+  return findingRecords(store.db, 'session-finding@1').slice(-limit).flatMap(row => {
+    try {
+      const { finding } = findingState(store.db, row.id);
+      return [{ id: row.id, situation: finding.observation, advice: finding.intervention }];
+    } catch { return []; } // a malformed record is skipped, not sent
+  });
+}
 
 export async function proposeHypotheses(store: LessonStore, generator: HypothesisGenerator, options: {
   from: Date; until: Date; maxEpisodes: number; maxProposals?: number; rivalShare?: number; root?: string; now?: Date }) {
@@ -24,6 +35,7 @@ export async function proposeHypotheses(store: LessonStore, generator: Hypothesi
     .filter(e => !explained.has(e.id)).slice(-options.maxEpisodes);
   if (episodes.length < 3) return { episodes: episodes.length, proposed: [], rejected: 0, usage: null, note: 'too few unexplained failures' };
   const record = await generator.propose({ episodes, existing: active.map(h => ({ id: h.id, situation: h.proposal.situation })),
+    findings: declaredFindings(store),
     maxProposals: options.maxProposals ?? 5, rivalShare: options.rivalShare ?? 0.1 });
   const ids = recordProposals(store, record, { from: options.from, until: options.until }, options.now);
   return { episodes: episodes.length, proposed: ids, rejected: record.rejected, rejections: record.rejections ?? [], truncated: record.truncated ?? false, retried: record.retried ?? false, rivalShortfall: record.rivalShortfall ?? 0,

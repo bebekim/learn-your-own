@@ -1,3 +1,4 @@
+import { declareFinding } from '../src/lyo/storage/finding-state.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -53,9 +54,9 @@ const proposal = (over: Partial<Proposal> = {}): Proposal => ({ situation: 'A JS
   advice: 'Look at raw output before parsing JSON.', rivals: ['The API was down.'], predicted: { matchesPerMonth: 2, repositories: 2 },
   exampleIds: ['alpha-j1', 'alpha-j2', 'beta-j1'], rival: false, ...over });
 
-const generator = (proposals: Proposal[]): HypothesisGenerator & { seen: string[][] } => {
-  const g = { name: 'fake', seen: [] as string[][], async propose(req: { episodes: Array<{ id: string }> }) {
-    g.seen.push(req.episodes.map(e => e.id));
+const generator = (proposals: Proposal[]): HypothesisGenerator & { seen: string[][]; findings: unknown[] } => {
+  const g = { name: 'fake', seen: [] as string[][], findings: [] as unknown[], async propose(req: { episodes: Array<{ id: string }>; findings?: unknown[] }) {
+    g.seen.push(req.episodes.map(e => e.id)); g.findings.push(req.findings);
     return { provider: 'fake', model: 'fake-1', proposals, rejected: 0, usage: null };
   } };
   return g as any;
@@ -263,4 +264,20 @@ test('no retry when retries is 0, the reply was truncated, or nothing needs corr
     assert.equal(n, 1);
     assert.equal(record.retried, false);
   }
+});
+
+test('declared findings go to the generator so it does not re-propose them', async () => {
+  const f = fixture();
+  try {
+    declareFinding(f.store, 'finding:json-output-handling', { scope: { roots: ['/repos'] }, activity: 'command-output',
+      observation: 'JSON parsers were fed error text.', evidenceRef: 'decision-cases:json@1', intervention: 'Look at raw output before parsing it as JSON.' });
+    const g = generator([proposal()]);
+    await proposeHypotheses(f.store, g, { from: new Date('2026-09-01'), until: new Date('2026-12-01'), maxEpisodes: 50, root: f.projects });
+    assert.deepEqual(g.findings[0], [{ id: 'finding:json-output-handling', situation: 'JSON parsers were fed error text.', advice: 'Look at raw output before parsing it as JSON.' }]);
+    const calls: any[] = [];
+    const og = openRouterGenerator({ ...config.generator!, retries: 0 }, { env: { OPENROUTER_API_KEY: 'k' },
+      fetch: (async (_u: string, init: RequestInit) => { calls.push(JSON.parse(String(init.body))); return reply([]); }) as unknown as typeof fetch });
+    await og.propose({ episodes: longEpisodes(3), existing: [], findings: g.findings[0] as any, maxProposals: 3, rivalShare: 0.1 });
+    assert.match(calls[0].messages[1].content, /Lessons already declared as findings[^]*finding:json-output-handling: JSON parsers were fed error text\. Advice: Look at raw output/);
+  } finally { f.close(); }
 });
