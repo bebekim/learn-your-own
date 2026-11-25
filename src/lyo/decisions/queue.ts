@@ -9,9 +9,11 @@ import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, 
 import { join } from 'node:path';
 
 export interface DecisionJob {
-  /** 'trigger' (Spec 12) decides enrollment; 'outcome' (Spec 13) decides a captured action's result. */
-  kind?: 'trigger' | 'outcome';
+  /** 'trigger' (Spec 12) decides enrollment; 'outcome' (Spec 13) decides a captured action's result;
+   *  'shadow' (Spec 14) records hypothesis matches without delivering anything. */
+  kind?: 'trigger' | 'outcome' | 'shadow';
   opportunityId?: string;
+  hypothesisIds?: string[];
   jobId: string;
   sessionId: string;
   runtime: string;

@@ -36,6 +36,16 @@ export const decisionConfigSchema = z.object({
     model: z.string().min(1).default(DEFAULT_JEV_MODEL),
     apiKeyEnvFile: z.string().min(1).optional(),
   }).strict().default({ model: DEFAULT_JEV_MODEL }),
+  // Spec 14: the hypothesis generator, a text model. Absent means `hypotheses propose` sends nothing.
+  generator: z.object({
+    provider: z.literal('openrouter'),
+    model: z.string().min(1).default('anthropic/claude-sonnet-5.5'),
+    apiKeyEnvFile: z.string().min(1).optional(),
+    zdr: z.boolean().default(true),
+    maxOutputTokens: z.number().int().min(500).max(32000).default(8000),
+    maxEpisodes: z.number().int().min(5).max(400).default(80),
+    maxShadowing: z.number().int().min(1).max(50).default(5),
+  }).strict().optional(),
   worker: z.object({
     idleSeconds: z.number().int().min(1).max(86400).default(600),
     ttlSeconds: z.number().int().min(10).max(86400).default(14400),
@@ -60,7 +70,7 @@ export function configuredDecisionModel(config: DecisionConfig): { provider: Dec
   return { provider: config.provider, model };
 }
 
-function envKey(name: string, envFile: string | undefined, env: NodeJS.ProcessEnv) {
+export function envKey(name: string, envFile: string | undefined, env: NodeJS.ProcessEnv) {
   if (env[name]) return env[name];
   if (!envFile || !existsSync(expand(envFile))) return undefined;
   const scoped: NodeJS.ProcessEnv = {};

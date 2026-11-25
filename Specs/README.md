@@ -41,6 +41,7 @@ alone does not establish completion.
 | [11 Harness² borrowings](11-harness2-borrowings.md) | Partial | Open activity names and root-scoped findings exist (`lyo finding declare`); retagging/revision of scopes and hashed runnable attachments remain open; rejects self-rated confidence and ordered replay |
 | [12 Async decision triggers](12-async-decision-trigger.md) | Draft | Trials recognise a failure with a calibrated typed decision (local mlxcel, OpenRouter Solar Decide or TypeSafe Jev, swappable) asked by a background worker; enrollment happens when the decision lands |
 | [13 Action evaluators](13-action-evaluator.md) | Done, bounded scope | Trials can measure the agent's next command: checks receive its labels via `LYO_FINDING_ACTION`; a failed command's outcome is a background calibrated decision; adherence deferred until it has its own case set |
+| [14 Hypothesis generator](14-hypothesis-generator.md) | Implemented; replay check pending | Generates candidate lessons from failures and their repairs (OpenRouter, ZDR), shadows them without delivery, judges recurrence (untested kept apart from refuted), and harvests review packs; promotion stays a review step |
 
 ## Dated designs
 

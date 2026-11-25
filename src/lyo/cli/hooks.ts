@@ -25,6 +25,7 @@ import { autoConnectWorkspace } from '../corpus/workspace-sync.ts';
 import { nativeFeedback } from '../control/native-feedback.ts';
 import { ordinaryFindingTrialFeedback } from '../interface/finding-trials.ts';
 import { loadDecisionConfig, type DecisionConfig } from '../decisions/providers.ts';
+import { shadowHypotheses } from '../hypotheses/shadow.ts';
 import { workspaceRoot } from '../repository.ts';
 import { codexCommandStatusEvent, codexCommandStatusRewrite } from '../hooks/codex-command-status.ts';
 import { visibleHookContext } from '../hooks/context-visibility.ts';
@@ -144,8 +145,11 @@ function addNativeFeedback(output: any, runtime: 'codex' | 'claude', event: Reco
   let trialManaged = false;
   try {
     const cwd = event.cwd || args.cwd;
-    const trial = ordinaryFindingTrialFeedback(runtime, { ...event, cwd }, resolveSessionLessonStorePath(cwd), Math.random,
-      { config: decisionConfig(args.env), env: args.env });
+    const decisions = { config: decisionConfig(args.env), env: args.env };
+    // Shadowing never delivers or manages anything; its failure must not affect the trial check.
+    try { shadowHypotheses(runtime, { ...event, cwd }, resolveSessionLessonStorePath(cwd), decisions); }
+    catch (error) { process.stderr.write(`Lyo hypothesis shadow: ${error instanceof Error ? error.message : String(error)}\n`); }
+    const trial = ordinaryFindingTrialFeedback(runtime, { ...event, cwd }, resolveSessionLessonStorePath(cwd), Math.random, decisions);
     trialManaged = trial.managed;
     if (trial.additionalContext) output = { ...output, hookSpecificOutput: { ...output.hookSpecificOutput,
       hookEventName: event.hook_event_name, additionalContext: [output.hookSpecificOutput?.additionalContext, trial.additionalContext].filter(Boolean).join('\n') } };

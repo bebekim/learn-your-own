@@ -14,6 +14,7 @@ import { expectedLevelVerdict, outcomeDecisionId, recordOutcomeDecision, recordT
 import { measureFindingOpportunity } from './session-finding-evidence.ts';
 import { assessFindingEvidence } from './session-findings.ts';
 import { closeFindingTrialWindow } from './finding-trial-policy.ts';
+import { listHypotheses, recordHypothesisMatch } from '../hypotheses/store.ts';
 
 export interface WorkerOptions {
   storePath: string;
@@ -66,6 +67,7 @@ async function decideJob(options: WorkerOptions, job: DecisionJob, now: () => nu
     const base = { jobId: job.jobId, sessionId: job.sessionId, runtime: job.runtime, cwd: job.cwd, model: job.model, trigger: job.trigger };
     const tooOld = now() - Date.parse(job.createdAt) > options.worker.maxAgeSeconds * 1000;
     if (job.kind === 'outcome') return await decideOutcome(options, store, trials, job, tooOld, now);
+    if (job.kind === 'shadow') return await decideShadow(options, store, job, tooOld, now);
     for (const trialHash of job.trialHashes) {
       // A crash between storing a decision and deleting the job must not decide it twice.
       if (store.getTrace(triggerDecisionId(job.jobId, trialHash))) continue;
@@ -125,5 +127,25 @@ async function decideOutcome(options: WorkerOptions, store: LessonStore, trials:
   const evidence = measureFindingOpportunity(store, id);
   assessFindingEvidence(store, evidence.id);
   closeFindingTrialWindow(store, id, 'Stop');
+  return { decided, expired };
+}
+
+/** Spec 14: ask each shadowing hypothesis about one failure and record the level. Nothing is delivered. */
+async function decideShadow(options: WorkerOptions, store: LessonStore, job: DecisionJob, tooOld: boolean, now: () => number) {
+  const hypotheses = listHypotheses(store.db).filter(h => job.hypothesisIds?.includes(h.id) && h.status === 'shadowing');
+  let decided = 0, expired = 0;
+  for (const h of hypotheses) {
+    const base = { hypothesisId: h.id, episodeId: job.trigger.toolUseId, sessionId: job.sessionId, cwd: job.cwd,
+      at: job.createdAt, mode: 'live' as const };
+    if (tooOld) { recordHypothesisMatch(store, { ...base, level: null, provider: null, model: null }); expired++; continue; }
+    try {
+      const record = await options.provider.decide({ state: job.state, questions: { match: h.proposal.question } }, { timeoutMs: options.worker.timeoutMs });
+      recordHypothesisMatch(store, { ...base, level: expectedLevel(record.answers.match), provider: record.provider, model: record.answeredModel });
+    } catch {
+      recordHypothesisMatch(store, { ...base, level: null, provider: options.provider.name, model: null });
+    }
+    decided++;
+  }
+  void now;
   return { decided, expired };
 }
