@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+import { evaluateRetainedMatrix, formatMatrix } from '../../decisions/eval-matrix.ts';
 
 import {
   parseBaselineId,
@@ -22,6 +23,15 @@ import { runControlExperiment } from '../../eval/control-experiment.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
 
 export const EVAL_COMMANDS: Record<string, CommandHandler> = {
+  'eval matrix': args => {
+    const report = evaluateRetainedMatrix({
+      casesPath: resolve(args.cwd, args.requiredFlag('--cases')), questionsPath: resolve(args.cwd, args.requiredFlag('--questions')),
+      decisionsPath: resolve(args.cwd, args.requiredFlag('--decisions')), question: args.flagValue('--question'),
+      stratum: args.flagValue('--stratum'), caseId: args.flagValue('--case'), cell: args.flagValue('--cell'),
+      band: {no: args.optionalNumber('--no') ?? 0.3, yes: args.optionalNumber('--yes') ?? 0.7}, rates: args.hasFlag('--rates'),
+    });
+    return args.hasFlag('--json') ? {ok: true, ...report} : formatMatrix(report);
+  },
   'eval control': args => ({ ok: true,
     report: runControlExperiment(resolve(args.cwd, args.requiredFlag('--dir')), args.optionalNumber('--seed') ?? 42) }),
   'eval report': evalReportCommand,

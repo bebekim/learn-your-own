@@ -1,15 +1,18 @@
+import { classifySignal, matrixCounts, type CalibrationLabel } from './confusion-matrix.ts';
+
 /**
  * How a Noul threshold band performs against human labels. Ambiguous labels are
  * excluded from the rates and counted. With few positives, recall is reported with
  * its count and the band is marked insufficient rather than tuned to noise.
  */
 
-export type CalibrationLabel = boolean | 'ambiguous';
+export type { CalibrationLabel } from './confusion-matrix.ts';
 export interface LabelledNoul { noul: number; label: CalibrationLabel }
 
 export interface BandMetrics {
   yes: number;
   no: number;
+  matrix: ReturnType<typeof matrixCounts>;
   truePositives: number;
   falsePositives: number;
   unknownPositives: number;
@@ -22,14 +25,12 @@ export interface BandMetrics {
 }
 
 export function evaluateNoulBand(cases: readonly LabelledNoul[], band: { yes: number; no: number }): BandMetrics {
-  const known = cases.filter(item => item.label !== 'ambiguous');
-  const positives = known.filter(item => item.label === true), negatives = known.filter(item => item.label === false);
-  const yes = (item: LabelledNoul) => item.noul >= band.yes, unknown = (item: LabelledNoul) => item.noul > band.no && item.noul < band.yes;
-  const truePositives = positives.filter(yes).length, falsePositives = negatives.filter(yes).length;
-  const ratio = (numerator: number, denominator: number) => denominator ? numerator / denominator : null;
-  return { ...band, truePositives, falsePositives,
-    unknownPositives: positives.filter(unknown).length, unknownNegatives: negatives.filter(unknown).length,
-    falsePositiveRate: ratio(falsePositives, negatives.length), recall: ratio(truePositives, positives.length),
+  const matrix = matrixCounts(cases.map(item => classifySignal(item.noul, item.label, band)));
+  const {TP: truePositives, FP: falsePositives, abstainedPositive: unknownPositives, abstainedNegative: unknownNegatives} = matrix;
+  const ratio = (n: number, total: number) => total ? n / total : null;
+  return { ...band, matrix, truePositives, falsePositives, unknownPositives, unknownNegatives,
+    falsePositiveRate: ratio(falsePositives, falsePositives + matrix.TN + unknownNegatives),
+    recall: ratio(truePositives, truePositives + matrix.FN + unknownPositives),
     precision: ratio(truePositives, truePositives + falsePositives) };
 }
 

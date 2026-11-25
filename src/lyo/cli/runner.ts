@@ -18,7 +18,9 @@ export async function runCli(
       usage(0);
     }
 
-    printJson(await runCommand(args, stdin));
+    const result = await runCommand(args, stdin);
+    if (args.command === 'eval' && args.subcommand === 'matrix' && typeof result === 'string') console.log(result);
+    else printJson(result);
   } catch (error) {
     printJson({
       ok: false,

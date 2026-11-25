@@ -90,6 +90,7 @@ export function usage(exitCode = 0): never {
 	  lyo worktree add [directory] --branch name [--spec path] [--path dir] [--task-dir dir] [--base ref] [--force]
 	  lyo pipeline apply --run dir --target dir [--force]
 	  lyo pipeline calibrate --cases path [--judge-model model]
+	  lyo eval matrix --cases path --questions path --decisions path [--question name] [--stratum name] [--no n --yes n] [--cell FP] [--case id] [--rates] [--json]
 	  lyo eval validate [--dir path]
 
 	Environment:

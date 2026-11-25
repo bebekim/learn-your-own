@@ -14,6 +14,7 @@ test('band metrics separate answered, unknown and ambiguous cases', () => {
     { noul: 0.99, label: 'ambiguous' as const },
   ];
   assert.deepEqual(evaluateNoulBand(cases, { no: 0.3, yes: 0.7 }), { no: 0.3, yes: 0.7, truePositives: 1, falsePositives: 1,
+    matrix: {TP: 1, FP: 1, FN: 0, TN: 1, abstainedPositive: 1, abstainedNegative: 1, unlabelled: 1, unmeasured: 0},
     unknownPositives: 1, unknownNegatives: 1, falsePositiveRate: 1 / 3, recall: 1 / 2, precision: 1 / 2 });
   const report = calibrationReport(cases, [{ no: 0.3, yes: 0.7 }]);
   assert.deepEqual([report.positives, report.negatives, report.ambiguous, report.sufficient], [2, 3, 1, false]);

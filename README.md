@@ -132,6 +132,16 @@ The hook guide distinguishes the repository ledger, central telemetry corpus and
 lesson store. Local paths and launch services in historical rollout records are
 examples from the development machine, not prerequisites for a new installation.
 
+## Inspect a signal’s confusion matrix
+
+From a labelled typed-decision evaluation, run:
+
+```sh
+lyo eval matrix --cases cases.jsonl --questions questions.json --decisions decisions.jsonl
+```
+
+Add `--cell FP` to list false alarms and `--case ID` to inspect a case’s label, input, score and retained decision. Use `--rates` for sensitivity, specificity, error rates, accuracy and Youden’s index. This runs locally using the output of `lyo decide calibrate`. [Evaluation guide](docs/typed-decisions.md#trace-a-confusion-matrix)
+
 ## Architecture and next milestone
 
 The TypeScript kernel retains evidence and state transitions. Host adapters supply

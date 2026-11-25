@@ -28,7 +28,7 @@ writeFileSync(
   `${JSON.stringify(publishedPackageJson, null, 2)}\n`
 );
 for (const file of ['README.md', 'CHANGELOG.md', 'LICENSE.md',
-  'docs/deterministic-classification.md', 'docs/adaptive-feedback-loop.md', 'docs/task-feedback-cycle.md', 'docs/scoped-session-findings.md', 'docs/first-real-task-handoff.md', 'docs/prospective-finding-trials.md']) {
+  'docs/deterministic-classification.md', 'docs/adaptive-feedback-loop.md', 'docs/task-feedback-cycle.md', 'docs/scoped-session-findings.md', 'docs/typed-decisions.md', 'docs/first-real-task-handoff.md', 'docs/prospective-finding-trials.md']) {
   writeFileSync(join(staging, file), readFileSync(join(root, file)));
 }
 

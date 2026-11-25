@@ -49,6 +49,20 @@ negatives, and no threshold should be chosen before then.
 A random stratum estimates the real false-positive rate; a keyword-enriched stratum
 only helps estimate recall.
 
+### Trace a confusion matrix
+
+```sh
+lyo eval matrix --cases cases.jsonl --questions questions.json --decisions decisions.jsonl --question transfer
+```
+
+Use the same case and question files supplied to `lyo decide calibrate` and its retained `--out` file. Choose the deployed thresholds with `--no` and `--yes`. The defaults are 0.3 and 0.7. For the shipped transfer-review band use `--no 0.3 --yes 0.5`. Use `--stratum` to inspect one labelled population. No provider or API key is required.
+
+The rows show LYO’s answer and the columns show the supplied label. Add `--cell FP` or `--cell FN` to list case IDs. Add `--case ID` to read the original case, its supplied evidence fields, question, model, score and decision hash. A label’s authority depends on how the case was reviewed. For causal questions, record the independent check and its evidence reference in the case file.
+
+Abstentions appear by label. Cases with missing or ambiguous labels form a separate group. Among the remaining cases, a missing decision or a mismatch in the input or questions belongs to `unmeasured`. New calibration records include the input hash. Older Jev records can be matched through their original request hash. Each case contributes to exactly one group.
+
+Add `--rates` to calculate rates over the four decided, labelled cells. Sensitivity is TP/(TP+FN), specificity is TN/(TN+FP), and Youden’s index is their sum minus one. A zero denominator gives an undefined rate (`null` in `--json`). The original calibration report’s recall and false-positive rate include abstentions in their denominators.
+
 ## Action-scoped finding delivery
 
 Findings normally reach a session through explicit `[lyo:<activity>]` tags or a
