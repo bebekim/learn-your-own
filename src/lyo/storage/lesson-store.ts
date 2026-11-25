@@ -70,6 +70,7 @@ import { DEFAULT_POLICY_ID } from '../selection/selection-policies.ts';
 import { runLessonSelection } from '../selection/lesson-strategies.ts';
 import { lessonStatusChange } from '../domain/lesson-status.ts';
 import { LYO_LESSON_DDL } from './schema.ts';
+import { loadTuning } from '../config/tuning.ts';
 import type {
   ApplicationRow,
   CreateLessonInput,
@@ -221,7 +222,7 @@ export class LessonStore {
 
   private _initSchema(): void {
     // Hooks, the decision worker and CLI commands write the same store: wait for a lock instead of failing.
-    this.db.exec('PRAGMA busy_timeout = 5000');
+    this.db.exec(`PRAGMA busy_timeout = ${loadTuning().sqlite.busyTimeoutMs}`);
     this.db.exec('PRAGMA journal_mode = WAL');
     this.db.exec('PRAGMA synchronous = NORMAL');
     this.db.exec('PRAGMA wal_autocheckpoint = 1000');

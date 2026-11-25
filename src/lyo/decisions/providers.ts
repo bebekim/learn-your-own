@@ -46,6 +46,7 @@ export const decisionConfigSchema = z.object({
     maxOutputTokens: z.number().int().min(500).max(32000).default(8000),
     maxEpisodes: z.number().int().min(5).max(400).default(80),
     maxShadowing: z.number().int().min(1).max(50).default(5),
+    requestTimeoutMs: z.number().int().min(1000).max(1800000).default(300000),
     // Corrective calls after rejected proposals or too few rivals.
     retries: z.number().int().min(0).max(1).default(1),
   }).strict().optional(),
@@ -60,8 +61,12 @@ export const decisionConfigSchema = z.object({
 export type DecisionConfig = z.infer<typeof decisionConfigSchema>;
 
 /** `LYO_DECISIONS_FILE`, else `<LYO_HOME>/decisions.json`; null when neither exists (decision triggers stay idle). */
+export function decisionConfigPath(env: NodeJS.ProcessEnv = process.env) {
+  return env.LYO_DECISIONS_FILE ? expand(env.LYO_DECISIONS_FILE) : join(lyoHome(env), 'decisions.json');
+}
+
 export function loadDecisionConfig(env: NodeJS.ProcessEnv = process.env): DecisionConfig | null {
-  const path = env.LYO_DECISIONS_FILE ? expand(env.LYO_DECISIONS_FILE) : join(lyoHome(env), 'decisions.json');
+  const path = decisionConfigPath(env);
   if (!existsSync(path)) return null;
   return decisionConfigSchema.parse(JSON.parse(readFileSync(path, 'utf8')));
 }

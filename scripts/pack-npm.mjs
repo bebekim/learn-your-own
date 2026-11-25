@@ -19,7 +19,9 @@ const publishedPackageJson = {
   exports: {
     '.': './src/index.js',
   },
-  scripts: undefined,
+  // A global install measures the machine once and saves suggestions; it never edits settings
+  // or fails the install (`lyo tune --from-install`; skipped in CI or with LYO_SKIP_TUNE=1).
+  scripts: { postinstall: 'node src/cli.js tune --from-install' },
   devDependencies: undefined,
 };
 
@@ -28,7 +30,7 @@ writeFileSync(
   `${JSON.stringify(publishedPackageJson, null, 2)}\n`
 );
 for (const file of ['README.md', 'CHANGELOG.md', 'LICENSE.md',
-  'docs/deterministic-classification.md', 'docs/adaptive-feedback-loop.md', 'docs/task-feedback-cycle.md', 'docs/scoped-session-findings.md', 'docs/typed-decisions.md', 'docs/first-real-task-handoff.md', 'docs/prospective-finding-trials.md']) {
+  'docs/deterministic-classification.md', 'docs/adaptive-feedback-loop.md', 'docs/task-feedback-cycle.md', 'docs/scoped-session-findings.md', 'docs/typed-decisions.md', 'docs/first-real-task-handoff.md', 'docs/prospective-finding-trials.md', 'docs/tuning.md']) {
   writeFileSync(join(staging, file), readFileSync(join(root, file)));
 }
 

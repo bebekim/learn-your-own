@@ -17,6 +17,7 @@ import {
   hasVerifiedCompletion,
 } from '../compiler/semantics.ts';
 import { initCorpusDb } from './schema.ts';
+import { loadTuning } from '../config/tuning.ts';
 
 export interface SyncCorpusOnceInput {
   rootDir: string;
@@ -212,7 +213,7 @@ export function corpusReport(input: CorpusReportInput): CorpusReport {
 function openWritableCorpus(corpusPath: string): DatabaseSync {
   mkdirSync(dirname(corpusPath), { recursive: true });
   const db = new DatabaseSync(corpusPath);
-  db.exec('PRAGMA busy_timeout = 5000');
+  db.exec(`PRAGMA busy_timeout = ${loadTuning().sqlite.busyTimeoutMs}`);
   db.exec('PRAGMA foreign_keys = ON');
   db.exec('PRAGMA journal_mode = WAL');
   db.exec('PRAGMA synchronous = NORMAL');

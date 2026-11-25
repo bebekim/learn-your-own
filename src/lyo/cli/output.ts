@@ -5,6 +5,7 @@ export function printJson(value: unknown): void {
 export function usage(exitCode = 0): never {
   console.log(`Usage:
 	  lyo init [--db path]
+	  lyo tune [--quick] [--apply] [--show]
 	  awok init <folder>
 	  awok wrap kimi
 	  awok unwrap kimi

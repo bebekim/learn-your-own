@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { loadTuning } from './config/tuning.ts';
 
 function git(cwd: string, args: string[]): string {
-  return execFileSync('git', args, { cwd, encoding: 'utf8', timeout: 1000, stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  return execFileSync('git', args, { cwd, encoding: 'utf8', timeout: loadTuning().git.timeoutMs, stdio: ['ignore', 'pipe', 'ignore'] }).trim();
 }
 
 export function repositoryKey(cwd?: string | null): string | null {

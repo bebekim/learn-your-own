@@ -8,6 +8,7 @@ import type { CommandArgs, CommandHandler } from './context.ts';
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { connectWorkspace, isWithinRoot, syncConnectedWorkspaces, workspaceSyncConfig } from '../../corpus/workspace-sync.ts';
+import { loadTuning } from '../../config/tuning.ts';
 
 export const CORPUS_COMMANDS: Record<string, CommandHandler> = {
   'corpus report': corpusReportCommand,
@@ -24,7 +25,7 @@ function connectCommand(args: CommandArgs): unknown {
   let path = resolve(args.cwd, args.flagValue('--path') ?? '.');
   // A shell cd into src/ should connect the Git workspace, not create src/.agent-learning.
   try {
-    const gitRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: path, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 2000 }).trim();
+    const gitRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: path, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: loadTuning(args.env).git.timeoutMs }).trim();
     if (isWithinRoot(config.rootDir, gitRoot)) path = gitRoot;
   } catch { /* Ordinary directories are supported too. */ }
   return connectWorkspace(path, config);

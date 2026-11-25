@@ -133,7 +133,7 @@ export function openRouterGenerator(config: NonNullable<DecisionConfig['generato
         const body = { model: config.model, max_tokens: config.maxOutputTokens, temperature: 0.4,
           response_format: { type: 'json_schema', json_schema: { name: 'hypotheses', strict: true, schema: proposalsJsonSchema(keys) } },
           messages, ...(config.zdr ? { provider: { zdr: true, allow_fallbacks: false } } : {}) };
-        const res = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', signal: AbortSignal.timeout(300000),
+        const res = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', signal: AbortSignal.timeout(config.requestTimeoutMs),
           headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         if (!res.ok) throw new Error(`OpenRouter returned ${res.status}: ${(await res.text()).slice(0, 300)}`);
         const j = await res.json() as any;

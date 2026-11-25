@@ -15,6 +15,8 @@ import { LAB_COMMANDS } from './commands/lab.ts';
 import { DECIDE_COMMANDS } from './commands/decide.ts';
 import { DECISION_COMMANDS } from './commands/decisions.ts';
 import { HYPOTHESIS_COMMANDS } from './commands/hypotheses.ts';
+import { TUNE_COMMANDS } from './commands/tune.ts';
+import { pendingTuneNotice } from '../config/diagnostics.ts';
 import { OBSERVATION_COMMANDS } from './commands/observation.ts';
 import { PIPELINE_COMMANDS } from './commands/pipeline.ts';
 import { RUN_COMMANDS } from './commands/runs.ts';
@@ -49,11 +51,17 @@ const COMMAND_HANDLERS: Record<string, CommandHandler> = {
   ...DECIDE_COMMANDS,
   ...DECISION_COMMANDS,
   ...HYPOTHESIS_COMMANDS,
+  ...TUNE_COMMANDS,
 };
 
 export async function runCommand(args: CliArgs, stdin: AsyncIterable<string | Buffer>): Promise<unknown> {
   const handler = COMMAND_HANDLERS[commandKey(args)];
   if (!handler) usage(1);
+  // Hooks stay silent: the notice is for a person running a command.
+  if (!/hook$/.test(args.command ?? '') && args.command !== 'tune' && process.stderr.isTTY) {
+    const notice = pendingTuneNotice(args.env);
+    if (notice) process.stderr.write(notice);
+  }
   return handler(args, stdin);
 }
 

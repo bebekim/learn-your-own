@@ -20,6 +20,8 @@ export function workspaceSyncConfig(env = process.env): (SyncCorpusOnceInput & {
   const file = env.LYO_CONFIG_FILE ?? join(lyoHome(env), 'config.json');
   if (!existsSync(file)) return null;
   const config = JSON.parse(readFileSync(file, 'utf8'));
+  // A config with neither key (e.g. only `tuning`) has no workspace sync configured.
+  if (config && config.rootDir === undefined && config.corpusPath === undefined) return null;
   if (!config || typeof config.rootDir !== 'string' || !isAbsolute(config.rootDir)
     || typeof config.corpusPath !== 'string' || !isAbsolute(config.corpusPath)) {
     throw new Error(`Expected absolute rootDir and corpusPath in ${file}`);

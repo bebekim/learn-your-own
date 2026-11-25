@@ -20,6 +20,7 @@ import { formatSelection, type HookSelection, type LessonRow } from './session-b
 import { runLessonSelection } from './lesson-strategies.ts';
 import { LessonStore } from '../storage/lesson-store.ts';
 import { lessonStorePath } from '../storage/lyo-home.ts';
+import { loadTuning } from '../config/tuning.ts';
 import { sessionVerifier } from '../bridge/session-bridge.ts';
 import { priorCalibration } from './semantic-prior.ts';
 import { selectSessionFindings, trialManagedFindings } from '../interface/session-findings.ts';
@@ -33,7 +34,6 @@ export { repositoryKey };
 
 const LIMIT = 5;
 
-const STDIN_GUARD_MS = 2500;
 
 export interface SessionHookPayload {
   cwd?: string | null;
@@ -245,7 +245,7 @@ function runCli(): void {
     }
     process.exit(0);
   });
-  setTimeout(() => process.exit(0), STDIN_GUARD_MS).unref();
+  setTimeout(() => process.exit(0), loadTuning().hooks.stdinGuardMs).unref();
 }
 
 if (process.argv[1] && fs.existsSync(process.argv[1]) && import.meta.url === pathToFileURL(fs.realpathSync(process.argv[1])).href) {
