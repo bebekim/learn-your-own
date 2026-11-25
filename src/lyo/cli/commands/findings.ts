@@ -8,6 +8,7 @@ import { reviewFindingSemantics } from '../../interface/session-finding-semantic
 import { pendingFindingReviews } from '../../interface/session-finding-workflow.ts';
 import { assignFindingOpportunity } from '../../interface/finding-opportunities.ts';
 import { findingTrials, registerFindingTrial } from '../../interface/finding-trials.ts';
+import { declareFinding } from '../../storage/finding-state.ts';
 import { reconcileFindingTrial } from '../../interface/finding-trial-policy.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
 
@@ -22,6 +23,7 @@ export const FINDING_COMMANDS: Record<string, CommandHandler> = {
   'finding pending': findingCommand,
   'finding assign': findingCommand,
   'finding trial-register': findingCommand,
+  'finding declare': findingCommand,
   'finding trials': findingCommand,
   'finding trial-report': findingCommand,
 };
@@ -44,6 +46,7 @@ function findingCommand(args: CommandArgs) {
     if (args.subcommand === 'assign') return { ok: true, assignment: assignFindingOpportunity(store, args.requiredFlag('--opportunity-id')) };
     const input = JSON.parse(readFileSync(resolve(args.cwd, args.requiredFlag('--input')), 'utf8'));
     if (args.subcommand === 'trial-register') return { ok: true, trial: registerFindingTrial(store, input) };
+    if (args.subcommand === 'declare') { const { id, ...finding } = input; return { ok: true, finding: declareFinding(store, id, finding) }; }
     if (args.subcommand === 'semantics') return { ok: true, review: reviewFindingSemantics(store, input) };
     if (args.subcommand === 'register') return { ok: true, opportunity: registerFindingOpportunity(store, input) };
     if (args.subcommand === 'withdraw') return { ok: true, withdrawal: withdrawFindingEvidence(store, input) };

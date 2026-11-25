@@ -9,12 +9,31 @@ import type { Finding } from '../application/finding-selection.ts';
 import type { LessonStore } from './lesson-store.ts';
 import { resolveFindingEvidence } from './finding-evidence.ts';
 
+/** Activities are open names (Spec 11 increment A); a prompt opts in with `[lyo:<activity>]`. */
+export const activitySchema = z.string().regex(/^[a-z][a-z0-9-]{1,47}$/, 'activity must be a lowercase slug');
+
 export const findingSchema = z.object({
-  source: z.literal('session-finding@1'), gitCommonDir: z.string().refine(path.isAbsolute),
-  activity: z.enum(['transfer-review', 'experiment-design', 'learning-budget']),
+  source: z.literal('session-finding@1'),
+  // Scoped either to one repository (gitCommonDir) or to repository roots (scope), never neither.
+  gitCommonDir: z.string().refine(path.isAbsolute).optional(),
+  scope: z.object({ roots: z.array(z.string().refine(path.isAbsolute)).min(1).max(20) }).strict().optional(),
+  activity: activitySchema,
   observation: z.string().trim().min(1).max(240), evidenceRef: z.string().trim().min(1).max(300),
   intervention: z.string().trim().min(1).max(220),
-}).strict();
+}).strict().refine(f => Boolean(f.gitCommonDir) !== Boolean(f.scope), 'declare exactly one of gitCommonDir or scope');
+
+/** Records a finding declared by a reviewer. An existing id with different content is refused. */
+export function declareFinding(store: LessonStore, id: string, value: unknown) {
+  if (!/^finding:[a-z0-9][a-z0-9:._-]{1,95}$/.test(id)) throw new Error('finding id must look like finding:<slug>');
+  const finding = findingSchema.parse({ source: 'session-finding@1', ...(value as object) });
+  const existing = store.getTrace(id);
+  if (existing) {
+    if (hashValue(JSON.parse(existing.payload_json!)) !== hashValue(finding)) throw new Error('a different finding already has this id');
+    return { id, created: false, version: findingState(store.db, id).version };
+  }
+  store.recordTrace({ trace_id: id, kind: 'behavior', summary: 'Declared session finding; usefulness unvalidated.', payload: finding });
+  return { id, created: true, version: findingState(store.db, id).version };
+}
 export type { Finding } from '../application/finding-selection.ts';
 
 function checkedFeedback(db: DatabaseSync, row: Feedback): row is Feedback & { observationId: string } {

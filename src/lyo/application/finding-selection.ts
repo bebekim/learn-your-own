@@ -1,8 +1,8 @@
 import type { Feedback } from './finding-assessment.ts';
 
 export type Finding = {
-  id: string; source: 'session-finding@1'; gitCommonDir: string;
-  activity: 'transfer-review' | 'experiment-design' | 'learning-budget';
+  id: string; source: 'session-finding@1'; gitCommonDir?: string; scope?: { roots: string[] };
+  activity: string;
   observation: string; evidenceRef: string; intervention: string;
 };
 export type SessionFinding = Finding & { version: string; context: Feedback['context']; supporting: number };
