@@ -76,7 +76,9 @@ export const inputSchema = z.object({
   capture: captureSchema.optional(),
   id: text, findingId: text, deliveryId: text.optional(), taskId: text, cwd: text,
   prospective: z.object({ sessionId: text, trialId: text, model: text, findingVersion: hash, context: contextSchema,
-    automatic: z.object({ trialHash: hash, unit: text, modelRef: text, trigger: z.object({ eventName: text, toolUseId: text, inputHash: hash, responseHash: hash }).strict() }).strict().optional(),
+    automatic: z.object({ trialHash: hash, unit: text, modelRef: text, trigger: z.object({ eventName: text, toolUseId: text, inputHash: hash, responseHash: hash }).strict(),
+      // Spec 12: set when a background decision, not the triggering event itself, enrolled the session.
+      decisionRef: text.optional() }).strict().optional(),
   }).strict().optional(),
   claim: z.object({ kind: z.enum(['deterministic', 'improvement', 'unspecified']).default('unspecified'),
     conditions: text, action: text, prediction: text, falsifiedBy: text }).strict(),

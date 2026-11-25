@@ -4,6 +4,13 @@ import { DatabaseSync } from 'node:sqlite';
 import { z } from 'zod';
 import { hashValue } from '../contract/refs.ts';
 import { safeToolStatusSignals } from '../hooks/adapters/runtime.ts';
+import { DENIAL_KINDS, NOT_EXECUTED_KINDS, failureSignals } from '../hooks/failure-signals.ts';
+import type { DecisionConfig } from '../decisions/providers.ts';
+import { calibrationMismatch, decisionTriggerSchema, enqueueTriggerJob, ensureDecisionWorker, liveFailureState,
+  sessionTriggerDecisions, type DecisionTrigger } from './finding-decision-triggers.ts';
+
+/** Events whose hook output reaches the model as context, so advice can be delivered there. */
+const DELIVERY_EVENTS = new Set(['PostToolUse', 'PostToolUseFailure', 'UserPromptSubmit']);
 import { LessonStore } from '../storage/lesson-store.ts';
 import { findingState } from './session-findings.ts';
 import { inputSchema, registerFindingOpportunity } from './session-finding-evidence.ts';
@@ -32,7 +39,12 @@ const trialSchema = z.object({ id: text, findingId: text, findingVersion: text, 
       'stratified-exact tests no effect: it requires minimumEffect 0 and at most 1000 assignments').optional(),
   // Absent enrollment means one session per repository or directory.
   enrollment: z.object({ unit: z.literal('session'), maxPerRepository: z.number().int().min(2).max(100) }).strict().optional(),
-  trigger: z.object({ toolName: text, toolInput: z.union([z.record(z.string(), z.unknown()), text]), result: z.literal('failure') }).strict(),
+  // An exact trigger matches one byte-identical input. A decision trigger (Spec 12) asks a
+  // calibrated typed decision in the background; no hand-written pattern describes the situation.
+  trigger: z.union([
+    z.object({ toolName: text, toolInput: z.union([z.record(z.string(), z.unknown()), text]), result: z.literal('failure') }).strict(),
+    decisionTriggerSchema,
+  ]),
   measurement: measurementSchema,
   review: semanticReviewSchema.omit({ id: true, opportunityId: true, supersedes: true, verdict: true }),
 }).strict().refine(input => !input.evaluation || input.runtime, 'comparative trials require a declared runtime')
@@ -86,6 +98,21 @@ export function registerFindingTrial(store: LessonStore, value: unknown) {
   return receipt;
 }
 
+function exactTriggerMatches(trigger: Trial['trigger'], event: Record<string, any>) {
+  return 'toolInput' in trigger && event.tool_name === trigger.toolName && hashValue(event.tool_input) === hashValue(trigger.toolInput);
+}
+
+const isDecisionTrial = (trial: Trial): trial is Trial & { trigger: DecisionTrigger } => 'decision' in trial.trigger;
+
+/** A declined or never-executed call is not an observed failure of the command. */
+function executedFailure(error: unknown) {
+  if (error === undefined || error === null) return true;
+  const text = typeof error === 'string' ? error : typeof (error as any)?.message === 'string' ? (error as any).message : null;
+  if (text === null) return true;
+  const { failure_kind: kind } = failureSignals(text);
+  return !DENIAL_KINDS.has(kind) && !NOT_EXECUTED_KINDS.has(kind) && kind !== 'interrupted';
+}
+
 function contains(root: string, cwd: string) {
   const path = relative(root, cwd);
   return path !== '..' && !path.startsWith('../') && !isAbsolute(path);
@@ -101,7 +128,8 @@ function observeModel(store: LessonStore, runtime: string, event: Record<string,
   return { id, model: event.model as string };
 }
 
-function registerOrdinaryOpportunity(store: LessonStore, trial: Trial & { hash: string }, runtime: 'codex' | 'claude', event: Record<string, any>, id: string) {
+function registerOrdinaryOpportunity(store: LessonStore, trial: Trial & { hash: string }, runtime: 'codex' | 'claude', event: Record<string, any>, id: string,
+  landed?: { trigger: { eventName: string; toolUseId: string; inputHash: string; responseHash: string }; decisionRef: string }) {
   const cwd = realpathSync(event.cwd), state = findingState(store.db, trial.findingId);
   const context = { repository: cwd, activity: state.finding.activity, match: 'activity' as const };
   registerFindingOpportunity(store, { ...trial.measurement, id, findingId: trial.findingId,
@@ -110,14 +138,21 @@ function registerOrdinaryOpportunity(store: LessonStore, trial: Trial & { hash: 
     capture: { ...trial.measurement.capture, runtime },
     prospective: { sessionId: event.session_id, trialId: trial.id, model: event.model,
       findingVersion: trial.findingVersion, context, automatic: { trialHash: trial.hash, unit: repositoryKey(cwd) ?? cwd, modelRef: event.modelRef,
-        trigger: { eventName: event.hook_event_name, toolUseId: event.tool_use_id,
-          inputHash: hashValue(event.tool_input), responseHash: hashValue(event.tool_response ?? event.error ?? null) } } } });
+        trigger: landed?.trigger ?? { eventName: event.hook_event_name, toolUseId: event.tool_use_id,
+          inputHash: hashValue(event.tool_input), responseHash: hashValue(event.tool_response ?? event.error ?? null) },
+        ...(landed ? { decisionRef: landed.decisionRef } : {}) } } });
   reviewFindingSemantics(store, { ...trial.review, id: `trial-review:${id}`, opportunityId: id, verdict: 'accepted' });
 }
 
-/** Runs on live, raw hook events; spool replay cannot discover prospective opportunities. */
+/**
+ * Runs on live, raw hook events; spool replay cannot discover prospective opportunities.
+ * Kimi stays excluded: its wire logs show UserPromptSubmit hook output reaching the model,
+ * but no PostToolUseFailure context has been observed reaching it. Enrolling Kimi before that
+ * is verified could silently turn the advice arm into a no-advice arm. Kimi events also report
+ * the tool call as `tool_call_id` and the model only at session start.
+ */
 export function ordinaryFindingTrialFeedback(runtime: 'codex' | 'claude', event: Record<string, any>, storePath: string | null,
-  random = Math.random): { managed: boolean; additionalContext?: string } {
+  random = Math.random, decisions: { config: DecisionConfig | null; env?: NodeJS.ProcessEnv } = { config: null }): { managed: boolean; additionalContext?: string } {
   if (!storePath || !event.session_id || !event.cwd || event.client_type === 'kimi_code_cli') return { managed: false };
   const db = new DatabaseSync(storePath, { readOnly: true });
   let definitions: ReturnType<typeof findingTrials>;
@@ -136,24 +171,53 @@ export function ordinaryFindingTrialFeedback(runtime: 'codex' | 'claude', event:
         return { managed: true };
       }
     }
-    for (const { trial, id } of opportunities) {
-      if (trial.runtime && trial.runtime !== runtime) continue;
-      if (definitions.some(replacement => replacement.supersedes === trial.id)) continue;
-      if (!trial.roots.some(root => contains(root, cwd)) || event.model !== trial.model) continue;
-      if (!['PostToolUse', 'PostToolUseFailure'].includes(event.hook_event_name)
-        || event.is_interrupt === true || !event.tool_use_id
-        || event.tool_name !== trial.trigger.toolName || hashValue(event.tool_input) !== hashValue(trial.trigger.toolInput)) continue;
-      const status = safeToolStatusSignals(event.tool_response);
-      if (!(typeof status.exit_code === 'number' && status.exit_code !== 0) && event.hook_event_name !== 'PostToolUseFailure') continue;
+    const eligible = (trial: (typeof definitions)[number]) => {
+      if (trial.runtime && trial.runtime !== runtime) return false;
+      if (definitions.some(replacement => replacement.supersedes === trial.id)) return false;
+      if (!trial.roots.some(root => contains(root, cwd)) || event.model !== trial.model) return false;
       const state = findingState(store.db, trial.findingId);
-      if (state.version !== trial.findingVersion || ['needs-revision', 'needs-reassessment'].includes(state.validity)) continue;
-      if (hashValue(findingFiles(trial.measurement.verifierFiles)) !== hashValue(trial.verifierFiles)) continue;
-      registerOrdinaryOpportunity(store, trial, runtime, event, id);
+      if (state.version !== trial.findingVersion || ['needs-revision', 'needs-reassessment'].includes(state.validity)) return false;
+      return hashValue(findingFiles(trial.measurement.verifierFiles)) === hashValue(trial.verifierFiles);
+    };
+    const enroll = (trial: (typeof definitions)[number], id: string, landed?: Parameters<typeof registerOrdinaryOpportunity>[5]) => {
+      registerOrdinaryOpportunity(store, trial, runtime, event, id, landed);
       const policy = reconcileFindingTrial(store, trial);
       assignFindingOpportunity(store, id, random, policy.id);
       let additionalContext = '';
       emitFindingOpportunity(store, id, text => { additionalContext += text; });
       return { managed: true, ...(additionalContext ? { additionalContext } : {}) };
+    };
+
+    // Spec 12 §3: a background decision that has landed enrolls at this later event. Both arms
+    // are registered here, so outcomes in each are measured from the same delivery point.
+    if (DELIVERY_EVENTS.has(event.hook_event_name)) {
+      for (const decision of sessionTriggerDecisions(store.db, event.session_id)) {
+        if (decision.verdict !== 'yes' || decision.runtime !== runtime) continue;
+        const entry = opportunities.find(({ trial }) => trial.hash === decision.trialHash);
+        if (!entry || !isDecisionTrial(entry.trial) || !eligible(entry.trial)) continue;
+        if (calibrationMismatch(entry.trial.trigger, decisions.config)) continue;
+        return enroll(entry.trial, entry.id, { trigger: decision.trigger, decisionRef: decision.id });
+      }
+    }
+
+    const executedFailureEvent = ['PostToolUse', 'PostToolUseFailure'].includes(event.hook_event_name)
+      && event.is_interrupt !== true && Boolean(event.tool_use_id) && executedFailure(event.error)
+      && ((s => typeof s.exit_code === 'number' && s.exit_code !== 0)(safeToolStatusSignals(event.tool_response))
+        || event.hook_event_name === 'PostToolUseFailure');
+    if (!executedFailureEvent) return { managed: false };
+
+    // Decision triggers: enqueue and return at once; the worker decides in the background.
+    const queued = definitions.filter(trial => isDecisionTrial(trial) && event.tool_name === trial.trigger.toolName && eligible(trial)
+      && !calibrationMismatch(trial.trigger as DecisionTrigger, decisions.config));
+    const state = queued.length ? liveFailureState(event) : null;
+    if (queued.length && state && decisions.config) {
+      enqueueTriggerJob(storePath, decisions.config, runtime, event, queued.map(trial => trial.hash), state);
+      ensureDecisionWorker(storePath, decisions.env);
+    }
+
+    for (const { trial, id } of opportunities) {
+      if (isDecisionTrial(trial) || !eligible(trial) || !exactTriggerMatches(trial.trigger, event)) continue;
+      return enroll(trial, id);
     }
     return { managed: false };
   } finally { store.close(); }

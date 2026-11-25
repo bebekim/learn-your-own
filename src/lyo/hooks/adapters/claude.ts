@@ -13,6 +13,7 @@ import {
 } from './shared.ts';
 import { classifyPromptKind } from '../../domain/classification/prompt-kind.ts';
 import { hookValueText, testSummaryField } from '../test-summary.ts';
+import { failureSignals } from '../failure-signals.ts';
 import type {
   AssociationOutcome,
 } from '../../domain/types/activation.ts';
@@ -211,8 +212,9 @@ function redactClaudeHookEvent(
  * A failed tool call carries raw output in `error`: a string from Claude
  * ("Exit code N\n<output>") or `{ code, message, retryable }` from Kimi and older
  * Claude builds. Text is replaced by a digest. Kept: an enum-like `code`, a boolean
- * `retryable`, a leading exit-code header and test-runner summary counts. Booleans
- * (ECA) and already-redacted digests pass through unchanged.
+ * `retryable`, a leading exit-code header, test-runner summary counts, and closed-vocabulary
+ * `failure_kind`/`error_class` labels derived before hashing. Booleans (ECA) and
+ * already-redacted digests pass through unchanged.
  */
 export function redactToolError(error: unknown): unknown {
   const fields = errorFields(error);
@@ -228,6 +230,7 @@ export function redactToolError(error: unknown): unknown {
     recorded: false,
     ...keptErrorFields(fields),
     ...(exitCode === null ? {} : { exit_code: exitCode }),
+    ...failureSignals(typeof error === 'string' ? error : String(fields.message ?? text)),
     ...testSummaryField(text),
   };
 }

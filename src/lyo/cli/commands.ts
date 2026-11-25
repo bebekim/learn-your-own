@@ -13,6 +13,7 @@ import { HOOK_COMMANDS } from './commands/hooks.ts';
 import { INIT_COMMANDS } from './commands/init.ts';
 import { LAB_COMMANDS } from './commands/lab.ts';
 import { DECIDE_COMMANDS } from './commands/decide.ts';
+import { DECISION_COMMANDS } from './commands/decisions.ts';
 import { OBSERVATION_COMMANDS } from './commands/observation.ts';
 import { PIPELINE_COMMANDS } from './commands/pipeline.ts';
 import { RUN_COMMANDS } from './commands/runs.ts';
@@ -45,6 +46,7 @@ const COMMAND_HANDLERS: Record<string, CommandHandler> = {
   ...PIPELINE_COMMANDS,
   ...LAB_COMMANDS,
   ...DECIDE_COMMANDS,
+  ...DECISION_COMMANDS,
 };
 
 export async function runCommand(args: CliArgs, stdin: AsyncIterable<string | Buffer>): Promise<unknown> {

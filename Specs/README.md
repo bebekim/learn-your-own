@@ -39,6 +39,7 @@ alone does not establish completion.
 | [9 Parallel lab screen](9-parallel-lab-screen.md) | Partial | Parallel paired runs in isolated worktrees, task-stratified exact test, pre-launch token budget; scripted-executor tests only, no live screen yet |
 | [10 Harness² entry trial](10-harness2-entry-trial.md) | Draft | Screens a Harness² library entry on unseen tasks and tests its per-task refinement against a same-execution best-of-four baseline; needs an entry importer and file-tree lab advice |
 | [11 Harness² borrowings](11-harness2-borrowings.md) | Draft | Decides which Harness² library features LYO adopts: open, revisable activity scopes and hashed runnable attachments; rejects self-rated confidence and ordered replay |
+| [12 Async decision triggers](12-async-decision-trigger.md) | Draft | Trials recognise a failure with a calibrated typed decision (local mlxcel, OpenRouter Solar Decide or TypeSafe Jev, swappable) asked by a background worker; enrollment happens when the decision lands |
 
 ## Dated designs
 

@@ -36,6 +36,10 @@ export interface JevConfig {
   fetch?: typeof fetch;
   maxRetries?: number;
   sleep?: (ms: number) => Promise<void>;
+  /** Provider name recorded on each decision; System One hosts other than TypeSafe share this transport. */
+  name?: string;
+  /** Extra request fields, e.g. OpenRouter's `provider` routing constraints. Not part of the request hash. */
+  extraBody?: Record<string, unknown>;
 }
 
 export function jevProvider(config: JevConfig) {
@@ -64,11 +68,11 @@ export function jevProvider(config: JevConfig) {
   }
 
   const provider: TypedDecisionProvider & { models(): Promise<z.infer<typeof modelsSchema>['models']> } = {
-    name: 'typesafe-jev',
+    name: config.name ?? 'typesafe-jev',
     async decide(input: TypedDecisionRequest, options = {}): Promise<TypedDecisionRecord> {
       const body = { model, state: input.state, questions: input.questions };
       const parsed = responseSchema.safeParse(await request('/v1/systemone', { method: 'POST',
-        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, options.timeoutMs ?? 10000));
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, ...config.extraBody }) }, options.timeoutMs ?? 10000));
       if (!parsed.success) throw new JevError(`TypeSafe response did not match the API contract: ${parsed.error.message.slice(0, 500)}`);
       for (const [name, question] of Object.entries(input.questions)) {
         if (parsed.data.answers[name]?.type !== question.type) throw new JevError(`TypeSafe returned no ${question.type} answer for ${name}`);

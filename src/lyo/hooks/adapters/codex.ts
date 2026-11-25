@@ -12,6 +12,7 @@ import {
 } from './shared.ts';
 import { classifyPromptKind } from '../../domain/classification/prompt-kind.ts';
 import { hookValueShape, hookValueText, testSummaryField } from '../test-summary.ts';
+import { executedFailureSignals } from '../failure-signals.ts';
 import type {
   AssociationOutcome,
 } from '../../domain/types/activation.ts';
@@ -206,10 +207,18 @@ function redactCodexHookEvent(
       truncated: fingerprint.truncated,
       recorded: false,
       ...safeToolStatusSignals(event.tool_response),
+      ...nonzeroExitSignals(event.tool_response),
       ...testSummaryField(hookValueText(event.tool_response)),
       // Live Bash responses can be stdout-only strings; shape records types, not values.
       shape: hookValueShape(event.tool_response),
     };
   }
   return redacted;
+}
+
+/** Closed-vocabulary cause labels, only when the response itself reports a non-zero exit. */
+function nonzeroExitSignals(response: unknown): Record<string, unknown> {
+  const exitCode = safeToolStatusSignals(response).exit_code;
+  if (typeof exitCode !== 'number' || exitCode === 0) return {};
+  return { ...executedFailureSignals(hookValueText(response)) };
 }

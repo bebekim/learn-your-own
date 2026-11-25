@@ -1,7 +1,8 @@
 export type JobStatus = 'started' | 'completed' | 'failed' | 'cancelled' | 'unknown';
 export type PathActivationKind = 'file_read' | 'file_written' | 'file_created' | 'file_deleted' | 'file_diffed' | 'directory_listed' | 'unknown';
 export type CommandClassification = 'test' | 'build' | 'lint' | 'format' | 'deploy' | 'database' | 'cloud' | 'package' | 'git' | 'inspect' | 'local_dev' | 'unknown';
-export type CommandStatus = 'planned' | 'attempted' | 'succeeded' | 'failed' | 'unknown';
+/** 'denied': the call never executed because a user, rule or host declined it. */
+export type CommandStatus = 'planned' | 'attempted' | 'succeeded' | 'failed' | 'denied' | 'unknown';
 export type BehaviorPhase = 'explore' | 'fix' | 'validate' | 'unknown';
 export type ActivationConfidence = 'low' | 'medium' | 'high';
 export type ZoneActivationSourceKind = 'path' | 'command' | 'deployment' | 'manual' | 'inferred';

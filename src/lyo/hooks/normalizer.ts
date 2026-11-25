@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { DENIAL_KINDS, NOT_EXECUTED_KINDS, redactedFailureKind } from './failure-signals.ts';
 import { summarizeCommand } from '../domain/behavior/commands.ts';
 import { classifyCommand, familyForCommand } from '../domain/behavior/command-classifier.ts';
 import { extractDeployment } from '../domain/behavior/deployment-extractor.ts';
@@ -87,7 +88,7 @@ export function extractHookFacts(event: HookEventForNormalization): ExtractedHoo
         status,
         phase: inferPhaseFromClassification(classifyCommand(commandName, commandText)),
         outputSize: estimateToolOutputSize(payload),
-        deployment: extractDeployment(commandName, commandText, status === 'planned' ? 'unknown' : status),
+        deployment: extractDeployment(commandName, commandText, status === 'planned' ? 'unknown' : status === 'denied' ? 'attempted' : status),
       });
     }
   }
@@ -151,12 +152,20 @@ function extractCommandText(toolInput: Record<string, unknown> | null): string |
 
 function inferHookCommandStatus(eventName: string, payload: Record<string, unknown>): CommandStatus {
   if (eventName === 'PreToolUse' || eventName === 'tool.before') return 'attempted';
-  if (eventName === 'PostToolUseFailure' || eventName === 'tool.failure') return 'failed';
+  if (eventName === 'PostToolUseFailure' || eventName === 'tool.failure') return failureStatus(payload.error);
   if (eventName !== 'PostToolUse' && eventName !== 'tool.after') return 'unknown';
   // A backgrounded command reports PostToolUse at launch, before it has an outcome.
   if (objectValue(payload.tool_input)?.run_in_background === true) return 'unknown';
   // These hosts can complete a callback without reporting a successful command.
   return hookStatusSignal(payload) ?? (['bob', 'codex', 'kimi'].includes(runtimeFromPayload(payload)) ? 'unknown' : 'succeeded');
+}
+
+/** A failure event is a command outcome only if the command executed. */
+function failureStatus(error: unknown): CommandStatus {
+  const kind = redactedFailureKind(error);
+  if (kind && DENIAL_KINDS.has(kind)) return 'denied';
+  if (kind && NOT_EXECUTED_KINDS.has(kind)) return 'unknown';
+  return 'failed';
 }
 
 function hookStatusSignal(value: unknown): CommandStatus | null {

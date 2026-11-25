@@ -24,6 +24,7 @@ import { normalizeOutcome } from './coercion.ts';
 import { autoConnectWorkspace } from '../corpus/workspace-sync.ts';
 import { nativeFeedback } from '../control/native-feedback.ts';
 import { ordinaryFindingTrialFeedback } from '../interface/finding-trials.ts';
+import { loadDecisionConfig, type DecisionConfig } from '../decisions/providers.ts';
 import { workspaceRoot } from '../repository.ts';
 import { codexCommandStatusEvent, codexCommandStatusRewrite } from '../hooks/codex-command-status.ts';
 import { visibleHookContext } from '../hooks/context-visibility.ts';
@@ -129,12 +130,22 @@ export async function runClaudeHookCommand(
   return visibleHookContext(addNativeFeedback(await runClaudeStyleHook(args, event), 'claude', event, args, await actionScope(event, args)) as any, event, 'claude-hook');
 }
 
+/** An unreadable decision config disables decision triggers; it never blocks capture. */
+function decisionConfig(env: NodeJS.ProcessEnv): DecisionConfig | null {
+  try { return loadDecisionConfig(env); }
+  catch (error) {
+    process.stderr.write(`Lyo decision config: ${error instanceof Error ? error.message : String(error)}\n`);
+    return null;
+  }
+}
+
 function addNativeFeedback(output: any, runtime: 'codex' | 'claude', event: Record<string, any>, args: CliArgs,
   scope: ActionScopeResult | null = null): unknown {
   let trialManaged = false;
   try {
     const cwd = event.cwd || args.cwd;
-    const trial = ordinaryFindingTrialFeedback(runtime, { ...event, cwd }, resolveSessionLessonStorePath(cwd));
+    const trial = ordinaryFindingTrialFeedback(runtime, { ...event, cwd }, resolveSessionLessonStorePath(cwd), Math.random,
+      { config: decisionConfig(args.env), env: args.env });
     trialManaged = trial.managed;
     if (trial.additionalContext) output = { ...output, hookSpecificOutput: { ...output.hookSpecificOutput,
       hookEventName: event.hook_event_name, additionalContext: [output.hookSpecificOutput?.additionalContext, trial.additionalContext].filter(Boolean).join('\n') } };
