@@ -1,6 +1,6 @@
 import { hashValue } from '../contract/refs.ts';
 import type { LessonStore } from './lesson-store.ts';
-import { findingAssignment, findingOpportunity, resolveFindingEvidence } from './finding-evidence.ts';
+import { findingAssignment, findingOpportunity, findingOutcomePending, resolveFindingEvidence } from './finding-evidence.ts';
 import { findingState } from './finding-state.ts';
 import { findingFiles } from './finding-files.ts';
 import type { FindingTrialReconciliationPort, TrialObservation, TrialPolicyRecord } from '../application/finding-trial-reconciliation.ts';
@@ -18,6 +18,8 @@ function windowReceipt(store: LessonStore, id: string) {
 /** The next matching action, or a turn/session boundary, closes the declared proximal outcome window. */
 export function closeFindingTrialWindow(store: LessonStore, id: string, eventName: string) {
   if (windowReceipt(store, id)) return;
+  // An outcome still being decided in the background keeps the window open (Spec 13).
+  if (findingOutcomePending(store.db, id, findingOpportunity(store.db, id).content.input.capture)) return;
   const evidenceRef = store.getTrace(`finding-evidence:${id}`) ? `finding-evidence:${id}` : null;
   if (!evidenceRef && !['UserPromptSubmit', 'Stop', 'SessionEnd'].includes(eventName)) return;
   const registered = findingOpportunity(store.db, id);

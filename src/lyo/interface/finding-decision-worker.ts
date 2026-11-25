@@ -9,7 +9,11 @@ import type { DecisionConfig } from '../decisions/providers.ts';
 import { expectedLevel } from '../decisions/providers.ts';
 import { LessonStore } from '../storage/lesson-store.ts';
 import { findingTrials } from './finding-trials.ts';
-import { expectedLevelVerdict, recordTriggerDecision, triggerDecisionId, type DecisionTrigger } from './finding-decision-triggers.ts';
+import { expectedLevelVerdict, outcomeDecisionId, recordOutcomeDecision, recordTriggerDecision, triggerDecisionId,
+  type DecisionTrigger } from './finding-decision-triggers.ts';
+import { measureFindingOpportunity } from './session-finding-evidence.ts';
+import { assessFindingEvidence } from './session-findings.ts';
+import { closeFindingTrialWindow } from './finding-trial-policy.ts';
 
 export interface WorkerOptions {
   storePath: string;
@@ -61,6 +65,7 @@ async function decideJob(options: WorkerOptions, job: DecisionJob, now: () => nu
     const trials = findingTrials(store.db);
     const base = { jobId: job.jobId, sessionId: job.sessionId, runtime: job.runtime, cwd: job.cwd, model: job.model, trigger: job.trigger };
     const tooOld = now() - Date.parse(job.createdAt) > options.worker.maxAgeSeconds * 1000;
+    if (job.kind === 'outcome') return await decideOutcome(options, store, trials, job, tooOld, now);
     for (const trialHash of job.trialHashes) {
       // A crash between storing a decision and deleting the job must not decide it twice.
       if (store.getTrace(triggerDecisionId(job.jobId, trialHash))) continue;
@@ -83,5 +88,42 @@ async function decideJob(options: WorkerOptions, job: DecisionJob, now: () => nu
       decided++;
     }
   } finally { store.close(); }
+  return { decided, expired };
+}
+
+/**
+ * Spec 13: decide whether a captured action's failure was the trial's situation, then measure,
+ * assess and close the opportunity. The worker is the only writer, so this cannot race the hook.
+ */
+async function decideOutcome(options: WorkerOptions, store: LessonStore, trials: ReturnType<typeof findingTrials>,
+  job: DecisionJob, tooOld: boolean, now: () => number) {
+  const id = job.opportunityId!, trialHash = job.trialHashes[0];
+  const base = { opportunityId: id, sessionId: job.sessionId, trialHash };
+  const empty = { level: null, provider: null, answeredModel: null, requestHash: null, latencyMs: null };
+  let decided = 0, expired = 0;
+  if (!store.getTrace(outcomeDecisionId(id))) {
+    const trial = trials.find(candidate => candidate.hash === trialHash);
+    const trigger = trial && 'decision' in trial.trigger ? trial.trigger as DecisionTrigger : null;
+    if (!trigger) recordOutcomeDecision(store, { ...base, ...empty, verdict: 'skipped', reason: 'trial definition not found' });
+    else if (tooOld) { recordOutcomeDecision(store, { ...base, ...empty, verdict: 'expired', reason: 'job older than maxAgeSeconds' }); expired++; }
+    else {
+      const t = now();
+      try {
+        const record = await options.provider.decide({ state: job.state, questions: { match: trigger.decision.question } },
+          { timeoutMs: options.worker.timeoutMs });
+        const level = expectedLevel(record.answers.match);
+        recordOutcomeDecision(store, { ...base, level, verdict: expectedLevelVerdict(level, trigger.decision.band), reason: null,
+          provider: record.provider, answeredModel: record.answeredModel, requestHash: record.requestHash, latencyMs: now() - t });
+      } catch (error) {
+        recordOutcomeDecision(store, { ...base, ...empty, latencyMs: now() - t, verdict: 'unknown', provider: options.provider.name,
+          reason: `provider error: ${error instanceof Error ? error.message : String(error)}`.slice(0, 300) });
+      }
+      decided++;
+    }
+  }
+  // Measurement now has its input; an unknown or expired decision measures as an unknown outcome.
+  const evidence = measureFindingOpportunity(store, id);
+  assessFindingEvidence(store, evidence.id);
+  closeFindingTrialWindow(store, id, 'Stop');
   return { decided, expired };
 }

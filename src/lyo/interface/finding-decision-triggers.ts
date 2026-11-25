@@ -121,3 +121,36 @@ export function ensureDecisionWorker(storePath: string, env: NodeJS.ProcessEnv =
   child.unref();
   return true;
 }
+
+// ---- Spec 13: outcome decisions for action-measured opportunities ----
+
+export interface OutcomeDecisionContent {
+  source: 'finding-outcome-decision@1';
+  opportunityId: string; sessionId: string; trialHash: string;
+  verdict: TriggerDecisionVerdict; level: number | null; reason: string | null;
+  provider: string | null; answeredModel: string | null; requestHash: string | null; latencyMs: number | null;
+}
+
+export const outcomeDecisionId = (opportunityId: string) => `finding-outcome-decision:${opportunityId}`;
+
+/** The first decision for an opportunity stands; a later one is ignored. */
+export function recordOutcomeDecision(store: LessonStore, content: Omit<OutcomeDecisionContent, 'source'>) {
+  const full: OutcomeDecisionContent = { source: 'finding-outcome-decision@1', ...content };
+  const id = outcomeDecisionId(content.opportunityId);
+  if (store.getTrace(id)) return id;
+  store.recordTrace({ trace_id: id, run_id: content.sessionId, kind: 'behavior',
+    summary: `Background outcome decision: ${content.verdict}. Measurement input; not a benefit claim.`,
+    payload: { ...full, hash: hashValue(full) } });
+  return id;
+}
+
+export function enqueueOutcomeJob(storePath: string, config: DecisionConfig, runtime: string, event: Record<string, any>,
+  opportunityId: string, trialHash: string, state: string) {
+  const trigger = { eventName: String(event.hook_event_name), toolUseId: String(event.tool_use_id),
+    inputHash: hashValue(event.tool_input), responseHash: hashValue(event.tool_response ?? event.error ?? null) };
+  const jobId = hashValue(['outcome', opportunityId]);
+  const result = enqueueDecisionJob(decisionQueueDir(storePath), { kind: 'outcome', opportunityId, jobId,
+    sessionId: String(event.session_id), runtime, cwd: String(event.cwd), model: typeof event.model === 'string' ? event.model : null,
+    createdAt: new Date().toISOString(), trialHashes: [trialHash], trigger, state, inputFormat: FAILURE_INPUT_FORMAT }, config.worker.maxQueued);
+  return { jobId, result };
+}

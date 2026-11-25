@@ -30,7 +30,18 @@ export function captureFindingAction(store: LessonStore, registered: Registered,
       : findingSessionModel(store.db, event.runtime, sessionId)?.model ?? null } : {}),
     eventName: event.runtimeEventName, sourceFiles: findingFiles(input.sourceFiles), verifierFiles: findingFiles(input.verifierFiles),
     ...(current ? { findingState: { version: current.version, validity: current.validity } } : {}),
-    responseHash: phase === 'after' ? hashValue(payload.tool_response ?? payload.error ?? null) : null };
+    responseHash: phase === 'after' ? hashValue(payload.tool_response ?? payload.error ?? null) : null,
+    ...(phase === 'after' && capture.measures === 'action' ? { action: actionSummary(payload) } : {}) };
   store.recordTrace({ trace_id: `finding-action:${input.id}:${phase}`, run_id: sessionId, kind: 'behavior',
     summary: 'Live finding action boundary; no outcome inferred from tool status.', payload: { ...content, hash: hashValue(content) } });
+}
+
+/** Spec 13: what the captured command was and how it ended, from the already-redacted payload. No output text. */
+function actionSummary(payload: Record<string, unknown>) {
+  const input = payload.tool_input as Record<string, unknown> | string | undefined;
+  const command = typeof input === 'string' ? input : typeof input?.command === 'string' ? input.command : '';
+  const signals = [payload.error, payload.tool_response].find(v => v && typeof v === 'object') as Record<string, unknown> | undefined;
+  const label = (key: string, max: number) => typeof signals?.[key] === 'string' ? (signals[key] as string).slice(0, max) : null;
+  return { command: command.slice(0, 2000), exitCode: typeof signals?.exit_code === 'number' ? signals.exit_code : null,
+    failureKind: label('failure_kind', 40), errorClass: label('error_class', 60) };
 }

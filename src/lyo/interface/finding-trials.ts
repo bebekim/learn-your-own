@@ -6,8 +6,10 @@ import { hashValue } from '../contract/refs.ts';
 import { safeToolStatusSignals } from '../hooks/adapters/runtime.ts';
 import { DENIAL_KINDS, NOT_EXECUTED_KINDS, failureSignals } from '../hooks/failure-signals.ts';
 import type { DecisionConfig } from '../decisions/providers.ts';
-import { calibrationMismatch, decisionTriggerSchema, enqueueTriggerJob, ensureDecisionWorker, liveFailureState,
-  sessionTriggerDecisions, type DecisionTrigger } from './finding-decision-triggers.ts';
+import { calibrationMismatch, decisionTriggerSchema, enqueueOutcomeJob, enqueueTriggerJob, ensureDecisionWorker, liveFailureState,
+  recordOutcomeDecision, sessionTriggerDecisions, type DecisionTrigger } from './finding-decision-triggers.ts';
+import { findingActionBoundary, findingOutcomePending } from '../storage/finding-evidence.ts';
+import { findingOpportunity } from './session-finding-evidence.ts';
 
 /** Events whose hook output reaches the model as context, so advice can be delivered there. */
 const DELIVERY_EVENTS = new Set(['PostToolUse', 'PostToolUseFailure', 'UserPromptSubmit']);
@@ -25,7 +27,7 @@ const text = z.string().trim().min(1).max(2000);
 const measurementSchema = z.object({ claim: inputSchema.shape.claim, checks: inputSchema.shape.checks,
   sourceFiles: inputSchema.shape.sourceFiles, verifierFiles: inputSchema.shape.verifierFiles,
   evaluator: inputSchema.shape.evaluator, timeoutSeconds: inputSchema.shape.timeoutSeconds,
-  capture: z.object({ toolName: text, next: z.literal(true) }).strict() }).strict();
+  capture: z.object({ toolName: text, next: z.literal(true), measures: z.literal('action').optional() }).strict() }).strict();
 const trialSchema = z.object({ id: text, findingId: text, findingVersion: text, roots: z.array(text).min(1), model: text,
   runtime: z.enum(['codex', 'claude']).optional(),
   supersedes: text.optional(),
@@ -113,6 +115,31 @@ function executedFailure(error: unknown) {
   return !DENIAL_KINDS.has(kind) && !NOT_EXECUTED_KINDS.has(kind) && kind !== 'interrupted';
 }
 
+/**
+ * Spec 13: when the captured action of an action-measured opportunity failed, its outcome is the
+ * trial's own calibrated question, decided in the background. Without a question or provider the
+ * outcome is recorded as unknown at once, so measurement never waits forever.
+ */
+function requestOutcomeDecision(store: LessonStore, storePath: string, trial: Trial & { hash: string }, id: string,
+  runtime: string, event: Record<string, any>, decisions: { config: DecisionConfig | null; env?: NodeJS.ProcessEnv }) {
+  const registered = findingOpportunity(store.db, id), capture = registered.content.input.capture;
+  if (!findingOutcomePending(store.db, id, capture)) return;
+  const after = findingActionBoundary(store.db, id, 'after');
+  if (!after || after.toolUseId !== event.tool_use_id) return; // only the live event that carries the failure text
+  const state = liveFailureState(event);
+  const reason = !isDecisionTrial(trial) ? 'trial has no decision question'
+    : calibrationMismatch(trial.trigger, decisions.config) ?? (state ? null : 'no command text to decide');
+  if (reason) {
+    recordOutcomeDecision(store, { opportunityId: id, sessionId: registered.content.sessionId, trialHash: trial.hash,
+      verdict: 'unknown', level: null, reason, provider: null, answeredModel: null, requestHash: null, latencyMs: null });
+    return;
+  }
+  const queued = enqueueOutcomeJob(storePath, decisions.config!, runtime, event, id, trial.hash, state!);
+  if (queued.result === 'dropped') recordOutcomeDecision(store, { opportunityId: id, sessionId: registered.content.sessionId,
+    trialHash: trial.hash, verdict: 'unknown', level: null, reason: 'decision queue full', provider: null, answeredModel: null, requestHash: null, latencyMs: null });
+  else ensureDecisionWorker(storePath, decisions.env);
+}
+
 function contains(root: string, cwd: string) {
   const path = relative(root, cwd);
   return path !== '..' && !path.startsWith('../') && !isAbsolute(path);
@@ -166,6 +193,7 @@ export function ordinaryFindingTrialFeedback(runtime: 'codex' | 'claude', event:
     const opportunities = definitions.map(trial => ({ trial, id: hashValue([trial.hash, runtime, event.session_id]) }));
     for (const { trial, id } of opportunities) {
       if (store.getTrace(`finding-opportunity:${id}`)) {
+        requestOutcomeDecision(store, storePath, trial, id, runtime, event, decisions);
         closeFindingTrialWindow(store, id, event.hook_event_name);
         reconcileFindingTrial(store, trial);
         return { managed: true };

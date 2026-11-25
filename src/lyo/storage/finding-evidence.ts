@@ -5,7 +5,9 @@ import { assessFindingObservation } from '../domain/finding-assessment.ts';
 
 const captureText = z.string().min(1);
 export const captureSchema = z.object({ runtime: z.enum(['codex', 'claude']), toolName: captureText,
-  toolInput: z.union([z.record(z.string(), z.unknown()), z.string()]).optional(), next: z.literal(true).optional() }).strict()
+  toolInput: z.union([z.record(z.string(), z.unknown()), z.string()]).optional(), next: z.literal(true).optional(),
+  // Spec 13: the outcome is the captured command itself, not workspace files.
+  measures: z.literal('action').optional() }).strict()
   .refine(value => (value.toolInput !== undefined) !== Boolean(value.next), 'declare an exact input or the next matching tool action');
 const capturedFilesSchema = z.array(z.object({ path: captureText, content: z.string().nullable() }).strict());
 const modelSchema = z.object({ source: z.literal('session-finding-model@1'), runtime: captureText, sessionId: captureText,
@@ -24,6 +26,9 @@ const boundarySchema = z.object({ source: z.literal('session-finding-action@1'),
   eventId: captureText, runtime: captureText, sessionId: captureText, cwd: captureText, toolUseId: captureText, toolName: captureText, toolInputHash: captureText,
   eventName: captureText, sourceFiles: capturedFilesSchema, verifierFiles: capturedFilesSchema, responseHash: captureText.nullable(), hash: captureText,
   model: captureText.nullable().optional(),
+  // Spec 13: closed labels and the command; never output text.
+  action: z.object({ command: z.string().max(2000), exitCode: z.number().int().nullable(),
+    failureKind: z.string().max(40).nullable(), errorClass: z.string().max(60).nullable() }).strict().optional(),
   findingState: z.object({ version: captureText, validity: z.enum(['unvalidated', 'supported', 'needs-revision', 'needs-reassessment']) }).strict().optional() }).strict();
 export type Registered = { content: { sessionId: string; version: string;
   input: { id: string; findingId: string; cwd: string; sourceFiles: string[]; verifierFiles: string[]; capture?: z.infer<typeof captureSchema>;
@@ -39,6 +44,20 @@ export function findingActionBoundary(db: DatabaseSync, id: string, phase: 'befo
   const { hash, ...content } = receipt;
   if (hash !== hashValue(content)) throw new Error('finding action integrity mismatch');
   return { ...receipt, rowid: Number(row.rowid) };
+}
+
+/**
+ * Spec 13: an action measurement whose captured command failed waits for its outcome
+ * decision. Until that lands it is neither measured nor closed.
+ */
+export function findingOutcomePending(db: DatabaseSync, id: string, capture: { measures?: 'action' } | undefined) {
+  if (capture?.measures !== 'action') return false;
+  const after = findingActionBoundary(db, id, 'after');
+  if (!after?.action) return false;
+  const failed = after.eventName === 'PostToolUseFailure' || (typeof after.action.exitCode === 'number' && after.action.exitCode !== 0);
+  const executed = !after.action.failureKind || ['exit_nonzero', 'unknown'].includes(after.action.failureKind);
+  if (!failed || !executed) return false;
+  return !db.prepare('SELECT 1 FROM learning_trace WHERE trace_id = ?').get(`finding-outcome-decision:${id}`);
 }
 
 export function findingActionEvidence(db: DatabaseSync, registered: Registered) {
@@ -64,7 +83,12 @@ export function findingActionEvidence(db: DatabaseSync, registered: Registered) 
       problems.push('finding was suspended before the declared action');
   }
   if (before && after && before.toolUseId !== after.toolUseId) problems.push('action call identity mismatch');
-  if (after && after.eventName !== 'PostToolUse') problems.push('action did not complete normally');
+  if (input.capture?.measures === 'action') {
+    // An executed failure is this measurement's outcome; a call that never ran has none.
+    const kind = after?.action?.failureKind ?? null;
+    if (after && !['PostToolUse', 'PostToolUseFailure'].includes(after.eventName)) problems.push('action did not complete');
+    if (after && kind && !['exit_nonzero', 'unknown'].includes(kind)) problems.push(`action was not executed (${kind})`);
+  } else if (after && after.eventName !== 'PostToolUse') problems.push('action did not complete normally');
   return { before, after, problems, hash: hashValue([before?.hash ?? null, after?.hash ?? null]) };
 }
 
@@ -83,11 +107,12 @@ export const inputSchema = z.object({
   claim: z.object({ kind: z.enum(['deterministic', 'improvement', 'unspecified']).default('unspecified'),
     conditions: text, action: text, prediction: text, falsifiedBy: text }).strict(),
   checks: z.object({ applicability: text, adherence: text, prediction: text }).strict(),
-  verifierFiles: z.array(text).min(1), sourceFiles: z.array(text).min(1),
+  verifierFiles: z.array(text).min(1), sourceFiles: z.array(text),
   evaluator: z.object({ id: text, version: text }).strict(), timeoutSeconds: z.number().int().min(1).max(10).default(5),
 }).strict().refine(input => Boolean(input.deliveryId) !== Boolean(input.prospective),
   'supply either a prior delivery or a prospective session, never both')
-  .refine(input => !input.prospective || Boolean(input.capture), 'prospective opportunities require live action capture');
+  .refine(input => !input.prospective || Boolean(input.capture), 'prospective opportunities require live action capture')
+  .refine(input => input.sourceFiles.length > 0 || input.capture?.measures === 'action', 'declare source files unless the measurement is the action itself');
 const filesSchema = z.array(z.object({ path: text, content: z.string().nullable() }).strict());
 const checkSchema = z.object({ command: text, exit_code: z.number().int().nullable(), stdout: z.string(), stderr: z.string(),
   satisfied: z.boolean().nullable() }).strict();

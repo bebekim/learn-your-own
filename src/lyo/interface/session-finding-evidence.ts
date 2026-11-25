@@ -1,4 +1,7 @@
-import { realpathSync } from 'node:fs';
+import { mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import type { DatabaseSync } from 'node:sqlite';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import { hashValue } from '../contract/refs.ts';
@@ -16,7 +19,39 @@ export type { Opportunity } from '../storage/finding-evidence.ts';
 
 const text = z.string().trim().min(1).max(2000);
 
-function check(input: Opportunity['input'], command: string) {
+/**
+ * Spec 13: what an action evaluator may read. The enrolling trigger decision, the captured
+ * action's closed labels and command, and the outcome decision. Null for file-based measurements.
+ */
+export function findingActionContext(db: DatabaseSync, input: Opportunity['input']) {
+  if (input.capture?.measures !== 'action') return null;
+  const decision = (traceId: string | undefined) => {
+    if (!traceId) return null;
+    const row = db.prepare('SELECT payload_json FROM learning_trace WHERE trace_id = ?').get(traceId);
+    if (!row) return null;
+    const p = JSON.parse(String(row.payload_json));
+    return { id: traceId, verdict: p.verdict ?? null, level: p.level ?? null };
+  };
+  const automatic = input.prospective?.automatic as { decisionRef?: string } | undefined;
+  const after = db.prepare('SELECT payload_json FROM learning_trace WHERE trace_id = ?').get(`finding-action:${input.id}:after`);
+  const receipt = after ? JSON.parse(String(after.payload_json)) : null;
+  return { triggerDecision: decision(automatic?.decisionRef),
+    action: receipt?.action ? { ...receipt.action, eventName: receipt.eventName } : null,
+    outcomeDecision: decision(`finding-outcome-decision:${input.id}`) };
+}
+
+function check(input: Opportunity['input'], command: string, context: ReturnType<typeof findingActionContext> = null) {
+  if (context) {
+    // Checks inherit the environment; the file exists only while they run.
+    const dir = mkdtempSync(join(tmpdir(), 'lyo-action-')), path = join(dir, 'action.json'), previous = process.env.LYO_FINDING_ACTION;
+    writeFileSync(path, JSON.stringify(context), { mode: 0o600 });
+    process.env.LYO_FINDING_ACTION = path;
+    try { return check(input, command); }
+    finally {
+      if (previous === undefined) delete process.env.LYO_FINDING_ACTION; else process.env.LYO_FINDING_ACTION = previous;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
   const result = runLocalEpisode({ cwd: input.cwd, baselineId: 'B0', model: 'none', harness: 'finding-evidence@1', task: {
     task_id: input.taskId, split: 'train', repo_ref: { kind: 'declared-files', ref: input.id }, prompt: input.claim.prediction,
     allowed_tools: ['shell'], expected_touched_paths: [], tags: [],
@@ -72,7 +107,8 @@ export function registerFindingOpportunity(store: LessonStore, value: unknown) {
     const context = registrationContext(store, input);
     const verifierFiles = files(input.verifierFiles), sourceBefore = files(input.sourceFiles);
     if (verifierFiles.some(file => file.content === null)) throw new Error('registered verifier file is missing');
-    const applicability = check(input, input.checks.applicability), adherenceBefore = check(input, input.checks.adherence);
+    const actionContext = findingActionContext(store.db, input);
+    const applicability = check(input, input.checks.applicability, actionContext), adherenceBefore = check(input, input.checks.adherence, actionContext);
     const problems = hashValue([verifierFiles, sourceBefore]) === hashValue([files(input.verifierFiles), files(input.sourceFiles)])
       ? [] : ['source or verifier changed during registration checks'];
     const content = opportunitySchema.parse({ input, ...context,
@@ -98,8 +134,9 @@ export function measureFindingOpportunity(store: LessonStore, id: string) {
         if (hashValue(action.after?.sourceFiles) !== hashValue(sourceMeasured)) problems.push('source changed since the captured action');
       }
       if (hashValue(files(input.verifierFiles)) !== hashValue(registered.content.verifierFiles)) problems.push('registered verifier changed or disappeared');
-      const adherence = problems.length ? null : check(input, input.checks.adherence);
-      const prediction = problems.length ? null : check(input, input.checks.prediction);
+      const actionContext = findingActionContext(store.db, input);
+      const adherence = problems.length ? null : check(input, input.checks.adherence, actionContext);
+      const prediction = problems.length ? null : check(input, input.checks.prediction, actionContext);
       if (hashValue(files(input.verifierFiles)) !== hashValue(registered.content.verifierFiles)
         || hashValue(files(input.sourceFiles)) !== hashValue(sourceMeasured)) problems.push('source or verifier changed during measurement');
       const content = measurementSchema.parse({ opportunityId: id, opportunityHash: registered.payload.hash,

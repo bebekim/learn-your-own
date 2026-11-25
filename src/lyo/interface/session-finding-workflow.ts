@@ -5,6 +5,7 @@ import { hashValue } from '../contract/refs.ts';
 import { LessonStore } from '../storage/lesson-store.ts';
 import { captureFindingAction, findingActionEvidence } from './session-finding-capture.ts';
 import { findingOpportunity, measureFindingOpportunity } from './session-finding-evidence.ts';
+import { findingOutcomePending } from '../storage/finding-evidence.ts';
 import { assessFindingEvidence, inspectFinding, trialManagedFindings } from './session-findings.ts';
 import { findingSemanticReview } from './session-finding-semantics.ts';
 import { completeFindingBoundary } from '../application/finding-workflow.ts';
@@ -49,7 +50,9 @@ export function observeSessionFindings(event: HookObservation, storePath: string
         return captured;
       },
       status(id) {
-        const action = findingActionEvidence(store.db, registrations.get(id)!);
+        const registered = registrations.get(id)!, action = findingActionEvidence(store.db, registered);
+        // A failed action's outcome is decided in the background; the worker measures it (Spec 13).
+        if (findingOutcomePending(store.db, id, registered.content.input.capture)) return { hasAfter: false, hasMeasurement: false };
         return { hasAfter: Boolean(action.after), hasMeasurement: Boolean(action.after && store.getTrace(`finding-evidence:${id}`)) };
       },
       measure: id => measureFindingOpportunity(store, id),
