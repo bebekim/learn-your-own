@@ -82,6 +82,7 @@ test('host hook timeouts are read from lyo entries only', () => {
 
 test('tune measures this machine, saves a report, and an install-time report leaves a notice until reviewed', async () => {
   const h = home(), env = { LYO_HOME: h };
+  assert.match(pendingTuneNotice(env)!, /not measured this machine yet/); // npm may have blocked the install script
   const report = await tune({ env, quick: true, fromInstall: true });
   assert.ok(report.diagnostics.nodeStart.samples === 5 && report.diagnostics.sqliteCommit.samples === 30);
   assert.equal(existsSync(join(h, 'tune-report.json')), true);

@@ -182,8 +182,12 @@ export async function tune(options: { env?: NodeJS.ProcessEnv; cwd?: string; qui
   return report;
 }
 
-/** One line for a CLI user when an install-time report has suggestions nobody has reviewed. */
+/**
+ * One line for a CLI user: the machine was never measured (npm often blocks install scripts, so
+ * the install-time run cannot be relied on), or an install-time report has unreviewed suggestions.
+ */
 export function pendingTuneNotice(env: NodeJS.ProcessEnv = process.env): string | null {
+  if (!existsSync(tuneReportPath(env))) return 'Lyo has not measured this machine yet; run `lyo tune` to check its time budgets.\n';
   try {
     const report = JSON.parse(readFileSync(tuneReportPath(env), 'utf8'));
     if (report.reviewedAt || !Array.isArray(report.suggestions) || !report.suggestions.length) return null;

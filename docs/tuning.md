@@ -35,7 +35,9 @@ Each suggestion names the file, key, current and suggested value, and the measur
 behind it, for example `node start-up p90 600 ms; budget = 8×p90 + 0.5 s`. Budgets scale
 with the measured p90 so a loaded machine keeps headroom, and never go below the defaults.
 
-A global `npm install` runs the quick diagnostics once (`lyo tune --from-install`; skipped
-in CI or with `LYO_SKIP_TUNE=1`). npm hides install output, so the next `lyo` command in a
-terminal prints a one-line notice until `lyo tune` has been run. The install never changes
-settings. The last report is kept at `<LYO_HOME>/tune-report.json`.
+Where npm allows install scripts, a global install runs the quick diagnostics once
+(`lyo tune --from-install`; skipped in CI or with `LYO_SKIP_TUNE=1`). Recent npm versions
+block install scripts by default, so this cannot be relied on: until `lyo tune` has run,
+any `lyo` command in a terminal prints a one-line notice saying the machine has not been
+measured, or that an install-time report has unreviewed suggestions. Hooks never print it.
+The install never changes settings. The last report is kept at `<LYO_HOME>/tune-report.json`.
