@@ -24,6 +24,7 @@ node_modules
 !/docs/local-corpus-effect-algebra-spec.md
 !/docs/style-learning.md
 !/docs/typed-decisions.md
+!/docs/tuning.md
 !/docs/superpowers/
 
 # Editor backup files
