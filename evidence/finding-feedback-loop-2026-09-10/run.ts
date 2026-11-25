@@ -43,8 +43,8 @@ export function runFeedbackLoop(directory: string) {
   mkdirSync(directory, { recursive: true });
   const root = realpathSync(directory), storePath = join(root, 'lessons.sqlite');
   assert.equal(existsSync(storePath), false, 'use a fresh directory; never overwrite evidence');
-  const previous = process.env.ZEROSHOT_LYO_STORE_PATH;
-  process.env.ZEROSHOT_LYO_STORE_PATH = storePath;
+  const previous = process.env.LYO_STORE_PATH;
+  process.env.LYO_STORE_PATH = storePath;
   let store = new LessonStore(storePath);
   try {
     const findingId = 'finding:unicode-contract-exercise';
@@ -131,8 +131,8 @@ export function runFeedbackLoop(directory: string) {
     return report;
   } finally {
     store.close();
-    if (previous === undefined) delete process.env.ZEROSHOT_LYO_STORE_PATH;
-    else process.env.ZEROSHOT_LYO_STORE_PATH = previous;
+    if (previous === undefined) delete process.env.LYO_STORE_PATH;
+    else process.env.LYO_STORE_PATH = previous;
   }
 }
 

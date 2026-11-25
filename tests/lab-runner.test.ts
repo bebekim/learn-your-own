@@ -16,7 +16,7 @@ await new Promise(r => setTimeout(r, 300));
 if (prompt.includes('TAMPER')) writeFileSync(join(cwd, 'verify.mjs'), 'process.exit(0)');
 writeFileSync(join(cwd, 'answer.txt'), prompt.includes('Lyo advice') ? '42' : '41');
 writeFileSync(join(cwd, 'agent.json'), JSON.stringify({ started, ended: Date.now(),
-  store: process.env.ZEROSHOT_LYO_STORE_PATH, config: process.env.LYO_CONFIG_FILE }));
+  store: process.env.LYO_STORE_PATH, config: process.env.LYO_CONFIG_FILE }));
 `;
 
 function labFixture(taskPrompts: Record<string, string>, plan: Record<string, unknown> = {}) {

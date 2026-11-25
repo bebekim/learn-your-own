@@ -196,7 +196,7 @@ CREATE INDEX IF NOT EXISTS idx_learned_rule_app_run ON learned_rule_application(
  *    Kernel 27-table schema: runs, model_calls, learning_traces, etc.
  *    Written by reducers (recordRun, recordModelCall, recordTrace, ...).
  *
- * 2. LYO_LESSON_DDL (this file, used by LessonStore) → .zeroshot/lyo-lessons.db
+ * 2. LYO_LESSON_DDL (this file, used by LessonStore) → <LYO_HOME>/lessons.db
  *    Lesson-delta schema: lesson, lesson_delta, lesson_decision, etc.
  *    Has its own learning_trace + preference_pair tables (singular names)
  *    because the lesson store is a separate database (design doc §1.4:

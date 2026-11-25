@@ -19,7 +19,7 @@ const checks = [];
 for (const host of ['codex', 'claude']) {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), `lyo-rollout-${host}-`)));
   const storePath = join(dir, 'lessons.db'), store = new LessonStore(storePath);
-  const env = { ...process.env, ZEROSHOT_LYO_STORE_PATH: storePath, TMPDIR: dir, LYO_CONFIG_FILE: join(dir, 'absent-config.json') };
+  const env = { ...process.env, LYO_STORE_PATH: storePath, TMPDIR: dir, LYO_CONFIG_FILE: join(dir, 'absent-config.json') };
   let capture = `${executable('src/cli.js')} ${host}-hook --db-from-event-cwd --spool-dir-from-event-cwd`;
   let deliver = executable('src/lyo/selection/session-hook.js'), configHash = null;
   if (installed) {

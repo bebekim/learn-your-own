@@ -1,17 +1,14 @@
-import { resolve } from 'node:path';
-import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { LessonStore } from '../../storage/lesson-store.ts';
-import { resolveSessionLessonStorePath } from '../../selection/session-hook.ts';
 import { createDecisionProvider, loadDecisionConfig } from '../../decisions/providers.ts';
 import { openRouterGenerator } from '../../hypotheses/generator.ts';
 import { acceptHypothesis, hypothesisMatches, listHypotheses, setHypothesisStatus } from '../../hypotheses/store.ts';
 import { evaluateHypothesis, harvestHypothesis, proposeHypotheses, replayHypothesis } from '../../hypotheses/pipeline.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
+import { cliLessonStorePath, lyoHome } from '../../storage/lyo-home.ts';
 
 function withStore<T>(args: CommandArgs, fn: (store: LessonStore) => T): T {
-  const storePath = args.flagValue('--store') ? resolve(args.cwd, args.flagValue('--store')!) : resolveSessionLessonStorePath(args.cwd);
-  if (!storePath) throw new Error('no lesson store; supply --store');
+  const storePath = cliLessonStorePath(args.flagValue('--store'), args.cwd, args.env);
   const store = new LessonStore(storePath);
   try {
     const result = fn(store);
@@ -74,7 +71,7 @@ export const HYPOTHESIS_COMMANDS: Record<string, CommandHandler> = {
       minDecided: args.optionalNumber('--min-decided') ?? undefined }) })),
   'hypotheses harvest': (args: CommandArgs) => withStore(args, store => {
     const id = args.requiredFlag('--id');
-    const out = args.flagValue('--out') ?? join(homedir(), '.lyo', 'decision-cases', id.replace(/[^A-Za-z0-9_.-]/g, '_'), 'harvest');
+    const out = args.flagValue('--out') ?? join(lyoHome(args.env), 'decision-cases', id.replace(/[^A-Za-z0-9_.-]/g, '_'), 'harvest');
     return { ok: true, ...harvestHypothesis(store, id, out) };
   }),
 };

@@ -8,12 +8,12 @@
  */
 
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { hashValue } from '../contract/refs.ts';
 import type { TypedDecisionProvider } from '../application/typed-decisions.ts';
 import { expectedLevel } from './providers.ts';
+import { lyoHome } from '../storage/lyo-home.ts';
 
 export const caseSchema = z.object({
   id: z.string().min(1),
@@ -37,7 +37,7 @@ export type Splits = z.infer<typeof splitsSchema>;
 export interface ScoreQuestion { type: 'score'; instructions: string; criteria: string[] }
 
 export function caseSetDir(findingId: string, env: NodeJS.ProcessEnv = process.env) {
-  const root = env.LYO_DECISION_CASES_DIR ?? join(homedir(), '.lyo', 'decision-cases');
+  const root = env.LYO_DECISION_CASES_DIR ?? join(lyoHome(env), 'decision-cases');
   return join(root, findingId.replace(/[^A-Za-z0-9_.-]/g, '_'));
 }
 

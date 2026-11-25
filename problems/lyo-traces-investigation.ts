@@ -217,7 +217,7 @@
  * 6b. The session-hook looks in the wrong place.
  *
  *     session-hook.ts resolves the lesson store path from:
- *       1. ZEROSHOT_LYO_STORE_PATH env var
+ *       1. LYO_STORE_PATH env var
  *       2. <cwd>/.zeroshot/lyo-lessons.db
  *       3. ~/.zeroshot/lyo-lessons.db
  *

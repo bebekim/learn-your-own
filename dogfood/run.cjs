@@ -7,7 +7,7 @@
  *   node run.js run2    (new process) same-cue rejection -> cross-run recall -> helpful=2
  *   node run.js inspect dump the store tables
  *
- * Store path comes from ZEROSHOT_LYO_STORE_PATH (observer resolution order),
+ * Store path comes from LYO_STORE_PATH (observer resolution order),
  * pointing at a scratch project dir that mimics <project>/.zeroshot/.
  */
 const fs = require('fs');
@@ -18,7 +18,7 @@ const SCRATCH = path.join(__dirname, 'scratch-project');
 const RUNTIME = path.join(SCRATCH, 'runtime');
 const STORE = path.join(SCRATCH, '.zeroshot', 'lyo-lessons.db');
 
-process.env.ZEROSHOT_LYO_STORE_PATH = STORE;
+process.env.LYO_STORE_PATH = STORE;
 
 const Database = require(path.join(ZEROSHOT, 'node_modules', 'better-sqlite3'));
 const Orchestrator = require(path.join(ZEROSHOT, 'src', 'orchestrator'));

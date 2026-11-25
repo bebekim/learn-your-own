@@ -16,6 +16,7 @@ import { hashValue } from '../contract/refs.ts';
 import type { TypedDecisionProvider, TypedDecisionRecord, TypedDecisionRequest } from '../application/typed-decisions.ts';
 import type { TypedAnswer, TypedQuestion } from '../domain/typed-decision.ts';
 import { DEFAULT_JEV_MODEL, jevProvider } from './jev.ts';
+import { lyoHome } from '../storage/lyo-home.ts';
 
 const expand = (path: string) => path.startsWith('~/') ? join(homedir(), path.slice(2)) : path;
 
@@ -58,9 +59,9 @@ export const decisionConfigSchema = z.object({
 }).strict();
 export type DecisionConfig = z.infer<typeof decisionConfigSchema>;
 
-/** `LYO_DECISIONS_FILE`, else `~/.lyo/decisions.json`; null when neither exists (decision triggers stay idle). */
+/** `LYO_DECISIONS_FILE`, else `<LYO_HOME>/decisions.json`; null when neither exists (decision triggers stay idle). */
 export function loadDecisionConfig(env: NodeJS.ProcessEnv = process.env): DecisionConfig | null {
-  const path = env.LYO_DECISIONS_FILE ? expand(env.LYO_DECISIONS_FILE) : join(homedir(), '.lyo', 'decisions.json');
+  const path = env.LYO_DECISIONS_FILE ? expand(env.LYO_DECISIONS_FILE) : join(lyoHome(env), 'decisions.json');
   if (!existsSync(path)) return null;
   return decisionConfigSchema.parse(JSON.parse(readFileSync(path, 'utf8')));
 }

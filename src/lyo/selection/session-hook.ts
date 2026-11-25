@@ -19,6 +19,7 @@ import { hashValue } from '../contract/refs.ts';
 import { formatSelection, type HookSelection, type LessonRow } from './session-banner.ts';
 import { runLessonSelection } from './lesson-strategies.ts';
 import { LessonStore } from '../storage/lesson-store.ts';
+import { lessonStorePath } from '../storage/lyo-home.ts';
 import { sessionVerifier } from '../bridge/session-bridge.ts';
 import { priorCalibration } from './semantic-prior.ts';
 import { selectSessionFindings, trialManagedFindings } from '../interface/session-findings.ts';
@@ -48,24 +49,13 @@ export interface SessionHookPayload {
   model?: string | null;
 }
 
-export function resolveSessionLessonStorePath(cwd?: string | null): string | null {
-  const candidates: string[] = [];
-  if (process.env.ZEROSHOT_LYO_STORE_PATH) {
-    candidates.push(process.env.ZEROSHOT_LYO_STORE_PATH);
-  }
-  if (cwd) {
-    candidates.push(path.join(cwd, '.zeroshot', 'lyo-lessons.db'));
-  }
-  candidates.push(path.join(os.homedir(), '.zeroshot', 'lyo-lessons.db'));
-
-  for (const candidate of candidates) {
-    try {
-      if (fs.statSync(candidate).isFile()) return candidate;
-    } catch {
-      // Try the next candidate.
-    }
-  }
-  return null;
+/**
+ * The one lesson store every hook run uses (`LYO_STORE_PATH`, else `<LYO_HOME>/lessons.db`).
+ * Null until it exists: hooks never create it. `cwd` no longer selects a store.
+ */
+export function resolveSessionLessonStorePath(_cwd?: string | null, env: NodeJS.ProcessEnv = process.env): string | null {
+  const candidate = lessonStorePath(env);
+  try { return fs.statSync(candidate).isFile() ? candidate : null; } catch { return null; }
 }
 
 export function renderSessionLessons(payload: SessionHookPayload = {}): string | null {

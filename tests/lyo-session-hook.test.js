@@ -18,6 +18,12 @@ import { recordFindingFeedback } from '../src/lyo/interface/session-findings.ts'
 // Banner mechanics below use unvalidated fixture lessons; the default gate has its own test.
 process.env.LYO_SESSION_UNVALIDATED_LESSONS = '1';
 
+/** Hooks use one store (LYO_STORE_PATH); each test points it at its own file. */
+function openStore(storePath) {
+  process.env.LYO_STORE_PATH = storePath;
+  return new LessonStore(storePath);
+}
+
 function tempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'lyo-session-hook-'));
 }
@@ -26,7 +32,7 @@ test('LYO session hook: withholds unvalidated lessons by default', () => {
   const cwd = tempDir();
   const storeDir = path.join(cwd, '.zeroshot');
   fs.mkdirSync(storeDir);
-  const store = new LessonStore(path.join(storeDir, 'lyo-lessons.db'));
+  const store = openStore(path.join(storeDir, 'lyo-lessons.db'));
   try {
     store.createLesson({ failure_class: 'output_generation', trigger_cue: 'tests failed',
       intervention: 'Never-validated advice.' });
@@ -52,7 +58,7 @@ test('LYO session hook: renders lessons from cwd store', () => {
   const cwd = tempDir();
   const storeDir = path.join(cwd, '.zeroshot');
   fs.mkdirSync(storeDir);
-  const store = new LessonStore(path.join(storeDir, 'lyo-lessons.db'));
+  const store = openStore(path.join(storeDir, 'lyo-lessons.db'));
   store.createLesson({
     failure_class: 'output_generation',
     trigger_cue: 'tests failed',
@@ -76,7 +82,7 @@ test('LYO session hook: missing store fails open', () => {
     env: {
       ...process.env,
       HOME: home,
-      ZEROSHOT_LYO_STORE_PATH: path.join(home, 'missing.db'),
+      LYO_STORE_PATH: path.join(home, 'missing.db'),
     },
   });
 
@@ -86,7 +92,7 @@ test('LYO session hook: missing store fails open', () => {
   const refreshed = spawnSync(process.execPath, ['src/lyo/selection/session-hook.ts'], {
     cwd: path.join(import.meta.dirname, '..'), encoding: 'utf8',
     input: JSON.stringify({ cwd, hook_event_name: 'SessionStart', source: 'compact' }),
-    env: { ...process.env, HOME: home, ZEROSHOT_LYO_STORE_PATH: path.join(home, 'missing.db') },
+    env: { ...process.env, HOME: home, LYO_STORE_PATH: path.join(home, 'missing.db') },
   });
   assert.equal(refreshed.status, 0);
   assert.match(refreshed.stdout, /LYO reasoning mandate/);
@@ -107,7 +113,7 @@ test('repository identity alone delivers no findings; an explicit activity selec
   }
   for (const workspace of [cwd, linked, unrelated]) {
     const dir = path.join(workspace, '.zeroshot'); fs.mkdirSync(dir);
-    const store = new LessonStore(path.join(dir, 'lyo-lessons.db'));
+    const store = openStore(path.join(dir, 'lyo-lessons.db'));
     try {
       store.recordTrace({ kind: 'behavior', summary: 'Transfer boundary',
         payload: { source: 'session-finding@1', gitCommonDir, activity: 'transfer-review',
@@ -133,7 +139,7 @@ test('LYO session hook: prints at most once per session id', () => {
   const tmp = tempDir();
   const storeDir = path.join(cwd, '.zeroshot');
   fs.mkdirSync(storeDir);
-  const store = new LessonStore(path.join(storeDir, 'lyo-lessons.db'));
+  const store = openStore(path.join(storeDir, 'lyo-lessons.db'));
   store.createLesson({
     failure_class: 'output_generation',
     trigger_cue: 'tests failed',
@@ -179,7 +185,7 @@ test('turns and repeated compactions restore guidance without multiplying applic
       const result = spawnSync(process.execPath, ['src/lyo/selection/session-hook.ts'], {
         cwd: path.join(import.meta.dirname, '..'), encoding: 'utf8',
         input: JSON.stringify({ ...event, cwd, session_id: 'refresh-session' }),
-        env: { ...process.env, ZEROSHOT_LYO_STORE_PATH: storePath },
+        env: { ...process.env, LYO_STORE_PATH: storePath },
       });
       assert.equal(result.status, 0);
       if (event.hook_event_name === 'SessionStart') assert.match(result.stdout, /Could this evidence exist while the claim is false/);
@@ -260,7 +266,7 @@ test('a refreshed finding still needs registered evidence, and counterevidence s
 
 test('an explicit activity delivers a finding later in the session once, without awarding credit', () => {
   const cwd = tempDir(), storeDir = path.join(cwd, '.zeroshot'); fs.mkdirSync(storeDir);
-  const store = new LessonStore(path.join(storeDir, 'lyo-lessons.db'));
+  const store = openStore(path.join(storeDir, 'lyo-lessons.db'));
   try {
     store.createLesson({ failure_class: 'output_generation', trigger_cue: 'test', intervention: 'Existing lesson.' });
     const finding = store.recordTrace({ kind: 'behavior', summary: 'Transfer boundary',
@@ -291,7 +297,7 @@ test('an explicit activity delivers a finding later in the session once, without
 
 test('malformed finding metadata cannot broaden delivery or hide ordinary lessons', () => {
   const cwd = tempDir(), dir = path.join(cwd, '.zeroshot'); fs.mkdirSync(dir);
-  const store = new LessonStore(path.join(dir, 'lyo-lessons.db'));
+  const store = openStore(path.join(dir, 'lyo-lessons.db'));
   try {
     store.recordTrace({ kind: 'behavior', summary: 'Incomplete finding',
       payload: { source: 'session-finding@1', activity: 'transfer-review', intervention: 'Invalid finding.' } });

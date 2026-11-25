@@ -9,8 +9,8 @@ import { reviewFindingSemantics } from '../../src/lyo/interface/session-finding-
 export function fixture() {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'finding-feedback-')));
   const storePath = join(root, 'lessons.db');
-  const previous = process.env.ZEROSHOT_LYO_STORE_PATH;
-  process.env.ZEROSHOT_LYO_STORE_PATH = storePath;
+  const previous = process.env.LYO_STORE_PATH;
+  process.env.LYO_STORE_PATH = storePath;
   const store = new LessonStore(storePath);
   const findingId = 'finding:transfer';
   const source = store.recordTrace({ trace_id: findingId, kind: 'behavior', summary: 'Transfer observation',
@@ -55,6 +55,6 @@ export function fixture() {
     feedback: { id: 'review-1', findingId, applicability: 'applicable', adherence: 'followed', outcome: 'supported',
       verifier: 'independent contract check', evidenceRef: 'check:target-whitespace',
       rationale: 'The target-specific check caught the mismatch before the repair was reused.' },
-    close() { store.close(); if (previous === undefined) delete process.env.ZEROSHOT_LYO_STORE_PATH;
-      else process.env.ZEROSHOT_LYO_STORE_PATH = previous; rmSync(root, { recursive: true, force: true }); } };
+    close() { store.close(); if (previous === undefined) delete process.env.LYO_STORE_PATH;
+      else process.env.LYO_STORE_PATH = previous; rmSync(root, { recursive: true, force: true }); } };
 }

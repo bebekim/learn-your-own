@@ -34,7 +34,7 @@ for (const host of ['codex', 'claude']) {
       const start = performance.now();
       const output = execFileSync('/bin/sh', ['-c', command(event.hook_event_name)], {
         cwd, encoding: 'utf8', input: JSON.stringify({ ...event, cwd, session_id }),
-        env: { ...process.env, ZEROSHOT_LYO_STORE_PATH: storePath, TMPDIR: cwd }, timeout: 5000,
+        env: { ...process.env, LYO_STORE_PATH: storePath, TMPDIR: cwd }, timeout: 5000,
       });
       assert.match(output, /LYO reasoning mandate/);
       assert.match(output, /Check this synthetic counterexample/);

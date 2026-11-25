@@ -57,7 +57,7 @@ test('JSON session hooks expose selected lesson identity and candidate status on
       { hook_event_name: 'SessionStart', source: 'compact' } ]) {
       const output = JSON.parse(execFileSync(process.execPath, ['src/lyo/selection/session-hook.ts', '--json'], {
         cwd: ROOT, encoding: 'utf8', input: JSON.stringify({ ...event, cwd, session_id: 'session' }),
-        env: { ...process.env, ZEROSHOT_LYO_STORE_PATH: storePath, LYO_SESSION_UNVALIDATED_LESSONS: '1' } }));
+        env: { ...process.env, LYO_STORE_PATH: storePath, LYO_SESSION_UNVALIDATED_LESSONS: '1' } }));
       const context = output.hookSpecificOutput.additionalContext;
       assert.ok(context.includes(lesson.lesson_id)); assert.match(context, /candidate/);
       assert.ok(output.systemMessage.endsWith(context));

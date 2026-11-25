@@ -34,22 +34,24 @@ checkout avoids that release mismatch; registry publication is separate work.
 |---|---|---|
 | Repository telemetry | `<project>/.agent-learning/learning.sqlite` | Local sessions and hook events; incoming events first spool under `.agent-learning/hook-spool/` |
 | Personal central corpus | `~/.lyo/corpus.sqlite` | Imported `corpus_events`, normalized actions/effects and task-workflow evidence |
-| Lesson/finding store | `~/.zeroshot/lyo-lessons.db` | Lesson library; finding deliveries, registrations, checks, reviews and policy receipts in `learning_trace` |
+| Lesson/finding store | `~/.lyo/lessons.db` | Lesson library; finding deliveries, registrations, checks, reviews and policy receipts in `learning_trace` |
 
 The telemetry corpus and lesson store have different roles and schemas. Do not
-point `--store` at the telemetry corpus. A hook looks for an existing store in
-`ZEROSHOT_LYO_STORE_PATH`, then the project's `.zeroshot/lyo-lessons.db`, then the
-home-directory store. Keep the same lesson store throughout a trial.
+point `--store` at the telemetry corpus. Every hook run uses one lesson store:
+`LYO_STORE_PATH` if set, else `lessons.db` in the LYO home (`LYO_HOME`, default
+`~/.lyo`). The working directory never selects a store, and LYO needs no other
+tool's folders. Hooks do not create the store; any `lyo finding`, `lyo decisions`
+or `lyo hypotheses` command creates it at that path on first use. The decision
+config (`decisions.json`), case sets and the decision queue live in the same home.
 
-To create an empty personal lesson store and list its trial definitions:
+To create the lesson store and list its trial definitions:
 
 ```sh
-mkdir -p ~/.zeroshot
-lyo finding trials --store ~/.zeroshot/lyo-lessons.db
+lyo finding trials
 ```
 
-An empty trial list is expected on a new installation. The reasoning mandate
-refreshes even without lessons; useful advice is not fabricated to fill a banner.
+An empty trial list is expected on a new installation. Useful advice is not
+fabricated to fill a banner.
 
 ## Codex and Claude Code
 
@@ -252,7 +254,7 @@ Spool catch-up and explicit assessment of already completed sessions are availab
 
 ```sh
 lyo normalize hooks --db .agent-learning/learning.sqlite --spool-dir .agent-learning/hook-spool
-lyo bridge --db .agent-learning/learning.sqlite --all --store ~/.zeroshot/lyo-lessons.db
+lyo bridge --db .agent-learning/learning.sqlite --all --store ~/.lyo/lessons.db
 ```
 
 Missing historical numeric verifier status remains unknown. Collection, bridge

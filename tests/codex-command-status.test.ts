@@ -94,7 +94,7 @@ test('CLI capture is opt-in and spools the original verifier with its bound stat
   try {
     const storePath = join(f.cwd, 'lessons.sqlite');
     new LessonStore(storePath).close();
-    const env = { ...process.env, ZEROSHOT_LYO_STORE_PATH: storePath, LYO_CONFIG_FILE: join(f.cwd, 'no-config.json') };
+    const env = { ...process.env, LYO_STORE_PATH: storePath, LYO_CONFIG_FILE: join(f.cwd, 'no-config.json') };
     const hook = (event: unknown, enabled = true) => runLyoJson(['codex-hook', '--db-from-event-cwd', '--spool-dir-from-event-cwd',
       ...(enabled ? ['--capture-command-status'] : [])], { input: JSON.stringify(event), env });
     hook({ cwd: f.cwd, session_id: 'session', hook_event_name: 'SessionStart' });

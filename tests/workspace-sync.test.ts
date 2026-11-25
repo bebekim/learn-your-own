@@ -18,7 +18,7 @@ test('a worktree or directory connects on open and all managed agent hooks reach
   new LessonStore(lessonPath).close();
   mkdirSync(repo, { recursive: true });
   writeFileSync(configFile, JSON.stringify({ rootDir, corpusPath }));
-  const env = { ...process.env, LYO_CONFIG_FILE: configFile, ZEROSHOT_LYO_STORE_PATH: lessonPath };
+  const env = { ...process.env, LYO_CONFIG_FILE: configFile, LYO_STORE_PATH: lessonPath };
   const cli = new URL('../src/cli.ts', import.meta.url).pathname;
   const run = (args: string[], cwd = repo, payload: unknown = {}) => JSON.parse(execFileSync(process.execPath,
     [cli, ...args], { cwd, env, input: JSON.stringify(payload), encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }));

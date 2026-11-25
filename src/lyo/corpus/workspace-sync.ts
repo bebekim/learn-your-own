@@ -1,5 +1,4 @@
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { createKernel, closeKernel } from '../storage/ledger.ts';
@@ -8,6 +7,7 @@ import { drainHookSpool } from '../hooks/runtime.ts';
 import { discoverAgentLearningLedgers } from '../compiler/ledger-discovery.ts';
 import { syncWorkspaceToCorpus, type SyncCorpusOnceInput } from './sync.ts';
 import { z } from 'zod';
+import { lyoHome } from '../storage/lyo-home.ts';
 
 const adaptiveFeedbackSchema = z.object({
   mode: z.enum(['explore', 'evaluate']), revision: z.number().int().nonnegative().optional(),
@@ -17,7 +17,7 @@ const adaptiveFeedbackSchema = z.object({
 export function workspaceSyncConfig(env = process.env): (SyncCorpusOnceInput & {
   adaptiveFeedback?: z.infer<typeof adaptiveFeedbackSchema>;
 }) | null {
-  const file = env.LYO_CONFIG_FILE ?? join(homedir(), '.lyo', 'config.json');
+  const file = env.LYO_CONFIG_FILE ?? join(lyoHome(env), 'config.json');
   if (!existsSync(file)) return null;
   const config = JSON.parse(readFileSync(file, 'utf8'));
   if (!config || typeof config.rootDir !== 'string' || !isAbsolute(config.rootDir)

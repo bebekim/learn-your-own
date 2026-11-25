@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { LessonStore } from '../../storage/lesson-store.ts';
-import { resolveSessionLessonStorePath } from '../../selection/session-hook.ts';
 import { inspectFinding, recordFindingFeedback, reviseFinding } from '../../interface/session-findings.ts';
 import { registerFindingOpportunity, measureFindingOpportunity, withdrawFindingEvidence } from '../../interface/session-finding-evidence.ts';
 import { reviewFindingSemantics } from '../../interface/session-finding-semantics.ts';
@@ -11,6 +10,7 @@ import { findingTrials, registerFindingTrial } from '../../interface/finding-tri
 import { declareFinding } from '../../storage/finding-state.ts';
 import { reconcileFindingTrial } from '../../interface/finding-trial-policy.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
+import { cliLessonStorePath } from '../../storage/lyo-home.ts';
 
 export const FINDING_COMMANDS: Record<string, CommandHandler> = {
   'finding inspect': findingCommand,
@@ -29,9 +29,7 @@ export const FINDING_COMMANDS: Record<string, CommandHandler> = {
 };
 
 function findingCommand(args: CommandArgs) {
-  const storePath = args.flagValue('--store') ? resolve(args.cwd, args.flagValue('--store')!)
-    : resolveSessionLessonStorePath(args.cwd);
-  if (!storePath) throw new Error('no session finding store; supply --store');
+  const storePath = cliLessonStorePath(args.flagValue('--store'), args.cwd, args.env);
   const store = new LessonStore(storePath);
   try {
     if (args.subcommand === 'trials') return { ok: true, trials: findingTrials(store.db) };

@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { LessonStore } from '../../storage/lesson-store.ts';
-import { resolveSessionLessonStorePath } from '../../selection/session-hook.ts';
 import { findingTrials, registerFindingTrial } from '../../interface/finding-trials.ts';
 import { decisionQueueDir, FAILURE_INPUT_FORMAT, type DecisionTrigger } from '../../interface/finding-decision-triggers.ts';
 import { runDecisionWorker } from '../../interface/finding-decision-worker.ts';
@@ -10,11 +9,10 @@ import { queueCounts, lockHolder } from '../../decisions/queue.ts';
 import { addCases, caseSchema, caseSetDir, createCaseSet, newTestSet, readSplits, recalibrate, relabelCases, testScore,
   type ScoreQuestion } from '../../decisions/case-sets.ts';
 import type { CommandArgs, CommandHandler } from './context.ts';
+import { cliLessonStorePath } from '../../storage/lyo-home.ts';
 
 function storePathOf(args: CommandArgs) {
-  const storePath = args.flagValue('--store') ? resolve(args.cwd, args.flagValue('--store')!) : resolveSessionLessonStorePath(args.cwd);
-  if (!storePath) throw new Error('no session finding store; supply --store');
-  return storePath;
+  return cliLessonStorePath(args.flagValue('--store'), args.cwd, args.env);
 }
 
 /** The configured provider, optionally overridden for one run with --provider / --model. */

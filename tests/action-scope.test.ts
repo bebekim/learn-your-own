@@ -106,7 +106,7 @@ test('claude-hook delivers the inferred finding once per session, including in i
       writeFileSync(path, JSON.stringify({ type: 'assistant', message: { content: [{ type: 'text', text: plan },
         { type: 'tool_use', id: toolUseId, name: 'Edit', input: {} }] } }));
       const child = run(process.execPath, [new URL('../src/cli.ts', import.meta.url).pathname, 'claude-hook'], {
-        cwd: f.root, env: { ...process.env, ZEROSHOT_LYO_STORE_PATH: f.storePath, LYO_ACTION_SCOPE_FILE: configPath,
+        cwd: f.root, env: { ...process.env, LYO_STORE_PATH: f.storePath, LYO_ACTION_SCOPE_FILE: configPath,
           TYPESAFE_API_KEY: 'test-key', LYO_CONFIG_FILE: join(f.root, 'no-config.json'), TMPDIR: f.root } });
       child.child.stdin!.end(JSON.stringify({ hook_event_name: 'PostToolUse', session_id: session, cwd: f.root, tool_name: 'Edit',
         tool_use_id: toolUseId, tool_input: { file_path: join(f.root, 'csv.ts'), old_string: 'x', new_string: 'y' },

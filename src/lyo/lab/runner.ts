@@ -63,7 +63,7 @@ async function runOne(plan: LabPlan, run: LabRun, outDir: string, hostBinary?: s
     // An empty lesson store and no native config keep ambient Lyo guidance identical across arms.
     const isolatedStore = join(dir, 'isolated-lessons.db');
     new LessonStore(isolatedStore).close();
-    const env = { ...process.env, ZEROSHOT_LYO_STORE_PATH: isolatedStore, LYO_CONFIG_FILE: join(dir, 'no-lyo-config.json') };
+    const env = { ...process.env, LYO_STORE_PATH: isolatedStore, LYO_CONFIG_FILE: join(dir, 'no-lyo-config.json') };
     const text = prompt(plan, run);
     writeFileSync(join(dir, 'prompt.txt'), text);
     const argv = plan.executor

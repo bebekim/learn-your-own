@@ -26,7 +26,7 @@ test('store and prompt-hook switch by environment, after eligibility and before 
     const hook = prompt => {
       const result = spawnSync(process.execPath,['src/lyo/selection/session-hook.ts','--json'],{
         input:JSON.stringify({hook_event_name:'UserPromptSubmit',prompt,cwd:dir,session_id:'session'}),
-        encoding:'utf8',env:{...process.env,ZEROSHOT_LYO_STORE_PATH:path,LYO_SESSION_UNVALIDATED_LESSONS:'0',
+        encoding:'utf8',env:{...process.env,LYO_STORE_PATH:path,LYO_SESSION_UNVALIDATED_LESSONS:'0',
           LYO_LESSON_RETRIEVER:config.retriever,LYO_LESSON_POLICY:config.policy}});
       assert.equal(result.status,0,result.stderr);
       return result.stdout;

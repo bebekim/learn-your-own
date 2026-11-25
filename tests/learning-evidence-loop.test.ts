@@ -16,8 +16,8 @@ process.env.LYO_SESSION_UNVALIDATED_LESSONS = '1';
 
 function fixture() {
   const dir = mkdtempSync(join(tmpdir(), 'lyo-bridge-check-'));
-  mkdirSync(join(dir, '.zeroshot'));
-  const storePath = join(dir, '.zeroshot/lyo-lessons.db');
+  const storePath = join(dir, 'lessons.db');
+  process.env.LYO_STORE_PATH = storePath; // the single store hooks use
   const store = new LessonStore(storePath);
   const kernel = createKernel({ dbPath: join(dir, 'kernel.sqlite') });
   initLedger(kernel);
@@ -53,17 +53,17 @@ test('native hooks create scoped advice, record delivery and resolve once withou
     const lessons = store.db.prepare('SELECT * FROM lesson').all();
     assert.equal(lessons.length, 1);
     assert.match(renderSessionLessons({ cwd: dir })!, /Run rtk npm test/);
-    const other = join(dir, 'other'); mkdirSync(other); mkdirSync(join(other, '.zeroshot'));
+    const other = join(dir, 'other'); mkdirSync(other);
     // Scope is also tested on the same DB by the pure metadata parser in the banner.
     const delivery = spawnSync(process.execPath, ['src/lyo/selection/session-hook.ts'], {
       cwd: join(import.meta.dirname, '..'), encoding: 'utf8',
       input: JSON.stringify({ cwd: dir, session_id: 'following' }),
-      env: { ...process.env, TMPDIR: dir, ZEROSHOT_LYO_STORE_PATH: storePath },
+      env: { ...process.env, TMPDIR: dir, LYO_STORE_PATH: storePath },
     });
     assert.match(delivery.stdout, /Run rtk npm test/);
     const outOfScope = spawnSync(process.execPath, ['src/lyo/selection/session-hook.ts', '--cwd', other], {
       cwd: join(import.meta.dirname, '..'), encoding: 'utf8',
-      env: { ...process.env, ZEROSHOT_LYO_STORE_PATH: storePath },
+      env: { ...process.env, LYO_STORE_PATH: storePath },
     });
     assert.equal(outOfScope.stdout, '');
     hook('following', 'SessionStart'); terminal('following', 0); hook('following', 'SessionEnd');

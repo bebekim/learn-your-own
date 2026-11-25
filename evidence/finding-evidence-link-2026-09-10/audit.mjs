@@ -9,9 +9,9 @@ import { inspectFinding, recordFindingFeedback, reviseFinding } from '../../src/
 
 function probe(id, required, inspect) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'lyo-link-audit-')));
-  const previous = process.env.ZEROSHOT_LYO_STORE_PATH;
-  process.env.ZEROSHOT_LYO_STORE_PATH = join(root, 'lessons.db');
-  const store = new LessonStore(process.env.ZEROSHOT_LYO_STORE_PATH);
+  const previous = process.env.LYO_STORE_PATH;
+  process.env.LYO_STORE_PATH = join(root, 'lessons.db');
+  const store = new LessonStore(process.env.LYO_STORE_PATH);
   const findingId = 'finding:audit';
   store.recordTrace({ trace_id: findingId, kind: 'behavior', summary: 'Synthetic audit fixture', payload: {
     source: 'session-finding@1', gitCommonDir: join(root, 'origin.git'), activity: 'transfer-review',
@@ -31,8 +31,8 @@ function probe(id, required, inspect) {
     return { id, required, ...inspect({ store, findingId, root, deliver, review }) };
   } finally {
     store.close();
-    if (previous === undefined) delete process.env.ZEROSHOT_LYO_STORE_PATH;
-    else process.env.ZEROSHOT_LYO_STORE_PATH = previous;
+    if (previous === undefined) delete process.env.LYO_STORE_PATH;
+    else process.env.LYO_STORE_PATH = previous;
     rmSync(root, { recursive: true, force: true });
   }
 }
