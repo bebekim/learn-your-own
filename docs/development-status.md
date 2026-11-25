@@ -1,7 +1,6 @@
 # Lyo development status
 
-Updated 12 September 2026 for source package `0.4.3-adaptive.9`, including the
-evidence-boundary refactor. This page describes current behavior; dated rollout
+Updated 26 November 2026 for source package `0.4.3-adaptive.20` and later. This page describes current behavior; dated rollout
 records preserve what was true at their checkpoints.
 
 **The bounded feedback loop is implemented. Useful general coding transfer is
@@ -23,6 +22,10 @@ change future delivery from that evidence.
 | Scoped promotion and pause | [Trial policy](../src/lyo/domain/finding-trial-policy.ts) | Completed fixed cohort; conservative unknown handling; later failures pause scope |
 | Registered task experiments | [Task runner](../src/lyo/control/task-run.ts), [task evidence](../src/lyo/control/task-evidence.ts), [report](../src/lyo/eval/task-report.ts) | Acceptance/regressions and cost; separate from a passing retry |
 | Candidate derivation | [Task intervention](../src/lyo/control/task-intervention.ts) | Retained repair, removal/restoration checks and explicit later trial |
+| Calibrated decisions | [Providers](../src/lyo/decisions/providers.ts), [queue](../src/lyo/decisions/queue.ts), [worker](../src/lyo/interface/finding-decision-worker.ts), [case sets](../src/lyo/decisions/case-sets.ts) | Typed 1-5 decisions (local mlxcel, OpenRouter, Jev) asked in the background; bands fitted on a calibration split and scored on a frozen test split ([Spec 12](../Specs/12-async-decision-trigger.md)) |
+| Action evaluators | [Evaluator context](../src/lyo/interface/session-finding-evidence.ts), [example](../eval/finding-evaluators/action-outcome.mjs) | The next command's labels and a background outcome decision; adherence not yet measured ([Spec 13](../Specs/13-action-evaluator.md)) |
+| Hypothesis generation | [Episodes](../src/lyo/hypotheses/episodes.ts), [generator](../src/lyo/hypotheses/generator.ts), [shadowing and recurrence](../src/lyo/hypotheses/store.ts) | Proposes candidate lessons from failures and repairs, shadows them without delivery, judges recurrence ([Spec 14](../Specs/14-hypothesis-generator.md)) |
+| State location | [LYO home](../src/lyo/storage/lyo-home.ts) | One lesson store and all LYO state under `LYO_HOME` (default `~/.lyo`) |
 | Legacy lesson storage | [LessonStore](../src/lyo/storage/lesson-store.ts), [file library](../src/lyo/storage/lesson-library.ts) | Separate credit/gate semantics; session banners excluded from run-level validation credit |
 
 The ordinary trial loop, explicit task experiment and legacy pipeline are separate
@@ -41,6 +44,9 @@ Completed comparisons can promote delivery in that declared scope. Later failed
 or unknown outcomes pause it; withdrawn evidence triggers reassessment. The agent
 or reviewer decides whether the lesson wording or applicability needs revision.
 Lyo does not automatically invent a trustworthy evaluator or a generalized scope.
+Since November a trial's trigger can be a calibrated typed decision instead of an
+exact match, and the hypothesis generator proposes candidate findings, which stay
+in shadow until a reviewer declares a finding and registers its trial.
 
 Session hooks refresh currently eligible guidance (no fixed rules) at
 new turns, startup, resume and compaction. An emitted reminder cannot establish
@@ -74,9 +80,10 @@ Code have capture adapters with different event contracts. A Go adapter is defer
 
 ## Next development
 
-1. **Demonstrate useful ordinary-work learning.** Prepare one real reusable
-   trigger/evaluator, collect independent outcomes, and show a comparison that
-   justifies continued delivery.
+1. **Demonstrate useful ordinary-work learning.** The first real trial
+   (`json-output-handling-haiku-1`, calibrated trigger, action evaluator) is
+   enrolling; it needs about 80 sessions and a measured adherence signal before
+   its comparison can justify continued delivery.
 2. **Refine applicability.** Use later evidence to distinguish a bad lesson from
    a bad insertion context; test broader scope without inheriting unearned credit.
 3. **Unify evidence correction.** Finding evidence supports withdrawal; finalized
@@ -87,13 +94,12 @@ Code have capture adapters with different event contracts. A Go adapter is defer
    learned representations, explanation-graph integration and sequence credit.
 
 Experiment budgets, verifier coverage and fixed ambient guidance remain controls,
-not measures of learning by themselves. The three older contract fixes in
-[Spec 4.1](../Specs/4.1-checkblindness-and-contract-small-fixes.md) remain open.
+not measures of learning by themselves.
 
 ## Release status
 
-`0.4.3-adaptive.9` is the source/local rollout version. npm's `latest` tag was
-`0.2.0` on 11 September 2026. Use the source demo or a locally built package;
+`0.4.3-adaptive.20` is the latest local rollout at this update. npm's `latest`
+tag is still `0.2.0`, held until the live trial has data. Use the source demo or a locally built package;
 see [installation](hook-installation.md). Registry publication is separate from
 merging and pushing this repository. Historical test counts and installed paths
 in `evidence/` are dated observations, not current setup instructions.

@@ -273,3 +273,26 @@ test('spec proposal artifact validates with required fields and status', () => {
   assert.equal(validateSpecProposal({ ...proposal, edit: '' }).ok, false);
   assert.equal(validateSpecProposal({ ...proposal, version: 'lyo.spec-proposal.v0' }).ok, false);
 });
+
+test('checkBlindness rejects a loosely built plan whose feedback policy shows the code writer more', () => {
+  const plan = validatePlan(fixture('plan.json')).value;
+  const loose = { ...plan, feedbackPolicy: { codeWriterSees: 'full_report' } }; // bypasses schema validation
+  const blindness = checkBlindness(loose);
+  assert.equal(blindness.ok, false);
+  assert.ok(blindness.violations.some((violation) => violation.includes('feedbackPolicy.codeWriterSees') && violation.includes('full_report')));
+});
+
+test('checkBlindness reports a missing feedback policy as a violation, not a crash', () => {
+  const { feedbackPolicy, ...plan } = validatePlan(fixture('plan.json')).value;
+  const blindness = checkBlindness(plan);
+  assert.equal(blindness.ok, false);
+  assert.ok(blindness.violations.some((violation) => violation.includes('feedbackPolicy.codeWriterSees')));
+});
+
+test('the test manifest keeps an optional entrypoint and stays valid without one', () => {
+  const manifest = fixture('test-manifest.json');
+  assert.equal(validateTestManifest(manifest).ok, true);
+  const withEntrypoint = validateTestManifest({ ...manifest, entrypoint: 'generated/tests/add.test.js' });
+  assert.equal(withEntrypoint.ok, true);
+  assert.equal(withEntrypoint.value.entrypoint, 'generated/tests/add.test.js');
+});

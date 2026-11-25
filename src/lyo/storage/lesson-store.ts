@@ -214,13 +214,14 @@ export class LessonStore {
     this.dbPath = dbPath;
     this._closed = false;
 
-    // node:sqlite has no `timeout` open option (better-sqlite3 parity note):
-    // the busy timeout is simply not configured here.
+    // node:sqlite has no `timeout` open option; the busy timeout is a PRAGMA (see _initSchema).
     this.db = new DatabaseSync(dbPath);
     this._initSchema();
   }
 
   private _initSchema(): void {
+    // Hooks, the decision worker and CLI commands write the same store: wait for a lock instead of failing.
+    this.db.exec('PRAGMA busy_timeout = 5000');
     this.db.exec('PRAGMA journal_mode = WAL');
     this.db.exec('PRAGMA synchronous = NORMAL');
     this.db.exec('PRAGMA wal_autocheckpoint = 1000');

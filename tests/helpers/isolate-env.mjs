@@ -8,4 +8,6 @@ const home = mkdtempSync(join(tmpdir(), 'lyo-test-home-'));
 process.env.LYO_HOME = home;
 process.env.LYO_CLAUDE_PROJECTS_DIR = join(home, 'claude-projects');
 mkdirSync(process.env.LYO_CLAUDE_PROJECTS_DIR);
+// Evaluator checks inside hooks have a short budget; a loaded test machine must not turn them unknown.
+process.env.LYO_CAPTURE_CHECK_SECONDS = '10';
 for (const name of ['LYO_STORE_PATH', 'LYO_DECISIONS_FILE', 'LYO_DECISION_CASES_DIR', 'LYO_CONFIG_FILE', 'ZEROSHOT_LYO_STORE_PATH']) delete process.env[name];

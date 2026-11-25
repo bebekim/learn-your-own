@@ -1,7 +1,9 @@
 # Spec 12: Asynchronous decision triggers
 
-Status: **implemented on `fix/failure-evidence`** (2026-11-25); design accepted, including
-enrollment when the decision lands (section 3). Not yet merged or enabled in live hooks.
+Status: **implemented and live** (merged 2026-11-25, `d10cac5`); design accepted, including
+enrollment when the decision lands (section 3). Live hooks use local mlxcel Decider-2b
+for the `json-output-handling-haiku-1` trial. State (store, decision config, case sets,
+queue) lives under `LYO_HOME` (default `~/.lyo`).
 
 | Part | Code |
 |---|---|

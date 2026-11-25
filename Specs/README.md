@@ -1,9 +1,10 @@
 # Specs
 
-Reviewed 2026-09-11 against main `f39ed6c`, source package `0.4.3-adaptive.8`.
-The ordinary-session evidence, prospective-trial policy and context-refresh
-increments are merged. Source availability, local installation and npm publication
-are separate: the registry's `latest` tag still points to `0.2.0` on this date.
+Reviewed 2026-11-26, source package `0.4.3-adaptive.20` and later.
+Asynchronous calibrated decisions, action evaluators and the hypothesis generator
+are merged, and one live prospective trial (`json-output-handling-haiku-1`) is
+enrolling. Source availability, local installation and npm publication are
+separate: the registry's `latest` tag still points to `0.2.0` on this date.
 
 The [PRD](../issues/prd.md) defines the product ambition.
 [Spec 8](8-learning-evidence-loop.md) owns current acceptance and evidence.
@@ -23,7 +24,7 @@ alone does not establish completion.
 | [2.1 Agent IR](2.1-agent-ir-language.org) | Deferred | Language sketch; no integrated plan/trace compiler |
 | [3 Lesson delta](3-lesson-delta-design.md) | Partial | Storage, replay, selection, credit components exist; counters do not prove benefit |
 | [3.1 Counterfactual credit](3.1-counterfactual-credit-synthesis.md) | Research / partial components | Receipt/estimator machinery exists; causal identification and sequence credit unproven |
-| [4.1 Contract fixes](4.1-checkblindness-and-contract-small-fixes.md) | Ready | Loose-plan blindness, test entrypoint, SQLite timeout remain open |
+| [4.1 Contract fixes](4.1-checkblindness-and-contract-small-fixes.md) | Done | Loose or missing feedback policy rejected by checkBlindness, optional test-manifest entrypoint, 5s lesson-store busy timeout |
 | [4.2 Credit discipline](4.2-credit-evidence-discipline.md) | Partial | Comparable reports and scoped counters; legacy observational credit remains a risk |
 | [4.3 Risk, usage, quarantine](4.3-at-bat-risk-inputs-cost-and-quarantine.md) | Done, bounded scope | Inputs, verifier ordering, judge usage, explicit unknown Kimi usage, file quarantine |
 | [4.4 Injection cadence](4.4-lesson-injection-cadence.md) | Partial | Turn/compaction refresh implemented; broader pipeline stages and learned cost gate deferred |
@@ -39,9 +40,9 @@ alone does not establish completion.
 | [9 Parallel lab screen](9-parallel-lab-screen.md) | Partial | Parallel paired runs in isolated worktrees, task-stratified exact test, pre-launch token budget; scripted-executor tests only, no live screen yet |
 | [10 Harness² entry trial](10-harness2-entry-trial.md) | Draft | Screens a Harness² library entry on unseen tasks and tests its per-task refinement against a same-execution best-of-four baseline; needs an entry importer and file-tree lab advice |
 | [11 Harness² borrowings](11-harness2-borrowings.md) | Partial | Open activity names and root-scoped findings exist (`lyo finding declare`); retagging/revision of scopes and hashed runnable attachments remain open; rejects self-rated confidence and ordered replay |
-| [12 Async decision triggers](12-async-decision-trigger.md) | Draft | Trials recognise a failure with a calibrated typed decision (local mlxcel, OpenRouter Solar Decide or TypeSafe Jev, swappable) asked by a background worker; enrollment happens when the decision lands |
+| [12 Async decision triggers](12-async-decision-trigger.md) | Done, bounded scope | Trials recognise a failure with a calibrated typed decision (local mlxcel, OpenRouter Solar Decide or TypeSafe Jev, swappable) asked by a background worker; enrollment happens when the decision lands |
 | [13 Action evaluators](13-action-evaluator.md) | Done, bounded scope | Trials can measure the agent's next command: checks receive its labels via `LYO_FINDING_ACTION`; a failed command's outcome is a background calibrated decision; adherence deferred until it has its own case set |
-| [14 Hypothesis generator](14-hypothesis-generator.md) | Implemented; replay check pending | Generates candidate lessons from failures and their repairs (OpenRouter, ZDR), shadows them without delivery, judges recurrence (untested kept apart from refuted), and harvests review packs; promotion stays a review step |
+| [14 Hypothesis generator](14-hypothesis-generator.md) | Done, bounded scope; recurrence untested | Generates candidate lessons from failures and their repairs (OpenRouter, ZDR), shadows them without delivery, judges recurrence (untested kept apart from refuted), and harvests review packs; promotion stays a review step |
 
 ## Dated designs
 

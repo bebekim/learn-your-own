@@ -12,6 +12,8 @@ export const testManifestSchema = z.object({
   language: z.string().min(1),
   framework: z.string().min(1),
   frozen: z.literal(true),
+  // Same as the code manifest: the file a runner starts from.
+  entrypoint: z.string().optional(),
 });
 
 export type TestManifest = z.infer<typeof testManifestSchema>;

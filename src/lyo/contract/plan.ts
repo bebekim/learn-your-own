@@ -63,6 +63,11 @@ export function checkBlindness(plan: Plan): BlindnessResult {
   const testWriters = plan.stages.filter((stage) => stage.role === 'test-writer');
   const specPath = plan.specRef.path;
 
+  // A loosely built plan (a cast object that skipped validation) must not widen what the code writer sees.
+  const sees = (plan as { feedbackPolicy?: { codeWriterSees?: unknown } }).feedbackPolicy?.codeWriterSees;
+  if (sees !== 'aggregate_only') {
+    violations.push(`feedbackPolicy.codeWriterSees must be 'aggregate_only', got ${JSON.stringify(sees ?? null)}`);
+  }
   if (codeWriters.length === 0) {
     violations.push('plan has no code-writer stage');
   }

@@ -231,7 +231,7 @@ test('corpus report aggregates large child tables without a fanout join', () => 
       '--db',
       corpusPath,
       '--json',
-    ], { timeout: 1500 });
+    ], { timeout: 15000 }); // a fanout join over this seed (~1e9 rows) takes minutes; node start-up under load can exceed 1.5s
 
     assert.equal(report.ok, true);
     assert.deepEqual(report.totals, {

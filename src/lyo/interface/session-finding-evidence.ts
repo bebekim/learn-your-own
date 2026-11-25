@@ -40,6 +40,16 @@ export function findingActionContext(db: DatabaseSync, input: Opportunity['input
     outcomeDecision: decision(`finding-outcome-decision:${input.id}`) };
 }
 
+/**
+ * Checks run inside a hook at action boundaries, so they get a short budget. A check that
+ * runs out reads as unknown, which declines enrollment: a busy machine must not do that
+ * routinely. Default 2s (three checks stay within a 10s hook timeout); `LYO_CAPTURE_CHECK_SECONDS`.
+ */
+function captureCheckSeconds(env: NodeJS.ProcessEnv = process.env) {
+  const value = Number(env.LYO_CAPTURE_CHECK_SECONDS);
+  return Number.isFinite(value) && value > 0 ? Math.min(value, 30) : 2;
+}
+
 function check(input: Opportunity['input'], command: string, context: ReturnType<typeof findingActionContext> = null) {
   if (context) {
     // Checks inherit the environment; the file exists only while they run.
@@ -55,7 +65,7 @@ function check(input: Opportunity['input'], command: string, context: ReturnType
   const result = runLocalEpisode({ cwd: input.cwd, baselineId: 'B0', model: 'none', harness: 'finding-evidence@1', task: {
     task_id: input.taskId, split: 'train', repo_ref: { kind: 'declared-files', ref: input.id }, prompt: input.claim.prediction,
     allowed_tools: ['shell'], expected_touched_paths: [], tags: [],
-    budget: { max_tokens: 1, max_turns: 1, max_wall_time_seconds: input.capture ? Math.min(input.timeoutSeconds, 1) : input.timeoutSeconds }, success_check: { kind: 'command', command },
+    budget: { max_tokens: 1, max_turns: 1, max_wall_time_seconds: input.capture ? Math.min(input.timeoutSeconds, captureCheckSeconds()) : input.timeoutSeconds }, success_check: { kind: 'command', command },
   } });
   let satisfied: boolean | null = null;
   // A failed command is a broken evaluator, not a counterexample to the advice.
