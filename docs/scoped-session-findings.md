@@ -49,11 +49,9 @@ model request as context. This does not rewrite a hidden system prompt.
 See the [Codex hook contract](https://learn.chatgpt.com/docs/hooks) and
 [Claude hook contract](https://code.claude.com/docs/en/hooks#sessionstart).
 
-SessionStart emits the short standing reasoning mandate even without a readable
-lesson store: distinguish the claim, observation and inference; consider alternative
-causes and witness assumptions; preserve unknown. This user-mandated discipline is
-independent of sampled lesson rank and has no helpful/harmful score. Ordinary
-UserPromptSubmit events do not repeat this fixed mandate.
+No fixed reasoning rules are injected. An earlier version emitted a standing
+proxy-versus-witness mandate on SessionStart; it was removed because rules baked
+into prompts are what LYO is meant to replace with evidence-backed, scoped advice.
 
 The hook reselects at most five ordinary lessons/findings using the existing
 activity rules, current evidence and legacy sampler. Repository identity alone
@@ -64,7 +62,7 @@ stale wording. Explicit `[lyo:transfer-review]`, `[lyo:experiment-design]` and
 compaction/resume in the same canonical workspace. Each new prompt replaces those
 tags, including replacing them with none; startup/clear resets them. This is explicit
 scope matching, not inferred task intent. A failed refresh remains fail-open for
-the session; the already-emitted mandate remains available.
+the session.
 
 Legacy sampled lessons without any validated outcome (0✓/0✗) are withheld from
 session banners. Banner applications never earn validation credit, so delivering

@@ -34,9 +34,6 @@ export { repositoryKey };
 const LIMIT = 5;
 
 const STDIN_GUARD_MS = 2500;
-const REASONING_MANDATE = 'LYO reasoning mandate: Could this evidence exist while the claim is false? ' +
-  'Separate claim, observation, and inference; check alternative causes and witness assumptions. ' +
-  'Preserve unknown. Advice delivery and passing checks alone do not establish benefit.\n';
 
 export interface SessionHookPayload {
   cwd?: string | null;
@@ -149,7 +146,6 @@ export function emitSessionLessons(
   try {
     const selectionCue = payload.prompt;
     const refresh = payload.hook_event_name === 'SessionStart' || payload.hook_event_name === 'UserPromptSubmit';
-    if (payload.hook_event_name === 'SessionStart') write(REASONING_MANDATE);
     const storePath = resolveSessionLessonStorePath(payload.cwd);
     if (refresh && storePath) payload = refreshActivity(payload, storePath);
     const sessionId = payload.session_id ?? payload.sessionId;

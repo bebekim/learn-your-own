@@ -95,8 +95,8 @@ For Claude, also add `PostToolUseFailure` using the same capture handler as
 contract; do not assume every host exposes Claude's event set.
 
 Leave SessionStart without a source matcher: `source: "compact"` restores context
-after compaction. UserPromptSubmit refreshes the next turn. The session hook emits
-the standing proxy-versus-witness mandate on SessionStart, rechecks eligible lessons and keeps
+after compaction. UserPromptSubmit refreshes the next turn. The session hook injects
+no fixed rules; it rechecks eligible lessons and keeps
 trial no-advice assignments unexposed. The capture handler records events and runs
 registered trial/evidence work; the session hook supplies ordinary guidance.
 
@@ -123,8 +123,8 @@ record; record counts are not delivery counts. It records prepared output, not h
 UI display, adherence or benefit. The helper reads only generated context and event identity; it does not read the
 original prompt or tool-input fields.
 Lesson rows in the text show lesson ID, stored status and recorded feedback counts;
-findings retain their existing activity, observation and evidence labels. The standing
-reasoning mandate, trial guidance and recovery reminders are included when emitted.
+findings retain their existing activity, observation and evidence labels. Trial
+guidance and recovery reminders are included when emitted.
 No-advice trial arms do not acquire a notice containing withheld advice.
 
 If a record cannot be saved, the notice still includes the emitted text and states

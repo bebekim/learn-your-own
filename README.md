@@ -22,8 +22,8 @@ whether the agent followed it, or whether it improved the result. As tasks and
 repositories change, yesterday's useful advice can also become misleading.
 
 Lyo makes those distinctions explicit. **Could this evidence exist while the
-claim is false?** That proxy-versus-witness question is a standing reasoning
-mandate. The ledger checks the observable part: a delivered prompt is delivery
+claim is false?** That proxy-versus-witness question shapes how the ledger is
+built; it is not injected into prompts as a rule. The ledger checks the observable part: a delivered prompt is delivery
 evidence; a passing check is a check result; useful advice needs later comparison.
 
 ## How it works
@@ -48,7 +48,7 @@ flowchart LR
 4. **Revise:** a completed comparison can promote scoped delivery. A later failed
    or unknown outcome pauses it for review; corrected evidence can revoke promotion.
 
-New turns and compactions also refresh the standing mandate and eligible lessons.
+New turns and compactions also refresh eligible lessons. No fixed rules are injected.
 Scope and validity are rechecked before reinjection. Repetition earns no learning
 credit, and withheld trial advice stays withheld.
 

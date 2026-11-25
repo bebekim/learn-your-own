@@ -95,7 +95,7 @@ test('LYO session hook: missing store fails open', () => {
     env: { ...process.env, HOME: home, LYO_STORE_PATH: path.join(home, 'missing.db') },
   });
   assert.equal(refreshed.status, 0);
-  assert.match(refreshed.stdout, /LYO reasoning mandate/);
+  assert.doesNotMatch(refreshed.stdout, /LYO reasoning mandate/);
 });
 
 test('repository identity alone delivers no findings; an explicit activity selects advice across worktrees', () => {
@@ -188,8 +188,7 @@ test('turns and repeated compactions restore guidance without multiplying applic
         env: { ...process.env, LYO_STORE_PATH: storePath },
       });
       assert.equal(result.status, 0);
-      if (event.hook_event_name === 'SessionStart') assert.match(result.stdout, /Could this evidence exist while the claim is false/);
-      else assert.doesNotMatch(result.stdout, /LYO reasoning mandate/);
+      assert.doesNotMatch(result.stdout, /LYO reasoning mandate|Could this evidence exist/);
       assert.match(result.stdout, /Check the counterexample/);
     }
     assert.equal(store.getLesson(lesson.lesson_id).uses, 1);
@@ -259,7 +258,7 @@ test('a refreshed finding still needs registered evidence, and counterevidence s
     recordFindingFeedback(f.store, { ...f.feedback, deliveryId, evidenceRef: evidence.id, outcome: 'contradicted' });
     output = '';
     emitSessionLessons({ ...payload, hook_event_name: 'SessionStart', source: 'compact', prompt: undefined }, text => { output += text; });
-    assert.match(output, /LYO reasoning mandate/);
+    assert.doesNotMatch(output, /LYO reasoning mandate/);
     assert.doesNotMatch(output, /Check the target whitespace/);
   } finally { f.close(); }
 });

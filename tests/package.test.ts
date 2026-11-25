@@ -65,7 +65,7 @@ test('packed executables and generated hooks run the installed learning loop', a
     const eca = { cwd: dir, session_id: 'cache', chat_id: 'chat1', full_model: 'local-mlxcel/Qwen3.5-4B-4bit' };
     const output = JSON.parse(run('lyo', ['eca-hook', ...flags], { ...eca, hook_type: 'chatStart' }));
     assert.match(output.additionalContext, /Run the narrow test/);
-    assert.match(output.additionalContext, /LYO reasoning mandate/);
+    assert.doesNotMatch(output.additionalContext, /LYO reasoning mandate/); // no fixed rules are injected
     const refreshed = JSON.parse(run('lyo', ['eca-hook', ...flags], { ...eca, hook_type: 'preRequest', prompt: 'Check tests' }));
     assert.doesNotMatch(refreshed.additionalContext, /LYO reasoning mandate/);
     assert.match(refreshed.additionalContext, /Run the narrow test/);

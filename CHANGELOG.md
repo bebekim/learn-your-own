@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **No fixed rules injected.** SessionStart no longer emits the standing proxy-versus-witness reasoning mandate. Rules baked into prompts are what LYO replaces with scoped, evidence-backed advice; the discipline stays in how the ledger names and judges evidence.
+
 - **One lesson store, no zeroshot dependency.** Every hook run uses `LYO_STORE_PATH`, else `<LYO_HOME>/lessons.db` (`LYO_HOME` defaults to `~/.lyo`). The working directory no longer selects a store, and `ZEROSHOT_LYO_STORE_PATH`, `<cwd>/.zeroshot/lyo-lessons.db` and `~/.zeroshot/lyo-lessons.db` are no longer read. Hooks never create the store; `lyo finding|decisions|hypotheses` commands create it on first use. Decision config, case sets and the decision queue follow `LYO_HOME`. To keep an existing store, copy `~/.zeroshot/lyo-lessons.db` to `~/.lyo/lessons.db`.
 - Tests run with a temporary `LYO_HOME` and cleared LYO path overrides, so they cannot write to a real store (they previously reached `~/.zeroshot/lyo-lessons.db` and the live decision worker).
 

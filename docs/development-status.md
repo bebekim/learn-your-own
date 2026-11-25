@@ -42,7 +42,7 @@ or unknown outcomes pause it; withdrawn evidence triggers reassessment. The agen
 or reviewer decides whether the lesson wording or applicability needs revision.
 Lyo does not automatically invent a trustworthy evaluator or a generalized scope.
 
-Session hooks refresh the reasoning mandate and currently eligible guidance at
+Session hooks refresh currently eligible guidance (no fixed rules) at
 new turns, startup, resume and compaction. An emitted reminder cannot establish
 adherence or benefit. See [refresh semantics](scoped-session-findings.md#turn-and-compaction-refresh).
 
