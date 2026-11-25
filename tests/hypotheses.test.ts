@@ -194,7 +194,7 @@ test('the OpenRouter generator requests ZDR routing and JSON, and validates what
     return new Response(JSON.stringify({ model: 'anthropic/claude-sonnet-5.5', usage: { prompt_tokens: 100, completion_tokens: 50 },
       choices: [{ message: { content: JSON.stringify({ proposals: [proposal({ exampleIds: ['e1', 'e2', 'e3'] }), { bad: true }] }) } }] }), { status: 200 });
   }) as unknown as typeof fetch;
-  const g = openRouterGenerator(config.generator!, { env: { OPENROUTER_API_KEY: 'k' }, fetch: fetchImpl });
+  const g = openRouterGenerator({ ...config.generator!, retries: 0 }, { env: { OPENROUTER_API_KEY: 'k' }, fetch: fetchImpl });
   const eps = ['e1', 'e2', 'e3'].map(id => ({ id, sessionId: 's', at: '2026-10-01', cwd: '/r/x', command: 'c', output: 'o', state: 's', failureKind: 'exit_nonzero', errorClass: null, repair: [] }));
   const record = await g.propose({ episodes: eps, existing: [], maxProposals: 3, rivalShare: 0.1 });
   assert.deepEqual(calls[0].provider, { zdr: true, allow_fallbacks: false });
@@ -204,4 +204,63 @@ test('the OpenRouter generator requests ZDR routing and JSON, and validates what
   assert.equal(record.proposals.length, 1);
   assert.equal(record.rejected, 1);
   assert.throws(() => openRouterGenerator(config.generator!, { env: {} }), /OPENROUTER_API_KEY/);
+});
+
+const longEpisodes = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `toolu_long_${i}`, sessionId: 's', at: '2026-10-01', cwd: '/r/x',
+  command: 'c', output: 'o', state: 's', failureKind: 'exit_nonzero', errorClass: null, repair: [] }));
+const reply = (proposals: unknown[], usage = { prompt_tokens: 100, completion_tokens: 50 }) =>
+  new Response(JSON.stringify({ model: 'm', usage, choices: [{ message: { content: JSON.stringify({ proposals }) } }] }), { status: 200 });
+
+test('the generator sees short episode keys, may cite only those, and they map back to episode ids', async () => {
+  const calls: any[] = [];
+  const fetchImpl = (async (_url: string, init: RequestInit) => {
+    calls.push(JSON.parse(String(init.body)));
+    return reply([proposal({ exampleIds: ['e1', 'e2', 'e3', 'e99'], rival: true }), proposal({ situation: 'Invented', exampleIds: ['e1', 'e98', 'toolu_long_1'], rival: true })]);
+  }) as unknown as typeof fetch;
+  const g = openRouterGenerator({ ...config.generator!, retries: 0 }, { env: { OPENROUTER_API_KEY: 'k' }, fetch: fetchImpl });
+  const record = await g.propose({ episodes: longEpisodes(4), existing: [], maxProposals: 3, rivalShare: 0.1 });
+  const user = calls[0].messages[1].content as string;
+  assert.match(user, /"id":"e4"/);
+  assert.doesNotMatch(user, /toolu_long/);
+  assert.deepEqual(calls[0].response_format.json_schema.schema.properties.proposals.items.properties.exampleIds.items.enum, ['e1', 'e2', 'e3', 'e4']);
+  assert.deepEqual(record.proposals.map(p => p.exampleIds), [['toolu_long_0', 'toolu_long_1', 'toolu_long_2']]);
+  assert.deepEqual(record.rejections, ['exampleIds: 1 of 3 cited episodes were shown']);
+});
+
+const keyed = { exampleIds: ['e1', 'e2', 'e3'] };
+
+test('rejections and a rival shortfall get one corrective retry whose replacements are kept', async () => {
+  const calls: any[] = [];
+  const replies = [
+    reply([proposal(keyed), { bad: true }]),
+    reply([proposal(keyed), proposal({ ...keyed, situation: 'A rival cause.', rival: true }), proposal({ ...keyed, situation: 'Over the room.', rival: true })], { prompt_tokens: 200, completion_tokens: 20 }),
+  ];
+  const fetchImpl = (async (_url: string, init: RequestInit) => { calls.push(JSON.parse(String(init.body))); return replies.shift()!; }) as unknown as typeof fetch;
+  const g = openRouterGenerator(config.generator!, { env: { OPENROUTER_API_KEY: 'k' }, fetch: fetchImpl });
+  const eps = longEpisodes(3);
+  const record = await g.propose({ episodes: eps, existing: [], maxProposals: 2, rivalShare: 0.1 });
+  assert.equal(calls.length, 2);
+  const feedback = calls[1].messages.at(-1).content as string;
+  assert.equal(calls[1].messages.at(-2).role, 'assistant');
+  assert.match(feedback, /1 proposal\(s\) were discarded: situation: invalid_type/);
+  assert.match(feedback, /at most 1 replacement proposal\(s\), at least 1 marked rival: true/);
+  assert.deepEqual(record.proposals.map(p => [p.situation, p.rival]), [[proposal(keyed).situation, false], ['A rival cause.', true]]);
+  assert.equal(record.retried, true);
+  assert.equal(record.rivalShortfall, 0);
+  assert.deepEqual(record.usage, { inputTokens: 300, outputTokens: 70 });
+});
+
+test('no retry when retries is 0, the reply was truncated, or nothing needs correcting', async () => {
+  for (const [cfg, first] of [
+    [{ ...config.generator!, retries: 0 }, reply([{ bad: true }])],
+    [config.generator!, new Response(JSON.stringify({ model: 'm', choices: [{ finish_reason: 'length', message: { content: '{"proposals": [' } }] }))],
+    [config.generator!, reply([proposal({ ...keyed, rival: true })])],
+  ] as const) {
+    let n = 0;
+    const g = openRouterGenerator(cfg, { env: { OPENROUTER_API_KEY: 'k' }, fetch: (async () => { n++; return first; }) as unknown as typeof fetch });
+    const eps = longEpisodes(3);
+    const record = await g.propose({ episodes: eps, existing: [], maxProposals: 3, rivalShare: 0.1 });
+    assert.equal(n, 1);
+    assert.equal(record.retried, false);
+  }
 });

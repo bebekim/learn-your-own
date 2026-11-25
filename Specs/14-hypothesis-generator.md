@@ -52,6 +52,12 @@ It sends one batch to a **generator** and asks for at most K hypotheses, each wi
   of failures an existing hypothesis already claims, or an explanation of the least-explained
   failures. This is the ε-greedy idea, applied to generating hypotheses rather than
   delivering them.
+- **Citations are constrained, and one corrective retry is allowed.** Episodes are shown under
+  short keys (`e1`, `e2`, …); the structured-output schema enumerates them, and they are mapped
+  back to episode ids on parsing. In the first live run, 2 of 5 proposals cited long tool ids
+  the generator had miscopied or invented. If proposals are rejected, or fewer rivals pass than
+  required, the rejection reasons (schema paths only) and the shortfall are sent back once, and
+  the replacements are validated in the same way (`generator.retries`, default 1, 0 disables).
 - **The generator is swappable**, like decision providers: a local model through mlxcel, or
   OpenRouter with ZDR. Repository content goes only to the configured generator, which is an
   explicit choice, as in Spec 12.

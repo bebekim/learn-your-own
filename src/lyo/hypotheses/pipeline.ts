@@ -26,7 +26,7 @@ export async function proposeHypotheses(store: LessonStore, generator: Hypothesi
   const record = await generator.propose({ episodes, existing: active.map(h => ({ id: h.id, situation: h.proposal.situation })),
     maxProposals: options.maxProposals ?? 5, rivalShare: options.rivalShare ?? 0.1 });
   const ids = recordProposals(store, record, { from: options.from, until: options.until }, options.now);
-  return { episodes: episodes.length, proposed: ids, rejected: record.rejected, rejections: record.rejections ?? [], truncated: record.truncated ?? false,
+  return { episodes: episodes.length, proposed: ids, rejected: record.rejected, rejections: record.rejections ?? [], truncated: record.truncated ?? false, retried: record.retried ?? false, rivalShortfall: record.rivalShortfall ?? 0,
     usage: record.usage, model: record.model,
     rivals: record.proposals.filter(p => p.rival).length };
 }

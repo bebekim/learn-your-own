@@ -45,6 +45,8 @@ export const decisionConfigSchema = z.object({
     maxOutputTokens: z.number().int().min(500).max(32000).default(8000),
     maxEpisodes: z.number().int().min(5).max(400).default(80),
     maxShadowing: z.number().int().min(1).max(50).default(5),
+    // Corrective calls after rejected proposals or too few rivals.
+    retries: z.number().int().min(0).max(1).default(1),
   }).strict().optional(),
   worker: z.object({
     idleSeconds: z.number().int().min(1).max(86400).default(600),
