@@ -1,5 +1,6 @@
 import { createOpenAiCompatibleExecutor, type ChatFn } from './openai-compatible.ts';
 import type { StageExecutor } from './stage-executor.ts';
+import { loadTuning } from '../../config/tuning.ts';
 
 export const UPSTAGE_URL = 'https://api.upstage.ai/v1/chat/completions';
 
@@ -26,7 +27,7 @@ export function createUpstageExecutor({
   reasoningEffort = 'low',
   maxTokens = 65536,
   chat,
-  timeoutMs = 300000,
+  timeoutMs = loadTuning().lab.upstageMs,
 }: UpstageExecutorOptions): StageExecutor {
   return createOpenAiCompatibleExecutor({
     baseUrl: UPSTAGE_URL,

@@ -13,6 +13,12 @@ configuration, never in code, and measures the machine to suggest values.
 | `config.json` | `tuning.git.timeoutMs` | Repository identity lookups (default 1000). A timeout loses the repository identity. |
 | `config.json` | `tuning.sqlite.busyTimeoutMs` | Lock wait for the lesson store and corpus (default 5000). |
 | `config.json` | `tuning.sqlite.ledgerBusyTimeoutMs` | Lock wait for per-repository capture ledgers (default 10000). |
+| `config.json` | `tuning.lab.openaiCompatibleMs`, `upstageMs`, `kimiCliMs` | One model call by each lab executor (defaults 120000, 300000, 600000). |
+| `config.json` | `tuning.lab.kimiRetryDelayMs` | Pause before the Kimi CLI executor retries (default 5000). |
+| `config.json` | `tuning.lab.verifierMs`, `judgeMs`, `elaboratorMs` | One lab verifier test run, judge call and elaborator call (defaults 300000, 180000, 8000). |
+| `config.json` | `tuning.decisions.replayMs` | One decision while replaying a case set or matching shadowed hypotheses (default 120000). |
+| `config.json` | `tuning.decisions.jevRequestMs` | One request to a Jev decision server (default 10000). |
+| `config.json` | `tuning.sessions.staleAfterHours` | A host session quiet this long is bridged as ended (default 12). |
 | `decisions.json` | `worker.*` | Background decision worker: per-decision timeout, job age, idle shutdown, TTL, queue size. |
 | `decisions.json` | `generator.requestTimeoutMs` | Hypothesis generator request timeout (default 300000). |
 

@@ -14,6 +14,7 @@ import { hashValue } from '../contract/refs.ts';
 import type { TypedDecisionProvider } from '../application/typed-decisions.ts';
 import { expectedLevel } from './providers.ts';
 import { lyoHome } from '../storage/lyo-home.ts';
+import { loadTuning } from '../config/tuning.ts';
 
 export const caseSchema = z.object({
   id: z.string().min(1),
@@ -149,7 +150,7 @@ export async function scoreCases(dir: string, input: { provider: TypedDecisionPr
     if (cached.has(key)) continue;
     const t = now();
     try {
-      const record = await input.provider.decide({ state: c.state, questions: { match: input.question } }, { timeoutMs: input.timeoutMs ?? 120000 });
+      const record = await input.provider.decide({ state: c.state, questions: { match: input.question } }, { timeoutMs: input.timeoutMs ?? loadTuning().decisions.replayMs });
       const answer: CachedAnswer = { key, caseId: c.id, level: expectedLevel(record.answers.match), answeredModel: record.answeredModel, latencyMs: now() - t };
       appendFileSync(path, JSON.stringify(answer) + '\n'); cached.set(key, answer);
     } catch (error) {

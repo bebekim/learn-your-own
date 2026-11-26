@@ -1,4 +1,5 @@
 import type { StageExecutor, StageUsage } from './stage-executor.ts';
+import { loadTuning } from '../../config/tuning.ts';
 
 export interface ChatMessage {
   role: 'system' | 'user';
@@ -25,7 +26,6 @@ export interface OpenAiCompatibleExecutorOptions {
   timeoutMs?: number;
 }
 
-const DEFAULT_TIMEOUT_MS = 120000;
 const DEFAULT_MAX_TOKENS = 16384;
 
 /**
@@ -43,7 +43,7 @@ export function createOpenAiCompatibleExecutor({
   maxTokens = DEFAULT_MAX_TOKENS,
   extraBody,
   chat,
-  timeoutMs = DEFAULT_TIMEOUT_MS,
+  timeoutMs = loadTuning().lab.openaiCompatibleMs,
 }: OpenAiCompatibleExecutorOptions): StageExecutor {
   if (chat) {
     return async ({ prompt }) => ({

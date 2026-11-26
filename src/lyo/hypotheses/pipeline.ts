@@ -13,6 +13,7 @@ import { readFailureEpisodes, type FailureEpisode } from './episodes.ts';
 import { findingRecords, findingState } from '../storage/finding-state.ts';
 import type { HypothesisGenerator } from './generator.ts';
 import { evaluateRecurrence, hypothesisMatches, listHypotheses, recordHypothesisMatch, recordProposals, setHypothesisStatus } from './store.ts';
+import { loadTuning } from '../config/tuning.ts';
 
 const ACTIVE = new Set(['shadowing', 'recurrent', 'harvested', 'candidate']);
 
@@ -55,7 +56,7 @@ export async function replayHypothesis(store: LessonStore, provider: TypedDecisi
     if (done.has(e.id)) continue;
     let level: number | null = null, model: string | null = null;
     try {
-      const record = await provider.decide({ state: e.state, questions: { match: h.proposal.question } }, { timeoutMs: options.timeoutMs ?? 120000 });
+      const record = await provider.decide({ state: e.state, questions: { match: h.proposal.question } }, { timeoutMs: options.timeoutMs ?? loadTuning().decisions.replayMs });
       level = expectedLevel(record.answers.match); model = record.answeredModel;
     } catch { /* recorded as unknown */ }
     recordHypothesisMatch(store, { hypothesisId: id, episodeId: e.id, sessionId: e.sessionId, cwd: e.cwd, at: e.at, level,

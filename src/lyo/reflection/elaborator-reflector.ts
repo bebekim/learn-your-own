@@ -24,10 +24,10 @@
 import { formatValidationFeedback } from '../application/reflection.ts';
 import { parseModelObject } from '../application/model-json.ts';
 import type { Reflection, Reflector, ValidationMessage } from '../application/reflection.ts';
+import { loadTuning } from '../config/tuning.ts';
 
 export const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 export const DEFAULT_MODEL = 'openai/gpt-4o-mini';
-const DEFAULT_TIMEOUT_MS = 8000;
 const EXPLANATION_MAX_CHARS = 500;
 const INTERVENTION_MAX_CHARS = 300;
 
@@ -156,7 +156,7 @@ async function openRouterChat({
 export function createElaboratorReflector({
   chat,
   model,
-  timeoutMs = DEFAULT_TIMEOUT_MS,
+  timeoutMs = loadTuning().lab.elaboratorMs,
 }: ElaboratorReflectorOptions = {}): Reflector {
   const resolvedModel = model || defaultModel();
   const chatFn: ChatFn =

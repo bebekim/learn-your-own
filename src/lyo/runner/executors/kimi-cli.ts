@@ -1,8 +1,8 @@
 import { execFile } from 'node:child_process';
 
 import type { StageExecutor } from './stage-executor.ts';
+import { loadTuning } from '../../config/tuning.ts';
 
-const DEFAULT_TIMEOUT_MS = 600000;
 const MAX_BUFFER_BYTES = 32 * 1024 * 1024;
 
 export interface KimiCliResult {
@@ -26,7 +26,6 @@ export interface KimiCliExecutorOptions {
   retryDelayMs?: number;
 }
 
-const DEFAULT_RETRY_DELAY_MS = 5000;
 
 /**
  * Agentic executor: runs `kimi -p` headless (auto permission mode) with the
@@ -42,8 +41,8 @@ const DEFAULT_RETRY_DELAY_MS = 5000;
 export function createKimiCliExecutor({
   model,
   spawnKimi,
-  timeoutMs = DEFAULT_TIMEOUT_MS,
-  retryDelayMs = DEFAULT_RETRY_DELAY_MS,
+  timeoutMs = loadTuning().lab.kimiCliMs,
+  retryDelayMs = loadTuning().lab.kimiRetryDelayMs,
 }: KimiCliExecutorOptions = {}): StageExecutor {
   const spawnFn: SpawnKimiFn = spawnKimi || ((args) => defaultSpawnKimi({ ...args, timeoutMs }));
   return async ({ prompt, sandboxDir }) => {

@@ -5,10 +5,10 @@
 
 import { buildJudgePrompt, parseJudgeResponse } from '../application/judgment.ts';
 import type { JudgeFn } from '../application/judgment.ts';
+import { loadTuning } from '../config/tuning.ts';
 
 const DEFAULT_JUDGE_MODEL = 'openai/gpt-4o-mini';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const JUDGE_TIMEOUT_MS = 180000;
 
 export { DEFAULT_JUDGE_MODEL, OPENROUTER_URL };
 
@@ -34,7 +34,7 @@ export async function openRouterChat({
     throw new Error('OPENROUTER_API_KEY is not set');
   }
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), JUDGE_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), loadTuning().lab.judgeMs);
   try {
     const response = await fetch(OPENROUTER_URL, {
       method: 'POST',

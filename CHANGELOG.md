@@ -4,6 +4,7 @@
 
 - **Machine-dependent settings are configuration.** Hook check budget, stdin guard, git and SQLite timeouts live in `tuning` in `<LYO_HOME>/config.json`; the generator request timeout in `decisions.json`. Defaults are unchanged. `LYO_CAPTURE_CHECK_SECONDS` is replaced by `tuning.hooks.checkSeconds`.
 - **`lyo tune`** measures node start-up, git, SQLite commits and (optionally) one local decision, and suggests a value per setting with its reason; `--apply` writes LYO's own files after a backup. A global install runs the quick diagnostics once and leaves a notice. See [tuning](docs/tuning.md).
+- **Lab, replay and session budgets are configuration too.** Lab executor, verifier, judge and elaborator timeouts (`tuning.lab`), case-set/hypothesis replay and Jev request timeouts (`tuning.decisions`), and the stale-session cutoff (`tuning.sessions.staleAfterHours`). `lyo tune` suggests `replayMs` from the measured first decision.
 
 - **No fixed rules injected.** SessionStart no longer emits the standing proxy-versus-witness reasoning mandate. Rules baked into prompts are what LYO replaces with scoped, evidence-backed advice; the discipline stays in how the ledger names and judges evidence.
 

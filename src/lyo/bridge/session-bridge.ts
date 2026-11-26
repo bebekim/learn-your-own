@@ -5,6 +5,7 @@ import { extractHookFacts } from '../hooks/normalizer.ts';
 import { LessonStore } from '../storage/lesson-store.ts';
 import { verifierCommand } from './verifier-command.ts';
 import type { TestSummary } from '../hooks/test-summary.ts';
+import { loadTuning } from '../config/tuning.ts';
 
 export interface SessionVerifier {
   source: 'session-verifier@1';
@@ -81,7 +82,6 @@ function alreadyBridged(kernel: LearningKernel, store: LessonStore, sessionId: s
   return true;
 }
 
-export const DEFAULT_STALE_SESSION_MS = 12 * 60 * 60 * 1000;
 
 /**
  * Most sessions never record SessionEnd (a closed terminal, a killed process), so
@@ -91,7 +91,7 @@ export const DEFAULT_STALE_SESSION_MS = 12 * 60 * 60 * 1000;
  */
 export function bridgeStaleSessions(kernel: LearningKernel, storePath: string,
   options: { now?: number; staleAfterMs?: number; limit?: number } = {}): Array<{ sessionId: string; created: number; observed: number }> {
-  const cutoff = new Date((options.now ?? Date.now()) - (options.staleAfterMs ?? DEFAULT_STALE_SESSION_MS)).toISOString();
+  const cutoff = new Date((options.now ?? Date.now()) - (options.staleAfterMs ?? loadTuning().sessions.staleAfterHours * 60 * 60 * 1000)).toISOString();
   const candidates = kernel.db.prepare(`SELECT s.session_id FROM agent_sessions s
     WHERE s.ended_at IS NULL AND (SELECT max(created_at) FROM hook_events h WHERE h.session_id = s.session_id) < ?
     ORDER BY s.started_at, s.session_id`).all(cutoff) as unknown as Array<{ session_id: string }>;

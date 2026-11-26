@@ -28,6 +28,21 @@ test('tuning comes from config with defaults; an invalid section falls back with
   assert.deepEqual(loadTuning({ LYO_HOME: bad }), DEFAULT_TUNING);
 });
 
+test('lab, replay and session budgets come from tuning', () => {
+  const h = home();
+  writeFileSync(join(h, 'config.json'), JSON.stringify({ tuning: { lab: { verifierMs: 900000, judgeMs: 60000 },
+    decisions: { replayMs: 240000 }, sessions: { staleAfterHours: 2 } } }));
+  const t = loadTuning({ LYO_HOME: h });
+  assert.equal(t.lab.verifierMs, 900000);
+  assert.equal(t.lab.judgeMs, 60000);
+  assert.equal(t.lab.openaiCompatibleMs, DEFAULT_TUNING.lab.openaiCompatibleMs);
+  assert.equal(t.decisions.replayMs, 240000);
+  assert.equal(t.decisions.jevRequestMs, 10000);
+  assert.equal(t.sessions.staleAfterHours, 2);
+  assert.deepEqual([DEFAULT_TUNING.lab.verifierMs, DEFAULT_TUNING.lab.judgeMs, DEFAULT_TUNING.lab.elaboratorMs,
+    DEFAULT_TUNING.decisions.replayMs, DEFAULT_TUNING.sessions.staleAfterHours], [300000, 180000, 8000, 120000, 12]);
+});
+
 test('the lesson store takes its busy timeout from tuning', () => {
   const t = loadTuning(); // the isolated test home
   const store = new LessonStore(join(home(), 'lessons.db'));
@@ -54,12 +69,14 @@ test('decision and host-hook suggestions follow the measured provider and memory
   const by = Object.fromEntries(s.map(x => [x.key, x]));
   assert.equal(by['worker.timeoutMs']!.suggested, 75000);
   assert.equal(by['worker.idleSeconds']!.suggested, 120);
+  assert.equal(by['tuning.decisions.replayMs']!.suggested, 250000);
   assert.equal(by['hooks.PostToolUse.timeout']!.suggested, 8);
   assert.equal(by['hooks.PostToolUse.timeout']!.applies, false);
   assert.equal(by['hooks.SessionStart.timeout'], undefined, 'the session hook runs no evaluator checks');
   // A fast cached model never lowers the decision timeout below the default or the current value.
   const fast = suggestTuning(diagnostics({ provider: { name: 'mlxcel', model: 'm', coldMs: 1900, warmMs: 1400 } }), DEFAULT_TUNING, decisions, paths);
   assert.equal(fast.find(x => x.key === 'worker.timeoutMs'), undefined);
+  assert.equal(fast.find(x => x.key === 'tuning.decisions.replayMs'), undefined);
 });
 
 test('apply writes only LYO files, backs them up, and keeps other keys', () => {

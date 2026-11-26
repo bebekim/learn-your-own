@@ -7,6 +7,7 @@
 import { z } from 'zod';
 import { hashValue } from '../contract/refs.ts';
 import type { TypedDecisionProvider, TypedDecisionRecord, TypedDecisionRequest } from '../application/typed-decisions.ts';
+import { loadTuning } from '../config/tuning.ts';
 
 // A versioned model, not the moving `jev-latest` alias, so retained decisions stay comparable.
 export const DEFAULT_JEV_MODEL = 'jev-1.14.0';
@@ -72,7 +73,7 @@ export function jevProvider(config: JevConfig) {
     async decide(input: TypedDecisionRequest, options = {}): Promise<TypedDecisionRecord> {
       const body = { model, state: input.state, questions: input.questions };
       const parsed = responseSchema.safeParse(await request('/v1/systemone', { method: 'POST',
-        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, ...config.extraBody }) }, options.timeoutMs ?? 10000));
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, ...config.extraBody }) }, options.timeoutMs ?? loadTuning().decisions.jevRequestMs));
       if (!parsed.success) throw new JevError(`TypeSafe response did not match the API contract: ${parsed.error.message.slice(0, 500)}`);
       for (const [name, question] of Object.entries(input.questions)) {
         if (parsed.data.answers[name]?.type !== question.type) throw new JevError(`TypeSafe returned no ${question.type} answer for ${name}`);
@@ -83,7 +84,7 @@ export function jevProvider(config: JevConfig) {
         decidedAt: new Date().toISOString() };
     },
     async models() {
-      const parsed = modelsSchema.safeParse(await request('/v1/models', { method: 'GET' }, 10000));
+      const parsed = modelsSchema.safeParse(await request('/v1/models', { method: 'GET' }, loadTuning().decisions.jevRequestMs));
       if (!parsed.success) throw new JevError('TypeSafe model list did not match the API contract');
       return parsed.data.models;
     },

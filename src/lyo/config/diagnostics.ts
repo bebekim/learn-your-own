@@ -12,7 +12,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { performance } from 'node:perf_hooks';
 import { createDecisionProvider, decisionConfigPath, decisionConfigSchema, loadDecisionConfig, type DecisionConfig } from '../decisions/providers.ts';
 import { lyoHome } from '../storage/lyo-home.ts';
-import { loadTuning, lyoConfigPath, type Tuning } from './tuning.ts';
+import { DEFAULT_TUNING, loadTuning, lyoConfigPath, type Tuning } from './tuning.ts';
 
 export interface Timing { samples: number; p50Ms: number; p90Ms: number; maxMs: number }
 /** `capture` hooks (claude-hook, codex-hook, ...) run evaluator checks; the session hook does not. */
@@ -132,6 +132,10 @@ export function suggestTuning(d: Diagnostics, tuning: Tuning, decisions: Decisio
     const maxAgeSeconds = Math.max(decisions.worker.maxAgeSeconds, Math.ceil(timeoutMs / 1000) * 10);
     add(paths.decisions, 'worker.maxAgeSeconds', decisions.worker.maxAgeSeconds, maxAgeSeconds,
       'a queued job must outlive about ten decisions ahead of it');
+    const replayFloor = DEFAULT_TUNING.decisions.replayMs;
+    add(paths.config, 'tuning.decisions.replayMs', tuning.decisions.replayMs,
+      Math.max(replayFloor, tuning.decisions.replayMs, ceilTo(d.provider.coldMs * 10, 1000)),
+      `${d.provider.name} first decision ${d.provider.coldMs} ms; a replay decision may load the model: timeout = 10×first, never below ${replayFloor} ms or the current value`);
   }
   if (decisions?.provider === 'mlxcel') {
     const idle = d.machine.totalMemGb <= 16 ? 120 : 600;

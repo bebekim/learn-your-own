@@ -26,6 +26,32 @@ export const tuningSchema = z.object({
     /** The same for per-repository capture ledgers, which many concurrent hooks write. */
     ledgerBusyTimeoutMs: z.number().int().min(0).max(120000).default(10000),
   }).strict().prefault({}),
+  lab: z.object({
+    /** One model call by the OpenAI-compatible lab executor (OpenRouter, local servers). */
+    openaiCompatibleMs: z.number().int().min(1000).max(3600000).default(120000),
+    /** One model call by the Upstage executor. */
+    upstageMs: z.number().int().min(1000).max(3600000).default(300000),
+    /** One run of the Kimi CLI executor. */
+    kimiCliMs: z.number().int().min(1000).max(3600000).default(600000),
+    /** Pause before the Kimi CLI executor retries. */
+    kimiRetryDelayMs: z.number().int().min(0).max(600000).default(5000),
+    /** One `node --test` run by the lab verifier. */
+    verifierMs: z.number().int().min(1000).max(3600000).default(300000),
+    /** One OpenRouter judge call. */
+    judgeMs: z.number().int().min(1000).max(3600000).default(180000),
+    /** One elaborator-reflector call. */
+    elaboratorMs: z.number().int().min(500).max(600000).default(8000),
+  }).strict().prefault({}),
+  decisions: z.object({
+    /** One decision while replaying a case set or matching shadowed hypotheses (not the hook worker). */
+    replayMs: z.number().int().min(1000).max(1800000).default(120000),
+    /** One request to a Jev decision server. */
+    jevRequestMs: z.number().int().min(500).max(600000).default(10000),
+  }).strict().prefault({}),
+  sessions: z.object({
+    /** A host session quiet this long is bridged as ended. */
+    staleAfterHours: z.number().min(0.1).max(720).default(12),
+  }).strict().prefault({}),
 }).strict();
 export type Tuning = z.infer<typeof tuningSchema>;
 

@@ -1,8 +1,8 @@
 import { execFile } from 'node:child_process';
 
 import type { VerifierPerTest, VerifierReportCounts } from '../contract/index.ts';
+import { loadTuning } from '../config/tuning.ts';
 
-const DEFAULT_TIMEOUT_MS = 300000;
 const MAX_BUFFER_BYTES = 32 * 1024 * 1024;
 
 export interface RunTestsResult {
@@ -88,7 +88,7 @@ function defaultRunTests({ cwd, testPath }: { cwd: string; testPath: string }): 
     execFile(
       'node',
       ['--test', '--test-reporter=tap', pattern],
-      { cwd, env, timeout: DEFAULT_TIMEOUT_MS, maxBuffer: MAX_BUFFER_BYTES },
+      { cwd, env, timeout: loadTuning().lab.verifierMs, maxBuffer: MAX_BUFFER_BYTES },
       (error, stdout, stderr) => {
         if (error && typeof error.code !== 'number') {
           reject(error);
