@@ -49,12 +49,17 @@ test('a fast machine keeps the defaults; a slow one gets larger budgets with the
 test('decision and host-hook suggestions follow the measured provider and memory; host files are advice only', () => {
   const decisions = decisionConfigSchema.parse({ provider: 'mlxcel' });
   const s = suggestTuning(diagnostics({ provider: { name: 'mlxcel', model: 'm', coldMs: 25000, warmMs: 3000 },
-    hostHooks: [{ file: '/h/.claude/settings.json', event: 'PostToolUse', timeoutSeconds: 5 }] }), DEFAULT_TUNING, decisions, paths);
+    hostHooks: [{ file: '/h/.claude/settings.json', event: 'PostToolUse', timeoutSeconds: 5, kind: 'capture' },
+      { file: '/h/.claude/settings.json', event: 'SessionStart', timeoutSeconds: 5, kind: 'session' }] }), DEFAULT_TUNING, decisions, paths);
   const by = Object.fromEntries(s.map(x => [x.key, x]));
   assert.equal(by['worker.timeoutMs']!.suggested, 75000);
   assert.equal(by['worker.idleSeconds']!.suggested, 120);
   assert.equal(by['hooks.PostToolUse.timeout']!.suggested, 8);
   assert.equal(by['hooks.PostToolUse.timeout']!.applies, false);
+  assert.equal(by['hooks.SessionStart.timeout'], undefined, 'the session hook runs no evaluator checks');
+  // A fast cached model never lowers the decision timeout below the default or the current value.
+  const fast = suggestTuning(diagnostics({ provider: { name: 'mlxcel', model: 'm', coldMs: 1900, warmMs: 1400 } }), DEFAULT_TUNING, decisions, paths);
+  assert.equal(fast.find(x => x.key === 'worker.timeoutMs'), undefined);
 });
 
 test('apply writes only LYO files, backs them up, and keeps other keys', () => {
@@ -76,8 +81,10 @@ test('apply writes only LYO files, backs them up, and keeps other keys', () => {
 test('host hook timeouts are read from lyo entries only', () => {
   const h = home(), file = join(h, 'settings.json');
   writeFileSync(file, JSON.stringify({ hooks: { PostToolUse: [{ hooks: [{ type: 'command', command: '/n/node /n/lyo claude-hook', timeout: 10 }] }],
+    SessionStart: [{ hooks: [{ type: 'command', command: '/n/node /n/lyo-session-hook --json', timeout: 5 }] }],
     Stop: [{ hooks: [{ type: 'command', command: 'other-tool', timeout: 3 }] }] } }));
-  assert.deepEqual(hostHookTimeouts([file]), [{ file, event: 'PostToolUse', timeoutSeconds: 10 }]);
+  assert.deepEqual(hostHookTimeouts([file]), [{ file, event: 'PostToolUse', timeoutSeconds: 10, kind: 'capture' },
+    { file, event: 'SessionStart', timeoutSeconds: 5, kind: 'session' }]);
 });
 
 test('tune measures this machine, saves a report, and an install-time report leaves a notice until reviewed', async () => {

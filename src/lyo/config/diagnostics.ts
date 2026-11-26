@@ -10,12 +10,13 @@ import { cpus, freemem, homedir, loadavg, tmpdir, totalmem } from 'node:os';
 import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { performance } from 'node:perf_hooks';
-import { createDecisionProvider, decisionConfigPath, loadDecisionConfig, type DecisionConfig } from '../decisions/providers.ts';
+import { createDecisionProvider, decisionConfigPath, decisionConfigSchema, loadDecisionConfig, type DecisionConfig } from '../decisions/providers.ts';
 import { lyoHome } from '../storage/lyo-home.ts';
 import { loadTuning, lyoConfigPath, type Tuning } from './tuning.ts';
 
 export interface Timing { samples: number; p50Ms: number; p90Ms: number; maxMs: number }
-export interface HostHookTimeout { file: string; event: string; timeoutSeconds: number }
+/** `capture` hooks (claude-hook, codex-hook, ...) run evaluator checks; the session hook does not. */
+export interface HostHookTimeout { file: string; event: string; timeoutSeconds: number; kind: 'capture' | 'session' }
 export interface Diagnostics {
   measuredAt: string;
   machine: { platform: string; arch: string; node: string; cpus: number; totalMemGb: number; freeMemGb: number; load1: number };
@@ -49,7 +50,7 @@ export function hostHookTimeouts(files: string[]): HostHookTimeout[] {
       if (!node || typeof node !== 'object') return;
       const o = node as Record<string, unknown>;
       if (typeof o.command === 'string' && /\blyo\b/.test(o.command) && typeof o.timeout === 'number')
-        found.push({ file, event, timeoutSeconds: o.timeout });
+        found.push({ file, event, timeoutSeconds: o.timeout, kind: /lyo-session-hook\b/.test(o.command) ? 'session' : 'capture' });
       for (const [k, v] of Object.entries(o)) walk(v, /^[A-Z][A-Za-z]+$/.test(k) ? k : event);
     };
     walk(raw, '');
@@ -123,9 +124,11 @@ export function suggestTuning(d: Diagnostics, tuning: Tuning, decisions: Decisio
   add(paths.config, 'tuning.sqlite.ledgerBusyTimeoutMs', tuning.sqlite.ledgerBusyTimeoutMs, Math.min(60000, Math.max(10000, ceilTo(d.sqliteCommit.p90Ms * 1000, 1000))),
     `SQLite commit p90 ${d.sqliteCommit.p90Ms} ms; capture ledgers take many concurrent hook writes: wait = 1000×p90, 10-60 s`);
   if (decisions && 'coldMs' in d.provider) {
-    const timeoutMs = Math.max(30000, ceilTo(d.provider.coldMs * 3, 1000));
-    add(paths.decisions, 'worker.timeoutMs', decisions.worker.timeoutMs, timeoutMs,
-      `${d.provider.name} decision: first (cold) ${d.provider.coldMs} ms, then ${d.provider.warmMs} ms; timeout = 3×cold, at least 30 s`);
+    // A cached model answers fast; after the OS drops it a cold start is slower, so never below the default.
+    const floor = decisionConfigSchema.parse({ provider: 'mlxcel' }).worker.timeoutMs;
+    const timeoutMs = Math.max(floor, ceilTo(d.provider.coldMs * 3, 1000));
+    add(paths.decisions, 'worker.timeoutMs', decisions.worker.timeoutMs, Math.max(decisions.worker.timeoutMs, timeoutMs),
+      `${d.provider.name} decision: first ${d.provider.coldMs} ms, then ${d.provider.warmMs} ms; timeout = 3×first, never below ${floor} ms or the current value`);
     const maxAgeSeconds = Math.max(decisions.worker.maxAgeSeconds, Math.ceil(timeoutMs / 1000) * 10);
     add(paths.decisions, 'worker.maxAgeSeconds', decisions.worker.maxAgeSeconds, maxAgeSeconds,
       'a queued job must outlive about ten decisions ahead of it');
@@ -136,7 +139,7 @@ export function suggestTuning(d: Diagnostics, tuning: Tuning, decisions: Decisio
       `${d.machine.totalMemGb} GB memory: ${d.machine.totalMemGb <= 16 ? 'release the local model sooner when idle' : 'keep the local model warm between failures'}`);
   }
   const needed = Math.ceil(checkSeconds * 3 + 2);
-  for (const h of d.hostHooks) if (h.timeoutSeconds < needed)
+  for (const h of d.hostHooks) if (h.kind === 'capture' && h.timeoutSeconds < needed)
     add(h.file, `hooks.${h.event || '?'}.timeout`, h.timeoutSeconds, needed,
       `a hook may run up to three checks of ${checkSeconds} s plus capture; host settings are not edited by LYO`, false);
   return out;
