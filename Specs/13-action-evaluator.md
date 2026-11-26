@@ -31,6 +31,10 @@ redacted hook payload. No output text is stored.
 - A call that was declined, rejected by the host or interrupted remains a problem: the
   command never ran, so there is no outcome.
 - `sourceFiles` may be empty for action measurements.
+- `capture.commandPattern` (optional, a regular expression in the reviewed trial) makes the
+  measured action the next command whose text matches, e.g. the next JSON-parsing command.
+  Unmatched commands are neither captured nor decided; if none matches before the turn
+  ends, the window closes and the outcome is unknown.
 
 ### Outcome decision, asynchronous
 

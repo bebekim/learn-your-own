@@ -32,14 +32,14 @@ function scripted(levels: number[]) {
   return provider as TypedDecisionProvider & { calls: number };
 }
 
-function setup() {
+function setup(commandPattern?: string) {
   const f = trialFixture();
   const basis = { rationale: 'The action evaluator reads the captured command and the calibrated outcome decision.', verifierPaths: [EVALUATOR] };
   const trial = { ...f.trial, id: 'action-trial',
     trigger: { toolName: 'Bash', result: 'failure' as const, decision: { question, band: { no: 2.5, yes: 4 }, calibration } },
     measurement: { ...f.trial.measurement, sourceFiles: [], verifierFiles: [EVALUATOR],
       checks: Object.fromEntries(['applicability', 'adherence', 'prediction'].map(c => [c, `node '${EVALUATOR}' ${c}`])),
-      capture: { toolName: 'Bash', next: true as const, measures: 'action' as const } },
+      capture: { toolName: 'Bash', next: true as const, measures: 'action' as const, ...(commandPattern ? { commandPattern } : {}) } },
     review: { ...f.trial.review, applicability: basis, adherence: basis, prediction: basis } };
   trials.registerFindingTrial(f.store, trial);
   const hook = (event: Record<string, unknown>) => {
@@ -124,4 +124,28 @@ test('a declined next command has no outcome decision and no pass/fail outcome',
     assert.notEqual(entry.evidence?.observedOutcome, 'fail');
     assert.notEqual(entry.evidence?.observedOutcome, 'pass');
   } finally { s.f.close(); }
+});
+
+test('a declared command pattern measures the next matching command, skipping unrelated ones', async () => {
+  const s = setup('\\bjq\\b|json\\.loads?\\b|JSON\\.parse');
+  try {
+    const provider = scripted([5, 1]);
+    const entry = await enrolled(s, provider);
+    const unrelated = { ...s.base, tool_use_id: 'unrelated-1', tool_input: { command: 'ls missing-dir' } };
+    s.hook({ ...unrelated, hook_event_name: 'PreToolUse' });
+    s.hook({ ...unrelated, hook_event_name: 'PostToolUseFailure', error: 'Exit code 1\nls: missing-dir: No such file or directory' });
+    assert.equal(s.f.store.getTrace(`finding-action:${entry.id}:before`), null, 'a non-matching command is not the measured action');
+    const parse = { ...s.base, tool_use_id: 'parse-1', tool_input: { command: 'gh api repos/x 2>/dev/null | jq .name' } };
+    s.hook({ ...parse, hook_event_name: 'PreToolUse' });
+    s.hook({ ...parse, hook_event_name: 'PostToolUse', tool_response: { exit_code: 0 } });
+    await s.worker(provider);
+    const done = s.opportunity()!;
+    assert.equal(done.evidence?.observedOutcome, 'pass');
+    assert.match(String(s.f.store.getTrace(`finding-action:${entry.id}:after`)?.payload_json ?? ''), /jq \.name/);
+  } finally { s.f.close(); }
+});
+
+test('an invalid command pattern is refused at registration', () => {
+  const s = (() => { try { return setup('(['); } catch (error) { return error; } })();
+  assert.ok(s instanceof Error && /commandPattern/.test(s.message));
 });

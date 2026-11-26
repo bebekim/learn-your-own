@@ -8,7 +8,7 @@ import { DENIAL_KINDS, NOT_EXECUTED_KINDS, failureSignals } from '../hooks/failu
 import type { DecisionConfig } from '../decisions/providers.ts';
 import { calibrationMismatch, decisionTriggerSchema, enqueueOutcomeJob, enqueueTriggerJob, ensureDecisionWorker, liveFailureState,
   recordOutcomeDecision, sessionTriggerDecisions, type DecisionTrigger } from './finding-decision-triggers.ts';
-import { findingActionBoundary, findingOutcomePending } from '../storage/finding-evidence.ts';
+import { commandPatternSchema, findingActionBoundary, findingOutcomePending } from '../storage/finding-evidence.ts';
 import { findingOpportunity } from './session-finding-evidence.ts';
 
 /** Events whose hook output reaches the model as context, so advice can be delivered there. */
@@ -27,7 +27,8 @@ const text = z.string().trim().min(1).max(2000);
 const measurementSchema = z.object({ claim: inputSchema.shape.claim, checks: inputSchema.shape.checks,
   sourceFiles: inputSchema.shape.sourceFiles, verifierFiles: inputSchema.shape.verifierFiles,
   evaluator: inputSchema.shape.evaluator, timeoutSeconds: inputSchema.shape.timeoutSeconds,
-  capture: z.object({ toolName: text, next: z.literal(true), measures: z.literal('action').optional() }).strict() }).strict();
+  capture: z.object({ toolName: text, next: z.literal(true), measures: z.literal('action').optional(),
+    commandPattern: commandPatternSchema.optional() }).strict() }).strict();
 const trialSchema = z.object({ id: text, findingId: text, findingVersion: text, roots: z.array(text).min(1), model: text,
   runtime: z.enum(['codex', 'claude']).optional(),
   supersedes: text.optional(),

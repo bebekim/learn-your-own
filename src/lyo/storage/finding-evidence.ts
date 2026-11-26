@@ -4,11 +4,21 @@ import { hashValue } from '../contract/refs.ts';
 import { assessFindingObservation } from '../domain/finding-assessment.ts';
 
 const captureText = z.string().min(1);
+export const commandPatternSchema = z.string().min(1).max(500)
+  .refine(source => { try { new RegExp(source); return true; } catch { return false; } }, 'commandPattern must be a valid regular expression');
+/** The command text of a tool input: a string input, or its `command` field. */
+export function toolCommand(input: unknown) {
+  return typeof input === 'string' ? input : typeof (input as Record<string, unknown> | undefined)?.command === 'string'
+    ? (input as Record<string, string>).command : '';
+}
 export const captureSchema = z.object({ runtime: z.enum(['codex', 'claude']), toolName: captureText,
   toolInput: z.union([z.record(z.string(), z.unknown()), z.string()]).optional(), next: z.literal(true).optional(),
   // Spec 13: the outcome is the captured command itself, not workspace files.
-  measures: z.literal('action').optional() }).strict()
-  .refine(value => (value.toolInput !== undefined) !== Boolean(value.next), 'declare an exact input or the next matching tool action');
+  measures: z.literal('action').optional(),
+  // The next action is the next one whose command matches this declared, reviewed pattern (e.g. a JSON parser).
+  commandPattern: commandPatternSchema.optional() }).strict()
+  .refine(value => (value.toolInput !== undefined) !== Boolean(value.next), 'declare an exact input or the next matching tool action')
+  .refine(value => value.commandPattern === undefined || value.next, 'a command pattern selects the next matching action');
 const capturedFilesSchema = z.array(z.object({ path: captureText, content: z.string().nullable() }).strict());
 const modelSchema = z.object({ source: z.literal('session-finding-model@1'), runtime: captureText, sessionId: captureText,
   model: captureText, eventName: captureText, hash: captureText }).strict();
