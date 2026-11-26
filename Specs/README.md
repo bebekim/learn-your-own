@@ -2,7 +2,7 @@
 
 Reviewed 2026-11-26, source package `0.4.3-adaptive.20` and later.
 Asynchronous calibrated decisions, action evaluators and the hypothesis generator
-are merged, and one live prospective trial (`json-output-handling-haiku-1`) is
+are merged, and one live prospective trial (`json-output-handling-opus-1`, which supersedes the Haiku trial) is
 enrolling. Source availability, local installation and npm publication are
 separate: the registry's `latest` tag still points to `0.2.0` on this date.
 
