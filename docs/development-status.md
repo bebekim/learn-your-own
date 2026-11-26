@@ -81,7 +81,7 @@ Code have capture adapters with different event contracts. A Go adapter is defer
 ## Next development
 
 1. **Demonstrate useful ordinary-work learning.** The first real trial
-   (`json-output-handling-opus-1`, Claude Opus sessions; it replaced the Haiku
+   (`json-output-handling-opus-2`, Claude Opus sessions; it replaced the Haiku
    trial, which never enrolled) uses a calibrated trigger and measures the next
    JSON-parsing command. It needs about 80 sessions before its comparison can
    justify continued delivery; adherence stays unmeasured until enough

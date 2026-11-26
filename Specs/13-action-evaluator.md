@@ -35,6 +35,13 @@ redacted hook payload. No output text is stored.
   measured action the next command whose text matches, e.g. the next JSON-parsing command.
   Unmatched commands are neither captured nor decided; if none matches before the turn
   ends, the window closes and the outcome is unknown.
+- Why a pattern, not a calibrated decision (checked 2026-11-26): 220 recent Bash commands
+  (90 pattern matches, 80 unmatched that mention JSON or structured data, 50 others) were
+  scored by Decider-2b on "does this command parse JSON?". At the best threshold it
+  disagreed with the pattern on 17; adjudicated by hand, the pattern was right on 15,
+  including commands piping into a JSON parser, the trial's own situation. Decoding JSON
+  is visible in the command text, so the reviewed pattern is the better witness. One miss
+  (`JSONDecoder`) was added to the live trial's pattern.
 
 ### Outcome decision, asynchronous
 
