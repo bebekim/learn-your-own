@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Generated settings docs.** The settings tables in `docs/tuning.md` are generated from the zod schemas (descriptions, defaults, ranges); `npm run docs:gen` rewrites marked regions and `npm test` fails while a page is stale or a setting lacks a description.
+- **AGENTS.md no longer carries the proxy-versus-witness mandate.** Like the removed SessionStart injection, a standing rule in agent instructions is what LYO replaces with scoped, evidence-backed advice.
 - **Capture the next matching command.** A trial's `measurement.capture.commandPattern` (a reviewed regular expression) measures the next command that matches it, such as the next JSON-parsing command, instead of whatever command comes next.
 - **Machine-dependent settings are configuration.** Hook check budget, stdin guard, git and SQLite timeouts live in `tuning` in `<LYO_HOME>/config.json`; the generator request timeout in `decisions.json`. Defaults are unchanged. `LYO_CAPTURE_CHECK_SECONDS` is replaced by `tuning.hooks.checkSeconds`.
 - **`lyo tune`** measures node start-up, git, SQLite commits and (optionally) one local decision, and suggests a value per setting with its reason; `--apply` writes LYO's own files after a backup. A global install runs the quick diagnostics once and leaves a notice. See [tuning](docs/tuning.md).

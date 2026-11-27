@@ -37,6 +37,8 @@
     "eval:validate": "node src/cli.ts eval validate",
     "demo": "node src/cli.ts demo fixture-replay",
     "pack:local": "node scripts/pack-npm.mjs",
+    "docs:gen": "node scripts/gen-docs.mjs",
+    "docs:check": "node scripts/gen-docs.mjs --check",
     "publish:registry": "node scripts/publish-npm.mjs"
   },
   "engines": {

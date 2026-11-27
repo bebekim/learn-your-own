@@ -6,21 +6,49 @@ configuration, never in code, and measures the machine to suggest values.
 
 ## Where settings live
 
-| File (under `LYO_HOME`, default `~/.lyo`) | Section | What it controls |
-|---|---|---|
-| `config.json` | `tuning.hooks.checkSeconds` | Wall-time budget per evaluator check inside a hook (default 2). Running out reads as unknown and declines enrollment. |
-| `config.json` | `tuning.hooks.stdinGuardMs` | A hook exits after this long if the host never closes stdin (default 2500). |
-| `config.json` | `tuning.git.timeoutMs` | Repository identity lookups (default 1000). A timeout loses the repository identity. |
-| `config.json` | `tuning.sqlite.busyTimeoutMs` | Lock wait for the lesson store and corpus (default 5000). |
-| `config.json` | `tuning.sqlite.ledgerBusyTimeoutMs` | Lock wait for per-repository capture ledgers (default 10000). |
-| `config.json` | `tuning.lab.openaiCompatibleMs`, `upstageMs`, `kimiCliMs` | One model call by each lab executor (defaults 120000, 300000, 600000). |
-| `config.json` | `tuning.lab.kimiRetryDelayMs` | Pause before the Kimi CLI executor retries (default 5000). |
-| `config.json` | `tuning.lab.verifierMs`, `judgeMs`, `elaboratorMs` | One lab verifier test run, judge call and elaborator call (defaults 300000, 180000, 8000). |
-| `config.json` | `tuning.decisions.replayMs` | One decision while replaying a case set or matching shadowed hypotheses (default 120000). |
-| `config.json` | `tuning.decisions.jevRequestMs` | One request to a Jev decision server (default 10000). |
-| `config.json` | `tuning.sessions.staleAfterHours` | A host session quiet this long is bridged as ended (default 12). |
-| `decisions.json` | `worker.*` | Background decision worker: per-decision timeout, job age, idle shutdown, TTL, queue size. |
-| `decisions.json` | `generator.requestTimeoutMs` | Hypothesis generator request timeout (default 300000). |
+Both files live under `LYO_HOME` (default `~/.lyo`). The tables below are generated from
+the configuration schemas (`npm run docs:gen`), so defaults and ranges are the code's own.
+
+### `config.json`
+
+<!-- generated:tuning-settings -->
+| Setting | Default | Range | What it controls |
+|---|---|---|---|
+| `tuning.hooks.checkSeconds` | `2` | 0.2–30 | Wall-time budget for each evaluator check run inside a hook; running out reads as unknown. |
+| `tuning.hooks.stdinGuardMs` | `2500` | 100–60000 | A hook process exits after this long if the host never closes stdin. |
+| `tuning.git.timeoutMs` | `1000` | 100–60000 | Repository identity lookups (`git rev-parse`) made during hooks and commands. A timeout loses the repository identity. |
+| `tuning.sqlite.busyTimeoutMs` | `5000` | 0–120000 | How long a writer waits for another writer's lock on the lesson store or corpus before failing. |
+| `tuning.sqlite.ledgerBusyTimeoutMs` | `10000` | 0–120000 | The same for per-repository capture ledgers, which many concurrent hooks write. |
+| `tuning.lab.openaiCompatibleMs` | `120000` | 1000–3600000 | One model call by the OpenAI-compatible lab executor (OpenRouter, local servers). |
+| `tuning.lab.upstageMs` | `300000` | 1000–3600000 | One model call by the Upstage executor. |
+| `tuning.lab.kimiCliMs` | `600000` | 1000–3600000 | One run of the Kimi CLI executor. |
+| `tuning.lab.kimiRetryDelayMs` | `5000` | 0–600000 | Pause before the Kimi CLI executor retries. |
+| `tuning.lab.verifierMs` | `300000` | 1000–3600000 | One `node --test` run by the lab verifier. |
+| `tuning.lab.judgeMs` | `180000` | 1000–3600000 | One OpenRouter judge call. |
+| `tuning.lab.elaboratorMs` | `8000` | 500–600000 | One elaborator-reflector call. |
+| `tuning.decisions.replayMs` | `120000` | 1000–1800000 | One decision while replaying a case set or matching shadowed hypotheses (not the hook worker). |
+| `tuning.decisions.jevRequestMs` | `10000` | 500–600000 | One request to a Jev decision server. |
+| `tuning.sessions.staleAfterHours` | `12` | 0.1–720 | A host session quiet this long is bridged as ended. |
+<!-- /generated:tuning-settings -->
+
+### `decisions.json` (worker and hypothesis generator)
+
+<!-- generated:decision-settings -->
+| Setting | Default | Range | What it controls |
+|---|---|---|---|
+| `worker.idleSeconds` | `600` | 1–86400 | The decision worker exits (releasing a local model) after this long idle. |
+| `worker.ttlSeconds` | `14400` | 10–86400 | The decision worker exits after this long in total. |
+| `worker.maxAgeSeconds` | `900` | 10–86400 | A queued decision older than this is recorded as expired, not decided. |
+| `worker.timeoutMs` | `60000` | 100–300000 | One background decision; a timeout records unknown. |
+| `worker.maxQueued` | `200` | 1–10000 | Queue size; a job beyond it is dropped and recorded unknown. |
+| `generator.model` | `anthropic/claude-sonnet-5.5` |  | OpenRouter model that proposes hypotheses. |
+| `generator.zdr` | `true` |  | Route only to zero-data-retention endpoints. |
+| `generator.maxOutputTokens` | `8000` | 500–32000 | Output token limit per generator request. |
+| `generator.maxEpisodes` | `80` | 5–400 | Failure and repair episodes sent per proposal run. |
+| `generator.maxShadowing` | `5` | 1–50 | Hypotheses shadowing at once. |
+| `generator.requestTimeoutMs` | `300000` | 1000–1800000 | One generator request. |
+| `generator.retries` | `1` | 0–1 | Corrective calls after rejected proposals or too few rivals. |
+<!-- /generated:decision-settings -->
 
 `LYO_CONFIG_FILE` and `LYO_DECISIONS_FILE` point at other files. An invalid `tuning`
 section is reported on stderr and replaced by defaults, so a typo never blocks a hook.

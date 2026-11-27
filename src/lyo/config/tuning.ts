@@ -11,46 +11,31 @@ import { lyoHome } from '../storage/lyo-home.ts';
 
 export const tuningSchema = z.object({
   hooks: z.object({
-    /** Wall-time budget for each evaluator check run inside a hook; running out reads as unknown. */
-    checkSeconds: z.number().min(0.2).max(30).default(2),
-    /** A hook process exits after this long if the host never closes stdin. */
-    stdinGuardMs: z.number().int().min(100).max(60000).default(2500),
+    checkSeconds: z.number().min(0.2).max(30).default(2).describe('Wall-time budget for each evaluator check run inside a hook; running out reads as unknown.'),
+    stdinGuardMs: z.number().int().min(100).max(60000).default(2500).describe('A hook process exits after this long if the host never closes stdin.'),
   }).strict().prefault({}),
   git: z.object({
-    /** Repository identity lookups (`git rev-parse`) made during hooks and commands. */
-    timeoutMs: z.number().int().min(100).max(60000).default(1000),
+    timeoutMs: z.number().int().min(100).max(60000).default(1000).describe('Repository identity lookups (`git rev-parse`) made during hooks and commands. A timeout loses the repository identity.'),
   }).strict().prefault({}),
   sqlite: z.object({
-    /** How long a writer waits for another writer's lock on the lesson store or corpus before failing. */
-    busyTimeoutMs: z.number().int().min(0).max(120000).default(5000),
-    /** The same for per-repository capture ledgers, which many concurrent hooks write. */
-    ledgerBusyTimeoutMs: z.number().int().min(0).max(120000).default(10000),
+    busyTimeoutMs: z.number().int().min(0).max(120000).default(5000).describe('How long a writer waits for another writer\'s lock on the lesson store or corpus before failing.'),
+    ledgerBusyTimeoutMs: z.number().int().min(0).max(120000).default(10000).describe('The same for per-repository capture ledgers, which many concurrent hooks write.'),
   }).strict().prefault({}),
   lab: z.object({
-    /** One model call by the OpenAI-compatible lab executor (OpenRouter, local servers). */
-    openaiCompatibleMs: z.number().int().min(1000).max(3600000).default(120000),
-    /** One model call by the Upstage executor. */
-    upstageMs: z.number().int().min(1000).max(3600000).default(300000),
-    /** One run of the Kimi CLI executor. */
-    kimiCliMs: z.number().int().min(1000).max(3600000).default(600000),
-    /** Pause before the Kimi CLI executor retries. */
-    kimiRetryDelayMs: z.number().int().min(0).max(600000).default(5000),
-    /** One `node --test` run by the lab verifier. */
-    verifierMs: z.number().int().min(1000).max(3600000).default(300000),
-    /** One OpenRouter judge call. */
-    judgeMs: z.number().int().min(1000).max(3600000).default(180000),
-    /** One elaborator-reflector call. */
-    elaboratorMs: z.number().int().min(500).max(600000).default(8000),
+    openaiCompatibleMs: z.number().int().min(1000).max(3600000).default(120000).describe('One model call by the OpenAI-compatible lab executor (OpenRouter, local servers).'),
+    upstageMs: z.number().int().min(1000).max(3600000).default(300000).describe('One model call by the Upstage executor.'),
+    kimiCliMs: z.number().int().min(1000).max(3600000).default(600000).describe('One run of the Kimi CLI executor.'),
+    kimiRetryDelayMs: z.number().int().min(0).max(600000).default(5000).describe('Pause before the Kimi CLI executor retries.'),
+    verifierMs: z.number().int().min(1000).max(3600000).default(300000).describe('One `node --test` run by the lab verifier.'),
+    judgeMs: z.number().int().min(1000).max(3600000).default(180000).describe('One OpenRouter judge call.'),
+    elaboratorMs: z.number().int().min(500).max(600000).default(8000).describe('One elaborator-reflector call.'),
   }).strict().prefault({}),
   decisions: z.object({
-    /** One decision while replaying a case set or matching shadowed hypotheses (not the hook worker). */
-    replayMs: z.number().int().min(1000).max(1800000).default(120000),
-    /** One request to a Jev decision server. */
-    jevRequestMs: z.number().int().min(500).max(600000).default(10000),
+    replayMs: z.number().int().min(1000).max(1800000).default(120000).describe('One decision while replaying a case set or matching shadowed hypotheses (not the hook worker).'),
+    jevRequestMs: z.number().int().min(500).max(600000).default(10000).describe('One request to a Jev decision server.'),
   }).strict().prefault({}),
   sessions: z.object({
-    /** A host session quiet this long is bridged as ended. */
-    staleAfterHours: z.number().min(0.1).max(720).default(12),
+    staleAfterHours: z.number().min(0.1).max(720).default(12).describe('A host session quiet this long is bridged as ended.'),
   }).strict().prefault({}),
 }).strict();
 export type Tuning = z.infer<typeof tuningSchema>;

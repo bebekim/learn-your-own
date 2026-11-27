@@ -31,7 +31,7 @@ export const decisionConfigSchema = z.object({
   openrouter: z.object({
     model: z.string().min(1).default('upstage/solar-decide'),
     apiKeyEnvFile: z.string().min(1).optional(),
-    zdr: z.boolean().default(true),
+    zdr: z.boolean().default(true).describe('Route only to zero-data-retention endpoints.'),
   }).strict().default({ model: 'upstage/solar-decide', zdr: true }),
   jev: z.object({
     model: z.string().min(1).default(DEFAULT_JEV_MODEL),
@@ -40,22 +40,22 @@ export const decisionConfigSchema = z.object({
   // Spec 14: the hypothesis generator, a text model. Absent means `hypotheses propose` sends nothing.
   generator: z.object({
     provider: z.literal('openrouter'),
-    model: z.string().min(1).default('anthropic/claude-sonnet-5.5'),
+    model: z.string().min(1).default('anthropic/claude-sonnet-5.5').describe('OpenRouter model that proposes hypotheses.'),
     apiKeyEnvFile: z.string().min(1).optional(),
-    zdr: z.boolean().default(true),
-    maxOutputTokens: z.number().int().min(500).max(32000).default(8000),
-    maxEpisodes: z.number().int().min(5).max(400).default(80),
-    maxShadowing: z.number().int().min(1).max(50).default(5),
-    requestTimeoutMs: z.number().int().min(1000).max(1800000).default(300000),
+    zdr: z.boolean().default(true).describe('Route only to zero-data-retention endpoints.'),
+    maxOutputTokens: z.number().int().min(500).max(32000).default(8000).describe('Output token limit per generator request.'),
+    maxEpisodes: z.number().int().min(5).max(400).default(80).describe('Failure and repair episodes sent per proposal run.'),
+    maxShadowing: z.number().int().min(1).max(50).default(5).describe('Hypotheses shadowing at once.'),
+    requestTimeoutMs: z.number().int().min(1000).max(1800000).default(300000).describe('One generator request.'),
     // Corrective calls after rejected proposals or too few rivals.
-    retries: z.number().int().min(0).max(1).default(1),
+    retries: z.number().int().min(0).max(1).default(1).describe('Corrective calls after rejected proposals or too few rivals.'),
   }).strict().optional(),
   worker: z.object({
-    idleSeconds: z.number().int().min(1).max(86400).default(600),
-    ttlSeconds: z.number().int().min(10).max(86400).default(14400),
-    maxAgeSeconds: z.number().int().min(10).max(86400).default(900),
-    timeoutMs: z.number().int().min(100).max(300000).default(60000),
-    maxQueued: z.number().int().min(1).max(10000).default(200),
+    idleSeconds: z.number().int().min(1).max(86400).default(600).describe('The decision worker exits (releasing a local model) after this long idle.'),
+    ttlSeconds: z.number().int().min(10).max(86400).default(14400).describe('The decision worker exits after this long in total.'),
+    maxAgeSeconds: z.number().int().min(10).max(86400).default(900).describe('A queued decision older than this is recorded as expired, not decided.'),
+    timeoutMs: z.number().int().min(100).max(300000).default(60000).describe('One background decision; a timeout records unknown.'),
+    maxQueued: z.number().int().min(1).max(10000).default(200).describe('Queue size; a job beyond it is dropped and recorded unknown.'),
   }).strict().default({ idleSeconds: 600, ttlSeconds: 14400, maxAgeSeconds: 900, timeoutMs: 60000, maxQueued: 200 }),
 }).strict();
 export type DecisionConfig = z.infer<typeof decisionConfigSchema>;
