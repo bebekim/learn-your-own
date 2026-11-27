@@ -183,6 +183,7 @@ Each finding owns a **case set**: labelled episodes stored locally under
 repository content.
 
 ```
+labelling.md    the labelling rule the cases were made under
 cases.jsonl     { id, state, inputFormat, label: true|false|"ambiguous", labelSource, addedAt, split }
 splits.json     { "test": [ids], "calibration": [ids], "testHash": "<hash of sorted test ids and their labels>" }
 decisions/      <provider>/<model>.jsonl   cached answers, keyed by request hash
@@ -199,6 +200,14 @@ decisions/      <provider>/<model>.jsonl   cached answers, keyed by request hash
   checked against. Changing the test set is an explicit `--new-test-set` action, which
   writes a new hash. Results from different test sets are not compared as if they were
   the same.
+- **A case set states its labelling rule** in `labelling.md`, beside the cases, so a label
+  can be checked against the rule it was made under.
+- **Judge the situation at the decision point, not at the root cause.** For a trigger
+  about what a step received (such as a JSON parser), the case is true when that input
+  reached the step, whatever caused it upstream. A repaired upstream cause witnesses
+  false only when the input never reached the step. Decided for `json-parse-input` on
+  2026-11-27: its 19 upstream-fix cases stay true, and Decider-2b already scores them as
+  the situation (median 4.41; 18 of 19 at or above the yes band).
 - **New cases go to calibration.** Episodes added later, from reviewed deliveries or
   from missed failures found in review, join `calibration`. Adding cases never changes
   the test set.
