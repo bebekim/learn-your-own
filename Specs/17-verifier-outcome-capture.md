@@ -1,6 +1,6 @@
 # Spec 17: Verifier outcome capture
 
-Status: **proposed** (2026-11-28). Related: [Spec 13](13-action-evaluator.md) (action context),
+Status: **Phase 1 done** (2026-11-28, [audit](../evidence/verifier-outcome-audit-2026-11-28/audit.md)). Related: [Spec 13](13-action-evaluator.md) (action context),
 [Spec 5.2](5.2-cost-attribution-turn-id.md), CHANGELOG `0.4.3-adaptive.10` (session bridge repair).
 
 ## Problem
@@ -31,6 +31,19 @@ CHANGELOG `0.4.3-adaptive.10` records the same defect: the session bridge requir
 The corpus rows do not show that fix. They carry no `unknown` verify outcomes and no failures, so
 either they were built before `adaptive.10`, or the corpus importer still maps every recorded
 command to `succeeded`. This spec does not assume which; Phase 1 settles it.
+
+**Phase 1 result:** the corpora predate the rule. Both were built in June 2026; the repair commit
+`5a72bd4` is dated 2026-11-16. Neither corpus contains a `PostToolUseFailure` or `tool.failure`
+event, and no stored `tool_response` carries an exit code (keys are only `sha256`, `output_size`,
+`truncated`, `recorded`). Under the current rule:
+
+- **Codex verifies (`tool.after`) derive to `unknown`.** That is the correct outcome for these rows,
+  not an importer bug. Codex pass/fail needs a result signal the host sends; none has been observed.
+- **Claude verifies (`PostToolUse`) can derive to `pass`.** `fail` has never been captured, so it is
+  unobserved, not disproven.
+
+The finding rests on reading `inferHookCommandStatus` in `src/lyo/hooks/normalizer.ts`; the live
+recorder has not been replayed on a current failure.
 
 ## Goals
 
@@ -83,7 +96,10 @@ Confirm whether `PostToolUseFailure` events exist in the source ledgers at all. 
 the hook is not being captured, and that is the fix. Report which importer version produced each
 corpus.
 
-**Phase 2 — derive.** Implement the derivation order and command rules. Re-derive the work and
+**Phase 2 — derive.** First, capture one real failing verify from each host (a deliberately
+failing `pytest` under Codex and under Claude) and record which payload field, if any, carries the
+failure. Until a Codex failure signal is found, Codex verifies stay `unknown`. Then implement the
+derivation order and command rules. Re-derive the work and
 lyo corpora. Acceptance: a sample of at least 50 `pytest` verifies is checked by hand against the
 real run, and the derived outcome matches in at least 45. The sample and the disagreements are
 recorded in the evidence folder.
