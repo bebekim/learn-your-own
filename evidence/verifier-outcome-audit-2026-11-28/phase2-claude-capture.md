@@ -25,12 +25,13 @@ types, statuses and exit codes only.
    Spec 17's command rules must apply at the status layer too, or base rates will count masked
    failures as passes.
 3. **Gate type is not derived.** Every pytest row has `classification = unknown`, not `test`.
+   Cause (found in the Codex capture): `uvx` is not a recognised verifier wrapper; plain `pytest`
+   classifies as `test`.
 4. **One failure is missing (command 4).** Two `tool.failure` events exist for three failing calls.
    Eight spool files were still in `hook-spool/incoming` when the ledger was copied, so this may be
    normalization lag, not loss. Recheck after the next Stop-hook drain.
 
-## Still open
+## Codex
 
-- **Codex capture.** Not run: it needs a Codex session (model tokens). `lyo codex-hook` has a
-  `--capture-command-status` flag, and the installed `~/.codex/hooks.json` passes it. A failing
-  pytest in a Codex session will show whether that flag yields a status for Codex verifies.
+Done in [`phase2-codex-capture.md`](phase2-codex-capture.md): Codex pass and fail are captured
+through lyo's command receipt for standalone verifiers, and piped verifiers stay `unknown`.

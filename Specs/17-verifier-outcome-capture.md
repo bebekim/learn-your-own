@@ -64,7 +64,7 @@ recorder has not been replayed on a current failure.
 | Field | Values | Meaning |
 |---|---|---|
 | `outcome` | `pass` / `fail` / `unknown` | Result of the verifier |
-| `outcome_source` | `hook_event` / `exit_code` / `none` | How it was determined |
+| `outcome_source` | `hook_event` / `exit_code` / `test_summary` / `none` | How it was determined |
 | `gate` | `pytest` / `ruff` / `mypy` / `build` / `other` | Derived from argv |
 | `captured_version` | integer | Derivation version, e.g. `adaptive.10` = 2 |
 
@@ -98,7 +98,12 @@ corpus.
 
 **Phase 2 — derive.** First, capture one real failing verify from each host (a deliberately
 failing `pytest` under Codex and under Claude) and record which payload field, if any, carries the
-failure. Until a Codex failure signal is found, Codex verifies stay `unknown`. Then implement the
+failure. Until a Codex failure signal is found, Codex verifies stay `unknown`. (Done 2026-11-28:
+Claude carries `exit_code` on `tool.failure`; Codex gets it from lyo's `command-receipt@1` for
+standalone verifiers only. Gaps found: piped verifiers are `succeeded` under Claude, `uvx` is not a
+recognised wrapper, and a piped run's `test_summary` is not yet used. See
+[Claude](../evidence/verifier-outcome-audit-2026-11-28/phase2-claude-capture.md) and
+[Codex](../evidence/verifier-outcome-audit-2026-11-28/phase2-codex-capture.md).) Then implement the
 derivation order and command rules. Re-derive the work and
 lyo corpora. Acceptance: a sample of at least 50 `pytest` verifies is checked by hand against the
 real run, and the derived outcome matches in at least 45. The sample and the disagreements are
